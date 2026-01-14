@@ -51,6 +51,7 @@ export const EDITIONS_DATA: Record<string, Edition> = {
         city: 'Hyderabad',
         year: '2025',
         status: 'completed',
+        cardQuote: "The moment 230 strangers became one family",
 
         hero: {
             type: 'video',
@@ -58,7 +59,7 @@ export const EDITIONS_DATA: Record<string, Edition> = {
             videoPoster: '/images/editions/hyderabad-poster.jpg',
             title: 'EKATVA Hyderabad',
             subtitle: 'February 2025',
-            venue: 'Inorbit Mall, Hyderabad'
+            venue: 'Ripplez Events Space'
         },
 
         stats: [
@@ -359,6 +360,7 @@ export const EDITIONS_DATA: Record<string, Edition> = {
         city: 'Bangalore',
         year: '2025',
         status: 'upcoming',
+        cardQuote: "Your city. Your fest. Your moment.",
 
         hero: {
             type: 'image',

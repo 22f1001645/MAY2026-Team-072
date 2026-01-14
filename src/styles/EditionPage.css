@@ -434,75 +434,108 @@
 }
 
 /* ============================================
-   PREMIUM TYPOGRAPHY UPGRADE
+   PREMIUM TYPOGRAPHY UPGRADE (ANTIGRAVITY EDITION)
    ============================================ */
 
 /* Edition Marker - Replaces Status Badge */
 .hero-edition-marker {
     font-family: var(--font-sans);
-    font-weight: 300;
-    font-size: 12px;
-    letter-spacing: 0.3em;
-    color: rgba(92, 230, 201, 0.8);
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: rgba(92, 230, 201, 0.9);
     text-transform: uppercase;
-    border: 1px solid rgba(92, 230, 201, 0.3);
-    padding: 8px 20px;
+    /* Ultra-thin elegant border */
+    border: 1px solid rgba(92, 230, 201, 0.2);
+    /* Subtle inner glow */
+    box-shadow: inset 0 0 12px rgba(92, 230, 201, 0.05);
+    padding: 10px 24px;
     border-radius: 100px;
     margin-bottom: 24px;
     display: inline-block;
+    backdrop-filter: blur(4px);
 }
 
-/* Premium Brand Name */
+/* Premium Brand Name - Ethereal & Floating */
 .hero-theatrical-title .title-brand-premium {
-    font-size: 18px;
-    font-weight: 300;
-    color: rgba(92, 230, 201, 0.95);
-    letter-spacing: 0.3em;
+    font-size: 16px;
+    font-weight: 500;
+    color: #5CE6C9;
+    letter-spacing: 0.5em;
+    /* Extreme spacing for luxury */
     text-transform: uppercase;
-    text-shadow: 0 0 20px rgba(92, 230, 201, 0.3);
+    margin-bottom: -4px;
+    /* Pull tighter to the city name */
+    position: relative;
+    z-index: 2;
+    /* Multi-layered glow for "neon in fog" effect */
+    text-shadow:
+        0 0 10px rgba(92, 230, 201, 0.4),
+        0 0 20px rgba(92, 230, 201, 0.2),
+        0 0 40px rgba(92, 230, 201, 0.1);
 }
 
-/* Premium City Name - The Hero */
+/* Premium City Name - The Monolith */
 .hero-theatrical-title .title-city-premium {
     font-family: var(--font-serif);
-    font-size: 96px;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.05em;
-    line-height: 1.1;
+    font-size: 110px;
+    /* Massive scale */
+    font-weight: 400;
+    /* Lighter weight for elegance */
+    letter-spacing: -0.02em;
+    /* Tight tracking for serif */
+    line-height: 0.9;
     text-transform: uppercase;
-    text-shadow:
-        0 4px 30px rgba(0, 0, 0, 0.5),
-        0 0 40px rgba(92, 230, 201, 0.15);
+    margin-top: 0;
+    margin-bottom: 0;
+
+    /* Silver/White Metallic Gradient */
+    background: linear-gradient(180deg,
+            #FFFFFF 20%,
+            #E0E0E0 60%,
+            #A0A0A0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    /* Fallback */
+
+    /* Deep atmospheric drop shadow */
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
 }
 
-/* Decorative Underline */
+/* Decorative Underline - The Horizon Line */
 .title-underline {
-    width: 80px;
-    height: 1px;
-    background: rgba(92, 230, 201, 0.4);
-    margin: 4px auto 32px;
-    transform-origin: center;
+    width: 60px;
+    height: 2px;
+    /* Fade out at edges */
+    background: linear-gradient(90deg,
+            transparent 0%,
+            #5CE6C9 50%,
+            transparent 100%);
+    margin: 8px auto 16px;
+    opacity: 0.8;
 }
 
-/* Premium Date - Editorial Format */
+/* Premium Date - Editorial Precision */
 .hero-date-premium {
     font-family: var(--font-sans);
-    font-weight: 400;
-    font-size: 16px;
-    letter-spacing: 0.15em;
-    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.25em;
+    /* Wide editorial tracking */
+    color: rgba(255, 255, 255, 0.8);
     text-transform: uppercase;
-    margin-top: 32px;
-    margin-bottom: 8px;
+    margin-top: 0;
+    margin-bottom: 12px;
 }
 
-/* Premium Venue - With Icon */
+/* Premium Venue - Minimalist Anchor */
 .hero-venue-premium {
     font-family: var(--font-sans);
-    font-weight: 300;
-    font-size: 14px;
-    letter-spacing: 0.1em;
+    font-weight: 400;
+    font-size: 12px;
+    letter-spacing: 0.15em;
     color: rgba(255, 255, 255, 0.5);
     text-transform: uppercase;
     margin-bottom: 40px;
@@ -773,8 +806,7 @@
 }
 
 .timeline-accordion-item[data-open="true"] {
-    border-color: rgba(92, 230, 201, 0.25);
-    box-shadow: 0 0 24px rgba(92, 230, 201, 0.15);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 /* Timeline Connector (Left Spine) */
@@ -836,9 +868,7 @@
 }
 
 .timeline-accordion-header:focus {
-    outline: 2px solid rgba(92, 230, 201, 0.5);
-    outline-offset: 4px;
-    border-radius: 8px;
+    outline: none;
 }
 
 .timeline-header-text {

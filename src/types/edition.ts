@@ -144,6 +144,7 @@ export interface Edition {
     city: string;
     year: string;
     status: EditionStatus;
+    cardQuote?: string;
 
     hero: HeroData;
     stats: StatData[];

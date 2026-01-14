@@ -433,18 +433,103 @@
     color: #5CE6C9;
 }
 
+/* ============================================
+   PREMIUM TYPOGRAPHY UPGRADE
+   ============================================ */
+
+/* Edition Marker - Replaces Status Badge */
+.hero-edition-marker {
+    font-family: var(--font-sans);
+    font-weight: 300;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    color: rgba(92, 230, 201, 0.8);
+    text-transform: uppercase;
+    border: 1px solid rgba(92, 230, 201, 0.3);
+    padding: 8px 20px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+    display: inline-block;
+}
+
+/* Premium Brand Name */
+.hero-theatrical-title .title-brand-premium {
+    font-size: 18px;
+    font-weight: 300;
+    color: rgba(92, 230, 201, 0.95);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(92, 230, 201, 0.3);
+}
+
+/* Premium City Name - The Hero */
+.hero-theatrical-title .title-city-premium {
+    font-family: var(--font-serif);
+    font-size: 96px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    text-shadow:
+        0 4px 30px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(92, 230, 201, 0.15);
+}
+
+/* Decorative Underline */
+.title-underline {
+    width: 80px;
+    height: 1px;
+    background: rgba(92, 230, 201, 0.4);
+    margin: 4px auto 32px;
+    transform-origin: center;
+}
+
+/* Premium Date - Editorial Format */
+.hero-date-premium {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    margin-top: 32px;
+    margin-bottom: 8px;
+}
+
+/* Premium Venue - With Icon */
+.hero-venue-premium {
+    font-family: var(--font-sans);
+    font-weight: 300;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
 .hero-scroll-indicator .scroll-icon {
     animation: scrollBounce 2s ease-in-out infinite;
 }
 
 /* Responsive: Tablet */
 @media (max-width: 1024px) {
-    .hero-theatrical-title .title-city {
-        font-size: 56px;
+
+    .hero-theatrical-title .title-city,
+    .hero-theatrical-title .title-city-premium {
+        font-size: 72px;
     }
 
     .hero-video-frame {
         width: 95%;
+    }
+
+    .title-underline {
+        width: 60px;
     }
 }
 
@@ -454,12 +539,34 @@
         padding: 100px 16px 48px;
     }
 
-    .hero-theatrical-title .title-brand {
-        font-size: 18px;
+    .hero-edition-marker {
+        font-size: 10px;
+        padding: 6px 16px;
+        margin-bottom: 16px;
     }
 
-    .hero-theatrical-title .title-city {
-        font-size: 40px;
+    .hero-theatrical-title .title-brand,
+    .hero-theatrical-title .title-brand-premium {
+        font-size: 16px;
+    }
+
+    .hero-theatrical-title .title-city,
+    .hero-theatrical-title .title-city-premium {
+        font-size: 48px;
+    }
+
+    .title-underline {
+        width: 50px;
+    }
+
+    .hero-date-premium {
+        font-size: 14px;
+        margin-top: 24px;
+    }
+
+    .hero-venue-premium {
+        font-size: 12px;
+        margin-top: 8px;
     }
 
     .hero-theatrical-subtitle {
@@ -600,7 +707,7 @@
 }
 
 /* ============================================
-   SECTION 4: TIMELINE  - CLEAN & VISUAL
+   SECTION 4: TIMELINE - CINEMATIC ACCORDION
    ============================================ */
 
 .timeline-section {
@@ -610,94 +717,177 @@
     margin: 0 auto;
 }
 
-.timeline {
+/* Header with Collapse All Button */
+.timeline-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 48px;
+    gap: 24px;
+}
+
+.collapse-all-btn {
+    padding: 10px 20px;
+    background: rgba(92, 230, 201, 0.1);
+    border: 1px solid rgba(92, 230, 201, 0.3);
+    border-radius: 24px;
+    color: #5CE6C9;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.collapse-all-btn:hover {
+    background: rgba(92, 230, 201, 0.2);
+    border-color: rgba(92, 230, 201, 0.5);
+    box-shadow: 0 0 16px rgba(92, 230, 201, 0.2);
+}
+
+/* Accordion Container */
+.timeline-accordion {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 80px;
-    padding-top: 40px;
+    gap: 12px;
 }
 
-.timeline-item {
+/* Individual Accordion Item */
+.timeline-accordion-item {
     position: relative;
     display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 32px;
+    grid-template-columns: 40px 1fr;
+    gap: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
 }
 
+.timeline-accordion-item:hover {
+    border-color: rgba(92, 230, 201, 0.2);
+    box-shadow: 0 0 20px rgba(92, 230, 201, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.timeline-accordion-item[data-open="true"] {
+    border-color: rgba(92, 230, 201, 0.25);
+    box-shadow: 0 0 24px rgba(92, 230, 201, 0.15);
+}
+
+/* Timeline Connector (Left Spine) */
 .timeline-connector {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    width: 100%;
+    padding-top: 32px;
+    position: relative;
 }
 
 .timeline-dot {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background: #5CE6C9;
-    border: 3px solid rgba(5, 5, 5, 1);
-    box-shadow: 0 0 0 2px rgba(92, 230, 201, 0.2), 0 0 20px rgba(92, 230, 201, 0.4);
-    z-index: 2;
+    background: rgba(92, 230, 201, 0.5);
+    border: 2px solid rgba(5, 5, 5, 1);
+    box-shadow: 0 0 8px rgba(92, 230, 201, 0.3);
     flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.timeline-accordion-item[data-open="true"] .timeline-dot {
+    background: #5CE6C9;
+    box-shadow: 0 0 16px rgba(92, 230, 201, 0.6);
+    transform: scale(1.2);
 }
 
 .timeline-line {
     width: 2px;
     flex-grow: 1;
-    background: linear-gradient(180deg, rgba(92, 230, 201, 0.4) 0%, rgba(92, 230, 201, 0.1) 100%);
+    background: linear-gradient(180deg,
+            rgba(92, 230, 201, 0.3) 0%,
+            rgba(92, 230, 201, 0.08) 100%);
     margin-top: 8px;
 }
 
-.timeline-item.highlight .timeline-dot {
-    background: linear-gradient(135deg, #5CE6C9, #FFCF96);
-    box-shadow: 0 0 0 2px rgba(255, 207, 150, 0.3), 0 0 24px rgba(255, 207, 150, 0.6);
-    animation: pulse 2s ease-in-out infinite;
+/* Accordion Content Column */
+.timeline-accordion-content {
+    padding-right: 16px;
 }
 
-@keyframes pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-}
-
-.timeline-content-wrapper {
+/* Accordion Header (Clickable) */
+.timeline-accordion-header {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 0;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.timeline-accordion-header:hover .timeline-title {
+    color: #5CE6C9;
+}
+
+.timeline-accordion-header:focus {
+    outline: 2px solid rgba(92, 230, 201, 0.5);
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+.timeline-header-text {
+    flex: 1;
 }
 
 .timeline-time {
     display: inline-block;
-    align-self: flex-start;
-    padding: 6px 16px;
+    padding: 4px 12px;
     background: rgba(92, 230, 201, 0.1);
     border: 1px solid rgba(92, 230, 201, 0.3);
-    border-radius: 20px;
+    border-radius: 16px;
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #5CE6C9;
+    margin-bottom: 12px;
 }
 
 .timeline-title {
     font-family: var(--font-serif);
-    font-size: 32px;
+    font-size: 20px;
     font-weight: 400;
     color: #FFFFFF;
     line-height: 1.3;
     margin: 0;
+    transition: color 0.2s ease;
+}
+
+/* Chevron Icon */
+.timeline-chevron {
+    flex-shrink: 0;
+    color: rgba(92, 230, 201, 0.6);
+    transition: color 0.2s ease;
+}
+
+.timeline-accordion-header:hover .timeline-chevron {
+    color: #5CE6C9;
+}
+
+/* Expandable Panel */
+.timeline-accordion-panel {
+    overflow: hidden;
+}
+
+.timeline-panel-inner {
+    padding: 0 0 32px 0;
 }
 
 .timeline-description {
@@ -705,88 +895,79 @@
     line-height: 1.7;
     color: rgba(255, 255, 255, 0.75);
     max-width: 700px;
+    margin-bottom: 24px;
 }
 
-.timeline-image-card {
+/* Image Reveal Container */
+.timeline-image-reveal {
     position: relative;
     width: 100%;
     max-width: 800px;
-    aspect-ratio: 16 / 10;
-    border-radius: 16px;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
     overflow: hidden;
     background: rgba(0, 0, 0, 0.3);
-    margin-top: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
-    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.timeline-image-card:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(92, 230, 201, 0.2), 0 0 40px rgba(92, 230, 201, 0.1);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .timeline-photo {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s ease;
 }
 
-.timeline-image-card:hover .timeline-photo {
-    transform: scale(1.05);
-}
-
+/* Timeline Note */
 .timeline-note {
     text-align: center;
     font-size: 14px;
     color: rgba(255, 255, 255, 0.5);
     font-style: italic;
-    margin-top: 60px;
+    margin-top: 48px;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
 }
 
+/* Responsive: Tablet */
 @media (max-width: 1024px) {
     .timeline-section {
         padding: 100px 20px;
     }
 
-    .timeline {
-        gap: 60px;
+    .timeline-header-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
     }
 
     .timeline-title {
-        font-size: 28px;
-    }
-
-    .timeline-image-card {
-        max-width: 100%;
+        font-size: 18px;
     }
 }
 
+/* Responsive: Mobile */
 @media (max-width: 768px) {
     .timeline-section {
         padding: 80px 16px;
     }
 
-    .timeline-item {
-        grid-template-columns: 40px 1fr;
-        gap: 20px;
-        padding-left: 0;
+    .timeline-accordion-item {
+        grid-template-columns: 32px 1fr;
+        gap: 16px;
     }
 
-    .timeline {
-        gap: 48px;
+    .timeline-accordion-content {
+        padding-right: 12px;
     }
 
-    .timeline-dot {
-        width: 12px;
-        height: 12px;
+    .timeline-accordion-header {
+        padding: 20px 0;
     }
 
     .timeline-title {
-        font-size: 24px;
+        font-size: 17px;
     }
 
     .timeline-description {
@@ -794,15 +975,20 @@
     }
 
     .timeline-time {
-        font-size: 11px;
-        padding: 5px 12px;
+        font-size: 10px;
+        padding: 3px 10px;
     }
 
-    .timeline-image-card {
+    .timeline-image-reveal {
         aspect-ratio: 4 / 3;
-        border-radius: 12px;
+    }
+
+    .collapse-all-btn {
+        font-size: 11px;
+        padding: 8px 16px;
     }
 }
+
 
 /* ============================================
    SECTION 3: GALLERY

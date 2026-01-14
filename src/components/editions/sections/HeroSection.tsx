@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Volume2, VolumeX, ChevronDown } from 'lucide-react'
+import { Volume2, VolumeX, ChevronDown, MapPin } from 'lucide-react'
 import type { HeroData, EditionStatus } from '@/types/edition'
 
 interface HeroSectionProps {
@@ -97,31 +97,42 @@ export function HeroSection({ data, status }: HeroSectionProps) {
                 initial="hidden"
                 animate="visible"
             >
-                {/* Status Badge */}
+                {/* Status Badge - Premium Edition Marker */}
                 <motion.span
-                    className={`hero-status-badge ${status}`}
+                    className="hero-edition-marker"
                     variants={itemVariants}
                 >
-                    {status === 'completed' ? '✅ Completed Edition' : '📅 Upcoming Edition'}
+                    EDITION I
                 </motion.span>
 
                 {/* Main Title */}
                 <motion.h1 className="hero-theatrical-title" variants={itemVariants}>
-                    <span className="title-brand">EKATVA</span>
-                    <span className="title-city">{data.title?.replace('EKATVA ', '') || 'HYDERABAD'}</span>
+                    <span className="title-brand-premium">EKATVA</span>
+                    <span className="title-city-premium">{data.title?.replace('EKATVA ', '') || 'HYDERABAD'}</span>
                 </motion.h1>
 
-                {/* Divider */}
-                <motion.div className="hero-divider" variants={itemVariants} />
+                {/* Decorative Underline */}
+                <motion.div
+                    className="title-underline"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
+                />
 
-                {/* Subtitle / Date */}
-                <motion.p className="hero-theatrical-subtitle" variants={itemVariants}>
-                    {data.subtitle || 'February 2025'}
+                {/* Date - Editorial Format */}
+                <motion.p className="hero-date-premium" variants={itemVariants}>
+                    FEB. 15, 2025
                 </motion.p>
 
-                {/* Venue */}
-                <motion.p className="hero-theatrical-venue" variants={itemVariants}>
-                    📍 {data.venue}
+                {/* Venue - Premium Icon */}
+                <motion.p className="hero-venue-premium" variants={itemVariants}>
+                    <MapPin
+                        size={14}
+                        strokeWidth={1.5}
+                        className="inline-block text-teal-400 mr-2"
+                        aria-hidden="true"
+                    />
+                    {data.venue?.toUpperCase() || 'INORBIT MALL • HYDERABAD'}
                 </motion.p>
 
                 {/* Video Frame Container */}

@@ -73,7 +73,8 @@ export const EDITIONS_DATA: Record<string, Edition> = {
                 label: 'Hours of Fest',
                 value: '9',
                 icon: 'clock',
-                color: '#FFCF96'
+                color: '#FFCF96',
+                description: 'One full day of non-stop celebration'
             },
             {
                 label: 'Student Bodies Represented',
@@ -93,13 +94,15 @@ export const EDITIONS_DATA: Record<string, Edition> = {
                 label: 'Meals Served',
                 value: '266',
                 icon: 'food',
-                color: '#5CE6C9'
+                color: '#5CE6C9',
+                description: 'Fresh-cooked on-site by professional chef'
             },
             {
                 label: 'Students Transported',
                 value: '171',
                 icon: 'bus',
-                color: '#FFCF96'
+                color: '#FFCF96',
+                description: '3 bus routes across Hyderabad for free'
             }
         ],
 

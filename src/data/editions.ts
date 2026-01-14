@@ -100,12 +100,6 @@ export const EDITIONS_DATA: Record<string, Edition> = {
                 value: '171',
                 icon: 'bus',
                 color: '#FFCF96'
-            },
-            {
-                label: 'Bus Routes',
-                value: '3',
-                icon: 'route',
-                color: '#5CE6C9'
             }
         ],
 

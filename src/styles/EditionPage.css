@@ -468,59 +468,97 @@
     line-height: 1.3;
 }
 
+/* IMPACT MATRIX: Perfect 3x2 Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 32px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
+/* OBSIDIAN SLATE: Dark Glass Card */
 .stat-card {
-    background: rgba(255, 255, 255, 0.03);
+    /* Obsidian depth */
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.15));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    /* Glass bezel with teal glow */
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 32px 24px;
+    box-shadow:
+        0 0 20px rgba(92, 230, 201, 0.08),
+        0 4px 20px rgba(0, 0, 0, 0.4);
+
+    border-radius: 12px;
+    padding: 40px 28px;
     text-align: center;
-    transition: all 0.3s ease;
+
+    /* Smooth transitions for hover */
+    transition:
+        transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 0.3s ease,
+        box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* LIVING ARTIFACT: Hover Physics */
 .stat-card:hover {
+    /* Levitation */
     transform: translateY(-6px);
-    border-color: var(--stat-color);
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+    /* Teal glow intensifies */
+    border-color: rgba(92, 230, 201, 0.3);
+    box-shadow:
+        0 0 40px rgba(92, 230, 201, 0.2),
+        0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
 .stat-icon {
     width: 48px;
     height: 48px;
-    margin: 0 auto 16px;
+    margin: 0 auto 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--stat-color);
-    font-size: 28px;
+    font-size: 32px;
+
+    /* Icon glow */
+    filter: drop-shadow(0 0 8px var(--stat-color));
 }
 
+/* HERO METRIC: Giant glowing numbers */
 .stat-value {
-    font-size: 48px;
+    font-size: 56px;
     font-weight: 700;
-    color: var(--stat-color);
-    margin-bottom: 8px;
+
+    /* Gradient teal text */
+    background: linear-gradient(135deg, var(--stat-color), rgba(255, 255, 255, 0.9));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    margin-bottom: 12px;
     line-height: 1;
+
+    /* Text glow */
+    filter: drop-shadow(0 0 12px var(--stat-color));
 }
 
+/* ETCHED LABEL: Professional tag */
 .stat-label {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.75);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .stat-description {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.6;
     margin-top: 12px;
 }
 
@@ -1533,13 +1571,14 @@ section {
         padding: 80px 16px;
     }
 
+    /* IMPACT MATRIX: 2 columns on tablet */
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+        gap: 20px;
     }
 
     .stat-card {
-        padding: 24px 16px;
+        padding: 32px 20px;
     }
 
     .stat-value {
@@ -2125,5 +2164,16 @@ section {
     .lightbox-image {
         max-height: 80vh;
         border-radius: 8px;
+    }
+}
+/* IMPACT MATRIX: Mobile 1-column */
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .stat-value {
+        font-size: 48px;
     }
 }

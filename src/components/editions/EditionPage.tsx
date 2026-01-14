@@ -72,15 +72,7 @@ export function EditionPage({ edition }: EditionPageProps) {
             {/* Section 5: Student Testimonials - Velocity Spotlight */}
             <TestimonialsSection />
 
-            {/* Section 6: Aftermovie */}
-            <AftermovieSection
-                data={edition.aftermovie}
-                status={edition.status}
-                city={edition.city}
-                videoPoster={edition.hero.videoPoster}
-            />
-
-            {/* Section 7: Team */}
+            {/* Section 6: Team */}
             <TeamSection
                 data={edition.team}
                 status={edition.status}

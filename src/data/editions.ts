@@ -156,47 +156,54 @@ export const EDITIONS_DATA: Record<string, Edition> = {
             {
                 time: '10:00 AM',
                 title: 'Registration Opens',
-                description: 'Students arrive from across Hyderabad. Welcome kits, badges, and first impressions.',
-                photo: '/images/editions/hyderabad/timeline-registration.jpg'
+                description: 'The air buzzed with anticipation. Validating IDs wasn\'t a chore; it was the first handshake of a new community.',
+                photo: '/images/editions/hyderabad/timeline/registration.png',
+                mood: 'morning'
             },
             {
                 time: '11:00 AM',
                 title: 'Speed Conversations',
-                description: '10 new connections in 30 minutes. The ice melts fast.',
-                photo: '/images/editions/hyderabad/timeline-speed.jpg',
-                highlight: true
+                description: 'Thirty minutes. Ten strangers. One rule: No silence. The room erupted in chaotic, beautiful noise.',
+                photo: '/images/editions/hyderabad/timeline/ice-breaker.png',
+                highlight: true,
+                mood: 'energetic'
             },
             {
                 time: '12:00 PM',
-                title: 'Team Building Activities',
-                description: 'Collaborative games that bring strangers together as teams.',
-                photo: '/images/editions/hyderabad/timeline-activities.jpg'
+                title: 'Team Building',
+                description: 'Barriers dissolved. We weren\'t seniors or juniors anymore. We were teammates pulling the same rope.',
+                photo: '/images/editions/hyderabad/timeline/team-building.png',
+                mood: 'energetic'
             },
             {
                 time: '1:00 PM',
                 title: 'Lunch & Mingling',
-                description: 'Food brings everyone together. 266 meals served with love.',
-                photo: '/images/editions/hyderabad/timeline-lunch.jpg'
+                description: 'More than just food. It was the sound of laughter over shared plates. The moment acquaintances became friends.',
+                photo: '/images/editions/hyderabad/timeline/lunch.png',
+                mood: 'calm'
             },
             {
                 time: '3:00 PM',
                 title: 'Cultural Showcase',
-                description: 'Performances that celebrate our diversity - from classical to contemporary.',
-                photo: '/images/editions/hyderabad/timeline-cultural.jpg',
-                highlight: true
+                description: 'A hush fell over the crowd. Then, pure awe. We didn\'t know our peers could sing like *that*.',
+                photo: '/images/editions/hyderabad/timeline/cultural.png',
+                highlight: true,
+                mood: 'electric'
             },
             {
                 time: '5:00 PM',
-                title: 'Open Mic & Talents',
-                description: 'Hidden talents emerge. Poetry, singing, comedy - all got their moment.',
-                photo: '/images/editions/hyderabad/timeline-openmic.jpg'
+                title: 'Open Mic',
+                description: 'Raw courage. Trembling hands but steady voices. The audience didn\'t judge; they cheered for every brave soul.',
+                photo: '/images/editions/hyderabad/timeline/open-mic.png',
+                mood: 'electric'
             },
             {
                 time: '6:00 PM',
                 title: 'DJ Night Finale',
-                description: 'The energy peaked. 100% of attendees stayed until the very end.',
-                photo: '/images/editions/hyderabad/timeline-dj.jpg',
-                highlight: true
+                description: 'The grand crescendo. We danced until our feet hurt, united under the pulse of the music. Pure, unadulterated joy.',
+                photo: '/images/editions/hyderabad/timeline/dj-night.png',
+                highlight: true,
+                mood: 'electric'
             }
         ],
 

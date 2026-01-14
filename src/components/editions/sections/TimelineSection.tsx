@@ -1,16 +1,14 @@
 'use client'
 
 /**
- * TIMELINE SECTION - EDITION PAGE
+ * TIMELINE SECTION - CLEAN & VISUAL
  * 
- * Hour-by-hour event timeline with:
- * - Vertical timeline connector
- * - Time markers
- * - Event descriptions and photos
- * - Highlight markers for key moments
+ * Simple vertical timeline with prominent, beautiful imagery
+ * Inspired by: Clear hierarchy, large images, clean spacing
  */
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import type { TimelineEvent, EditionStatus } from '@/types/edition'
 
 interface TimelineSectionProps {
@@ -32,11 +30,11 @@ export function TimelineSection({ data, status, city }: TimelineSectionProps) {
     }
 
     const itemVariants = {
-        hidden: { opacity: 0, x: -30 },
+        hidden: { opacity: 0, y: 30 },
         visible: {
             opacity: 1,
-            x: 0,
-            transition: { duration: 0.5, ease: 'easeOut' as const },
+            y: 0,
+            transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
         },
     }
 
@@ -57,7 +55,7 @@ export function TimelineSection({ data, status, city }: TimelineSectionProps) {
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true }}
+                viewport={{ once: true, margin: '-50px' }}
             >
                 {data.map((event, index) => (
                     <motion.div
@@ -65,16 +63,32 @@ export function TimelineSection({ data, status, city }: TimelineSectionProps) {
                         className={`timeline-item ${event.highlight ? 'highlight' : ''}`}
                         variants={itemVariants}
                     >
-                        <div className="timeline-time">{event.time}</div>
-                        <h3 className="timeline-title">{event.title}</h3>
-                        <p className="timeline-description">{event.description}</p>
-                        {event.photo && (
-                            <img
-                                src={event.photo}
-                                alt={event.title}
-                                className="timeline-photo"
-                            />
-                        )}
+                        {/* Timeline Connector */}
+                        <div className="timeline-connector">
+                            <div className="timeline-dot" />
+                            {index < data.length - 1 && <div className="timeline-line" />}
+                        </div>
+
+                        {/* Content */}
+                        <div className="timeline-content-wrapper">
+                            <div className="timeline-time">{event.time}</div>
+                            <h3 className="timeline-title">{event.title}</h3>
+                            <p className="timeline-description">{event.description}</p>
+
+                            {/* Large Prominent Image */}
+                            {event.photo && (
+                                <div className="timeline-image-card">
+                                    <Image
+                                        src={event.photo}
+                                        alt={event.title}
+                                        width={1200}
+                                        height={800}
+                                        className="timeline-photo"
+                                        priority={index < 3}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
                 ))}
             </motion.div>

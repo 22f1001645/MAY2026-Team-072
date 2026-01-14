@@ -50,6 +50,7 @@ export interface TimelineEvent {
     description: string;
     photo?: string;
     highlight?: boolean;
+    mood?: 'morning' | 'energetic' | 'calm' | 'electric';
 }
 
 // Testimonials Section Data

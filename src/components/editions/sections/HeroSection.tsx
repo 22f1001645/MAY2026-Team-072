@@ -111,6 +111,9 @@ export function HeroSection({ data, status }: HeroSectionProps) {
                     <span className="title-city">{data.title?.replace('EKATVA ', '') || 'HYDERABAD'}</span>
                 </motion.h1>
 
+                {/* Divider */}
+                <motion.div className="hero-divider" variants={itemVariants} />
+
                 {/* Subtitle / Date */}
                 <motion.p className="hero-theatrical-subtitle" variants={itemVariants}>
                     {data.subtitle || 'February 2025'}

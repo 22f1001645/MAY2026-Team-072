@@ -69,13 +69,8 @@ export function EditionPage({ edition }: EditionPageProps) {
                 city={edition.city}
             />
 
-            {/* Section 5: Student Testimonials */}
-            <TestimonialsSection
-                data={edition.testimonials}
-                status={edition.status}
-                city={edition.city}
-                ctaLink={edition.hero.ctaLink}
-            />
+            {/* Section 5: Student Testimonials - Velocity Spotlight */}
+            <TestimonialsSection />
 
             {/* Section 6: Aftermovie */}
             <AftermovieSection

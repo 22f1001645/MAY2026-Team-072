@@ -1,148 +1,193 @@
 'use client'
 
 /**
- * TESTIMONIALS SECTION - EDITION PAGE
+ * TESTIMONIALS SECTION - VELOCITY SPOTLIGHT HEADER
  * 
- * Student testimonials with:
- * - Quote cards with photos
- * - Attribution (name, society, role)
- * - Fallback to Hyderabad testimonials for upcoming editions
+ * Architecture: "The Velocity Stream"
+ * Interaction: Infinite Horizontal Scroll + Pause on Hover + Mouse-tracking Spotlight
+ * Vibe: High Energy, Trustworthy, Premium
  */
 
+import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import type { Testimonial, EditionStatus } from '@/types/edition'
+import { Quote, Sparkles } from 'lucide-react'
+import Image from 'next/image'
 
-// Fallback testimonials from Hyderabad
-const HYDERABAD_TESTIMONIALS: Testimonial[] = [
+// --- DATA ---
+const TESTIMONIALS = [
     {
-        name: 'Priya Sharma',
-        quote: 'EKATVA made me realize I\'m not alone in this journey. Found my study group and lifelong friends here.',
-        photo: '/images/editions/hyderabad/testimonial-1.jpg',
-        studentBody: 'Pravāha',
-        role: 'Attendee'
+        id: 1,
+        name: "Priya Sharma",
+        role: "Attendee",
+        edition: "Pravāha '24",
+        quote: "Ekatva made me realize I'm not alone. Found my study group and lifelong friends here. It wasn't just an event, it was a reset button.",
+        accent: "teal"
     },
     {
-        name: 'Rahul Menon',
-        quote: 'The speed conversations were genius. I made 10 genuine connections in just 30 minutes!',
-        photo: '/images/editions/hyderabad/testimonial-2.jpg',
-        studentBody: 'Paradox',
-        role: 'Attendee'
+        id: 2,
+        name: "Rahul Menon",
+        role: "Volunteer",
+        edition: "Paradox '23",
+        quote: "The speed conversations were genius. I made 10 genuine connections in just 30 minutes! The energy was absolutely electric.",
+        accent: "gold"
     },
     {
-        name: 'Ananya Reddy',
-        quote: 'From nervous introvert to dancing at DJ night - that\'s what EKATVA did to me. No judgment, just vibes.',
-        photo: '/images/editions/hyderabad/testimonial-3.jpg',
-        studentBody: 'Akord',
-        role: 'Volunteer'
+        id: 3,
+        name: "Ananya Reddy",
+        role: "Speaker",
+        edition: "Akord '24",
+        quote: "From nervous introvert to dancing at DJ night – that's what EKATVA did to me. No judgment, just pure vibes.",
+        accent: "teal"
+    },
+    {
+        id: 4,
+        name: "Karthik V.",
+        role: "Organizer",
+        edition: "Core Team",
+        quote: "Seeing 500+ students from across India under one roof... that creates a feeling you can't describe. It's pure magic.",
+        accent: "gold"
+    },
+    {
+        id: 5,
+        name: "Sarah Jenkins",
+        role: "Attendee",
+        edition: "Pravāha '24",
+        quote: "The best weekend of my college life. Period. The workshops actually taught me things I use in my job today.",
+        accent: "teal"
+    },
+    {
+        id: 6,
+        name: "Arjun Mehta",
+        role: "Volunteer",
+        edition: "Paradox '23",
+        quote: "Exhausting? Yes. Worth it? 1000%. I'd do it all over again in a heartbeat. The community is everything.",
+        accent: "gold"
+    },
+    {
+        id: 7,
+        name: "Meera Nair",
+        role: "Creator",
+        edition: "Akord '24",
+        quote: "Finally a place where artists are celebrated, not just tolerated. The showcase gave me the confidence to launch my page.",
+        accent: "teal"
     }
 ]
 
-interface TestimonialsSectionProps {
-    data: Testimonial[]
-    status: EditionStatus
-    city: string
-    ctaLink?: string
-}
+// --- COMPONENT: SPOTLIGHT CARD ---
+const SpotlightCard = ({ data }: { data: typeof TESTIMONIALS[0] }) => {
+    const divRef = useRef<HTMLDivElement>(null)
+    const [position, setPosition] = useState({ x: 0, y: 0 })
+    const [opacity, setOpacity] = useState(0)
 
-export function TestimonialsSection({ data, status, city, ctaLink }: TestimonialsSectionProps) {
-    const testimonials = status === 'completed' && data.length > 0 ? data : HYDERABAD_TESTIMONIALS
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.15,
-                delayChildren: 0.2,
-            },
-        },
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!divRef.current) return
+        const div = divRef.current
+        const rect = div.getBoundingClientRect()
+        setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top })
     }
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.5, ease: 'easeOut' as const },
-        },
+    const handleFocus = () => {
+        setOpacity(1)
+    }
+
+    const handleBlur = () => {
+        setOpacity(0)
     }
 
     return (
+        <div
+            ref={divRef}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={handleFocus}
+            onMouseLeave={handleBlur}
+            className="testimonial-card"
+        >
+            {/* SPOTLIGHT GLOW EFFECT */}
+            <div
+                className="spotlight-layer"
+                style={{
+                    opacity,
+                    background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, ${data.accent === 'gold' ? 'rgba(255, 207, 150, 0.15)' : 'rgba(92, 230, 201, 0.15)'}, transparent 40%)`
+                }}
+            />
+            {/* SPOTLIGHT BORDER REVEAL */}
+            <div
+                className="spotlight-border"
+                style={{
+                    opacity,
+                    background: `radial-gradient(200px circle at ${position.x}px ${position.y}px, ${data.accent === 'gold' ? '#FFCF96' : '#5CE6C9'}, transparent 40%)`,
+                }}
+            />
+
+            {/* CONTENT */}
+            <div className="testimonial-content">
+                <Quote
+                    className={`testimonial-quote-icon ${data.accent === 'gold' ? 'text-gold' : 'text-teal'}`}
+                    size={24}
+                />
+
+                <p className="testimonial-text">
+                    "{data.quote}"
+                </p>
+
+                <div className="testimonial-author">
+                    <div className={`author-avatar-placeholder ${data.accent === 'gold' ? 'bg-gold' : 'bg-teal'}`}>
+                        {data.name.charAt(0)}
+                    </div>
+                    <div className="author-info">
+                        <h4 className="author-name">{data.name}</h4>
+                        <div className="author-meta">
+                            <span className="author-role">{data.role}</span>
+                            <span className="author-edition">• {data.edition}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// --- MAIN SECTION ---
+export function TestimonialsSection() {
+    return (
         <section className="testimonials-section">
-            <motion.h2
-                className="section-headline"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-            >
-                In Their Own Words
-            </motion.h2>
+            {/* Background Atmosphere */}
+            <div className="testimonials-bg-glow" />
 
-            {status === 'upcoming' && (
-                <motion.p
-                    className="testimonials-intro"
+            <div className="container-testimonials">
+                <motion.div
+                    className="testimonials-header"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ duration: 0.6 }}
                 >
-                    Here&apos;s what students said about EKATVA Hyderabad.
-                    <br />
-                    Join us to create similar memories in {city}.
-                </motion.p>
-            )}
+                    <div className="label-pill">
+                        <Sparkles size={12} className="text-teal-400" />
+                        <span>Community Voices</span>
+                    </div>
+                    <h2 className="section-headline">
+                        Real Stories. <span className="text-highlight-gold">Real Impact.</span>
+                    </h2>
+                    <p className="section-subheadline">
+                        From first-time attendees to core organizers, Ekatva is defined by its people.
+                    </p>
+                </motion.div>
 
-            <motion.div
-                className="testimonials-grid"
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-            >
-                {testimonials.map((testimonial, index) => (
-                    <motion.div
-                        key={index}
-                        className="testimonial-card"
-                        variants={itemVariants}
-                    >
-                        {testimonial.photo && (
-                            <img
-                                src={testimonial.photo}
-                                alt={testimonial.name}
-                                className="testimonial-photo"
-                            />
-                        )}
-
-                        <blockquote className="testimonial-quote">
-                            {testimonial.quote}
-                        </blockquote>
-
-                        <cite className="testimonial-attribution">
-                            <strong>{testimonial.name}</strong>
-                            {testimonial.studentBody && ` • ${testimonial.studentBody}`}
-                            {testimonial.role && (
-                                <span style={{ display: 'block', marginTop: 4, opacity: 0.7 }}>
-                                    {testimonial.role}
-                                </span>
-                            )}
-                        </cite>
-                    </motion.div>
-                ))}
-            </motion.div>
-
-            {status === 'upcoming' && ctaLink && (
-                <motion.a
-                    href={ctaLink}
-                    className="testimonials-cta"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.5 }}
-                >
-                    Be Part of {city} 2025 →
-                </motion.a>
-            )}
+                {/* VELOCITY SCROLL TRACK */}
+                <div className="velocity-scroll-mask">
+                    <div className="velocity-track">
+                        {/* SET 1 */}
+                        {TESTIMONIALS.map((t, i) => (
+                            <SpotlightCard key={`origin-${t.id}`} data={t} />
+                        ))}
+                        {/* SET 2 (Duplicate for loop) */}
+                        {TESTIMONIALS.map((t, i) => (
+                            <SpotlightCard key={`clone-${t.id}`} data={t} />
+                        ))}
+                    </div>
+                </div>
+            </div>
         </section>
     )
 }

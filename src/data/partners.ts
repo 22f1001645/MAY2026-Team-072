@@ -17,7 +17,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'pravaha',
         name: 'Pravāha',
-        logo: '/images/partners/pravaha.svg',
+        logo: '/images/partners/pravaha.png',
         type: 'House',
         gbMembers: [
             { name: 'Vishal Bhandari', role: 'Secretary' },
@@ -27,7 +27,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'boundless',
         name: 'Boundless',
-        logo: '/images/partners/boundless.svg',
+        logo: '/images/partners/boundless.jpeg',
         type: 'Society',
         gbMembers: [
             { name: 'Sachin', role: 'Secretary' },
@@ -37,7 +37,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'namdapha',
         name: 'Namdapha',
-        logo: '/images/partners/namdapha.svg',
+        logo: '/images/partners/namdapha.jpeg',
         type: 'House',
         gbMembers: [
             { name: 'Sairaj', role: 'Web Admin' },
@@ -47,7 +47,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'kanha',
         name: 'Kanha',
-        logo: '/images/partners/kanha.svg',
+        logo: '/images/partners/kanha.jpeg',
         type: 'House',
         gbMembers: [
             { name: 'Drashti', role: 'Secretary' },
@@ -58,7 +58,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'sunderbans',
         name: 'Sunderbans',
-        logo: '/images/partners/sunderbans.svg',
+        logo: '/images/partners/sunderbans.jpeg',
         type: 'House',
         gbMembers: [
             { name: 'Shreyansh Mall', role: 'Secretary' }
@@ -67,7 +67,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'iris',
         name: 'IRIS',
-        logo: '/images/partners/iris.svg',
+        logo: '/images/partners/iris.png',
         type: 'Society',
         gbMembers: [
             { name: 'Anshi Jain', role: 'Secretary' }
@@ -76,7 +76,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'wayanad',
         name: 'Wayanad',
-        logo: '/images/partners/wayanad.svg',
+        logo: '/images/partners/wayanad.jpeg',
         type: 'House',
         gbMembers: [
             { name: 'Shambhavi', role: 'Secretary' }
@@ -85,25 +85,23 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'kaziranga',
         name: 'Kaziranga',
-        logo: '/images/partners/kaziranga.svg',
+        logo: '/images/partners/kaziranga.png',
         type: 'House',
         gbMembers: [
             { name: 'Shiva Kumar', role: 'Deputy Secretary' }
         ]
     },
     {
-        id: 'pichavaram',
-        name: 'Pichavaram',
-        logo: '/images/partners/pichavaram.svg',
+        id: 'saranda',
+        name: 'Saranda',
+        logo: '/images/partners/saranda.png',
         type: 'House',
-        gbMembers: [
-            { name: 'Chatrapal Singh Rathore', role: 'Secretary' }
-        ]
+        gbMembers: []
     },
     {
         id: 'nilgiri',
         name: 'Nilgiri',
-        logo: '/images/partners/nilgiri.svg',
+        logo: '/images/partners/nilgiri.png',
         type: 'House',
         gbMembers: [
             { name: 'Somshankar Chakraborthy', role: 'Secretary' }
@@ -112,7 +110,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'akord',
         name: 'Akord',
-        logo: '/images/partners/akord.svg',
+        logo: '/images/partners/akord.jpeg',
         type: 'Society',
         gbMembers: [
             { name: 'Uday Sai', role: 'Secretary' }
@@ -121,7 +119,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'nallamala',
         name: 'Nallamala',
-        logo: '/images/partners/nallamala.svg',
+        logo: '/images/partners/nallamala.png',
         type: 'House',
         gbMembers: [
             { name: 'Krishnan', role: 'Web Admin' }
@@ -130,7 +128,7 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
     {
         id: 'corbett',
         name: 'Corbett',
-        logo: '/images/partners/corbett.svg',
+        logo: '/images/partners/corbett.png',
         type: 'House',
         gbMembers: [
             { name: 'Harsh Kumar', role: 'Deputy Secretary' }

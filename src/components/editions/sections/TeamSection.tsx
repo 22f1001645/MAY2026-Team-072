@@ -378,7 +378,7 @@ export function TeamSection() {
                 <div className="tier-section tier-core-spark">
                     <div className="tier-label">
                         <span className="tier-icon"><Sparkles className="text-highlight-gold" size={20} /></span>
-                        <span className="tier-text" style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.15em' }}>THE CORE SPARK</span>
+                        <span className="tier-text" style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.15em' }}>THE PILLARS</span>
                     </div>
 
                     <div className="core-spark-arc" style={{ gap: '60px' }}>

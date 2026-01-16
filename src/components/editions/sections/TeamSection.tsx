@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronDown, ChevronRight, Users, Sparkles, Star, Zap } from 'lucide-react'
+import { PartnerGrid } from '../partners/PartnerGrid'
+import '@/styles/PartnerGrid.css'
 
 // ============================================
 // DATA STRUCTURES
@@ -476,64 +478,12 @@ export function TeamSection() {
                     </div>
                 </div>
 
+
                 {/* ============================================
-            TIER 3: PARTNER COMMUNITIES (Accordion)
-            ============================================ */}
-                <div className="tier-section tier-communities">
-                    <div className="tier-label">
-                        <span className="tier-icon">🏛️</span>
-                        <span className="tier-text">Partner Communities</span>
-                    </div>
+                    PARTNER COMMUNITIES - Precision Expansion Grid
+                    ============================================ */}
+                <PartnerGrid />
 
-                    <div className="communities-list">
-                        {PARTNER_COMMUNITIES.map((community, index) => (
-                            <motion.div
-                                key={community.id}
-                                className={`community-item ${openCommunities.has(community.id) ? 'open' : ''}`}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.4, delay: index * 0.05 }}
-                            >
-                                <button
-                                    className="community-header"
-                                    onClick={() => toggleCommunity(community.id)}
-                                    aria-expanded={openCommunities.has(community.id)}
-                                >
-                                    <div className="header-left">
-                                        <div className="community-logo-placeholder">
-                                            {community.name.charAt(0)}
-                                        </div>
-                                        <h3 className="community-name">{community.name}</h3>
-                                    </div>
-                                    {openCommunities.has(community.id) ? (
-                                        <ChevronDown className="toggle-icon" size={20} />
-                                    ) : (
-                                        <ChevronRight className="toggle-icon" size={20} />
-                                    )}
-                                </button>
-
-                                {openCommunities.has(community.id) && (
-                                    <motion.div
-                                        className="community-members"
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                    >
-                                        <div className="members-grid">
-                                            {community.representatives.map((rep, idx) => (
-                                                <div key={idx} className="member-name-tag">
-                                                    {rep}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
 
                 {/* ============================================
             TIER 4: EXTENDED FAMILY (Nested Accordion)

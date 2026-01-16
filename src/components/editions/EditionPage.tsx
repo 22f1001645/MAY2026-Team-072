@@ -72,12 +72,8 @@ export function EditionPage({ edition }: EditionPageProps) {
             {/* Section 5: Student Testimonials - Velocity Spotlight */}
             <TestimonialsSection />
 
-            {/* Section 6: Team */}
-            <TeamSection
-                data={edition.team}
-                status={edition.status}
-                city={edition.city}
-            />
+            {/* Section 6: Team - Built By Believers */}
+            <TeamSection />
 
             {/* Section 8: Next Edition */}
             <NextEditionSection

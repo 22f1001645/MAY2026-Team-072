@@ -2855,3 +2855,992 @@ section {
         font-size: 48px;
     }
 }
+
+/* ============================================
+   SECTION 7: TEAM ("BUILT BY BELIEVERS")
+   v3.0 Architecture - 98% Confidence
+   ============================================ */
+
+/* ──────────────────────────────
+   SECTION CONTAINER
+   ────────────────────────────── */
+
+.team-section {
+    position: relative;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 120px 24px;
+    background: radial-gradient(ellipse at top,
+            rgba(26, 61, 58, 0.4) 0%,
+            rgba(15, 30, 29, 0.8) 100%);
+    overflow: hidden;
+}
+
+/* Ambient Background Glow */
+.team-bg-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse 800px 600px at 50% 0%,
+            rgba(92, 230, 201, 0.08) 0%,
+            transparent 70%);
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.team-container {
+    position: relative;
+    z-index: 1;
+}
+
+/* ──────────────────────────────
+   HEADER
+   ────────────────────────────── */
+
+.team-header {
+    text-align: center;
+    margin-bottom: 100px;
+}
+
+.team-title {
+    font-family: var(--font-serif);
+    font-size: 56px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.team-subtitle {
+    font-family: var(--font-sans);
+    font-size: 20px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 700px;
+    margin: 0 auto 32px;
+    line-height: 1.6;
+}
+
+.team-divider {
+    width: 140px;
+    height: 2px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 207, 150, 0.8) 50%,
+            transparent 100%);
+    margin: 0 auto;
+}
+
+/* ──────────────────────────────
+   TIER LABEL (Shared)
+   ────────────────────────────── */
+
+.tier-section {
+    margin-bottom: 120px;
+}
+
+.tier-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 60px;
+}
+
+.tier-icon {
+    font-size: 24px;
+}
+
+.tier-text {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   TIER 1: THE CORE SPARK (Arc Formation)
+   ============================================ */
+
+.core-spark-arc {
+    display: grid;
+    grid-template-columns: repeat(3, 400px);
+    gap: 60px;
+    justify-content: center;
+    align-items: start;
+}
+
+/* Arc Visual Effect (v3.0) */
+.core-spark-arc .core-card:nth-child(1) {
+    transform: translateY(30px);
+}
+
+.core-spark-arc .core-card:nth-child(2) {
+    transform: translateY(0);
+    /* Center card at baseline */
+}
+
+.core-spark-arc .core-card:nth-child(3) {
+    transform: translateY(30px);
+}
+
+/* Featured card (center) elevated on hover */
+.core-spark-arc .core-card.featured:hover {
+    transform: translateY(-12px) scale(1.03) !important;
+}
+
+.core-spark-arc .core-card:nth-child(1):hover,
+.core-spark-arc .core-card:nth-child(3):hover {
+    transform: translateY(18px) scale(1.02) !important;
+}
+
+/* ──────────────────────────────
+   CORE CARD (Tier 1)
+   ────────────────────────────── */
+
+.core-card {
+    width: 400px;
+    height: 480px;
+    position: relative;
+    transition: all 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphism Container */
+.core-card .card-glass {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* HOLOGRAPHIC SHIMMER (v3.0) - Animated Border */
+@keyframes holographic-shimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.card-holographic-border {
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 207, 150, 0.4) 25%,
+            rgba(92, 230, 201, 0.4) 50%,
+            rgba(255, 207, 150, 0.4) 75%,
+            transparent 100%);
+    background-size: 200% 100%;
+    animation: holographic-shimmer 3s linear infinite;
+    border-radius: 24px;
+    opacity: 0;
+    transition: opacity 400ms ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Hover: Show Holographic Shimmer + Gold Glow */
+.core-card:hover .card-glass {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 207, 150, 0.5);
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.6),
+        0 0 60px rgba(255, 207, 150, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.core-card:hover .card-holographic-border {
+    opacity: 1;
+}
+
+/* ──────────────────────────────
+   PHOTO
+   ────────────────────────────── */
+
+.core-card .photo-wrapper {
+    width: 100%;
+    height: 290px;
+    /* ~60% of 480px */
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+.core-card .member-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(10%) contrast(1.12) brightness(1.02);
+    transition: all 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover: Photo Zoom */
+.core-card:hover .member-photo {
+    transform: scale(1.05);
+    filter: grayscale(0%) contrast(1.08) brightness(1);
+}
+
+/* Film Grain Overlay */
+.photo-film-grain {
+    position: absolute;
+    inset: 0;
+    background-image: url('/textures/film-grain.png');
+    background-repeat: repeat;
+    opacity: 0.12;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+}
+
+/* ──────────────────────────────
+   CARD CONTENT
+   ────────────────────────────── */
+
+.core-card .card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.core-card .member-name {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+/* Gold Badge */
+.member-badge.badge-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: linear-gradient(135deg,
+            rgba(255, 207, 150, 0.15) 0%,
+            rgba(255, 207, 150, 0.08) 100%);
+    border: 1.5px solid rgba(255, 207, 150, 0.4);
+    border-radius: 20px;
+    margin-bottom: 14px;
+    transition: all 400ms ease;
+}
+
+.core-card:hover .badge-gold {
+    background: rgba(255, 207, 150, 0.2);
+    border-color: rgba(255, 207, 150, 0.7);
+    box-shadow: 0 4px 20px rgba(255, 207, 150, 0.3);
+}
+
+.badge-icon {
+    font-size: 14px;
+}
+
+.badge-text {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 207, 150, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Tagline */
+.core-card .member-tagline {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-style: italic;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 12px;
+    max-width: 90%;
+}
+
+/* ============================================
+   TIER 2: THE CORE EXECUTIVE (3-Column Grid)
+   ============================================ */
+
+.core-executive-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 350px);
+    gap: 48px;
+    justify-content: center;
+}
+
+/* ──────────────────────────────
+   EXECUTIVE CARD (Tier 2)
+   ────────────────────────────── */
+
+.executive-card {
+    width: 350px;
+    height: 450px;
+    position: relative;
+    transition: all 550ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphism (same structure as Tier 1) */
+.executive-card .card-glass {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 550ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Breathing Glow for Tier 2 (Teal) */
+.executive-card .card-breathing-glow {
+    background: radial-gradient(circle,
+            rgba(92, 230, 201, 0.25) 0%,
+            transparent 70%);
+}
+
+/* Hover: Teal Glow */
+.executive-card:hover .card-glass {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(92, 230, 201, 0.5);
+    box-shadow:
+        0 28px 70px rgba(0, 0, 0, 0.55),
+        0 0 50px rgba(92, 230, 201, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-10px) scale(1.02);
+}
+
+/* Photo */
+.executive-card .photo-wrapper {
+    height: 280px;
+    /* ~62% of 450px */
+    margin-bottom: 18px;
+}
+
+.executive-card .member-name {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Teal Badge */
+.member-badge.badge-teal {
+    background: linear-gradient(135deg,
+            rgba(92, 230, 201, 0.12) 0%,
+            rgba(92, 230, 201, 0.06) 100%);
+    border: 1.5px solid rgba(92, 230, 201, 0.35);
+}
+
+.executive-card:hover .badge-teal {
+    background: rgba(92, 230, 201, 0.18);
+    border-color: rgba(92, 230, 201, 0.65);
+    box-shadow: 0 4px 20px rgba(92, 230, 201, 0.3);
+}
+
+.badge-teal .badge-text {
+    color: rgba(92, 230, 201, 1);
+}
+
+/* Tagline */
+.executive-card .member-tagline {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* Hidden Quote (Teal variant) */
+.executive-card .hidden-quote {
+    border-color: rgba(92, 230, 201, 0.3);
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+    padding: 14px 18px;
+    font-size: 12px;
+}
+
+/* ============================================
+   TIER 3: PARTNER COMMUNITIES (Accordion)
+   ============================================ */
+
+.communities-list {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.community-item {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(15px);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 300ms ease;
+}
+
+.community-item:hover {
+    border-color: rgba(92, 230, 201, 0.3);
+}
+
+/* Community Header (Clickable) */
+.community-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 28px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 250ms ease;
+    color: white;
+}
+
+.community-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Community Logo Placeholder */
+.community-logo-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(92, 230, 201, 0.2), rgba(255, 207, 150, 0.2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+}
+
+.community-name {
+    font-family: var(--font-sans);
+    font-size: 20px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+/* Toggle Icon */
+.toggle-icon {
+    color: rgba(92, 230, 201, 0.8);
+    transition: transform 300ms ease;
+}
+
+/* Community Members (Expandable) */
+.community-members {
+    padding: 0 28px 24px 108px;
+    /* Indent to align with name */
+}
+
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 20px;
+}
+
+.member-name-tag {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(92, 230, 201, 0.15);
+    transition: color 250ms ease, border-color 250ms ease;
+}
+
+.member-name-tag:hover {
+    color: rgba(92, 230, 201, 1);
+    border-color: rgba(92, 230, 201, 0.5);
+}
+
+/* ============================================
+   TIER 4: EXTENDED FAMILY (Nested Accordion)
+   ============================================ */
+
+.master-accordion {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(18px);
+    border: 2px solid rgba(92, 230, 201, 0.2);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+/* Master Header */
+.master-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 28px 36px;
+    background: linear-gradient(135deg,
+            rgba(26, 61, 58, 0.5) 0%,
+            rgba(42, 77, 74, 0.5) 100%);
+    border: none;
+    border-bottom: 1.5px solid rgba(92, 230, 201, 0.15);
+    cursor: pointer;
+    transition: background 300ms ease;
+    color: white;
+}
+
+.master-header:hover {
+    background: rgba(92, 230, 201, 0.08);
+}
+
+.master-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.master-count {
+    font-family: var(--font-sans);
+    font-size: 36px;
+    font-weight: 800;
+    color: rgba(92, 230, 201, 0.9);
+    line-height: 1;
+}
+
+.master-title {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+}
+
+.master-toggle {
+    color: rgba(92, 230, 201, 0.9);
+    transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Master Content */
+.master-content {
+    padding: 36px;
+}
+
+/* ──────────────────────────────
+   SUB-ACCORDIONS (Team Sections)
+   ────────────────────────────── */
+
+.team-accordion {
+    margin-bottom: 18px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1.5px solid rgba(92, 230, 201, 0.18);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 280ms ease;
+}
+
+.team-accordion:hover {
+    border-color: rgba(92, 230, 201, 0.4);
+}
+
+/* Team Header */
+.team-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 220ms ease;
+    color: white;
+}
+
+.team-header:hover {
+    background: rgba(92, 230, 201, 0.06);
+}
+
+.team-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.team-emoji {
+    font-size: 22px;
+}
+
+.team-title {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+
+.team-count {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    margin-left: 4px;
+}
+
+.team-toggle {
+    color: rgba(92, 230, 201, 0.8);
+    transition: transform 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Team Content */
+.team-content {
+    padding: 0 24px 24px 24px;
+}
+
+/* Team Members Grid (with Stagger Animation) */
+.team-members-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+/* Team Member Tag */
+.team-member-tag {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    background: rgba(92, 230, 201, 0.08);
+    border: 1px solid rgba(92, 230, 201, 0.22);
+    border-radius: 10px;
+    transition: all 280ms ease;
+}
+
+.team-member-tag:hover {
+    background: rgba(92, 230, 201, 0.15);
+    border-color: rgba(92, 230, 201, 0.45);
+    transform: translateY(-3px);
+}
+
+.team-member-tag .member-name {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.team-member-tag .member-society {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-style: italic;
+    font-weight: 400;
+    color: rgba(255, 207, 150, 0.75);
+}
+
+/* ============================================
+   FOOTER: LEGACY MESSAGE & CTA
+   ============================================ */
+
+.team-footer {
+    margin-top: 80px;
+    padding: 0 24px;
+}
+
+.footer-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 70px 50px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(25px);
+    border: 2px solid rgba(92, 230, 201, 0.25);
+    border-radius: 28px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.footer-title {
+    font-family: var(--font-serif);
+    font-size: 42px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 28px;
+    letter-spacing: -0.01em;
+}
+
+.footer-message {
+    font-family: var(--font-sans);
+    font-size: 20px;
+    font-style: italic;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 36px;
+}
+
+.footer-cta-text {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 28px;
+}
+
+.footer-cta-button {
+    display: inline-block;
+    padding: 18px 42px;
+    background: transparent;
+    border: 2.5px solid rgba(255, 207, 150, 0.9);
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 207, 150, 1);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-cta-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 207, 150, 0.15) 50%,
+            transparent 100%);
+    transition: left 650ms ease;
+}
+
+.footer-cta-button:hover::before {
+    left: 100%;
+}
+
+.footer-cta-button:hover {
+    background: rgba(255, 207, 150, 0.15);
+    border-color: #FFFFFF;
+    color: #FFFFFF;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 35px rgba(255, 207, 150, 0.3);
+}
+
+/* ============================================
+   RESPONSIVE: TABLET
+   ============================================ */
+
+@media (max-width: 1400px) {
+    .core-spark-arc {
+        grid-template-columns: repeat(3, 360px);
+        gap: 36px;
+    }
+
+    .core-card {
+        width: 360px;
+        height: 450px;
+    }
+
+    .core-card .photo-wrapper {
+        height: 270px;
+    }
+
+    .core-executive-grid {
+        grid-template-columns: repeat(3, 320px);
+        gap: 36px;
+    }
+
+    .executive-card {
+        width: 320px;
+        height: 420px;
+    }
+
+    .executive-card .photo-wrapper {
+        height: 260px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .core-spark-arc {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    /* Remove arc on mobile */
+    .core-spark-arc .core-card:nth-child(1),
+    .core-spark-arc .core-card:nth-child(3) {
+        transform: translateY(0) !important;
+    }
+
+    .core-card {
+        width: 100%;
+        height: auto;
+        margin-bottom: 40px;
+    }
+
+    .core-card .photo-wrapper {
+        height: 350px;
+    }
+
+    .core-executive-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 750px;
+        margin: 0 auto;
+        gap: 32px;
+    }
+
+    .executive-card {
+        width: 100%;
+        height: auto;
+    }
+
+    .executive-card:nth-child(7) {
+        grid-column: 1 / -1;
+        max-width: 360px;
+        margin: 0 auto;
+    }
+
+    .team-members-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ============================================
+   RESPONSIVE: MOBILE
+   ============================================ */
+
+@media (max-width: 767px) {
+    .team-section {
+        padding: 80px 20px;
+    }
+
+    .team-title {
+        font-size: 40px;
+    }
+
+    .team-subtitle {
+        font-size: 17px;
+    }
+
+    .tier-section {
+        margin-bottom: 80px;
+    }
+
+    .core-card .photo-wrapper {
+        height: 300px;
+    }
+
+    .core-card .member-name {
+        font-size: 24px;
+    }
+
+    .core-executive-grid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+    }
+
+    .executive-card:nth-child(7) {
+        max-width: 100%;
+    }
+
+    .executive-card .photo-wrapper {
+        height: 280px;
+    }
+
+    .community-header {
+        padding: 16px 20px;
+    }
+
+    .community-logo-placeholder {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .community-name {
+        font-size: 17px;
+    }
+
+    .community-members {
+        padding: 0 20px 20px 76px;
+    }
+
+    .members-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .master-header {
+        padding: 22px 24px;
+    }
+
+    .master-count {
+        font-size: 28px;
+    }
+
+    .master-title {
+        font-size: 22px;
+    }
+
+    .master-content {
+        padding: 24px 20px;
+    }
+
+    .team-header {
+        padding: 16px 20px;
+    }
+
+    .team-title {
+        font-size: 16px;
+    }
+
+    .team-members-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-content {
+        padding: 50px 32px;
+    }
+
+    .footer-title {
+        font-size: 32px;
+    }
+
+    .footer-message {
+        font-size: 17px;
+    }
+
+    .footer-cta-button {
+        padding: 16px 36px;
+        font-size: 15px;
+    }
+}

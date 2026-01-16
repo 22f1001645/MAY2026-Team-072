@@ -1685,10 +1685,82 @@
    SECTION HEADER
    ────────────────────────────── */
 
+/* TEAM HEADER - Mirrored from Testimonials Header */
+.team-section {
+    position: relative;
+    background-color: #050505 !important;
+    /* Force black background with high specificity */
+    /* Force black background */
+    z-index: 5;
+}
+
+.team-bg-glow {
+    display: none !important;
+    /* Kill the teal glow causing the issue */
+    /* Kill the teal glow causing the issue */
+}
+
 .team-header {
-    padding: 120px 20px;
-    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    /* CRITICAL: Force vertical stacking */
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto 80px;
+    padding: 0 20px;
+}
+
+/* Ensure child elements match Testimonials exactly */
+.team-header .label-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(8px);
+}
+
+.team-header .label-pill span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.team-header .section-headline {
+    font-family: var(--font-serif);
+    font-size: 56px;
+    font-weight: 400;
+    line-height: 1.1;
+    color: #FFFFFF;
+    margin-bottom: 24px;
+}
+
+.team-header .section-subheadline {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 600px;
     margin: 0 auto;
+}
+
+.team-header .text-highlight-gold {
+    color: var(--unity-gold);
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .team-header .section-headline {
+        font-size: 36px;
+    }
 }
 
 .organizers-section,

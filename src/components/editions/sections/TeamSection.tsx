@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Users } from 'lucide-react'
 
 // ============================================
 // DATA STRUCTURES
@@ -360,11 +360,16 @@ export function TeamSection() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h1 className="team-title">Built By Believers</h1>
-                    <p className="team-subtitle">
-                        From late-night planning to the final bow—these are the architects of Ekatva Hyderabad 2025.
+                    <div className="label-pill">
+                        <Users size={12} className="text-teal-400" />
+                        <span>The Team</span>
+                    </div>
+                    <h2 className="section-headline">
+                        The Architects of Ekatva <span className="text-highlight-gold">Hyderabad</span>
+                    </h2>
+                    <p className="section-subheadline">
+                        From late-night planning to the final bow—these are the people who made it happen.
                     </p>
-                    <div className="team-divider" />
                 </motion.header>
 
                 {/* ============================================

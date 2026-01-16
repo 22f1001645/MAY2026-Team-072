@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -284,6 +284,8 @@ export function TeamSection() {
     const [openCommunities, setOpenCommunities] = useState<Set<string>>(new Set())
     const [masterAccordionOpen, setMasterAccordionOpen] = useState(true)
     const [openExtendedTeams, setOpenExtendedTeams] = useState<Set<string>>(new Set())
+    const [contributorCount, setContributorCount] = useState(0)
+    const [hasAnimated, setHasAnimated] = useState(false)
 
     const toggleCommunity = (id: string) => {
         setOpenCommunities(prev => {
@@ -308,6 +310,39 @@ export function TeamSection() {
             return next
         })
     }
+
+    // Count-up animation for Tier 4
+    const countRef = useRef<HTMLSpanElement>(null)
+
+    useEffect(() => {
+        if (!countRef.current || hasAnimated) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && !hasAnimated) {
+                        setHasAnimated(true)
+                        let current = 0
+                        const target = 70
+                        const increment = Math.ceil(target / 50)
+                        const timer = setInterval(() => {
+                            current += increment
+                            if (current >= target) {
+                                setContributorCount(target)
+                                clearInterval(timer)
+                            } else {
+                                setContributorCount(current)
+                            }
+                        }, 30)
+                    }
+                })
+            },
+            { threshold: 0.5 }
+        )
+
+        observer.observe(countRef.current)
+        return () => observer.disconnect()
+    }, [hasAnimated])
 
     return (
         <section className="team-section">
@@ -511,7 +546,9 @@ export function TeamSection() {
                             aria-expanded={masterAccordionOpen}
                         >
                             <div className="master-title-wrapper">
-                                <span className="master-count">70+</span>
+                                <span className="master-count" ref={countRef}>
+                                    {contributorCount > 0 ? `${contributorCount}+` : '000'}
+                                </span>
                                 <h3 className="master-title">Contributors Made It Real</h3>
                             </div>
                             {masterAccordionOpen ? (

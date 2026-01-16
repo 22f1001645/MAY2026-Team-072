@@ -1745,8 +1745,12 @@
 .team-header .section-subheadline {
     font-family: var(--font-sans);
     font-size: 18px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.7;
+    /* Phase 2: Improved breathing room */
+    letter-spacing: 0.01em;
+    /* Phase 2: Subtle editorial tracking */
+    color: rgba(255, 255, 255, 0.8);
+    /* Phase 2: Increased confidence */
     max-width: 600px;
     margin: 0 auto;
 }

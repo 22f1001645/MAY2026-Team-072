@@ -368,7 +368,7 @@ export function TeamSection() {
                         The Architects of Ekatva <span className="text-highlight-gold">Hyderabad</span>
                     </h2>
                     <p className="section-subheadline">
-                        From late-night planning to the final bow—these are the people who made it happen.
+                        From a November whiteboard to 230 changed lives—meet the believers who engineered the impossible.
                     </p>
                 </motion.header>
 

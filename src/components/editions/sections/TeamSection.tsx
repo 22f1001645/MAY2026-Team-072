@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, ChevronRight, Users } from 'lucide-react'
+import { ChevronDown, ChevronRight, Users, Sparkles, Star, Zap } from 'lucide-react'
 
 // ============================================
 // DATA STRUCTURES
@@ -377,7 +377,7 @@ export function TeamSection() {
             ============================================ */}
                 <div className="tier-section tier-core-spark">
                     <div className="tier-label">
-                        <span className="tier-icon">✨</span>
+                        <span className="tier-icon"><Sparkles className="text-highlight-gold" size={20} /></span>
                         <span className="tier-text" style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.15em' }}>THE CORE SPARK</span>
                     </div>
 
@@ -412,7 +412,7 @@ export function TeamSection() {
                                         <h3 className="member-name">{member.name}</h3>
 
                                         <div className="member-badge badge-gold">
-                                            <span className="badge-icon">⭐</span>
+                                            <span className="badge-icon"><Star className="text-[#FFCF96] fill-[#FFCF96]" size={12} /></span>
                                             <span className="badge-text">{member.role}</span>
                                         </div>
 
@@ -429,7 +429,7 @@ export function TeamSection() {
             ============================================ */}
                 <div className="tier-section tier-core-executive">
                     <div className="tier-label">
-                        <span className="tier-icon">🔥</span>
+                        <span className="tier-icon"><Zap className="text-teal-400 fill-teal-400/20" size={20} /></span>
                         <span className="tier-text" style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '0.12em' }}>THE CORE EXECUTIVE</span>
                     </div>
 

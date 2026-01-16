@@ -338,7 +338,7 @@ export function TeamSection() {
                 <div className="tier-section tier-core-spark">
                     <div className="tier-label">
                         <span className="tier-icon">✨</span>
-                        <span className="tier-text">The Core Spark</span>
+                        <span className="tier-text" style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.15em' }}>THE CORE SPARK</span>
                     </div>
 
                     <div className="core-spark-arc" style={{ gap: '60px' }}>
@@ -389,8 +389,8 @@ export function TeamSection() {
             ============================================ */}
                 <div className="tier-section tier-core-executive">
                     <div className="tier-label">
-                        <span className="tier-icon">🏗️</span>
-                        <span className="tier-text">The Core Executive</span>
+                        <span className="tier-icon">🔥</span>
+                        <span className="tier-text" style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '0.12em' }}>THE CORE EXECUTIVE</span>
                     </div>
 
                     <div className="core-executive-grid">

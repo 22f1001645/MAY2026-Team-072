@@ -83,6 +83,16 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
         ]
     },
     {
+        id: 'saranda',
+        name: 'Saranda',
+        logo: '/images/partners/saranda.png',
+        type: 'House',
+        gbMembers: [
+            { name: 'Abhishek', role: 'Secretary' },
+            { name: 'Ishank Gupta', role: 'Deputy Secretary' }
+        ]
+    },
+    {
         id: 'kaziranga',
         name: 'Kaziranga',
         logo: '/images/partners/kaziranga.png',
@@ -90,13 +100,6 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
         gbMembers: [
             { name: 'Shiva Kumar', role: 'Deputy Secretary' }
         ]
-    },
-    {
-        id: 'saranda',
-        name: 'Saranda',
-        logo: '/images/partners/saranda.png',
-        type: 'House',
-        gbMembers: []
     },
     {
         id: 'nilgiri',

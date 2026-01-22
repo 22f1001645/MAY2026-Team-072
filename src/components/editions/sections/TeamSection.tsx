@@ -469,10 +469,14 @@ export function TeamSection() {
 
 
                 {/* ============================================
-            TIER 4: CINEMATIC CREDITS WALL (The New Architecture)
+            TIER 4: THE REGISTRY INDEX (Master Accordion)
             ============================================ */}
                 <div className="tier-section tier-extended">
-                    <div className="section-header-static">
+                    {/* Master Toggle Header */}
+                    <button
+                        className="registry-master-header"
+                        onClick={() => setMasterAccordionOpen(!masterAccordionOpen)}
+                    >
                         <h2 className="section-title">CONTRIBUTOR TEAMS</h2>
 
                         <div className="section-subtitle-wrapper">
@@ -488,58 +492,67 @@ export function TeamSection() {
                         </div>
 
                         <div className="section-divider" />
-                    </div>
 
-                    {/* JUMP PILLS NAVIGATION */}
-                    <div className="jump-pills-container">
-                        {EXTENDED_TEAMS.map((team) => (
-                            <button
-                                key={team.id}
-                                onClick={() => scrollToCategory(team.id)}
-                                className={`jump-pill ${activeCategory === team.id ? 'active' : ''}`}
-                            >
-                                {team.title.replace(' Team', '').replace(' Coordinators', '')}
-                            </button>
-                        ))}
-                    </div>
+                        <div className={`master-chevron ${masterAccordionOpen ? 'open' : ''}`}>
+                            <ChevronDown size={20} />
+                        </div>
+                    </button>
 
-                    {/* CREDITS WALL CONTAINER */}
-                    <div className="credits-wall-container">
-                        {EXTENDED_TEAMS.map((team, index) => (
+                    {/* Registry Content */}
+                    <AnimatePresence>
+                        {masterAccordionOpen && (
                             <motion.div
-                                id={`category-${team.id}`}
-                                key={team.id}
-                                className="credits-category-block"
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ margin: "-50px" }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                                className="registry-content-wrapper"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                             >
-                                <div className="category-header-row">
-                                    <h3 className="category-title">{team.title}</h3>
-                                    <div className="category-line"></div>
-                                </div>
+                                <div className="registry-list">
+                                    {EXTENDED_TEAMS.map((team, index) => (
+                                        <div key={team.id} className="registry-item">
+                                            {/* Registry Row */}
+                                            <button
+                                                className={`registry-row ${activeCategory === team.id ? 'active' : ''}`}
+                                                onClick={() => activeCategory === team.id ? setActiveCategory('') : setActiveCategory(team.id)}
+                                            >
+                                                <span className="registry-team-name">{team.title}</span>
+                                                <div className="registry-dots" />
+                                                <span className="registry-count">{team.members.length}</span>
+                                                <div className={`registry-chevron ${activeCategory === team.id ? 'open' : ''}`}>
+                                                    <ChevronRight size={16} />
+                                                </div>
+                                            </button>
 
-                                <div className="category-names-grid">
-                                    {team.members.map((member, idx) => (
-                                        <div key={idx} className="credit-entry">
-                                            <span className="credit-name">{member.name}</span>
-                                            {member.society && (
-                                                <>
-                                                    <span className="credit-separator">·</span>
-                                                    <span className="credit-society">{member.society}</span>
-                                                </>
-                                            )}
+                                            {/* Expansion Grid */}
+                                            <AnimatePresence>
+                                                {activeCategory === team.id && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.3 }}
+                                                        className="registry-expansion"
+                                                    >
+                                                        <div className="registry-grid">
+                                                            {team.members.map((member, idx) => (
+                                                                <div key={idx} className="registry-card">
+                                                                    <span className="reg-name">{member.name}</span>
+                                                                    {member.society && (
+                                                                        <span className="reg-society">{member.society}</span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     ))}
                                 </div>
                             </motion.div>
-                        ))}
-
-                        <div className="credits-end-mark">
-                            <Sparkles size={16} className="text-highlight-gold" />
-                        </div>
-                    </div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* ============================================

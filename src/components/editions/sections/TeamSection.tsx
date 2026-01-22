@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronRight, Users, Sparkles, Star, Zap } from 'lucide-react'
 import { PartnerGrid } from '../partners/PartnerGrid'
 import '@/styles/PartnerGrid.css'
@@ -203,7 +203,7 @@ const EXTENDED_TEAMS: ExtendedTeam[] = [
     },
     {
         id: 'transport',
-        title: 'Transportation Team',
+        title: 'Logistics & Transportation',
         icon: '🚗',
         count: 5,
         members: [
@@ -486,92 +486,103 @@ export function TeamSection() {
 
 
                 {/* ============================================
-            TIER 4: EXTENDED FAMILY (Nested Accordion)
+            TIER 4: CONTRIBUTOR TEAMS (Section-as-Accordion)
             ============================================ */}
                 <div className="tier-section tier-extended">
-                    <div className="tier-label">
-                        <span className="tier-icon">🛠️</span>
-                        <span className="tier-text">The Extended Family</span>
-                    </div>
+                    {/* Interactive Header as Toggle */}
+                    <button
+                        className="section-header interactive"
+                        onClick={() => setMasterAccordionOpen(!masterAccordionOpen)}
+                        aria-expanded={masterAccordionOpen}
+                    >
+                        <h2 className="section-title">CONTRIBUTOR TEAMS</h2>
 
-                    <div className="master-accordion">
-                        <button
-                            className="master-header"
-                            onClick={() => setMasterAccordionOpen(!masterAccordionOpen)}
-                            aria-expanded={masterAccordionOpen}
-                        >
-                            <div className="master-title-wrapper">
-                                <span className="master-count" ref={countRef}>
-                                    {contributorCount > 0 ? `${contributorCount}+` : '000'}
-                                </span>
-                                <h3 className="master-title">Contributors Made It Real</h3>
-                            </div>
-                            {masterAccordionOpen ? (
-                                <ChevronDown className="master-toggle" size={28} />
-                            ) : (
-                                <ChevronRight className="master-toggle" size={28} />
-                            )}
-                        </button>
+                        <div className="section-subtitle-wrapper">
+                            <span className="animated-count-wrapper" ref={countRef}>
+                                <span className="count-number">{contributorCount > 0 ? contributorCount : '00'}</span>
+                                <span className="count-plus">+</span>
+                            </span>
+                            <span className="section-subtitle">
+                                <span className="separator">Contributors</span>
+                                <span className="separator">•</span>
+                                <span className="highlight">The Hands & Hearts</span>
+                            </span>
+                        </div>
 
+                        <div className="section-divider" />
+
+                        <div className={`header-toggle-indicator ${masterAccordionOpen ? 'open' : ''}`}>
+                            <ChevronDown size={24} />
+                        </div>
+                    </button>
+
+                    {/* Expandable Content Area */}
+                    <AnimatePresence>
                         {masterAccordionOpen && (
                             <motion.div
-                                className="master-content"
+                                className="extended-content-wrapper"
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
-                                transition={{ duration: 0.4 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                             >
-                                {EXTENDED_TEAMS.map((team, index) => (
-                                    <div
-                                        key={team.id}
-                                        className={`team-accordion ${openExtendedTeams.has(team.id) ? 'open' : ''}`}
-                                    >
-                                        <button
-                                            className="team-header"
-                                            onClick={() => toggleExtendedTeam(team.id)}
-                                            aria-expanded={openExtendedTeams.has(team.id)}
+                                <div className="extended-teams-list">
+                                    {EXTENDED_TEAMS.map((team, index) => (
+                                        <div
+                                            key={team.id}
+                                            className={`team-accordion ${openExtendedTeams.has(team.id) ? 'open' : ''}`}
                                         >
-                                            <div className="team-title-group">
-                                                <span className="team-emoji">{team.icon}</span>
-                                                <h4 className="team-title">{team.title}</h4>
-                                                <span className="team-count">({team.count})</span>
-                                            </div>
-                                            {openExtendedTeams.has(team.id) ? (
-                                                <ChevronDown className="team-toggle" size={20} />
-                                            ) : (
-                                                <ChevronRight className="team-toggle" size={20} />
-                                            )}
-                                        </button>
-
-                                        {openExtendedTeams.has(team.id) && (
-                                            <motion.div
-                                                className="team-content"
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                transition={{ duration: 0.3 }}
+                                            <button
+                                                className="team-header"
+                                                onClick={() => toggleExtendedTeam(team.id)}
+                                                aria-expanded={openExtendedTeams.has(team.id)}
                                             >
-                                                <div className="team-members-grid">
-                                                    {team.members.map((member, idx) => (
-                                                        <motion.div
-                                                            key={idx}
-                                                            className="team-member-tag"
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ duration: 0.3, delay: idx * 0.05 }}
-                                                        >
-                                                            <span className="member-name">{member.name}</span>
-                                                            {member.society && (
-                                                                <span className="member-society">({member.society})</span>
-                                                            )}
-                                                        </motion.div>
-                                                    ))}
+                                                <div className="team-title-group">
+                                                    <span className="team-emoji">{team.icon}</span>
+                                                    <h4 className="team-title">{team.title}</h4>
+                                                    <span className="team-count">({team.count})</span>
                                                 </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-                                ))}
+                                                {openExtendedTeams.has(team.id) ? (
+                                                    <ChevronDown className="team-toggle" size={20} />
+                                                ) : (
+                                                    <ChevronRight className="team-toggle" size={20} />
+                                                )}
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {openExtendedTeams.has(team.id) && (
+                                                    <motion.div
+                                                        className="team-content"
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.3 }}
+                                                    >
+                                                        <div className="team-members-grid">
+                                                            {team.members.map((member, idx) => (
+                                                                <motion.div
+                                                                    key={idx}
+                                                                    className="team-member-tag"
+                                                                    initial={{ opacity: 0, y: 10 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                                                >
+                                                                    <span className="member-name">{member.name}</span>
+                                                                    {member.society && (
+                                                                        <span className="member-society">({member.society})</span>
+                                                                    )}
+                                                                </motion.div>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    ))}
+                                </div>
                             </motion.div>
                         )}
-                    </div>
+                    </AnimatePresence>
                 </div>
 
                 {/* ============================================

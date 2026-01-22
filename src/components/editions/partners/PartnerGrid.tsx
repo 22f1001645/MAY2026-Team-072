@@ -19,9 +19,10 @@ export const PartnerGrid: React.FC = () => {
         const currentIndex = PARTNER_ENTITIES.findIndex(e => e.id === activeEntityId)
 
         // Calculate items per row based on viewport
-        // Desktop: 3 columns, Tablet: 2 columns, Mobile: 1 column
-        // For now, defaulting to 3 (will be handled by CSS grid)
-        const itemsPerRow = 3
+        // Desktop: 5 columns (compact grid)
+        // Tablet: 4 columns
+        // Mobile: 3 columns
+        const itemsPerRow = 5
 
         // Find the last item in the current row
         const rowEndIndex = Math.ceil((currentIndex + 1) / itemsPerRow) * itemsPerRow - 1

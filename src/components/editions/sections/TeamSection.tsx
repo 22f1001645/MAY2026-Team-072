@@ -538,9 +538,8 @@ export function TeamSection() {
                                                 aria-expanded={openExtendedTeams.has(team.id)}
                                             >
                                                 <div className="team-title-group">
-                                                    <span className="team-emoji">{team.icon}</span>
                                                     <h4 className="team-title">{team.title}</h4>
-                                                    <span className="team-count">({team.count})</span>
+                                                    <span className="team-count">{team.members.length}</span>
                                                 </div>
                                                 {openExtendedTeams.has(team.id) ? (
                                                     <ChevronDown className="team-toggle" size={20} />

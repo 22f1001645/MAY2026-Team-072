@@ -3643,7 +3643,7 @@ section {
    ────────────────────────────── */
 
 .team-accordion {
-    margin-bottom: 18px;
+    margin-bottom: 12px;
     background: rgba(0, 0, 0, 0.3);
     border: 1.5px solid rgba(92, 230, 201, 0.18);
     border-radius: 14px;
@@ -3661,7 +3661,7 @@ section {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 18px 24px;
+    padding: 14px 20px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -3711,8 +3711,14 @@ section {
 /* Team Members Grid (with Stagger Animation) */
 .team-members-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 1024px) {
+    .team-members-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 /* Team Member Tag */

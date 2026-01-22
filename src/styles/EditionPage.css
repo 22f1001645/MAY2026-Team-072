@@ -3589,8 +3589,8 @@ section {
     font-style: italic;
     color: rgba(255, 255, 255, 0.9);
     /* FIXED: High contrast */
-    margin-left: 10px;
-    /* Distinct gap between Stat and Noun */
+    margin-left: 6px;
+    /* Tightened gap */
     font-weight: 400;
     /* Ensure legibility */
 }

@@ -503,7 +503,7 @@ export function TeamSection() {
                                 <span className="count-plus">+</span>
                             </span>
                             <span className="section-subtitle">
-                                <span className="separator">Contributors</span>
+                                Contributors
                                 <span className="separator">•</span>
                                 <span className="highlight">The Hands & Hearts</span>
                             </span>

@@ -3569,29 +3569,38 @@ section {
     font-style: italic;
     display: flex;
     align-items: baseline;
-    margin-right: -4px;
-    /* Tighten gap slightly due to italic flow */
+    /* Removed negative margin to let it breathe */
 }
 
 .count-number {
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
+}
+
+.count-plus {
+    font-size: 0.8em;
+    /* Slightly superscript effect visually */
+    margin-left: 1px;
 }
 
 .section-subtitle {
     font-family: 'Playfair Display', serif;
     font-size: 16px;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.6);
-    /* Reduced opacity for better hierarchy */
-    margin-left: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    /* FIXED: High contrast */
+    margin-left: 10px;
+    /* Distinct gap between Stat and Noun */
+    font-weight: 400;
+    /* Ensure legibility */
 }
 
 .section-subtitle .separator {
-    color: rgba(92, 230, 201, 0.4);
+    color: rgba(92, 230, 201, 0.6);
+    /* Slightly brighter */
     font-size: 12px;
     vertical-align: middle;
-    margin: 0 8px;
+    margin: 0 10px;
 }
 
 .section-subtitle .highlight {

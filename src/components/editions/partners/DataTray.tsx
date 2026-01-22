@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { X, Diamond } from 'lucide-react'
 import { PartnerEntity } from '@/data/partners'
 
 interface DataTrayProps {
@@ -12,34 +12,30 @@ export const DataTray: React.FC<DataTrayProps> = ({ entity, onClose }) => {
         <motion.div
             className="data-tray"
             initial={{ opacity: 0, maxHeight: 0, margin: '0' }}
-            animate={{ opacity: 1, maxHeight: 600, margin: '30px 0' }}
+            animate={{ opacity: 1, maxHeight: 600, margin: '8px 0' }}
             exit={{ opacity: 0, maxHeight: 0, margin: '0' }}
             transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
             role="region"
             aria-live="polite"
-            aria-label={`${entity.name} Governing Body details`}
+            aria-label={`GB Representatives from ${entity.name}`}
         >
-            {/* Tray Header */}
+            {/* Tray Header - Two-Line Title, No Logo */}
             <div className="tray-header">
-                <div className="tray-logo">
-                    <img src={entity.logo} alt={`${entity.name} Logo`} />
+                <div className="tray-titles">
+                    <h3 className="tray-title-main">GB Representatives from {entity.name}</h3>
+                    <p className="tray-title-sub">2024-2025 Edition</p>
                 </div>
-
-                <h3 className="tray-title">{entity.name}</h3>
-
                 <button
                     className="tray-close"
                     onClick={onClose}
                     aria-label="Close details"
                 >
-                    <X size={20} />
+                    <X size={18} />
                 </button>
             </div>
 
-            {/* Tray Content */}
+            {/* Tray Content - Members Grid */}
             <div className="tray-content">
-                <p className="gb-section-header">Governing Body</p>
-
                 <motion.div
                     className="gb-members-grid"
                     initial="hidden"
@@ -70,10 +66,9 @@ export const DataTray: React.FC<DataTrayProps> = ({ entity, onClose }) => {
                                 <div className="member-role">{member.role}</div>
                             </div>
 
+                            {/* Diamond Icon - Flat Hierarchy (same for all roles) */}
                             <div className="role-icon">
-                                {member.role === 'Secretary' && '👔'}
-                                {member.role === 'Deputy Secretary' && '🎯'}
-                                {member.role === 'Web Admin' && '💻'}
+                                <Diamond size={18} />
                             </div>
                         </motion.div>
                     ))}

@@ -136,5 +136,14 @@ export const PARTNER_ENTITIES: PartnerEntity[] = [
         gbMembers: [
             { name: 'Harsh Kumar', role: 'Deputy Secretary' }
         ]
+    },
+    {
+        id: 'pichavaram',
+        name: 'Pichavaram',
+        logo: '/images/partners/pichavaram.png',
+        type: 'House',
+        gbMembers: [
+            { name: 'Chatrapal Singh Rathore', role: 'Secretary' }
+        ]
     }
 ]

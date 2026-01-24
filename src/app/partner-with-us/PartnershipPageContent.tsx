@@ -233,13 +233,13 @@ export default function PartnershipPageContent() {
     return (
         <main className="partnership-page bg-oneness-black min-h-screen">
 
-            {/* Back to Home */}
+            {/* Home Link - Matches About page */}
             <Link
                 href="/"
-                className="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-white/70 hover:text-white hover:border-white/20 transition-all text-sm"
+                className="absolute top-6 left-6 z-50 flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm group"
             >
-                <ChevronLeft size={18} />
-                <span>Back to Home</span>
+                <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+                <span>Home</span>
             </Link>
 
             {/* ============ SECTION 1: HERO ============ */}
@@ -390,8 +390,8 @@ export default function PartnershipPageContent() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-full text-sm md:text-base font-medium transition-all ${activeTab === tab.id
-                                        ? 'bg-ekatva-teal text-oneness-black'
-                                        : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                                    ? 'bg-ekatva-teal text-oneness-black'
+                                    : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
                                     }`}
                             >
                                 {tab.icon}

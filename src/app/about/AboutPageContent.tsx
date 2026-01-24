@@ -16,10 +16,7 @@ import {
     MapPin,
     Calendar,
     CheckCircle,
-    Building,
-    Globe,
-    Target,
-    Handshake,
+
     MessageSquare,
     UserCheck,
     Rocket,
@@ -267,38 +264,7 @@ const CITIES = [
     { name: 'Patna', status: 'planned', year: '2025' }
 ]
 
-const CTA_CARDS = [
-    {
-        accent: 'gold',
-        icon: Building,
-        title: 'Lead Your City Edition',
-        description: 'Help bring EKATVA to your city. Get the blueprint, resources, and support to create a defining experience.',
-        primaryText: 'Apply to Organize',
-        primaryLink: '/partner-with-us#organize',
-        secondaryText: 'See Requirements',
-        secondaryLink: '/partner-with-us#requirements'
-    },
-    {
-        accent: 'teal',
-        icon: Handshake,
-        title: 'Bring Your Society In',
-        description: 'Join the Governing Body. Collaborate with 10+ student bodies to shape the future of EKATVA as a co-equal partner.',
-        primaryText: 'Watch Partnership Pitch',
-        primaryLink: '/partner-with-us',
-        secondaryText: 'Express Interest',
-        secondaryLink: '/partner-with-us#interest'
-    },
-    {
-        accent: 'white',
-        icon: Globe,
-        title: 'Stay Connected',
-        description: 'Follow the movement. Attend when EKATVA comes to your city. Be part of the community redefining student life.',
-        primaryText: 'Join WhatsApp Community',
-        primaryLink: 'https://chat.whatsapp.com/example',
-        secondaryText: 'Follow @ekatva_iitm',
-        secondaryLink: 'https://instagram.com/ekatva_iitm'
-    }
-]
+
 
 // ============================================================================
 // ANIMATION VARIANTS
@@ -644,65 +610,7 @@ export default function AboutPageContent() {
             ================================================================ */}
             <Section6B />
 
-            {/* ================================================================
-                SECTION 7: JOIN THE MOVEMENT
-            ================================================================ */}
-            <section className="about-join" id="get-involved">
-                <div className="about-container">
-                    <motion.header
-                        className="about-section-header"
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: '-100px' }}
-                        transition={{ duration: 0.8 }}
-                    >
-                        <h2 className="about-section-title">Be Part of EKATVA</h2>
-                        <p className="about-section-subtitle">
-                            Whether you want to lead, collaborate, or connect — there's a place for you.
-                        </p>
-                    </motion.header>
 
-                    <motion.div
-                        className="cta-grid"
-                        initial="initial"
-                        whileInView="animate"
-                        viewport={{ once: true }}
-                        variants={staggerContainer}
-                    >
-                        {CTA_CARDS.map((card, index) => {
-                            const CardIcon = card.icon
-
-                            return (
-                                <motion.div
-                                    key={index}
-                                    className="cta-card"
-                                    data-accent={card.accent}
-                                    variants={fadeInUp}
-                                    transition={{ duration: 0.5 }}
-                                    whileHover={{ y: -12 }}
-                                >
-                                    <div className="cta-icon">
-                                        <CardIcon size={36} />
-                                    </div>
-
-                                    <h3 className="cta-headline">{card.title}</h3>
-                                    <p className="cta-description">{card.description}</p>
-
-                                    <Link href={card.primaryLink} className="cta-btn cta-btn-primary">
-                                        {card.primaryText} <ArrowRight size={16} style={{ marginLeft: 8 }} />
-                                    </Link>
-
-                                    {card.secondaryLink && (
-                                        <Link href={card.secondaryLink} className="cta-btn cta-btn-secondary">
-                                            {card.secondaryText}
-                                        </Link>
-                                    )}
-                                </motion.div>
-                            )
-                        })}
-                    </motion.div>
-                </div>
-            </section>
         </div>
     )
 }

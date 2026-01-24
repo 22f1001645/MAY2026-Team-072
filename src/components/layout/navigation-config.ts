@@ -63,7 +63,7 @@ export const SECONDARY_NAV: Record<string, SectionLink[]> = {
 
         { label: 'How It Works', target: '#how-ekatva-works' },
         { label: 'The Vision', target: '#the-vision' },
-        { label: 'Get Involved', target: '#get-involved' },
+
     ],
     // Partner and Sponsor pages have no section nav for now
 }

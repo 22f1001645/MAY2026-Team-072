@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Poppins, Instrument_Serif } from 'next/font/google'
-import { Navbar } from '@/components/layout'
+import { Navbar, Footer } from '@/components/layout'
 import './globals.css'
 
 const poppins = Poppins({
@@ -55,6 +55,7 @@ export default function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   )

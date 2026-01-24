@@ -18,7 +18,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Menu, X } from 'lucide-react'
-import { PRIMARY_NAV, EDITIONS_NAV, isNavActive } from './navigation-config'
+import { PRIMARY_NAV, EDITIONS_NAV, isNavActive, hasSecondaryNav } from './navigation-config'
 
 interface PrimaryNavProps {
     onMobileMenuToggle: () => void
@@ -28,7 +28,42 @@ interface PrimaryNavProps {
 export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: PrimaryNavProps) {
     const pathname = usePathname()
     const [editionsOpen, setEditionsOpen] = useState(false)
+    const [showAttentionPulse, setShowAttentionPulse] = useState(true)
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Check if current page has secondary nav (affects dropdown position)
+    const showSecondary = hasSecondaryNav(pathname ?? '/')
+    const dropdownTop = showSecondary ? '160px' : '108px'
+
+    // Stop attention pulse after first hover interaction
+    const handleFirstInteraction = () => {
+        if (showAttentionPulse) setShowAttentionPulse(false)
+    }
+
+    // Delayed hover open (150ms) for intentional interaction
+    const handleMouseEnter = () => {
+        handleFirstInteraction()
+        if (leaveTimeoutRef.current) {
+            clearTimeout(leaveTimeoutRef.current)
+            leaveTimeoutRef.current = null
+        }
+        hoverTimeoutRef.current = setTimeout(() => {
+            setEditionsOpen(true)
+        }, 150)
+    }
+
+    // Delayed hover close (200ms) to allow cursor to reach dropdown
+    const handleMouseLeave = () => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current)
+            hoverTimeoutRef.current = null
+        }
+        leaveTimeoutRef.current = setTimeout(() => {
+            setEditionsOpen(false)
+        }, 200)
+    }
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -73,36 +108,69 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                     {PRIMARY_NAV.map((item) => {
                         const isActive = isNavActive(item.href, pathname ?? '/')
 
-                        // Editions Dropdown (Horizontal Mega Menu)
-                        if (item.type === 'dropdown') {
+                        // Editions Dropdown-Link (Click navigates, Hover shows preview)
+                        if (item.type === 'dropdown-link' || item.type === 'dropdown') {
                             return (
                                 <div
                                     key={item.href}
                                     ref={dropdownRef}
                                     className="relative"
-                                    onMouseEnter={() => setEditionsOpen(true)}
-                                    onMouseLeave={() => setEditionsOpen(false)}
+                                    onMouseEnter={handleMouseEnter}
+                                    onMouseLeave={handleMouseLeave}
                                 >
-                                    <button
-                                        className="relative px-4 py-2 text-sm uppercase tracking-wider font-medium transition-colors flex items-center gap-1.5 rounded-lg hover:bg-white/5"
+                                    {/* Clickable Link - Navigates to /editions */}
+                                    <Link
+                                        href={item.href}
+                                        className="relative px-4 py-2 text-sm uppercase tracking-wider font-medium transition-all flex items-center gap-1.5 rounded-lg group"
                                         style={{
-                                            color: isActive ? '#5CE6C9' : 'rgba(255, 255, 255, 0.7)'
+                                            color: isActive || editionsOpen ? '#5CE6C9' : 'rgba(255, 255, 255, 0.7)',
+                                            background: editionsOpen ? 'rgba(92, 230, 201, 0.05)' : 'transparent',
                                         }}
-                                        onClick={() => setEditionsOpen(!editionsOpen)}
+                                        onClick={() => setEditionsOpen(false)} // Close dropdown when navigating
                                     >
                                         {item.label}
-                                        <ChevronDown
-                                            size={14}
-                                            className={`transition-transform duration-200 ${editionsOpen ? 'rotate-180' : ''}`}
+
+                                        {/* Chevron with Attention Pulse Animation */}
+                                        <motion.div
+                                            animate={showAttentionPulse ? {
+                                                y: [0, 2, 0],
+                                                opacity: [1, 0.7, 1]
+                                            } : {}}
+                                            transition={showAttentionPulse ? {
+                                                duration: 1.2,
+                                                repeat: 2,
+                                                delay: 3,
+                                                ease: 'easeInOut'
+                                            } : {}}
+                                        >
+                                            <ChevronDown
+                                                size={14}
+                                                className={`transition-all duration-200 ${editionsOpen ? 'rotate-180 text-ekatva-teal' : 'group-hover:text-ekatva-teal group-hover:translate-y-0.5'}`}
+                                            />
+                                        </motion.div>
+
+                                        {/* Underline Indicator - Expands on hover, solid when open */}
+                                        <motion.div
+                                            className="absolute -bottom-0.5 left-1/2 h-0.5 rounded-full bg-gradient-to-r from-transparent via-ekatva-teal to-transparent"
+                                            initial={{ width: 0, x: '-50%' }}
+                                            animate={{
+                                                width: editionsOpen ? '100%' : '0%',
+                                                opacity: editionsOpen ? 1 : 0,
+                                            }}
+                                            whileHover={{ width: '80%', opacity: 0.7 }}
+                                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                                            style={{ transformOrigin: 'center' }}
                                         />
-                                        {isActive && (
+
+                                        {/* Active Page Dot (when on /editions) */}
+                                        {isActive && !editionsOpen && (
                                             <motion.div
                                                 layoutId="activePage"
                                                 className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-ekatva-teal"
                                                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                                             />
                                         )}
-                                    </button>
+                                    </Link>
 
                                     {/* World-Class Premium Editions Mega Menu */}
                                     <AnimatePresence>
@@ -114,7 +182,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                                                 className="fixed left-0 right-0 flex justify-center"
                                                 style={{
-                                                    top: '108px', // Tweaked for perfect gap spacing
+                                                    top: dropdownTop, // Dynamic: 160px with secondary nav, 108px without
                                                     zIndex: 100,
                                                 }}
                                             >

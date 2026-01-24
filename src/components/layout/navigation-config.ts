@@ -16,7 +16,7 @@ export interface NavItem {
     label: string
     href: string
     icon?: string
-    type: 'link' | 'dropdown'
+    type: 'link' | 'dropdown' | 'dropdown-link' // dropdown-link: click navigates, hover shows preview
 }
 
 export interface SectionLink {
@@ -39,7 +39,7 @@ export interface EditionNavItem {
 export const PRIMARY_NAV: NavItem[] = [
     { label: 'Home', href: '/', icon: '🏠', type: 'link' },
     { label: 'About', href: '/about', icon: '📖', type: 'link' },
-    { label: 'Editions', href: '/editions', icon: '🎪', type: 'dropdown' },
+    { label: 'Editions', href: '/editions', icon: '🎪', type: 'dropdown-link' },
     { label: 'Partner', href: '/partner-with-us', icon: '🤝', type: 'link' },
     { label: 'Sponsor', href: '/sponsor', icon: '💰', type: 'link' },
 ]

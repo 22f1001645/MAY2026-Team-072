@@ -56,6 +56,9 @@ export function StatsSection({ data, status, city }: StatsSectionProps) {
 
     return (
         <section className="stats-section">
+            {/* Cinematic Divider - Transition from Hero */}
+            <div className="w-[120px] h-[1px] bg-gradient-to-r from-transparent via-[#5CE6C9] to-transparent opacity-50 mx-auto mb-16 shadow-[0_0_15px_rgba(92,230,201,0.6)]" />
+
             <motion.h2
                 className="section-headline"
                 initial={{ opacity: 0, y: 20 }}

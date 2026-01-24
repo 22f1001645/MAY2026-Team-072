@@ -205,20 +205,7 @@ export function GallerySection({ data, status, city }: GallerySectionProps) {
                     </motion.div>
 
                     {/* Download Action */}
-                    {data.downloadLink && (
-                        <motion.div
-                            className="gallery-actions"
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.6 }}
-                        >
-                            <a href={data.downloadLink} className="gallery-download" download>
-                                <Download size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                                Download High-Res (ZIP)
-                            </a>
-                        </motion.div>
-                    )}
+
                 </section>
 
                 {/* FLIP Lightbox */}

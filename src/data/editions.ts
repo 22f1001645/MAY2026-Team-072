@@ -56,10 +56,11 @@ export const EDITIONS_DATA: Record<string, Edition> = {
         hero: {
             type: 'video',
             videoUrl: '/videos/ekatva-hyderabad-aftermovie.mp4',
-            videoPoster: '/images/editions/hyderabad-poster.jpg',
+            videoPoster: '/images/editions/hyderabad-poster-v2.png',
             title: 'EKATVA Hyderabad',
             subtitle: 'February 2025',
-            venue: 'Ripplez Events Space'
+            venue: 'Ripplez Events Space',
+            youtubeId: 'blcbG76VkHA'
         },
 
         stats: [

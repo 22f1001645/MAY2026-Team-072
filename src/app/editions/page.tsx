@@ -1,5 +1,6 @@
 import { EDITIONS_LIST, EDITIONS_DATA } from '@/data/editions'
 import { EditionCard } from '@/components/ui/EditionCard'
+import { EditionsMapSection } from '@/components/editions/EditionsMapSection'
 import type { DropdownEdition } from '@/types/edition'
 
 /**
@@ -51,6 +52,11 @@ export default function EditionsIndex() {
                             index={index}
                         />
                     ))}
+                </div>
+
+                {/* INDIA MAP SECTION - SCALE CONTEXT */}
+                <div className="mt-32 w-full">
+                    <EditionsMapSection />
                 </div>
 
                 {/* NOMINATE YOUR CITY SECTION */}

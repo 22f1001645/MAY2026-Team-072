@@ -76,10 +76,11 @@ export function EditionPage({ edition }: EditionPageProps) {
             <TeamSection />
 
             {/* Section 8: Next Edition */}
-            <NextEditionSection
+            {/* <NextEditionSection
                 data={edition.nextEdition}
                 currentCity={edition.city}
-            />
+            /> */}
+
         </div>
     )
 }

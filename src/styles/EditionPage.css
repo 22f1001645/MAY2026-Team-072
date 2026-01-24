@@ -1384,7 +1384,13 @@
 .timeline-section {
     padding: 120px 20px;
     max-width: 900px;
+    max-width: 900px;
     margin: 0 auto;
+}
+
+/* SPACING SYSTEM: Prevent double padding when following Gallery */
+.gallery-section+.timeline-section {
+    padding-top: 0;
 }
 
 .timeline {

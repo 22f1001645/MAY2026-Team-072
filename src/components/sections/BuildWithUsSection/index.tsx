@@ -23,6 +23,9 @@ import {
     CityInterestForm
 } from './forms'
 
+import { Modal } from '../../ui/Modal'
+
+
 // ============================================================================
 // SECTION 5: BUILD WITH US - Premium Conversion Section
 // ============================================================================
@@ -478,37 +481,7 @@ function TrustStat({ icon, value, label }: { icon: React.ReactNode; value: strin
 }
 
 // ============================================================================
-// MODAL COMPONENT
+// SHARED MODAL COMPONENT IMPORTED
 // ============================================================================
 
-interface ModalProps {
-    children: React.ReactNode
-    onClose: () => void
-}
-
-function Modal({ children, onClose }: ModalProps) {
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="modal-backdrop"
-            onClick={onClose}
-            role="dialog"
-            aria-modal="true"
-        >
-            <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                onClick={(e) => e.stopPropagation()}
-                className="modal-content"
-            >
-                {children}
-            </motion.div>
-        </motion.div>
-    )
-}
 

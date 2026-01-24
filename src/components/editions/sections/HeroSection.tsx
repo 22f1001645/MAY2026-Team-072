@@ -1,22 +1,8 @@
 'use client'
 
-/**
- * HERO SECTION - EDITION PAGE (Theatrical Framed Design)
- * 
- * Aftermovie-led hero with:
- * - Centered vertical layout (text ABOVE video)
- * - Framed video container (80% width, 16:9, rounded corners)
- * - Teal glow border on video frame
- * - Staggered Framer Motion entry animations
- * - Native <video> with muted autoplay
- * - Responsive: 16:9 on all devices, width scales
- * 
- * Inspired by Codebasics AI Fest - video as SUBJECT, not background
- */
-
-import { useState, useEffect, useRef } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
-import { Volume2, VolumeX, MapPin } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { MapPin } from 'lucide-react'
+import { YouTubeFacade } from '@/components/ui/YouTubeFacade'
 import type { HeroData, EditionStatus } from '@/types/edition'
 
 interface HeroSectionProps {
@@ -25,31 +11,10 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ data, status }: HeroSectionProps) {
-    const videoRef = useRef<HTMLVideoElement>(null)
-    const [isMuted, setIsMuted] = useState(true)
-    const [isVideoLoaded, setIsVideoLoaded] = useState(false)
-    const prefersReducedMotion = useReducedMotion()
 
-    // Auto-play video on mount
-    useEffect(() => {
-        if (videoRef.current && data.type === 'video') {
-            videoRef.current.play().catch(() => {
-                console.log('Autoplay prevented by browser')
-            })
-        }
-    }, [data.type])
+    // Fallback ID if not present in data (though we added it)
+    const youtubeId = data.youtubeId || "M7lc1UVf-VE"
 
-    // Toggle mute
-    const handleToggleMute = () => {
-        if (videoRef.current) {
-            videoRef.current.muted = !videoRef.current.muted
-            setIsMuted(videoRef.current.muted)
-        }
-    }
-
-
-
-    // Animation variants for staggered entry
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -66,27 +31,21 @@ export function HeroSection({ data, status }: HeroSectionProps) {
         visible: {
             opacity: 1,
             y: 0,
-            transition: { duration: 0.6, ease: 'easeOut' as const }
-        }
-    }
-
-    const videoVariants = {
-        hidden: { opacity: 0, scale: 0.95 },
-        visible: {
-            opacity: 1,
-            scale: 1,
-            transition: { duration: 0.8, delay: 0.5, ease: 'easeOut' as const }
+            transition: { duration: 0.6, ease: 'easeOut' }
         }
     }
 
     return (
-        <section className="hero-section-theatrical">
+        <section className="hero-section-theatrical min-h-screen relative flex flex-col items-center justify-center overflow-hidden py-20 bg-[#050505]">
             {/* Background gradient */}
-            <div className="hero-bg-gradient" />
+            <div className="hero-bg-gradient absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-[#050505] to-black z-0 pointer-events-none" />
+
+            {/* Background Glows matching Teal theme */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-teal-500/10 blur-[120px] rounded-full pointer-events-none" />
 
             {/* Main Content Container */}
             <motion.div
-                className="hero-theatrical-content"
+                className="hero-theatrical-content relative z-10 w-full max-w-7xl mx-auto px-4 flex flex-col items-center text-center"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
@@ -96,10 +55,10 @@ export function HeroSection({ data, status }: HeroSectionProps) {
                     className="hero-edition-marker"
                     variants={itemVariants}
                 >
-                    EDITION I
+                    {status === 'completed' ? 'EDITION I — COMPLETED' : 'UPCOMING EDITION'}
                 </motion.span>
 
-                {/* Main Title */}
+                {/* Main Title - RESTORED ORIGINAL FONTS */}
                 <motion.h1 className="hero-theatrical-title" variants={itemVariants}>
                     <span className="title-brand-premium">EKATVA</span>
                     <span className="title-city-premium">{data.title?.replace('EKATVA ', '') || 'HYDERABAD'}</span>
@@ -115,7 +74,7 @@ export function HeroSection({ data, status }: HeroSectionProps) {
 
                 {/* Date - Editorial Format */}
                 <motion.p className="hero-date-premium" variants={itemVariants}>
-                    FEB. 15, 2025
+                    {data.subtitle || 'FEB. 15, 2025'}
                 </motion.p>
 
                 {/* Venue - Premium Icon */}
@@ -129,75 +88,28 @@ export function HeroSection({ data, status }: HeroSectionProps) {
                     {data.venue?.toUpperCase() || 'INORBIT MALL • HYDERABAD'}
                 </motion.p>
 
-                {/* Video Frame Container */}
+                {/* VIDEO FRAME CONTAINER (The YouTube Facade) - RESTORED GLOW */}
                 <motion.div
                     className="hero-video-frame"
-                    variants={prefersReducedMotion ? {} : videoVariants}
-                    initial={prefersReducedMotion ? undefined : "hidden"}
-                    animate={prefersReducedMotion ? undefined : "visible"}
+                    initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
                 >
-                    {data.type === 'video' && data.videoUrl ? (
-                        <>
-                            <video
-                                ref={videoRef}
-                                className="hero-framed-video"
-                                autoPlay
-                                muted={isMuted}
-                                loop
-                                playsInline
-                                poster={data.videoPoster}
-                                onLoadedData={() => setIsVideoLoaded(true)}
-                            >
-                                <source src={data.videoUrl} type="video/mp4" />
-                                Your browser does not support the video tag.
-                            </video>
-
-                            {/* Unmute Button */}
-                            <button
-                                className="hero-mute-btn"
-                                onClick={handleToggleMute}
-                                aria-label={isMuted ? 'Unmute video' : 'Mute video'}
-                            >
-                                {isMuted ? (
-                                    <>
-                                        <VolumeX size={18} />
-                                        <span>Unmute to Experience</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Volume2 size={18} />
-                                        <span>Sound On</span>
-                                    </>
-                                )}
-                            </button>
-                        </>
-                    ) : data.imageUrl ? (
-                        <img
-                            className="hero-framed-image"
-                            src={data.imageUrl}
-                            alt={`${data.title} venue`}
-                        />
-                    ) : (
-                        <div
-                            className="hero-framed-placeholder"
-                            style={{
-                                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'
-                            }}
-                        />
-                    )}
+                    {/* 
+                        Use className to override YouTubeFacade's default borders/radius 
+                        so they don't conflict with hero-video-frame 
+                    */}
+                    <YouTubeFacade
+                        videoId={youtubeId}
+                        posterUrl={data.videoPoster}
+                        className="w-full h-full border-0 shadow-none rounded-none !bg-transparent"
+                    />
                 </motion.div>
 
-                {/* CTA Button (Upcoming only) */}
-                {status === 'upcoming' && data.ctaLink && (
-                    <motion.a
-                        href={data.ctaLink}
-                        className="hero-theatrical-cta"
-                        variants={itemVariants}
-                    >
-                        {data.ctaText || 'Register Now'}
-                    </motion.a>
-                )}
             </motion.div>
+
+            {/* Scroll Indicator REMOVED as requested */}
+
         </section>
     )
 }

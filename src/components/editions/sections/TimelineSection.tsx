@@ -41,6 +41,9 @@ export function TimelineSection({ data, status, city }: TimelineSectionProps) {
 
     return (
         <section className="timeline-section">
+            {/* Cinematic Divider - Transition from Gallery */}
+            <div className="w-[120px] h-[1px] bg-gradient-to-r from-transparent via-[#5CE6C9] to-transparent opacity-50 mx-auto mb-16 shadow-[0_0_15px_rgba(92,230,201,0.6)]" />
+
             {/* Section Header */}
             <motion.div
                 className="timeline-header-wrapper"

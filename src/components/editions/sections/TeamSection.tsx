@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronRight, Users, Sparkles, Star, Zap } from 'lucide-react'
 import { PartnerGrid } from '../partners/PartnerGrid'
 import '@/styles/PartnerGrid.css'
+import { Modal } from '../../ui/Modal'
+import '../../ui/Modal.css'
+import { TeamApplicationForm } from '../../sections/BuildWithUsSection/forms'
 
 // ============================================
 // DATA STRUCTURES
@@ -279,7 +282,7 @@ const EXTENDED_TEAMS: ExtendedTeam[] = [
 ]
 
 // ============================================
-//COMPONENT
+// COMPONENT
 // ============================================
 
 export function TeamSection() {
@@ -287,6 +290,7 @@ export function TeamSection() {
     const [contributorCount, setContributorCount] = useState(0)
     const [hasAnimated, setHasAnimated] = useState(false)
     const [masterAccordionOpen, setMasterAccordionOpen] = useState(true)
+    const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false)
 
     // Count-up animation for Tier 4
     const countRef = useRef<HTMLSpanElement>(null)
@@ -320,14 +324,6 @@ export function TeamSection() {
         observer.observe(countRef.current)
         return () => observer.disconnect()
     }, [hasAnimated])
-
-    const scrollToCategory = (id: string) => {
-        const el = document.getElementById(`category-${id}`)
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            setActiveCategory(id)
-        }
-    }
 
     return (
         <section className="team-section">
@@ -571,12 +567,26 @@ export function TeamSection() {
                             "To every volunteer who believed in the vision, every community that opened their doors,
                             and every student who said yes—this is your legacy."
                         </p>
-                        <p className="footer-cta-text">Want to bring EKATVA to your city?</p>
-                        <a href="/partner-with-us" className="footer-cta-button">
-                            Nominate Your City →
-                        </a>
+                        <p className="footer-cta-text">Want to build EKATVA from the inside?</p>
+                        <button
+                            onClick={() => setIsJoinTeamModalOpen(true)}
+                            className="footer-cta-button inline-block"
+                        >
+                            Join The Team →
+                        </button>
                     </div>
                 </motion.footer>
+
+                {/* ============================================
+                    MODAL: Team Application
+                ============================================ */}
+                <AnimatePresence>
+                    {isJoinTeamModalOpen && (
+                        <Modal onClose={() => setIsJoinTeamModalOpen(false)}>
+                            <TeamApplicationForm onClose={() => setIsJoinTeamModalOpen(false)} />
+                        </Modal>
+                    )}
+                </AnimatePresence>
             </div>
         </section>
     )

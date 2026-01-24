@@ -19,6 +19,7 @@ export interface HeroData {
     venue: string;
     ctaText?: string;
     ctaLink?: string;
+    youtubeId?: string;
 }
 
 // Stats Section Data

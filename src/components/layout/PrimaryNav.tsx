@@ -222,7 +222,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                             {/* Header Row */}
                                                             <div className="flex items-end justify-between mb-8">
                                                                 <div className="flex items-center gap-4">
-                                                                    <div className="w-1 h-12 bg-gradient-to-b from-ekatva-teal to-transparent rounded-full" />
+                                                                    <div className="w-1 h-12 bg-gradient-to-b from-white/30 to-transparent rounded-full" />
                                                                     <div>
                                                                         <h3 className="text-white font-serif text-3xl tracking-wide leading-none">Editions</h3>
                                                                         <p className="text-white/40 text-sm mt-1.5 font-light tracking-wide">10 cities by 2030 — one fest at a time</p>
@@ -243,14 +243,14 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                 {/* Featured: Hyderabad */}
                                                                 <Link
                                                                     href="/editions/hyderabad-2025"
-                                                                    className="group relative p-6 rounded-xl border border-ekatva-teal/20 transition-all duration-300 overflow-hidden"
+                                                                    className="group relative p-6 rounded-xl border border-white/10 transition-all duration-300 overflow-hidden"
                                                                     onClick={() => setEditionsOpen(false)}
                                                                     onMouseEnter={(e) => {
-                                                                        e.currentTarget.style.borderColor = 'rgba(92, 230, 201, 0.6)'
+                                                                        e.currentTarget.style.borderColor = 'rgba(92, 230, 201, 0.5)'
                                                                         e.currentTarget.style.background = 'rgba(92, 230, 201, 0.03)'
                                                                     }}
                                                                     onMouseLeave={(e) => {
-                                                                        e.currentTarget.style.borderColor = 'rgba(92, 230, 201, 0.2)'
+                                                                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
                                                                         e.currentTarget.style.background = 'transparent'
                                                                     }}
                                                                 >

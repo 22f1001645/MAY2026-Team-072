@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Volume2, VolumeX, ChevronDown, MapPin } from 'lucide-react'
+import { Volume2, VolumeX, MapPin } from 'lucide-react'
 import type { HeroData, EditionStatus } from '@/types/edition'
 
 interface HeroSectionProps {
@@ -47,13 +47,7 @@ export function HeroSection({ data, status }: HeroSectionProps) {
         }
     }
 
-    // Scroll to next section
-    const handleScrollClick = () => {
-        const statsSection = document.querySelector('.stats-section')
-        if (statsSection) {
-            statsSection.scrollIntoView({ behavior: 'smooth' })
-        }
-    }
+
 
     // Animation variants for staggered entry
     const containerVariants = {
@@ -204,19 +198,6 @@ export function HeroSection({ data, status }: HeroSectionProps) {
                     </motion.a>
                 )}
             </motion.div>
-
-            {/* Scroll Indicator */}
-            <motion.button
-                className="hero-scroll-indicator"
-                onClick={handleScrollClick}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.5, duration: 0.6 }}
-                aria-label="Scroll to content"
-            >
-                <span>Scroll to explore</span>
-                <ChevronDown className="scroll-icon" size={24} />
-            </motion.button>
         </section>
     )
 }

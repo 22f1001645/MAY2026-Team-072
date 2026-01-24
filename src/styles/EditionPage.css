@@ -235,7 +235,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 120px 20px 60px;
+    padding: 100px 20px 60px;
     overflow: hidden;
 }
 
@@ -410,10 +410,8 @@
 
 /* Scroll Indicator */
 .hero-scroll-indicator {
-    position: absolute;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;
+    margin-top: 40px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4204,6 +4202,7 @@ section {
         height: 350px;
     }
 }
+
 /* ============================================
    TIER 4: THE REGISTRY INDEX
    ============================================ */
@@ -4245,7 +4244,8 @@ section {
 .registry-list {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Tight gap */
+    gap: 8px;
+    /* Tight gap */
     padding-top: 32px;
 }
 
@@ -4283,7 +4283,8 @@ section {
     height: 1px;
     border-bottom: 2px dotted rgba(255, 255, 255, 0.15);
     margin: 0 16px;
-    transform: translateY(4px); /* Vertical align with text baseline */
+    transform: translateY(4px);
+    /* Vertical align with text baseline */
 }
 
 .registry-count {
@@ -4313,7 +4314,7 @@ section {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
-    padding: 16px 16px 32px 16px; 
+    padding: 16px 16px 32px 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     margin-bottom: 8px;
 }
@@ -4360,11 +4361,12 @@ section {
     .registry-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+
     .registry-dots {
         margin: 0 10px;
     }
+
     .registry-team-name {
         font-size: 14px;
     }
 }
-

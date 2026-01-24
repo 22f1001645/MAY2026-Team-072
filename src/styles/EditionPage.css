@@ -1698,7 +1698,8 @@
     /* Kill the teal glow causing the issue */
 }
 
-.team-header {
+.team-header,
+.team-header-main {
     display: flex;
     flex-direction: column;
     /* CRITICAL: Force vertical stacking */
@@ -1711,7 +1712,8 @@
 }
 
 /* Ensure child elements match Testimonials exactly */
-.team-header .label-pill {
+.team-header .label-pill,
+.team-header-main .label-pill {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1723,7 +1725,8 @@
     backdrop-filter: blur(8px);
 }
 
-.team-header .label-pill span {
+.team-header .label-pill span,
+.team-header-main .label-pill span {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -1731,7 +1734,8 @@
     color: rgba(255, 255, 255, 0.8);
 }
 
-.team-header .section-headline {
+.team-header .section-headline,
+.team-header-main .section-headline {
     font-family: var(--font-serif);
     font-size: 56px;
     font-weight: 400;
@@ -1740,7 +1744,8 @@
     margin-bottom: 24px;
 }
 
-.team-header .section-subheadline {
+.team-header .section-subheadline,
+.team-header-main .section-subheadline {
     font-family: var(--font-sans);
     font-size: 18px;
     line-height: 1.7;
@@ -1753,7 +1758,8 @@
     margin: 0 auto;
 }
 
-.team-header .text-highlight-gold {
+.team-header .text-highlight-gold,
+.team-header-main .text-highlight-gold {
     color: var(--unity-gold);
     font-style: italic;
 }

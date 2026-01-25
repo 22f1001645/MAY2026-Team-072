@@ -1,47 +1,29 @@
 'use client'
 
-
-import FooterLogo from './FooterLogo'
-import FooterSocialIcons from './FooterSocialIcons'
-
-import FooterCTAs from './FooterCTAs'
+import FooterGrid from './FooterGrid'
 import FooterLegalBar from './FooterLegalBar'
 import styles from './Footer.module.css'
 
 export default function Footer() {
-  return (
-    <footer className={`relative w-full overflow-hidden ${styles.footerGradient}`}>
-      {/* Background Texture (Subtle) */}
-      <div className={`absolute inset-0 opacity-20 pointer-events-none ${styles.footerTexture}`} />
+    return (
+        <footer className={`relative w-full overflow-hidden ${styles.footerGradient}`}>
+            {/* Subtle top divider with glow */}
+            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-ekatva-teal/20 to-transparent" />
 
-      {/* Top Divider with Glow */}
-      <div className={styles.glowDivider} />
+            {/* Background Texture (Subtle) */}
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%235CE6C9' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                }}
+            />
 
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center pt-16 pb-8">
+            {/* Main Footer Content */}
+            <div className="relative z-10 w-full py-12">
+                <FooterGrid />
+            </div>
 
-
-
-        {/* 2. Logo (Center Gravity) */}
-        <div className="mb-6">
-          <FooterLogo />
-        </div>
-
-        {/* 3. Social Icons (Minimalist) */}
-        <div className="mb-8">
-          <FooterSocialIcons />
-        </div>
-
-
-        {/* 5. CTAs (Action) */}
-        <div className="mb-8 w-full">
-          <FooterCTAs />
-        </div>
-
-
-      </div>
-
-      {/* 6. Legal (Bottom) */}
-      <FooterLegalBar />
-    </footer>
-  )
+            {/* Legal Bar */}
+            <FooterLegalBar />
+        </footer>
+    )
 }

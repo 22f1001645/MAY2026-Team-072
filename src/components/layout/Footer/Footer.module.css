@@ -1,26 +1,18 @@
-/* ============================================================================
-   FOOTER MODULE STYLES - MINIMALIST
-   - Only essential CSS for gradient and texture
-   - Motion handled in components via Framer Motion
-   ============================================================================ */
-
-/* Footer background gradient (matches site gradient system) */
-/* Footer Container */
+/* Footer background: Deep vertical gradient + Spotlight Overlay */
 .footerGradient {
   position: relative;
   background: linear-gradient(180deg,
       #1F4F59 0%,
-      /* Deep Teal */
+      /* Deep Teal (Top) */
       #0E2F36 40%,
       /* Darker Teal */
       #050505 100%
-      /* Oneness Black */
+      /* Oneness Black (Bottom) */
     );
   overflow: hidden;
-  /* Ensure spotlight/vignette don't overflow */
 }
 
-/* 1. The Living Spotlight (Synced with Logo Heartbeat) */
+/* 1. The Living Spotlight (Synced with Breathe) */
 @keyframes pulseSpotlight {
 
   0%,
@@ -48,7 +40,7 @@
       transparent 70%);
   animation: pulseSpotlight 6s ease-in-out infinite;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 /* 2. The Cinematic Vignette (Dark Corners) */
@@ -60,91 +52,8 @@
       transparent 40%,
       rgba(5, 5, 5, 0.6) 100%);
   pointer-events: none;
-  z-index: 2;
+  z-index: 1;
 }
 
-/* Subtle texture overlay */
-.footerTexture {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%235CE6C9' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* Premium Horizon Divider (Hot Center, Cool Edges + Traveling Bead) */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-@keyframes pulseHorizon {
-
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-
-  50% {
-    opacity: 0.9;
-  }
-}
-
-/* The "Shooting Star" traveling light */
-@keyframes travelBead {
-  0% {
-    left: 0%;
-    opacity: 0;
-  }
-
-  10% {
-    opacity: 1;
-  }
-
-  90% {
-    opacity: 1;
-  }
-
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-
-.glowDivider {
-  height: 1px;
-  background: linear-gradient(90deg,
-      transparent 0%,
-      rgba(92, 230, 201, 0.05) 20%,
-      /* Faint Teal */
-      rgba(92, 230, 201, 0.4) 40%,
-      /* Stronger Teal */
-      rgba(255, 207, 150, 0.8) 50%,
-      /* HOT GOLD CENTER */
-      rgba(92, 230, 201, 0.4) 60%,
-      /* Stronger Teal */
-      rgba(92, 230, 201, 0.05) 80%,
-      /* Faint Teal */
-      transparent 100%);
-  background-size: 2000px 1px;
-  animation: shimmer 5s linear infinite, pulseHorizon 6s ease-in-out infinite;
-  box-shadow: 0 0 15px rgba(255, 207, 150, 0.1);
-  /* Subtle gold ambient light */
-  position: relative;
-  z-index: 20;
-}
-
-/* The Traveling Bead Pseudo-element */
-.glowDivider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 100px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #FFCF96, transparent);
-  filter: blur(1px);
-  animation: travelBead 8s ease-in-out infinite;
-  left: 0;
-}
+/* 3. The Traveling Horizon Bead (Optional extra polish for the top divider if needed) */
+/* (Currently the top divider is in JSX, but we could enhance it here) */

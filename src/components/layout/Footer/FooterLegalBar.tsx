@@ -11,22 +11,22 @@ export default function FooterLegalBar() {
       transition={{ duration: 0.8, delay: 0.8 }}
       className="w-full border-t border-white/5 mt-8"
     >
-      <div className="max-w-7xl mx-auto px-6 py-6 
-                      flex flex-col md:flex-row items-center justify-between 
-                      gap-3 text-[10px] text-white/30 uppercase tracking-[0.15em]">
+      <div className="max-w-7xl mx-auto px-6 py-8
+                      flex flex-col md:flex-row items-center justify-between
+                      gap-3 text-[11px] text-white/50 tracking-[0.08em]">
         <span className="text-center md:text-left">
-          © 2025 Ekatva. A student initiative of IIT Madras BS.
+          © 2025 Ekatva • A student initiative of IIT Madras BS
         </span>
         <div className="flex items-center gap-4 flex-wrap justify-center">
-          <a href="/privacy" className="hover:text-white/50 transition-colors">
+          <a href="/privacy" className="hover:text-white/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm px-1">
             Privacy
           </a>
-          <span className="text-white/10">•</span>
-          <a href="/terms" className="hover:text-white/50 transition-colors">
+          <span className="text-white/30">•</span>
+          <a href="/terms" className="hover:text-white/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm px-1">
             Terms
           </a>
-          <span className="text-white/10">•</span>
-          <span>Built with ❤️ by IITM BS</span>
+          <span className="text-white/30">•</span>
+          <span className="text-white/60">Built with ❤️ by IITM BS</span>
         </div>
       </div>
     </motion.div>

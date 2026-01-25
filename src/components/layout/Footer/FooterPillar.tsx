@@ -18,7 +18,7 @@ export default function FooterPillar({ position, values }: FooterPillarProps) {
 
     return (
         <div className={`
-      hidden lg:flex flex-col gap-3 justify-center ${alignment}
+      hidden lg:flex flex-col gap-4 py-6 justify-center ${alignment}
     `}>
             {values.map((value, index) => (
                 <FooterValuePill

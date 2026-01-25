@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { MapPin } from 'lucide-react'
 import { YouTubeFacade } from '@/components/ui/YouTubeFacade'
 import type { HeroData, EditionStatus } from '@/types/edition'
@@ -15,7 +15,7 @@ export function HeroSection({ data, status }: HeroSectionProps) {
     // Fallback ID if not present in data (though we added it)
     const youtubeId = data.youtubeId || "M7lc1UVf-VE"
 
-    const containerVariants = {
+    const containerVariants: Variants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
@@ -26,7 +26,7 @@ export function HeroSection({ data, status }: HeroSectionProps) {
         }
     }
 
-    const itemVariants = {
+    const itemVariants: Variants = {
         hidden: { opacity: 0, y: 30 },
         visible: {
             opacity: 1,

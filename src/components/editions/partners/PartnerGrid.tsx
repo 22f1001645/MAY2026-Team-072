@@ -44,7 +44,7 @@ export const PartnerGrid: React.FC = () => {
 
     // Build the grid array with the tray injected at the correct position
     const gridItems = useMemo(() => {
-        const items: JSX.Element[] = []
+        const items: React.JSX.Element[] = []
 
         PARTNER_ENTITIES.forEach((entity, index) => {
             // Add the logo card

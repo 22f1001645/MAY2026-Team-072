@@ -1,15 +1,11 @@
 'use client'
 
-import FooterGrid from './FooterGrid'
-import FooterLegalBar from './FooterLegalBar'
+import FooterCompact from './FooterCompact'
 import styles from './Footer.module.css'
 
 export default function Footer() {
     return (
         <footer className={`relative w-full overflow-hidden ${styles.footerGradient}`}>
-            {/* Subtle top divider with glow */}
-            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-ekatva-teal/20 to-transparent" />
-
             {/* Background Texture (Subtle) */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{
@@ -17,13 +13,10 @@ export default function Footer() {
                 }}
             />
 
-            {/* Main Footer Content */}
-            <div className="relative z-10 w-full py-12">
-                <FooterGrid />
+            {/* Main Footer Content - Compressed */}
+            <div className="relative z-10 w-full">
+                <FooterCompact />
             </div>
-
-            {/* Legal Bar */}
-            <FooterLegalBar />
         </footer>
     )
 }

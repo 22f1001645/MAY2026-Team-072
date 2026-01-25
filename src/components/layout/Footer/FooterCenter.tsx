@@ -3,7 +3,10 @@
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Instagram, Linkedin, Youtube, Mail, MessageCircle, MapPin } from 'lucide-react'
+import { Instagram, Linkedin, Youtube, Mail, MessageCircle, MapPin, UserPlus } from 'lucide-react'
+import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { TeamApplicationForm } from '@/components/sections/BuildWithUsSection/forms/TeamApplicationForm'
 
 const socials = [
     { name: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/ekatva_iitm/' },
@@ -15,6 +18,8 @@ const socials = [
 const WHATSAPP_LINK = 'https://chat.whatsapp.com/Do3WvVMprMe3xZtcuyfYiW'
 
 export default function FooterCenter() {
+    const [showTeamForm, setShowTeamForm] = useState(false)
+
     return (
         <div className="flex flex-col items-center gap-8 py-8">
             {/* Premium Logo Section */}
@@ -63,7 +68,7 @@ export default function FooterCenter() {
                         animationDelay: "3s"
                     }}
                 >
-                    Unifying 34,000+ students across India
+                    34,000+ students <span className="mx-2">·</span> 10+ cities <span className="mx-2">·</span> One movement
                 </motion.p>
             </div>
 
@@ -153,8 +158,11 @@ export default function FooterCenter() {
                     <span>Join WhatsApp</span>
                 </motion.a>
 
-                {/* Secondary CTA - Bring to City */}
-                <Link href="/editions/bring-ekatva-to-your-city" className="w-full sm:w-auto">
+                {/* Secondary CTA - Join Our Team */}
+                <button
+                    onClick={() => setShowTeamForm(true)}
+                    className="w-full sm:w-auto"
+                >
                     <motion.div
                         whileHover={{
                             scale: 1.02,
@@ -174,11 +182,36 @@ export default function FooterCenter() {
                                  text-[14px] tracking-[0.02em]
                                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     >
-                        <MapPin size={20} className="group-hover:translate-x-0.5 transition-transform" />
-                        <span>Bring to City</span>
+                        <UserPlus size={20} className="group-hover:translate-x-0.5 transition-transform" />
+                        <span>Join Our Team</span>
                     </motion.div>
-                </Link>
+                </button>
             </motion.div>
-        </div>
+
+            {/* Team Application Modal */}
+            <AnimatePresence>
+                {showTeamForm && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowTeamForm(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl custom-scrollbar"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <TeamApplicationForm onClose={() => setShowTeamForm(false)} />
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+        </div >
     )
 }

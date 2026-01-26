@@ -18,7 +18,7 @@
   }
 
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply w-[90%] max-w-[90rem] mx-auto px-fluid-sm lg:px-fluid-lg;
   }
 
   .section-padding {

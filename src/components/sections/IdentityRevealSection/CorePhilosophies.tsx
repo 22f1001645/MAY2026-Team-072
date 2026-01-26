@@ -49,7 +49,7 @@ export default function CorePhilosophies() {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-[1vh]">
             {PHILOSOPHIES.map((philosophy) => {
                 const isActive = activeId === philosophy.id
 
@@ -77,14 +77,14 @@ export default function CorePhilosophies() {
                             {/* Header - Always visible */}
                             <button
                                 onClick={() => toggleItem(philosophy.id)}
-                                className="w-full flex items-center justify-between p-5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ekatva-teal focus-visible:ring-offset-2 focus-visible:ring-offset-oneness-black"
+                                className="w-full flex items-center justify-between p-[clamp(1rem,1.5vh,1.25rem)] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ekatva-teal focus-visible:ring-offset-2 focus-visible:ring-offset-oneness-black"
                                 aria-expanded={isActive}
                                 aria-controls={`content-${philosophy.id}`}
                             >
-                                <div className="space-y-1">
+                                <div className="space-y-0.5">
                                     {/* Title */}
                                     <h3
-                                        className="font-serif text-xl md:text-2xl transition-colors duration-300"
+                                        className="font-serif text-[clamp(1.1rem,1.2vw,1.5rem)] transition-colors duration-300"
                                         style={{
                                             color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'
                                         }}
@@ -170,16 +170,16 @@ export default function CorePhilosophies() {
                                         }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="px-5 pb-5">
+                                        <div className="px-[clamp(1rem,1.5vh,1.25rem)] pb-[clamp(1rem,1.5vh,1.25rem)]">
                                             {/* Divider */}
                                             <div
-                                                className="h-px mb-4 opacity-20"
+                                                className="h-px mb-[1vh] opacity-20"
                                                 style={{
                                                     background: 'linear-gradient(to right, rgba(0, 240, 255, 0.5), transparent)'
                                                 }}
                                             />
                                             {/* Content Text */}
-                                            <p className="text-sm md:text-base text-mid-gray leading-relaxed">
+                                            <p className="text-fluid-body-compact text-mid-gray leading-snug">
                                                 {philosophy.content}
                                             </p>
                                         </div>

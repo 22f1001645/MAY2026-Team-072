@@ -7,6 +7,17 @@ const config: Config = {
         './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     ],
     theme: {
+        // Custom screen variants for height-aware responsiveness
+        screens: {
+            'sm': '640px',
+            'md': '768px',
+            'lg': '1024px',
+            'xl': '1280px',
+            '2xl': '1536px',
+            // Height-based variants for laptop screens
+            'short': { 'raw': '(max-height: 800px)' },
+            'tall': { 'raw': '(min-height: 900px)' },
+        },
         extend: {
             colors: {
                 // Primary Colors
@@ -30,12 +41,38 @@ const config: Config = {
                 sans: ['var(--font-poppins)', 'Arial', 'Helvetica', 'sans-serif'],
                 serif: ['var(--font-serif)', 'Georgia', 'serif'],
             },
+            fontSize: {
+                'fluid-h1': 'clamp(2.5rem, 5vw + 0.75rem, 7rem)',
+                'fluid-h2': 'clamp(1.75rem, 3vw + 0.5rem, 4.5rem)', // Gentler curve for laptop screens
+                'fluid-h2-compact': 'clamp(1.5rem, 2.5vw + 0.25rem, 3rem)', // Even tighter for short screens
+                'fluid-h3': 'clamp(1.5rem, 3.5vw + 0.75rem, 3.5rem)',
+                'fluid-body': 'clamp(1rem, 1.5vw + 0.25rem, 1.125rem)', // More conservative scaling
+                'fluid-body-compact': 'clamp(0.9rem, 1.1vh, 1.125rem)', // Height-aware body text (physics-tuned)
+                'fluid-caption': 'clamp(0.875rem, 2vw, 1rem)',
+                // Stats card precision typography
+                'fluid-stat-number': 'clamp(2rem, 4.5vw, 4rem)', // Safe minimum 32px, max 64px
+                'fluid-stat-label': 'clamp(0.625rem, 0.8vw, 0.875rem)', // Scales down to 10px on small screens
+            },
             spacing: {
                 'micro': '8px',
                 'small': '16px',
                 'medium': '24px',
                 'large': '40px',
                 'hero': '80px',
+                'fluid-xs': 'clamp(0.5rem, 2vw, 1rem)',
+                'fluid-sm': 'clamp(1rem, 3vw, 1.5rem)',
+                'fluid-md': 'clamp(1.5rem, 4vw, 2.5rem)',
+                'fluid-lg': 'clamp(2rem, 5vw, 4rem)',
+                'fluid-xl': 'clamp(3rem, 6vw, 6rem)',
+                // Physics-tuned vertical rhythm for "poster" effect
+                'fluid-section-y': 'clamp(3rem, 6vh, 6rem)', // ~46px on 768px, 96px max
+                // Gap utilities for bi-dimensional scaling
+                'fluid-gap': 'min(1.5rem, 2vh)', // Tightens on short screens
+                'fluid-gap-sm': 'min(1rem, 1.5vh)',
+                // Column gap for 2-column layouts
+                'fluid-col-gap': 'clamp(2rem, 4vw, 5rem)',
+                // Stats card padding
+                'fluid-stat-p': 'clamp(0.5rem, 1.5vh, 1.5rem)',
             },
             animation: {
                 'fade-in': 'fadeIn 0.8s ease-in-out',

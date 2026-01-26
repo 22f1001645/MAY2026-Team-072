@@ -270,7 +270,7 @@ export default function TestimonialsStackSection() {
                                 Voices of Ekatva
                             </span>
                         </div>
-                        <h3 className="text-white text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight">
+                        <h3 className="text-fluid-h1 font-black uppercase tracking-tight">
                             Unity In{' '}
                             <span
                                 className="text-transparent"

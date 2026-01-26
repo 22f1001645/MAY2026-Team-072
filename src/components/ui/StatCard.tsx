@@ -71,32 +71,33 @@ export default function StatCard({
             initial="initial"
             whileInView="animate"
             whileHover={{
-                y: -8,
+                y: -4,
                 scale: 1.02,
                 transition: { duration: 0.3, ease: 'easeOut' }
             }}
             viewport={{ once: true, amount: 0.5 }}
             className={cn(
-                'text-center p-5 md:p-6',
-                'rounded-2xl md:rounded-3xl',
-                'border border-divider-gray/40',
+                'text-center p-[clamp(0.75rem,2vh,1.5rem)]',
+                'rounded-xl md:rounded-2xl',
+                'border border-white/20', // Brighter border for distinct glass effect
                 borderHoverClasses[color],
                 'transition-all duration-300',
                 'cursor-default',
                 className
             )}
             style={{
-                background: `linear-gradient(135deg, 
-                    rgba(31, 79, 89, 0.25) 0%, 
-                    rgba(14, 47, 54, 0.3) 100%
+                background: `linear-gradient(135deg,
+                    rgba(31, 79, 89, 0.3) 0%,
+                    rgba(14, 47, 54, 0.35) 100%
                 )`,
-                backdropFilter: 'blur(10px)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
             }}
         >
-            {/* Animated Number */}
+            {/* Animated Number - Medium-Large sweet spot with tight tracking */}
             <p
                 className={cn(
-                    'font-serif text-3xl sm:text-4xl md:text-5xl font-bold mb-2',
+                    'font-serif text-[clamp(2rem,3.5vw,3.5rem)] font-bold tracking-tight mb-0.5',
                     colorClasses[color]
                 )}
                 style={glowStyles[color]}
@@ -119,8 +120,8 @@ export default function StatCard({
                 {suffix}
             </p>
 
-            {/* Label */}
-            <p className="text-[10px] md:text-xs text-light-gray uppercase tracking-[0.12em] font-semibold">
+            {/* Label - Small, crisp, uppercase - Number is the hero */}
+            <p className="text-[clamp(0.6rem,0.75vw,0.875rem)] text-light-gray uppercase tracking-[0.15em] font-semibold whitespace-nowrap">
                 {label}
             </p>
         </motion.div>

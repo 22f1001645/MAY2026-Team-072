@@ -111,7 +111,7 @@ export default function OrbitalSystem() {
     const showFallback = !isWebGLReady || hasError || !webGLSupported
 
     return (
-        <div className="relative w-full h-full min-h-[450px] md:min-h-[500px] lg:min-h-[580px] overflow-hidden">
+        <div className="relative w-full h-full min-h-[clamp(450px,60vh,650px)] overflow-hidden">
             {/* LAYER 1: Static Fallback Image - Always rendered first */}
             <motion.div
                 initial={{ opacity: 1 }}

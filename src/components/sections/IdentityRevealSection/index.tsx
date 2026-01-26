@@ -20,7 +20,7 @@ export default function IdentityRevealSection() {
     return (
         <section
             id="identity-reveal"
-            className="relative py-16 md:py-20 lg:py-28 bg-oneness-black overflow-hidden"
+            className="relative min-h-[clamp(550px,100svh,800px)] flex flex-col justify-center py-fluid-section-y bg-oneness-black overflow-hidden"
             aria-labelledby="identity-title"
         >
             {/* Background Ambient Glow */}
@@ -35,8 +35,8 @@ export default function IdentityRevealSection() {
 
             {/* Main Container */}
             <div className="container-custom relative z-10">
-                {/* 7:5 Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                {/* 7:5 Grid Layout - Fluid gap */}
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-fluid-col-gap items-start">
 
                     {/* LEFT: Orbital Visual (7 cols) - shows second on mobile */}
                     <motion.div
@@ -44,11 +44,11 @@ export default function IdentityRevealSection() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        className="lg:col-span-7 order-2 lg:order-1"
+                        className="xl:col-span-7 order-2 xl:order-1"
                     >
-                        {/* Orbital Visual Container with Frame */}
+                        {/* Orbital Visual Container with Frame - Physics-tuned */}
                         <div
-                            className="relative min-h-[450px] md:min-h-[500px] lg:min-h-[580px] rounded-2xl overflow-hidden"
+                            className="relative min-h-[clamp(450px,60vh,650px)] rounded-2xl overflow-hidden"
                             style={{
                                 border: '1px solid rgba(255, 255, 255, 0.08)',
                                 background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%)'
@@ -98,10 +98,10 @@ export default function IdentityRevealSection() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                        className="lg:col-span-5 order-1 lg:order-2"
+                        className="xl:col-span-5 order-1 xl:order-2"
                     >
                         {/* Section Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-ekatva-teal/30 bg-ekatva-teal/10 mb-6">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-ekatva-teal/30 bg-ekatva-teal/10 mb-[2vh]">
                             <div className="w-2 h-2 rounded-full bg-ekatva-teal animate-pulse" />
                             <span className="text-ekatva-teal text-xs tracking-widest uppercase">
                                 The Core
@@ -111,14 +111,14 @@ export default function IdentityRevealSection() {
                         {/* Main Heading */}
                         <h2
                             id="identity-title"
-                            className="font-serif text-4xl md:text-5xl lg:text-5xl xl:text-6xl text-white mb-4"
+                            className="font-serif text-[clamp(2.5rem,4vw,4.5rem)] leading-none text-white mb-[1.5vh]"
                         >
                             Atomic{' '}
-                            <span className="text-unity-gold italic block">Truths.</span>
+                            <span className="text-unity-gold italic">Truths.</span>
                         </h2>
 
                         {/* Description */}
-                        <p className="text-base md:text-lg text-mid-gray mb-8 max-w-md">
+                        <p className="text-fluid-body short:text-fluid-body-compact text-mid-gray mb-[3vh] max-w-md">
                             Ekatva is not defined by its events, but by the fundamental forces that bind our community together.
                         </p>
 

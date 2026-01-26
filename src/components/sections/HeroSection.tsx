@@ -75,7 +75,7 @@ export default function HeroSection() {
         <section
             ref={sectionRef}
             id="hero"
-            className="relative h-screen w-full overflow-hidden flex items-center justify-center bg-oneness-black"
+            className="relative h-screen min-h-[600px] w-full overflow-hidden flex items-center justify-center bg-oneness-black"
             aria-label="Hero section with EKATVA celebration video"
         >
             {/* Video/Image Background with Parallax */}
@@ -165,7 +165,7 @@ export default function HeroSection() {
 
             {/* Hero Content - MASSIVE Typography */}
             <motion.div
-                className="relative z-20 text-center px-4 max-w-6xl mx-auto"
+                className="relative z-20 text-center px-fluid-xs max-w-6xl mx-auto"
                 style={{ opacity: contentOpacity, y: contentY }}
             >
                 {/* Pre-headline Badge */}
@@ -173,9 +173,9 @@ export default function HeroSection() {
                     variants={fadeIn}
                     initial="initial"
                     animate="animate"
-                    className="inline-block mb-8 px-6 py-2.5 rounded-full border border-ekatva-teal/40 bg-ekatva-teal/15 backdrop-blur-md"
+                    className="inline-block mb-fluid-sm px-fluid-sm py-fluid-xs rounded-full border border-ekatva-teal/40 bg-ekatva-teal/15 backdrop-blur-md"
                 >
-                    <span className="text-xs md:text-sm text-ekatva-teal tracking-[0.25em] uppercase font-bold">
+                    <span className="text-fluid-caption text-ekatva-teal tracking-[0.25em] uppercase font-bold">
                         India&apos;s First Regional Fest Movement
                     </span>
                 </motion.div>
@@ -185,7 +185,7 @@ export default function HeroSection() {
                     variants={scaleIn}
                     initial="initial"
                     animate="animate"
-                    className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-[9rem] xl:text-[10rem] text-white leading-[1.1] mb-10"
+                    className="font-serif text-fluid-h1 text-white leading-[1.1] mb-fluid-md"
                 >
                     <motion.span
                         className="block"
@@ -213,7 +213,7 @@ export default function HeroSection() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
-                    className="text-white text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto mb-16 font-light leading-relaxed"
+                    className="text-white text-fluid-body max-w-4xl mx-auto mb-fluid-lg font-light leading-relaxed"
                     style={{
                         textShadow: '0 2px 20px rgba(0, 0, 0, 0.8)'
                     }}
@@ -231,12 +231,12 @@ export default function HeroSection() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.8, ease: 'easeOut' }}
-                    className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+                    className="flex flex-col sm:flex-row gap-fluid-sm justify-center items-center"
                 >
                     {/* Primary CTA - Bigger with stronger glow */}
                     <a
                         href="#origin-story"
-                        className="group relative px-12 py-6 bg-ekatva-teal rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(92,230,201,0.7)]"
+                        className="group relative px-fluid-md py-fluid-sm bg-ekatva-teal rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(92,230,201,0.7)]"
                         style={{
                             boxShadow: '0 0 40px rgba(92, 230, 201, 0.5)'
                         }}
@@ -244,7 +244,7 @@ export default function HeroSection() {
                         {/* Shimmer effect */}
                         <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out -translate-x-full" />
 
-                        <span className="relative text-oneness-black font-bold tracking-widest uppercase text-base md:text-lg">
+                        <span className="relative text-oneness-black font-bold tracking-widest uppercase text-fluid-caption">
                             Discover EKATVA
                         </span>
                     </a>
@@ -254,7 +254,7 @@ export default function HeroSection() {
                         href="https://www.instagram.com/ekatva_iitm/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-12 py-6 rounded-full border-2 border-white/40 text-white hover:bg-white/15 hover:border-white/60 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all text-base md:text-lg font-bold tracking-widest uppercase backdrop-blur-sm"
+                        className="px-fluid-md py-fluid-sm rounded-full border-2 border-white/40 text-white hover:bg-white/15 hover:border-white/60 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all text-fluid-caption font-bold tracking-widest uppercase backdrop-blur-sm"
                     >
                         Join The Movement
                     </a>

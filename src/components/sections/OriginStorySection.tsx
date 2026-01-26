@@ -59,11 +59,11 @@ export default function OriginStorySection() {
         <section
             id="origin-story"
             ref={sectionRef}
-            className="min-h-screen bg-gradient-to-b from-oneness-black via-deep-teal/20 to-gradient-dark py-20 md:py-28 lg:py-32"
+            className="min-h-[clamp(650px,100svh,900px)] flex flex-col justify-center bg-gradient-to-b from-oneness-black via-deep-teal/20 to-gradient-dark pt-[clamp(3rem,6vh,6rem)] pb-[clamp(4rem,8vh,8rem)] overflow-hidden"
             aria-labelledby="origin-story-title"
         >
             <div className="container-custom">
-                <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                <div className="grid xl:grid-cols-2 gap-fluid-col-gap items-center">
 
                     {/* Memory Wall - Left Side */}
                     <motion.div
@@ -76,7 +76,7 @@ export default function OriginStorySection() {
                             variants={staggerContainer}
                             initial="initial"
                             animate={isInView ? 'animate' : 'initial'}
-                            className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5"
+                            className="grid grid-cols-2 md:grid-cols-3 gap-fluid-gap"
                         >
                             {memoryWallImages.map((image, index) => (
                                 <motion.div
@@ -115,12 +115,12 @@ export default function OriginStorySection() {
                         variants={slideInRight}
                         initial="initial"
                         animate={isInView ? 'animate' : 'initial'}
-                        className="order-1 lg:order-2 space-y-8"
+                        className="order-1 lg:order-2"
                     >
-                        {/* Heading - Serif with text shadow */}
+                        {/* Heading - Serif with text shadow, tighter leading */}
                         <h2
                             id="origin-story-title"
-                            className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-unity-gold leading-tight"
+                            className="font-serif text-fluid-h2 short:text-fluid-h2-compact font-bold text-unity-gold leading-[1.1] mb-[clamp(0.75rem,2.5vh,1.5rem)]"
                             style={{
                                 textShadow: '0 4px 30px rgba(255, 207, 150, 0.35)'
                             }}
@@ -128,8 +128,8 @@ export default function OriginStorySection() {
                             The Story Behind EKATVA
                         </h2>
 
-                        {/* Body Text */}
-                        <div className="space-y-6 text-lg md:text-xl leading-[1.8] text-white/90 max-w-2xl">
+                        {/* Body Text - Physics-tuned density */}
+                        <div className="space-y-[clamp(0.75rem,2.5vh,1.5rem)] text-fluid-body-compact leading-[1.6] text-white/90 max-w-2xl">
                             <p>
                                 Most IITM BS students have never met. We&apos;re spread across cities,
                                 connecting through screens, assignments, and Zoom lectures. For many,
@@ -142,9 +142,9 @@ export default function OriginStorySection() {
                                 to transform digital classmates into lifelong friends?
                             </p>
 
-                            {/* Key Statement with GLOW */}
+                            {/* Key Statement with GLOW - Compressed vertical rhythm */}
                             <p
-                                className="text-2xl md:text-3xl lg:text-4xl font-semibold text-ekatva-teal py-4"
+                                className="text-fluid-h2 short:text-fluid-h2-compact font-semibold text-ekatva-teal py-[clamp(0.5rem,2vh,1.5rem)]"
                                 style={{
                                     textShadow: '0 0 40px rgba(92, 230, 201, 0.5), 0 0 80px rgba(92, 230, 201, 0.3)'
                                 }}
@@ -159,9 +159,9 @@ export default function OriginStorySection() {
                             </p>
                         </div>
 
-                        {/* Stats Bar */}
-                        <div className="pt-10 border-t border-white/10">
-                            <div className="grid grid-cols-3 gap-3 md:gap-6">
+                        {/* Stats Bar - Tighter divider spacing */}
+                        <div className="pt-[clamp(1.5rem,4vh,3rem)] border-t border-white/10 mt-[clamp(1rem,3vh,2rem)]">
+                            <div className="grid grid-cols-3 gap-3">
                                 {stats.map((stat, index) => (
                                     <StatCard
                                         key={index}

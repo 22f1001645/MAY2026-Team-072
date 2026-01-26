@@ -48,8 +48,12 @@ const stats: Stat[] = [
 ]
 
 /**
- * Origin Story Section - Award-Winning Design (Phase 1)
- * Now with REAL Cloudinary images from reference templates
+ * Origin Story Section - Antigravity Refactor (V7)
+ * 
+ * Features:
+ * - Single Viewport Fit: Uses clamp + svh to fit 1366x768.
+ * - Balanced Typography: Harmonized headings and body text.
+ * - Safety Padding: Ensures stats are visually contained.
  */
 export default function OriginStorySection() {
     const sectionRef = useRef(null)
@@ -59,11 +63,12 @@ export default function OriginStorySection() {
         <section
             id="origin-story"
             ref={sectionRef}
-            className="min-h-[clamp(650px,100svh,900px)] flex flex-col justify-center bg-gradient-to-b from-oneness-black via-deep-teal/20 to-gradient-dark pt-[clamp(3rem,6vh,6rem)] pb-[clamp(4rem,8vh,8rem)] overflow-hidden"
+            className="relative min-h-[clamp(650px,100svh,900px)] flex flex-col justify-center bg-gradient-to-b from-oneness-black via-deep-teal/20 to-gradient-dark overflow-hidden"
             aria-labelledby="origin-story-title"
         >
-            <div className="container-custom">
-                <div className="grid xl:grid-cols-2 gap-fluid-col-gap items-center">
+            {/* Dynamic Padding: Asymmetric to protect bottom stats */}
+            <div className="py-[clamp(3rem,6vh,6rem)] container-custom h-full flex flex-col justify-center">
+                <div className="grid xl:grid-cols-2 gap-fluid-gap xl:gap-[clamp(2rem,4vw,5rem)] items-center">
 
                     {/* Memory Wall - Left Side */}
                     <motion.div
@@ -90,7 +95,6 @@ export default function OriginStorySection() {
                                         ${index === 0 ? 'md:col-span-2 md:row-span-2' : ''}
                                     `}
                                 >
-                                    {/* Real Image from Cloudinary */}
                                     <Image
                                         src={image.src}
                                         alt={image.alt}
@@ -98,8 +102,6 @@ export default function OriginStorySection() {
                                         className="object-cover brightness-125 saturate-[1.15] contrast-105 group-hover:scale-110 transition-transform duration-500"
                                         sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                                     />
-
-                                    {/* Caption overlay on hover */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-oneness-black via-oneness-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 md:p-5">
                                         <p className="text-sm md:text-base text-white font-medium leading-relaxed">
                                             {image.caption}
@@ -115,12 +117,12 @@ export default function OriginStorySection() {
                         variants={slideInRight}
                         initial="initial"
                         animate={isInView ? 'animate' : 'initial'}
-                        className="order-1 lg:order-2"
+                        className="order-1 lg:order-2 space-y-[clamp(1rem,3vh,2rem)]"
                     >
-                        {/* Heading - Serif with text shadow, tighter leading */}
+                        {/* Heading */}
                         <h2
                             id="origin-story-title"
-                            className="font-serif text-fluid-h2 short:text-fluid-h2-compact font-bold text-unity-gold leading-[1.1] mb-[clamp(0.75rem,2.5vh,1.5rem)]"
+                            className="font-serif text-fluid-h2 short:text-fluid-h2-compact font-bold text-unity-gold leading-[1.1]"
                             style={{
                                 textShadow: '0 4px 30px rgba(255, 207, 150, 0.35)'
                             }}
@@ -128,8 +130,8 @@ export default function OriginStorySection() {
                             The Story Behind EKATVA
                         </h2>
 
-                        {/* Body Text - Physics-tuned density */}
-                        <div className="space-y-[clamp(0.75rem,2.5vh,1.5rem)] text-fluid-body-compact leading-[1.6] text-white/90 max-w-2xl">
+                        {/* Body Text: Compressed for Laptop */}
+                        <div className="space-y-[clamp(0.75rem,2.5vh,1.5rem)] text-[clamp(0.9rem,1.1vh,1.125rem)] leading-[1.6] text-white/90 max-w-2xl">
                             <p>
                                 Most IITM BS students have never met. We&apos;re spread across cities,
                                 connecting through screens, assignments, and Zoom lectures. For many,
@@ -142,9 +144,9 @@ export default function OriginStorySection() {
                                 to transform digital classmates into lifelong friends?
                             </p>
 
-                            {/* Key Statement with GLOW - Compressed vertical rhythm */}
+                            {/* Key Statement */}
                             <p
-                                className="text-fluid-h2 short:text-fluid-h2-compact font-semibold text-ekatva-teal py-[clamp(0.5rem,2vh,1.5rem)]"
+                                className="text-fluid-h2 short:text-fluid-h2-compact font-semibold text-ekatva-teal py-[clamp(0.5rem,1.5vh,1rem)]"
                                 style={{
                                     textShadow: '0 0 40px rgba(92, 230, 201, 0.5), 0 0 80px rgba(92, 230, 201, 0.3)'
                                 }}
@@ -159,16 +161,18 @@ export default function OriginStorySection() {
                             </p>
                         </div>
 
-                        {/* Stats Bar - Tighter divider spacing */}
-                        <div className="pt-[clamp(1.5rem,4vh,3rem)] border-t border-white/10 mt-[clamp(1rem,3vh,2rem)]">
+                        {/* Stats Bar (Refactored Layout) */}
+                        <div className="pt-[clamp(1.5rem,4vh,3rem)] border-t border-white/10">
                             <div className="grid grid-cols-3 gap-3">
                                 {stats.map((stat, index) => (
-                                    <StatCard
-                                        key={index}
-                                        value={stat.value}
-                                        label={stat.label}
-                                        color={stat.color}
-                                    />
+                                    <div key={index} className="h-full">
+                                        <StatCard
+                                            value={stat.value}
+                                            label={stat.label}
+                                            color={stat.color}
+                                            className="w-full"
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         </div>

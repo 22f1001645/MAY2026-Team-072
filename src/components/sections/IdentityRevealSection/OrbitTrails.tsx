@@ -1,16 +1,27 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useOrbitalStore, PlanetState } from '@/store/orbitalStore'
+import { easeOut } from '@/lib/animations'
 
 // Constant to prevent array recreation every frame
 const DASH_ANIMATION = [0, 16]
 
 /**
- * OrbitTrails - PRODUCTION VERSION
- * 
- * Clean, polished orbital paths with maximum visibility
- * No debug clutter, just beautiful orbits
+ * OrbitTrails - PRODUCTION VERSION (Optimized & Refined)
+ *
+ * Animation Philosophy:
+ * - Subtle breathing effect that enhances without overwhelming
+ * - Reduced opacity: 0.05/0.10 for refined visual hierarchy (was 0.08/0.2)
+ * - Crisp edges: 5px blur provides soft glow while maintaining definition
+ * - Natural motion: Material Design cubic-bezier(0.4, 0, 0.2, 1) for organic easing
+ * - Accessibility: Respects prefers-reduced-motion for inclusive experience
+ *
+ * Layer Hierarchy:
+ * - Outer Glow: Ambient presence - barely visible at rest, gentle emphasis on hover
+ * - Main Trail: Primary visual element - clear path definition with smooth easing
+ * - Inner Highlight: Depth enhancement - adds dimensionality without distraction
  */
 interface OrbitTrailsProps {
     planets: PlanetState[]
@@ -21,6 +32,20 @@ interface OrbitTrailsProps {
 
 export default function OrbitTrails({ planets, centerX, centerY, scale }: OrbitTrailsProps) {
     const { hoveredPlanetId } = useOrbitalStore()
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+    // Detect Reduced Motion Preference
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+        setPrefersReducedMotion(mediaQuery.matches)
+
+        const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+        mediaQuery.addEventListener('change', handleChange)
+
+        return () => mediaQuery.removeEventListener('change', handleChange)
+    }, [])
 
     return (
         <g>
@@ -34,7 +59,10 @@ export default function OrbitTrails({ planets, centerX, centerY, scale }: OrbitT
 
                 return (
                     <g key={planet.id}>
-                        {/* Outer glow layer - subtle atmosphere */}
+                        {/* Outer glow layer - Ambient presence
+                            Barely visible at rest (0.05), gentle emphasis on hover (0.10)
+                            Crisp 5px blur for refined aesthetic without harsh edges
+                        */}
                         <motion.ellipse
                             cx={centerX}
                             cy={centerY}
@@ -43,14 +71,24 @@ export default function OrbitTrails({ planets, centerX, centerY, scale }: OrbitT
                             fill="none"
                             stroke={planet.appearance.baseColor}
                             strokeWidth={6}
-                            opacity={isHovered ? 0.2 : 0.08}
+                            animate={{
+                                opacity: prefersReducedMotion
+                                    ? 0.05
+                                    : (isHovered ? 0.10 : 0.05)
+                            }}
+                            transition={{
+                                opacity: { duration: 0.5, ease: easeOut }
+                            }}
                             style={{
-                                filter: 'blur(8px)',
+                                filter: 'blur(5px)',
                                 pointerEvents: 'none',
                             }}
                         />
 
-                        {/* Main orbit trail - BRIGHT and CLEAR */}
+                        {/* Main orbit trail - Primary visual element
+                            Clear path definition with smooth color transitions
+                            Dashed when idle, solid on hover with subtle glow
+                        */}
                         <motion.ellipse
                             cx={centerX}
                             cy={centerY}
@@ -63,25 +101,32 @@ export default function OrbitTrails({ planets, centerX, centerY, scale }: OrbitT
                             initial={{ opacity: 0 }}
                             animate={{
                                 opacity: 1,
-                                strokeDashoffset: isHovered ? 0 : DASH_ANIMATION,
+                                strokeDashoffset: prefersReducedMotion
+                                    ? 0
+                                    : (isHovered ? 0 : DASH_ANIMATION),
                             }}
                             transition={{
-                                opacity: { duration: 0.5 },
-                                strokeDashoffset: {
-                                    duration: 20,
-                                    repeat: Infinity,
-                                    ease: 'linear',
-                                },
+                                opacity: { duration: 0.5, ease: easeOut },
+                                strokeDashoffset: prefersReducedMotion
+                                    ? { duration: 0 }
+                                    : {
+                                        duration: 20,
+                                        repeat: Infinity,
+                                        ease: 'linear',
+                                    }
                             }}
                             style={{
                                 filter: isHovered
-                                    ? `drop-shadow(0 0 10px ${planet.appearance.glowColor})`
-                                    : 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.3))',
+                                    ? `drop-shadow(0 0 8px ${planet.appearance.glowColor})`
+                                    : 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.25))',
                                 pointerEvents: 'none',
                             }}
                         />
 
-                        {/* Inner highlight - adds depth */}
+                        {/* Inner highlight - Depth enhancement
+                            Adds subtle dimensionality without distraction
+                            Very gentle opacity shift on hover (0.2 → 0.35)
+                        */}
                         <motion.ellipse
                             cx={centerX}
                             cy={centerY}
@@ -90,7 +135,14 @@ export default function OrbitTrails({ planets, centerX, centerY, scale }: OrbitT
                             fill="none"
                             stroke="rgba(255, 255, 255, 0.15)"
                             strokeWidth={1}
-                            opacity={isHovered ? 0.5 : 0.2}
+                            animate={{
+                                opacity: prefersReducedMotion
+                                    ? 0.2
+                                    : (isHovered ? 0.35 : 0.2)
+                            }}
+                            transition={{
+                                opacity: { duration: 0.5, ease: easeOut }
+                            }}
                             style={{ pointerEvents: 'none' }}
                         />
                     </g>

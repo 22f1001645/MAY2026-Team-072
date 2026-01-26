@@ -1,15 +1,42 @@
 import { Music, Cpu, Trophy, LucideIcon } from 'lucide-react'
 
 /**
- * Planet configuration for the orbital system
- * Each planet represents a pillar of EKATVA
+ * ═══════════════════════════════════════════════════════════════
+ * EKATVA ORBITAL SIZING SYSTEM - REVISED MATHEMATICAL SPECIFICATION
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * GOLDEN RATIO FOUNDATION:
+ * φ (phi) = 1.618033988749895
+ *
+ * CORE-TO-PLANET RELATIONSHIP:
+ * Core Radius = Planet Size × φ
+ *
+ * RESPONSIVE BREAKPOINTS:
+ * ┌──────────────┬─────────────┬─────────────┬───────────────┐
+ * │ Viewport     │ Planet Size │ Core Radius │ Safe Distance │
+ * ├──────────────┼─────────────┼─────────────┼───────────────┤
+ * │ Mobile       │ 60px        │ 97px        │ > 127px       │
+ * │ Tablet       │ 80px        │ 129px       │ > 169px       │
+ * │ Desktop      │ 100px       │ 162px       │ > 212px       │
+ * └──────────────┴─────────────┴─────────────┴───────────────┘
  * 
- * OPTIMIZED RADII:
- * - Reduced from 260-280px to 180-220px
- * - Ensures all planets fit within 700px viewport
- * - Different radii create visual variety
- * - Eccentricity reduced for better control
+ * CORRECTED ORBITAL RADII (Base values for Desktop, scaled by viewport):
+ * - Previous Plan flaw: Inner Orbit 160px < Safe Distance 212px (COLLISION)
+ * - NEW Inner Orbit:  240px (Safe buffer > 212px)
+ * - NEW Middle Orbit: 300px (Consistent 60px gap)
+ * - NEW Outer Orbit:  360px (Consistent 60px gap)
+ *
+ * SCALING FACTORS:
+ * - Desktop: 1.0 (Radii: 240, 300, 360)
+ * - Tablet:  0.8 (Radii: 192, 240, 288) -> Safe (> 169)
+ * - Mobile:  0.6 (Radii: 144, 180, 216) -> Safe (> 127)
+ *
+ * ECCENTRICITY RANGE: 0.08 - 0.12
+ * Creates subtle elliptical variation without distortion
+ *
+ * ═══════════════════════════════════════════════════════════════
  */
+
 export interface PlanetConfig {
     id: string
     name: string
@@ -41,10 +68,10 @@ export const PLANET_CONFIGS: PlanetConfig[] = [
         name: 'Socio-Cultural',
         devanagari: 'सामाजिक-सांस्कृतिक',
         orbital: {
-            radius: 180, // Reduced from 280 - inner orbit
+            radius: 240, // Corrected from 160 to avoid Core collision (Min Safe: 212)
             angle: 0,
             speed: 0.15,
-            eccentricity: 0.12, // Reduced from 0.2 - more circular
+            eccentricity: 0.12,
         },
         appearance: {
             baseColor: '#5CE6C9',
@@ -70,10 +97,10 @@ export const PLANET_CONFIGS: PlanetConfig[] = [
         name: 'Techno-Cultural',
         devanagari: 'तकनीकी-सांस्कृतिक',
         orbital: {
-            radius: 220, // Outer orbit - different from others
+            radius: 300, // Corrected from 200 for spacing
             angle: (2 * Math.PI) / 3, // 120 degrees
             speed: 0.12,
-            eccentricity: 0.12, // Reduced from 0.25 - more circular
+            eccentricity: 0.12,
         },
         appearance: {
             baseColor: '#FFCF96',
@@ -99,10 +126,10 @@ export const PLANET_CONFIGS: PlanetConfig[] = [
         name: 'Sports',
         devanagari: 'खेल',
         orbital: {
-            radius: 180, // Reduced from 260 - inner orbit (same as Socio)
+            radius: 360, // Corrected from 240 for spacing
             angle: (4 * Math.PI) / 3, // 240 degrees
             speed: 0.18,
-            eccentricity: 0.08, // Minimal eccentricity - nearly circular
+            eccentricity: 0.08,
         },
         appearance: {
             baseColor: '#FF6B6B',

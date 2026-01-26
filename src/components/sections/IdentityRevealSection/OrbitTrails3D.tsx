@@ -6,9 +6,12 @@ import * as THREE from 'three'
 import { PlanetState } from '@/store/orbitalStore'
 
 /**
- * OrbitTrails3D - 3D orbit ellipse paths
+ * OrbitTrails3D - 3D orbit ellipse paths (Dampened Intensity)
  * 
- * Uses THREE.EllipseCurve to create smooth orbital paths
+ * Uses THREE.EllipseCurve to create smooth orbital paths.
+ * Normalizes pixel values from planet.orbital.radius to 3D scene units (100px = 1 unit).
+ * 
+ * Update: Reduced opacity to match the subtle "breathing" aesthetic of the 2D fallback.
  */
 interface OrbitTrails3DProps {
     planets: PlanetState[]
@@ -20,7 +23,10 @@ export default function OrbitTrails3D({ planets, orbitScale, hoveredPlanetId }: 
     // Create ellipse curves for each planet
     const curves = useMemo(() => {
         return planets.map((planet) => {
+            // SCALING CORRECTION:
+            // Convert pixel radius (e.g. 240) to Scene Units (where 1 unit = 100px)
             const scaledRadius = (planet.orbital.radius / 100) * orbitScale
+
             const rx = scaledRadius * (1 + planet.orbital.eccentricity * 0.5)
             const ry = scaledRadius * (1 - planet.orbital.eccentricity * 0.3)
 
@@ -53,10 +59,13 @@ export default function OrbitTrails3D({ planets, orbitScale, hoveredPlanetId }: 
                     <Line
                         key={curve.id}
                         points={curve.points}
-                        color={isHovered ? curve.color : '#333333'}
-                        lineWidth={isHovered ? 2 : 1}
+                        color={isHovered ? curve.color : '#444444'} // Slightly lighter gray for visibility at low opacity
+                        lineWidth={isHovered ? 1.5 : 1} // Reduced hover width for elegance
                         transparent
-                        opacity={isHovered ? 0.8 : 0.3}
+                        // Dampened Opacity: 
+                        // Base: 0.1 (was 0.3) - Barely visible structure
+                        // Hover: 0.35 (was 0.8) - Subtle highlight, not overwhelming
+                        opacity={isHovered ? 0.35 : 0.1}
                     />
                 )
             })}

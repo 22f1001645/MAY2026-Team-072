@@ -4,6 +4,8 @@ import { Suspense, useState, useCallback, useEffect, Component, ReactNode } from
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import ContentPanel from './ContentPanel'
+import { validateOrbitalSystem } from '@/lib/orbital-math'
+import { PLANET_CONFIGS } from '@/data/planets'
 
 /**
  * OrbitalSystem - WebGL-Only with Static Fallback
@@ -91,6 +93,19 @@ export default function OrbitalSystem() {
         setWebGLSupported(supported)
         if (!supported) {
             console.warn('WebGL not supported, showing static fallback')
+        }
+
+        // Validate orbital sizing system
+        if (process.env.NODE_ENV === 'development') {
+            const orbitalRadii = PLANET_CONFIGS.map(p => p.orbital.radius)
+            validateOrbitalSystem(window.innerWidth, orbitalRadii)
+
+            // Re-validate on resize
+            const handleResize = () => {
+                validateOrbitalSystem(window.innerWidth, orbitalRadii)
+            }
+            window.addEventListener('resize', handleResize)
+            return () => window.removeEventListener('resize', handleResize)
         }
     }, [])
 

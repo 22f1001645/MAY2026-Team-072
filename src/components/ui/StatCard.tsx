@@ -8,13 +8,12 @@ import { fadeInUp } from '@/lib/animations'
 import type { StatCardProps } from '@/types'
 
 /**
- * StatCard - Award-Winning Design (Phase 2)
+ * StatCard - Antigravity Refactor
  * 
  * Features:
- * - Animated counting numbers on scroll-in
- * - Responsive serif font
- * - Glass background with gradient
- * - Hover lift effect with glow
+ * - Balanced Typography: Goldilocks scale.
+ * - Concise Padding: No extra "safety" buffers.
+ * - Label Safety: Prevent wrapping/overflow.
  */
 export default function StatCard({
     value,
@@ -71,33 +70,35 @@ export default function StatCard({
             initial="initial"
             whileInView="animate"
             whileHover={{
-                y: -4,
+                y: -5,
                 scale: 1.02,
                 transition: { duration: 0.3, ease: 'easeOut' }
             }}
             viewport={{ once: true, amount: 0.5 }}
             className={cn(
-                'text-center p-[clamp(0.75rem,2vh,1.5rem)]',
-                'rounded-xl md:rounded-2xl',
-                'border border-white/20', // Brighter border for distinct glass effect
+                'flex flex-col items-center justify-center text-center',
+                // Symmetric Padding - Removed "Safety" buffer
+                'p-[clamp(1rem,1.5vh,1.5rem)]',
+                'rounded-2xl',
+                'border border-divider-gray/40',
                 borderHoverClasses[color],
                 'transition-all duration-300',
-                'cursor-default',
+                'cursor-default h-full',
                 className
             )}
             style={{
-                background: `linear-gradient(135deg,
-                    rgba(31, 79, 89, 0.3) 0%,
-                    rgba(14, 47, 54, 0.35) 100%
+                background: `linear-gradient(135deg, 
+                    rgba(31, 79, 89, 0.25) 0%, 
+                    rgba(14, 47, 54, 0.3) 100%
                 )`,
-                backdropFilter: 'blur(12px)',
-                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+                backdropFilter: 'blur(10px)',
             }}
         >
-            {/* Animated Number - Medium-Large sweet spot with tight tracking */}
+            {/* Animated Number */}
             <p
                 className={cn(
-                    'font-serif text-[clamp(2rem,3.5vw,3.5rem)] font-bold tracking-tight mb-0.5',
+                    'font-serif font-bold leading-none mb-2',
+                    'text-[clamp(2rem,3.5vw,3.5rem)] tracking-tight',
                     colorClasses[color]
                 )}
                 style={glowStyles[color]}
@@ -110,7 +111,6 @@ export default function StatCard({
                         separator=","
                         useEasing={true}
                         easingFn={(t, b, c, d) => {
-                            // Custom easing: ease out cubic
                             return c * (1 - Math.pow(1 - t / d, 3)) + b
                         }}
                     />
@@ -120,8 +120,8 @@ export default function StatCard({
                 {suffix}
             </p>
 
-            {/* Label - Small, crisp, uppercase - Number is the hero */}
-            <p className="text-[clamp(0.6rem,0.75vw,0.875rem)] text-light-gray uppercase tracking-[0.15em] font-semibold whitespace-nowrap">
+            {/* Label - Prevent wrapping */}
+            <p className="text-[clamp(0.6rem,0.7vw,0.8rem)] text-light-gray uppercase tracking-[0.15em] font-semibold leading-tight whitespace-nowrap">
                 {label}
             </p>
         </motion.div>

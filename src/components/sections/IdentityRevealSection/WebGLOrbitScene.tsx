@@ -140,8 +140,8 @@ export default function WebGLOrbitScene({ onReady }: WebGLOrbitSceneProps) {
             {/* Center Core */}
             <CenterCore3D />
 
-            {/* Planets */}
-            {planets.map((planet) => (
+            {/* Planets - with phase offset for harmonic wave animation */}
+            {planets.map((planet, index) => (
                 <Planet3D
                     key={planet.id}
                     planet={planet}
@@ -150,6 +150,7 @@ export default function WebGLOrbitScene({ onReady }: WebGLOrbitSceneProps) {
                     orbitScale={orbitScale}
                     onHover={setHoveredPlanet}
                     onClick={setActivePlanet}
+                    planetIndex={index}
                 />
             ))}
         </Canvas>

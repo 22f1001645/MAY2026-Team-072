@@ -1,11 +1,14 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { calculateCoreRadius, calculatePlanetSize } from '@/lib/orbital-math'
 
 /**
- * CenterCore - The pulsing EKATVA center
- * 
+ * CenterCore - The pulsing EKATVA center (Refactored for Golden Ratio Sizing)
+ *
  * Features:
+ * - Dynamic Sizing: r = PlanetSize * 1.618 (φ)
  * - Pulsing glow animation (2s loop)
  * - Core circle with gradient
  * - "एकत्व" in Devanagari
@@ -18,7 +21,21 @@ interface CenterCoreProps {
 }
 
 export default function CenterCore({ cx, cy }: CenterCoreProps) {
-    const coreRadius = 80
+    // Golden ratio based sizing - responsive to viewport
+    // Default to Desktop: 100px planet -> 162px core
+    const [coreRadius, setCoreRadius] = useState(162)
+
+    useEffect(() => {
+        const updateCoreSize = () => {
+            const planetSize = calculatePlanetSize(window.innerWidth)
+            const newCoreRadius = calculateCoreRadius(planetSize)
+            setCoreRadius(newCoreRadius)
+        }
+
+        updateCoreSize()
+        window.addEventListener('resize', updateCoreSize)
+        return () => window.removeEventListener('resize', updateCoreSize)
+    }, [])
 
     return (
         <g>
@@ -26,7 +43,7 @@ export default function CenterCore({ cx, cy }: CenterCoreProps) {
             <motion.circle
                 cx={cx}
                 cy={cy}
-                r={coreRadius + 40}
+                r={coreRadius * 1.5} // Scales proportionally
                 fill="none"
                 stroke="url(#centerGlow)"
                 strokeWidth={2}
@@ -47,7 +64,7 @@ export default function CenterCore({ cx, cy }: CenterCoreProps) {
             <motion.circle
                 cx={cx}
                 cy={cy}
-                r={coreRadius + 20}
+                r={coreRadius * 1.25} // Scales proportionally
                 fill="none"
                 stroke="url(#centerGlow)"
                 strokeWidth={1}
@@ -113,10 +130,10 @@ export default function CenterCore({ cx, cy }: CenterCoreProps) {
                 EKATVA
             </text>
 
-            {/* Tagline (positioned outside core) */}
+            {/* Tagline (Dynamic positioning) */}
             <text
                 x={cx}
-                y={cy + coreRadius + 30}
+                y={cy + coreRadius * 1.3} // Tightened from 1.375
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="rgba(255, 255, 255, 0.6)"

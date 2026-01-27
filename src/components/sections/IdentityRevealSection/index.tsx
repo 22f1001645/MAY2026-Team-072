@@ -2,15 +2,20 @@
 
 import { motion } from 'framer-motion'
 import OrbitalSystem from './OrbitalSystem'
-import CorePhilosophies from './CorePhilosophies'
+import DynamicContentPanel from './DynamicContentPanel'
 
 /**
  * IdentityRevealSection - "Dual Core" Asymmetric Split Layout
- * 
+ *
  * Premium 7:5 split-screen design:
  * - Left (7 cols): Interactive Orbital System (WebGL-only)
- * - Right (5 cols): "Atomic Truths" Accordion
- * 
+ * - Right (5 cols): Dynamic Content Panel (switches between Core and Planet content)
+ *
+ * Interaction Model:
+ * - Click planet → "What We Do" + "Three Pillars of Experience" + planet content
+ * - Click core → "The Core" + "Atomic Truths" + philosophies accordion
+ * - Default: Techno-Cultural planet selected
+ *
  * Risk Mitigations:
  * - Cut-off prevention: ResizeObserver + dynamic viewBox
  * - Squished prevention: min-h-[500px] + fixed grid spans
@@ -92,7 +97,7 @@ export default function IdentityRevealSection() {
                         </div>
                     </motion.div>
 
-                    {/* RIGHT: Atomic Truths Content (5 cols) */}
+                    {/* RIGHT: Dynamic Content Panel (5 cols) */}
                     <motion.div
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
@@ -100,30 +105,7 @@ export default function IdentityRevealSection() {
                         transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                         className="xl:col-span-5 order-1 xl:order-2"
                     >
-                        {/* Section Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-ekatva-teal/30 bg-ekatva-teal/10 mb-[2vh]">
-                            <div className="w-2 h-2 rounded-full bg-ekatva-teal animate-pulse" />
-                            <span className="text-ekatva-teal text-xs tracking-widest uppercase">
-                                The Core
-                            </span>
-                        </div>
-
-                        {/* Main Heading */}
-                        <h2
-                            id="identity-title"
-                            className="font-serif text-[clamp(2.5rem,4vw,4.5rem)] leading-none text-white mb-[1.5vh]"
-                        >
-                            Atomic{' '}
-                            <span className="text-unity-gold italic">Truths.</span>
-                        </h2>
-
-                        {/* Description */}
-                        <p className="text-fluid-body short:text-fluid-body-compact text-mid-gray mb-[3vh] max-w-md">
-                            Ekatva is not defined by its events, but by the fundamental forces that bind our community together.
-                        </p>
-
-                        {/* Core Philosophies Accordion */}
-                        <CorePhilosophies />
+                        <DynamicContentPanel />
                     </motion.div>
                 </div>
             </div>

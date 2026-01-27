@@ -40,6 +40,7 @@ interface OrbitalState {
     // Actions
     setHoveredPlanet: (id: string | null) => void
     setActivePlanet: (id: string | null) => void
+    setCoreActive: () => void
     updatePlanetAngle: (id: string, angle: number) => void
     updatePlanetPosition: (id: string, position: OrbitalPosition) => void
     setIsAnimating: (isAnimating: boolean) => void
@@ -78,9 +79,9 @@ export const useOrbitalStore = create<OrbitalState>((set, get) => ({
     // Initial state
     planets: initializePlanets(),
     viewMode: 'orbit',
-    activePlanetId: null,
+    activePlanetId: 'techno-cultural',  // Default to techno-cultural planet
     hoveredPlanetId: null,
-    focusedPlanetIndex: 0,
+    focusedPlanetIndex: 1,  // Techno-cultural is at index 1
     isAnimating: true,
     orbitScale: 1,
     planetSize: 100,
@@ -95,6 +96,13 @@ export const useOrbitalStore = create<OrbitalState>((set, get) => ({
             activePlanetId: id,
             viewMode: id ? 'planet-expanded' : 'orbit',
             isAnimating: !id,
+        }),
+
+    setCoreActive: () =>
+        set({
+            activePlanetId: 'core',
+            viewMode: 'planet-expanded',
+            isAnimating: false,
         }),
 
     updatePlanetAngle: (id, angle) =>
@@ -137,7 +145,7 @@ export const useOrbitalStore = create<OrbitalState>((set, get) => ({
 
     closePanel: () =>
         set({
-            activePlanetId: null,
+            activePlanetId: 'techno-cultural',  // Reset to default planet
             viewMode: 'orbit',
             isAnimating: true,
         }),

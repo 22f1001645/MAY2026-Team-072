@@ -80,6 +80,7 @@ export default function Planet3D({
             <Sphere
                 ref={glowRef}
                 args={[size * 1.6, 32, 32]}
+                raycast={() => null}
             >
                 <meshBasicMaterial
                     color={color}
@@ -94,9 +95,18 @@ export default function Planet3D({
             <Sphere
                 ref={meshRef}
                 args={[size, 64, 64]} // Higher poly for smooth reflections
-                onPointerEnter={() => onHover(planet.id)}
-                onPointerLeave={() => onHover(null)}
-                onClick={() => onClick(planet.id)}
+                onPointerEnter={(e) => {
+                    e.stopPropagation()
+                    onHover(planet.id)
+                }}
+                onPointerLeave={(e) => {
+                    e.stopPropagation()
+                    onHover(null)
+                }}
+                onClick={(e) => {
+                    e.stopPropagation()
+                    onClick(planet.id)
+                }}
             >
                 <meshStandardMaterial
                     color={color}

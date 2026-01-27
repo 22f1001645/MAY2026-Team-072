@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Sphere, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { HARMONICS } from '@/lib/orbital-math'
+import { useOrbitalStore } from '@/store/orbitalStore'
 
 /**
  * CenterCore3D - 3D EKATVA center core (Harmonic Breathing V3)
@@ -21,6 +22,8 @@ import { HARMONICS } from '@/lib/orbital-math'
 export default function CenterCore3D() {
     const glowRef = useRef<THREE.Mesh>(null)
     const pulseRef = useRef<THREE.Mesh>(null)
+    const [isHovered, setIsHovered] = useState(false)
+    const { setCoreActive } = useOrbitalStore()
 
     const coreColor = new THREE.Color('#5CE6C9')
     const coreSize = 1.62 // Matches Golden Ratio (1.618)
@@ -30,13 +33,15 @@ export default function CenterCore3D() {
         const t = state.clock.elapsedTime
 
         // Inner glow: Core frequency, 15% amplitude
+        // Intensify on hover for discoverability (0.3 → 0.45)
         if (glowRef.current) {
             const glowPulse = 1 + Math.sin(t * HARMONICS.OMEGA_CORE) * HARMONICS.AMP_CORE_GLOW
-            glowRef.current.scale.setScalar(glowPulse)
+            glowRef.current.scale.setScalar(isHovered ? glowPulse * 1.15 : glowPulse)
 
-            // Subtle opacity modulation
+            // Subtle opacity modulation - intensified on hover
             const material = glowRef.current.material as THREE.MeshBasicMaterial
-            material.opacity = HARMONICS.OPACITY_CORE_GLOW_BASE +
+            const baseOpacity = isHovered ? 0.45 : HARMONICS.OPACITY_CORE_GLOW_BASE
+            material.opacity = baseOpacity +
                 Math.sin(t * HARMONICS.OMEGA_CORE) * HARMONICS.OPACITY_CORE_GLOW_AMP
         }
 
@@ -48,7 +53,23 @@ export default function CenterCore3D() {
     })
 
     return (
-        <group position={[0, 0, 0]}>
+        <group
+            position={[0, 0, 0]}
+            onClick={(e) => {
+                e.stopPropagation()
+                setCoreActive()
+            }}
+            onPointerOver={(e) => {
+                e.stopPropagation()
+                setIsHovered(true)
+                document.body.style.cursor = 'pointer'
+            }}
+            onPointerOut={(e) => {
+                e.stopPropagation()
+                setIsHovered(false)
+                document.body.style.cursor = 'grab'
+            }}
+        >
             {/* Outer pulse ring */}
             <Sphere
                 ref={pulseRef}

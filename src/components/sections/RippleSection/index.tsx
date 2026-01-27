@@ -134,7 +134,7 @@ export default function RippleSection() {
                             initial={{ opacity: 0, y: 15 }}
                             animate={animationStarted ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.6, delay: 0.5 }}
-                            className="mb-5"
+                            className="mb-3"
                         >
                             <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight mb-2">
                                 <span className="text-ekatva-teal">9 Cities.</span>{' '}
@@ -150,7 +150,7 @@ export default function RippleSection() {
                             initial={{ scaleX: 0 }}
                             animate={animationStarted ? { scaleX: 1 } : {}}
                             transition={{ duration: 0.6, delay: 0.8 }}
-                            className="h-px bg-gradient-to-r from-ekatva-teal/50 via-white/20 to-transparent mb-5 origin-left"
+                            className="h-px bg-gradient-to-r from-ekatva-teal/50 via-white/20 to-transparent mb-3 origin-left"
                         />
 
                         {/* Mission Statement */}
@@ -158,7 +158,7 @@ export default function RippleSection() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={animationStarted ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.6, delay: 1.1 }}
-                            className="text-sm sm:text-base text-white/70 leading-relaxed mb-6"
+                            className="text-sm text-white/70 leading-relaxed mb-4"
                         >
                             Each year, EKATVA brings the full fest experience to BS students in their
                             own cities—ensuring everyone gets the opportunity to engage, explore, and
@@ -170,7 +170,7 @@ export default function RippleSection() {
                             initial={{ scaleX: 0 }}
                             animate={animationStarted ? { scaleX: 1 } : {}}
                             transition={{ duration: 0.6, delay: 1.4 }}
-                            className="h-px bg-gradient-to-r from-transparent via-white/20 to-unity-gold/50 mb-5 origin-right"
+                            className="h-px bg-gradient-to-r from-transparent via-white/20 to-unity-gold/50 mb-3 origin-right"
                         />
 
                         {/* Vision Section */}
@@ -179,10 +179,10 @@ export default function RippleSection() {
                             animate={animationStarted ? { opacity: 1 } : {}}
                             transition={{ duration: 0.5, delay: 1.6 }}
                         >
-                            <h3 className="text-xs font-semibold uppercase tracking-widest text-ekatva-teal mb-4">
+                            <h3 className="text-xs font-semibold uppercase tracking-widest text-ekatva-teal mb-2">
                                 Our Vision
                             </h3>
-                            <ul className="space-y-3">
+                            <ul className="space-y-2">
                                 {visionItems.map((item, index) => (
                                     <motion.li
                                         key={index}
@@ -206,7 +206,7 @@ export default function RippleSection() {
                             initial={{ opacity: 0, y: 15 }}
                             animate={animationStarted ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.6, delay: 2.4 }}
-                            className="mt-7"
+                            className="mt-4"
                         >
                             <a
                                 href="https://www.instagram.com/ekatva_iitm/"
@@ -226,15 +226,15 @@ export default function RippleSection() {
             </div>
 
             {/* Mobile Layout */}
-            <div className="ripple-mobile-layout relative z-10 px-4">
+            <div className="ripple-mobile-layout relative z-10">
                 {/* Mobile Heading */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={animationStarted ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6, delay: 0.3 }}
-                    className="text-center pt-4 pb-4"
+                    className="text-center py-3"
                 >
-                    <h2 className="font-serif text-2xl font-bold text-white leading-tight mb-1">
+                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-white leading-tight mb-1">
                         <span className="text-ekatva-teal">9 Cities.</span>{' '}
                         <span className="text-unity-gold">1 Mission.</span>
                     </h2>
@@ -243,41 +243,77 @@ export default function RippleSection() {
                     </p>
                 </motion.div>
 
-                {/* Mobile Map */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={animationStarted ? { opacity: 1, scale: 1 } : {}}
-                    transition={{ duration: 0.8, delay: 0.5 }}
-                    className="relative mx-auto max-w-xs mb-6"
-                >
-                    <IndiaMapSVG />
-                    {animationStarted && (
-                        <>
-                            <RippleWave delay={0.8} duration={2.5} />
-                            <RippleWave delay={1.4} duration={2.5} opacity={0.25} />
-                        </>
-                    )}
-                    {cities.map((city) => (
-                        <CityMarker
-                            key={city.id}
-                            city={city}
-                            isAnimating={animationStarted}
-                            isHovered={false}
-                            isHighlighted={false}
-                            onHover={() => { }}
-                            onClick={handleCityClick}
-                            isMobile={true}
-                            showLabel={false}
-                        />
-                    ))}
-                </motion.div>
+                {/* Map + Legend side by side */}
+                <div className="ripple-mobile-map-area">
+                    {/* Map Container */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={animationStarted ? { opacity: 1, scale: 1 } : {}}
+                        transition={{ duration: 0.8, delay: 0.5 }}
+                        className="ripple-mobile-map-wrapper"
+                    >
+                        <IndiaMapSVG />
+                        {animationStarted && (
+                            <>
+                                <RippleWave delay={0.8} duration={2.5} />
+                                <RippleWave delay={1.4} duration={2.5} opacity={0.25} />
+                            </>
+                        )}
+                        {cities.map((city) => (
+                            <CityMarker
+                                key={city.id}
+                                city={city}
+                                isAnimating={animationStarted}
+                                isHovered={false}
+                                isHighlighted={false}
+                                onHover={() => { }}
+                                onClick={handleCityClick}
+                                isMobile={true}
+                                showLabel={false}
+                            />
+                        ))}
+                    </motion.div>
+
+                    {/* Legend - side by side with map */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={animationStarted ? { opacity: 1, x: 0 } : {}}
+                        transition={{ duration: 0.6, delay: 0.8 }}
+                        className="ripple-mobile-legend"
+                    >
+                        {/* Completed */}
+                        <div className="ripple-legend-row">
+                            <span className="ripple-legend-dot completed" />
+                            <div>
+                                <span className="ripple-legend-text">Hyderabad</span>
+                                <span className="ripple-legend-status">(Completed)</span>
+                            </div>
+                        </div>
+                        {/* Confirmed */}
+                        <div className="ripple-legend-row">
+                            <span className="ripple-legend-dot confirmed" />
+                            <div>
+                                <span className="ripple-legend-text">Delhi, Bangalore, Mumbai, Patna</span>
+                                <span className="ripple-legend-status">(Confirmed)</span>
+                            </div>
+                        </div>
+                        {/* Exploring */}
+                        <div className="ripple-legend-row">
+                            <span className="ripple-legend-dot exploring" />
+                            <div>
+                                <span className="ripple-legend-text">4 More Cities</span>
+                                <span className="ripple-legend-status">(Exploring)</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
 
                 {/* Mobile Mission Text */}
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={animationStarted ? { opacity: 1 } : {}}
                     transition={{ duration: 0.6, delay: 1.2 }}
-                    className="text-sm text-white/70 text-center leading-relaxed px-2 mb-6"
+                    className="text-sm text-white/70 text-center leading-relaxed px-4 py-3"
                 >
                     EKATVA brings the full fest experience to BS students,
                     ensuring everyone gets to engage, explore, and enjoy the best of student life.
@@ -285,16 +321,16 @@ export default function RippleSection() {
 
                 {/* Mobile CTA */}
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={animationStarted ? { opacity: 1 } : {}}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={animationStarted ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6, delay: 1.5 }}
-                    className="text-center pb-8"
+                    className="text-center px-4 pb-4"
                 >
                     <a
                         href="https://www.instagram.com/ekatva_iitm/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="ripple-cta-button-mobile inline-flex items-center gap-2 text-sm"
+                        className="ripple-cta-button-mobile w-full inline-flex items-center justify-center gap-2 text-sm"
                     >
                         Join The Movement
                         <ArrowRight className="w-4 h-4" strokeWidth={2.5} />

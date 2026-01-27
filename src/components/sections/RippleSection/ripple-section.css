@@ -1,13 +1,15 @@
 /* Ripple Section - Compact Split-Screen Layout */
 
-/* Main section container - FIXED: removed fixed height for scrolling */
+/* Main section container - LOCKED TO SINGLE VIEWPORT */
 .ripple-section {
-    min-height: 80vh;
-    height: auto;
+    height: 100svh;
+    max-height: 100svh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
-    padding: 48px 0;
+    padding: 0;
     position: relative;
+    overflow: hidden;
 }
 
 /* Split-screen grid layout */
@@ -38,14 +40,14 @@
     padding: 16px 0;
 }
 
-/* Glassmorphism card */
+/* Glassmorphism card - Compact for viewport fit */
 .ripple-glass-card {
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    padding: 36px;
+    border-radius: clamp(16px, 2vw, 24px);
+    padding: clamp(20px, 3vh, 28px);
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -56,14 +58,13 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    space-y: 12px;
 }
 
 .vision-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 8px 0;
+    gap: 10px;
+    padding: 5px 0;
 }
 
 .vision-icon {
@@ -78,8 +79,8 @@
 
 .vision-text {
     color: rgba(255, 255, 255, 0.75);
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: clamp(12px, 1.5vh, 14px);
+    line-height: 1.5;
 }
 
 /* CTA Button - Premium styling */
@@ -147,26 +148,27 @@
 /* Tablet (768px - 1024px) */
 @media (min-width: 768px) and (max-width: 1024px) {
     .ripple-section {
-        padding: 40px 0;
+        height: 100svh;
+        padding: 0;
     }
 
     .ripple-grid {
         grid-template-columns: 50fr 50fr;
-        gap: 24px;
-        padding: 0 32px;
+        gap: 20px;
+        padding: 0 24px;
     }
 
     .ripple-glass-card {
-        padding: 28px;
+        padding: 24px;
     }
 }
 
 /* Mobile (<768px) - Hide desktop grid, show mobile layout */
 @media (max-width: 767px) {
     .ripple-section {
-        min-height: auto;
-        height: auto;
-        padding: 32px 0;
+        height: 100svh;
+        max-height: 100svh;
+        padding: clamp(48px, 8vh, 72px) 0 clamp(16px, 3vh, 24px);
     }
 
     .ripple-grid {
@@ -174,7 +176,89 @@
     }
 
     .ripple-mobile-layout {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        max-height: calc(100svh - clamp(48px, 8vh, 72px) - clamp(16px, 3vh, 24px));
+    }
+
+    /* Map + Legend side by side container */
+    .ripple-mobile-map-area {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(8px, 2vw, 16px);
+        padding: 0 clamp(8px, 3vw, 16px);
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Mobile map container */
+    .ripple-mobile-map-wrapper {
+        position: relative;
+        flex: 1;
+        max-width: 55%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Mobile legend - vertical grouped style */
+    .ripple-mobile-legend {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(10px, 2vh, 16px);
+        padding: clamp(10px, 2vw, 14px);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+        max-width: 45%;
+        align-self: center;
+    }
+
+    .ripple-legend-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .ripple-legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .ripple-legend-dot.completed {
+        background: #5CE6C9;
+        box-shadow: 0 0 10px rgba(92, 230, 201, 0.6);
+    }
+
+    .ripple-legend-dot.confirmed {
+        background: #FFCF96;
+        box-shadow: 0 0 10px rgba(255, 207, 150, 0.6);
+    }
+
+    .ripple-legend-dot.exploring {
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    .ripple-legend-text {
+        font-size: clamp(11px, 3vw, 13px);
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.4;
+        font-weight: 500;
+    }
+
+    .ripple-legend-status {
         display: block;
+        font-size: clamp(10px, 2.5vw, 11px);
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 2px;
     }
 }
 

@@ -94,7 +94,7 @@ export default function CityMarker({
                 }
             }}
         >
-            {/* Outer pulsing glow ring - enhanced when highlighted */}
+            {/* Outer glow ring - only pulses on hover/active, NOT auto for completed */}
             <motion.div
                 className="absolute rounded-full"
                 style={{
@@ -105,14 +105,14 @@ export default function CityMarker({
                     top: '50%',
                     transform: 'translate(-50%, -50%)'
                 }}
-                animate={isCompleted || isActive ? {
+                animate={isActive ? {
                     scale: [1, 1.5, 1],
                     opacity: [0.5, 0.9, 0.5]
                 } : {
-                    opacity: 0.35
+                    opacity: isCompleted ? 0.5 : 0.35
                 }}
-                transition={isCompleted || isActive ? {
-                    duration: isActive ? 1.5 : 2.5,
+                transition={isActive ? {
+                    duration: 1.5,
                     repeat: Infinity,
                     ease: 'easeInOut'
                 } : {

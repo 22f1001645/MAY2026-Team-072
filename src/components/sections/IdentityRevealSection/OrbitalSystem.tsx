@@ -207,7 +207,7 @@ export default function OrbitalSystem() {
                 )}
             </AnimatePresence>
 
-            {/* Instructions - Appears when WebGL is ready */}
+            {/* Instructions - Desktop only (mobile has its own hint in index.tsx) */}
             <AnimatePresence>
                 {isWebGLReady && (
                     <motion.div
@@ -215,7 +215,7 @@ export default function OrbitalSystem() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ delay: 1.5, duration: 0.5 }}
-                        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs text-mid-gray text-center z-10"
+                        className="absolute bottom-6 left-1/2 -translate-x-1/2 items-center gap-2 text-xs text-mid-gray text-center z-10 hidden md:flex"
                     >
                         {/* Drag Icon */}
                         <svg

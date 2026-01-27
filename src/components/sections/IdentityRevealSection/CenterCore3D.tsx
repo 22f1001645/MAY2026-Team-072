@@ -1,11 +1,25 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Sphere, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { HARMONICS } from '@/lib/orbital-math'
 import { useOrbitalStore } from '@/store/orbitalStore'
+
+/**
+ * Mobile device detection (SSR-safe)
+ * Only returns true for ACTUAL mobile devices:
+ * - Primary input is touch (pointer: coarse)
+ * - AND screen width is small (< 1024px)
+ * This ensures touchscreen laptops keep desktop experience
+ */
+function isMobileDevice(): boolean {
+    if (typeof window === 'undefined') return false
+    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches
+    const isSmallScreen = window.innerWidth < 1024
+    return isCoarsePointer && isSmallScreen
+}
 
 /**
  * CenterCore3D - 3D EKATVA center core (Harmonic Breathing V3)
@@ -18,15 +32,27 @@ import { useOrbitalStore } from '@/store/orbitalStore'
  * AMPLITUDE PHILOSOPHY:
  * - Subtle, not exaggerated: 5% core, 10% ring, 15% glow
  * - Creates "living" feel without "explosion" effect
+ *
+ * MOBILE TOUCH OPTIMIZATIONS:
+ * - 2x invisible hitbox for easier tap targets
+ * - Touch-aware cursor handling (no 'grab' on mobile)
  */
 export default function CenterCore3D() {
     const glowRef = useRef<THREE.Mesh>(null)
     const pulseRef = useRef<THREE.Mesh>(null)
     const [isHovered, setIsHovered] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
     const { setCoreActive } = useOrbitalStore()
+
+    useEffect(() => {
+        setIsMobile(isMobileDevice())
+    }, [])
 
     const coreColor = new THREE.Color('#5CE6C9')
     const coreSize = 1.62 // Matches Golden Ratio (1.618)
+
+    // Tap target size - 2x for touch devices (WCAG 44px minimum)
+    const hitboxSize = isMobile ? coreSize * 2 : coreSize
 
     // Harmonic breathing animation - mathematically derived from φ
     useFrame((state) => {
@@ -67,9 +93,19 @@ export default function CenterCore3D() {
             onPointerOut={(e) => {
                 e.stopPropagation()
                 setIsHovered(false)
-                document.body.style.cursor = 'grab'
+                // Only show 'grab' cursor on desktop (indicates drag rotation)
+                document.body.style.cursor = isMobile ? 'default' : 'grab'
             }}
         >
+            {/* Invisible hitbox for larger tap targets on touch devices */}
+            {isMobile && (
+                <Sphere
+                    args={[hitboxSize, 16, 16]} // Lower poly since invisible
+                    raycast={() => null} // Let parent group handle raycasting
+                >
+                    <meshBasicMaterial transparent opacity={0} />
+                </Sphere>
+            )}
             {/* Outer pulse ring */}
             <Sphere
                 ref={pulseRef}

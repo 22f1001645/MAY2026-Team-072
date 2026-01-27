@@ -1,27 +1,59 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import OrbitalSystem from './OrbitalSystem'
 import DynamicContentPanel from './DynamicContentPanel'
 
 /**
- * IdentityRevealSection - "Dual Core" Asymmetric Split Layout
+ * IdentityRevealSection - Touch-Safe Identity Reveal with Desktop Layout Preserved
  *
- * Premium 7:5 split-screen design:
- * - Left (7 cols): Interactive Orbital System (WebGL-only)
- * - Right (5 cols): Dynamic Content Panel (switches between Core and Planet content)
+ * Layout (all screen sizes):
+ * - Premium 7:5 split-screen design
+ * - Left (7 cols): Interactive Orbital System (WebGL)
+ * - Right (5 cols): Dynamic Content Panel
  *
  * Interaction Model:
- * - Click planet → "What We Do" + "Three Pillars of Experience" + planet content
- * - Click core → "The Core" + "Atomic Truths" + philosophies accordion
+ * - Desktop: Click/hover planet/core to switch content, drag to rotate
+ * - Mobile: Tap planet/core to switch content (same as desktop click)
  * - Default: Techno-Cultural planet selected
  *
- * Risk Mitigations:
- * - Cut-off prevention: ResizeObserver + dynamic viewBox
- * - Squished prevention: min-h-[500px] + fixed grid spans
- * - Mobile UX: Text-first stacking for narrative flow
+ * Mobile Touch Optimizations:
+ * - Drag disabled on touch devices (prevents scroll conflict)
+ * - Scroll lock prevents accidental taps while scrolling
+ * - Enlarged tap targets for planet/core interaction
+ * - Persistent labels replace hover affordance
+ * - Instruction hint guides first-time users
  */
 export default function IdentityRevealSection() {
+    // Scroll detection to prevent accidental taps during scroll
+    const [isScrolling, setIsScrolling] = useState(false)
+    const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolling(true)
+
+            // Clear previous timeout
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current)
+            }
+
+            // Re-enable interactions 150ms after scroll stops
+            scrollTimeoutRef.current = setTimeout(() => {
+                setIsScrolling(false)
+            }, 150)
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current)
+            }
+        }
+    }, [])
+
     return (
         <section
             id="identity-reveal"
@@ -40,23 +72,25 @@ export default function IdentityRevealSection() {
 
             {/* Main Container */}
             <div className="container-custom relative z-10">
-                {/* 7:5 Grid Layout - Fluid gap */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-fluid-col-gap items-start">
+                {/* Same layout for all screen sizes - 7:5 split grid */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-fluid-col-gap items-start">
 
-                    {/* LEFT: Orbital Visual (7 cols) - shows second on mobile */}
+                    {/* LEFT: Orbital Visual (7 cols) - shows second on mobile (stacked) */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        className="xl:col-span-7 order-2 xl:order-1"
+                        className="md:col-span-7 order-2 md:order-1"
                     >
                         {/* Orbital Visual Container with Frame - Physics-tuned */}
                         <div
-                            className="relative min-h-[clamp(450px,60vh,650px)] rounded-2xl overflow-hidden"
+                            className="relative min-h-[clamp(380px,55vh,650px)] aspect-square md:aspect-auto rounded-2xl overflow-hidden"
                             style={{
                                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                                background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%)'
+                                background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%)',
+                                // Disable pointer events during scroll to prevent accidental taps
+                                pointerEvents: isScrolling ? 'none' : 'auto',
                             }}
                         >
                             {/* Grid Pattern Overlay */}
@@ -94,6 +128,20 @@ export default function IdentityRevealSection() {
 
                             {/* Orbital System */}
                             <OrbitalSystem />
+
+                            {/* Mobile Instruction Hint (fades out after 4s) - Only on touch devices */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: [0, 0.8, 0.8, 0] }}
+                                transition={{
+                                    duration: 5,
+                                    times: [0, 0.2, 0.7, 1],
+                                    delay: 1.5
+                                }}
+                                className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full border border-white/20 bg-black/50 backdrop-blur-sm text-xs text-white/90 text-center pointer-events-none md:hidden"
+                            >
+                                Tap any planet to explore
+                            </motion.div>
                         </div>
                     </motion.div>
 
@@ -103,7 +151,7 @@ export default function IdentityRevealSection() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                        className="xl:col-span-5 order-1 xl:order-2"
+                        className="md:col-span-5 order-1 md:order-2 overflow-x-hidden"
                     >
                         <DynamicContentPanel />
                     </motion.div>

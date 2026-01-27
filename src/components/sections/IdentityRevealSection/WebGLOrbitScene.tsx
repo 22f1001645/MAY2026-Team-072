@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Stars } from '@react-three/drei'
 import { useOrbitalStore } from '@/store/orbitalStore'
@@ -12,13 +12,31 @@ import OrbitTrails3D from './OrbitTrails3D'
 import ParticleField3D from './ParticleField3D'
 
 /**
+ * Mobile device detection (SSR-safe)
+ * Only returns true for ACTUAL mobile devices:
+ * - Primary input is touch (pointer: coarse)
+ * - AND screen width is small (< 1024px)
+ * This ensures touchscreen laptops keep desktop experience
+ */
+function isMobileDevice(): boolean {
+    if (typeof window === 'undefined') return false
+    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches
+    const isSmallScreen = window.innerWidth < 1024
+    return isCoarsePointer && isSmallScreen
+}
+
+/**
  * WebGLOrbitScene - The actual Three.js/R3F scene
- * 
+ *
  * Performance optimizations:
  * ✅ DPR clamped to [1, 2] - prevents 9x pixel rendering on high-DPI
  * ✅ resize={{ scroll: false, offsetSize: true }} - efficient resize
  * ✅ onCreated callback for smooth fade-in
  * ✅ powerPreference: 'high-performance'
+ *
+ * Mobile Touch Optimizations:
+ * ✅ Drag rotation disabled on touch devices (prevents scroll conflict)
+ * ✅ Auto-rotate stays enabled for ambient motion
  */
 
 interface WebGLOrbitSceneProps {
@@ -28,13 +46,30 @@ interface WebGLOrbitSceneProps {
 export default function WebGLOrbitScene({ onReady }: WebGLOrbitSceneProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
+    // Track mobile device for interaction changes only
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        setIsMobile(isMobileDevice())
+    }, [])
+
     const {
         planets,
         hoveredPlanetId,
         orbitScale,
         setHoveredPlanet,
         setActivePlanet,
+        setOrbitScale,
     } = useOrbitalStore()
+
+    // Scale down orbits on mobile so planets fit in narrow viewport
+    useEffect(() => {
+        if (isMobile) {
+            setOrbitScale(0.5) // Half size on mobile
+        } else {
+            setOrbitScale(1) // Full size on desktop
+        }
+    }, [isMobile, setOrbitScale])
 
     // Initialize animation and keyboard controls
     useOrbitalAnimation()
@@ -88,33 +123,43 @@ export default function WebGLOrbitScene({ onReady }: WebGLOrbitSceneProps) {
                 background: 'transparent',
                 width: '100%',
                 height: '100%',
-                cursor: 'grab',
+                // Show grab cursor only on desktop (indicates drag rotation)
+                cursor: isMobile ? 'default' : 'grab',
             }}
         >
-            {/* Camera */}
+            {/* Camera - top-down on mobile (see all orbits as circles), angled on desktop */}
             <PerspectiveCamera
                 makeDefault
-                position={[0, 5, 10]}
-                fov={50}
+                position={isMobile ? [0, 10, 0.01] : [0, 5, 10]}
+                fov={isMobile ? 55 : 50}
             />
 
-            {/* Orbit Controls - rotation only */}
+            {/* Orbit Controls - stationary top-down on mobile, interactive on desktop */}
             <OrbitControls
                 enableZoom={false}
                 enablePan={false}
-                autoRotate
+                enableRotate={!isMobile}  // Disable drag rotation on mobile
+                autoRotate={!isMobile}  // Stationary on mobile, auto-rotate on desktop
                 autoRotateSpeed={0.3}
-                minPolarAngle={Math.PI / 4}
-                maxPolarAngle={Math.PI / 2.2}
+                minPolarAngle={isMobile ? 0 : Math.PI / 4}
+                maxPolarAngle={isMobile ? 0.01 : Math.PI / 2.2}
                 dampingFactor={0.05}
                 enableDamping
             />
 
             {/* Lighting */}
-            <ambientLight intensity={0.4} />
+            <ambientLight intensity={isMobile ? 0.6 : 0.4} />
             <pointLight position={[0, 0, 0]} intensity={2} color="#5CE6C9" />
             <pointLight position={[10, 10, 10]} intensity={0.5} />
             <pointLight position={[-10, -10, -10]} intensity={0.3} />
+            {/* Top-down lighting for mobile - illuminates planets from camera angle */}
+            {isMobile && (
+                <directionalLight
+                    position={[0, 15, 0]}
+                    intensity={1.5}
+                    color="#ffffff"
+                />
+            )}
 
             {/* Stars background */}
             <Stars

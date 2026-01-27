@@ -72,7 +72,31 @@ function CoreContentView() {
 }
 
 /**
- * PlanetContentView - Planet content view when a planet is clicked
+ * PlanetContentView - Visible Content Design
+ *
+ * DESIGN RATIONALE:
+ * - Headline (visible): Emotional hook, helps users understand fest identity
+ * - Description (visible): Essential context explaining activities and purpose
+ * - Activities (visible): Concrete examples, key differentiator between fests
+ *
+ * CONTENT TYPE DIFFERENCE:
+ * - Core Panel: Abstract philosophies (Unity, Imagination, Glory)
+ *   → Accordion makes sense for progressive disclosure of abstract concepts
+ * - Planet Panels: Concrete events (Hackathon, Coding Battle, etc.)
+ *   → All content visible for immediate understanding and comparison
+ *
+ * VISUAL HIERARCHY:
+ * 1. Planet Name (colored, large) - Identity
+ * 2. Headline (gold italic) - Emotional hook
+ * 3. Description (mid-gray) - Essential context
+ * 4. Activities (colored pills) - Concrete examples
+ *
+ * UX PRINCIPLES APPLIED:
+ * - Information Discoverability: All critical info visible without interaction
+ * - No Interaction Barrier: Users understand without clicking
+ * - Comparison Support: All info visible simultaneously for fest comparison
+ * - Content Type Respect: Different content types get different treatments
+ * - Design System Consistency: Visual cohesion through typography, spacing, color, animation
  */
 interface PlanetContentViewProps {
     planet: {
@@ -108,13 +132,13 @@ function PlanetContentView({ planet }: PlanetContentViewProps) {
 
             {/* Main Heading - NOT dimmed */}
             <h2 className="font-serif text-[clamp(2.5rem,4vw,4.5rem)] leading-none text-white mb-[1.5vh]">
-                Three Pillars of{' '}
-                <span className="text-unity-gold italic">Experience.</span>
+                Three{' '}
+                <span className="text-unity-gold italic">Orbits.</span>
             </h2>
 
             {/* Instruction */}
-            <p className="text-fluid-body short:text-fluid-body-compact text-mid-gray mb-[3vh] max-w-md">
-                Click any orbit to explore the events that make EKATVA unforgettable.
+            <p className="text-fluid-body short:text-fluid-body-compact text-mid-gray mb-[2vh] max-w-md">
+                Three realms of experience. Click any orbit to discover.
             </p>
 
             {/* Divider */}
@@ -136,22 +160,22 @@ function PlanetContentView({ planet }: PlanetContentViewProps) {
                 {planet.name}
             </motion.h3>
 
-            {/* Headline */}
+            {/* Headline - Silver italic for supporting hierarchy */}
             <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2, ease: APPLE_EASE }}
-                className="text-base md:text-lg text-light-gray leading-relaxed mb-4"
+                className="text-[clamp(1.25rem,2vw,1.75rem)] font-serif italic text-white/60 leading-tight mb-[2vh]"
             >
                 {planet.content.headline}
             </motion.p>
 
-            {/* Description */}
+            {/* Description - Always visible for immediate understanding */}
             <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.25, ease: APPLE_EASE }}
-                className="text-sm md:text-base text-mid-gray leading-relaxed mb-6"
+                className="text-sm md:text-base text-mid-gray leading-relaxed mb-[3vh]"
             >
                 {planet.content.description}
             </motion.p>

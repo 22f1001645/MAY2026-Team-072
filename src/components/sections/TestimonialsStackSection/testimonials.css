@@ -8,17 +8,20 @@
     background: linear-gradient(180deg, #050505 0%, #0E2F36 50%, #050505 100%);
 }
 
-/* Desktop Layout */
+/* Desktop Layout - Award-Winning 3D Stack */
 .testimonials-desktop {
     position: relative;
     width: 100%;
     height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding-top: 120px;
-    /* Offset to clear the sticky navbar (approx 80px) */
+    padding-top: 200px;
     box-sizing: border-box;
+
+    /* 3D Perspective for depth effect (VengenceUI-inspired) */
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
 }
 
 /* Decorative Vertical Text */
@@ -35,7 +38,7 @@
 /* Section Header */
 .testimonials-header {
     position: absolute;
-    top: 3rem;
+    top: 5vh;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
@@ -45,15 +48,25 @@
     padding: 0 1rem;
 }
 
+@media (min-width: 768px) and (max-width: 1023px) {
+    .testimonials-desktop {
+        padding-top: 180px;
+    }
+}
+
 @media (min-width: 1024px) {
     .testimonials-header {
         left: 8rem;
         transform: none;
         text-align: left;
     }
+
+    .testimonials-desktop {
+        padding-top: 220px;
+    }
 }
 
-/* Card Stack Container */
+/* Card Stack Container - 3D Transform Context */
 .card-stack-container {
     position: relative;
     width: 90%;
@@ -62,6 +75,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    /* Enable 3D transforms for children */
+    transform-style: preserve-3d;
 }
 
 /* Individual Testimonial Card - Desktop */

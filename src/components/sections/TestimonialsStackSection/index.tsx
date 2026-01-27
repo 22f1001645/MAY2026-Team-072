@@ -32,20 +32,6 @@ const testimonials = [
         label: 'STUDENT LEADERSHIP'
     },
     {
-        name: 'Aditya S.',
-        role: 'Ex-Secretary, Cultural Society',
-        content: 'Partnering with Ekatva allowed our societies to move beyond leaderboard rankings. We finally stopped competing against each other and started building for each other.',
-        accent: '#1F4F59', // deep-teal
-        label: 'SOCIETY PARTNER'
-    },
-    {
-        name: 'Arnav Reddy',
-        role: 'Student Lead, Registrations',
-        content: 'Seeing registrations jump from 100 to 380 in a single week was proof that students were hungry for this \'Oneness\'. It\'s not just a fest; it\'s our identity beyond the screen.',
-        accent: '#5CE6C9', // ekatva-teal
-        label: 'COMMUNITY IMPACT'
-    },
-    {
         name: 'Ekatva Team',
         role: 'The Vision 2025',
         content: '9 Cities. 1 Mission. Limitless Experiences. Ekatva is a tradition in the making, and we are just getting started. Are you ready for the next edition?',
@@ -181,6 +167,9 @@ export default function TestimonialsStackSection() {
     useLayoutEffect(() => {
         if (isMobile || !triggerRef.current || !componentRef.current) return
 
+        // Accessibility: Check for reduced motion preference
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
         const ctx = gsap.context(() => {
             const cards = gsap.utils.toArray<HTMLElement>('.testimonial-card')
 
@@ -188,50 +177,85 @@ export default function TestimonialsStackSection() {
                 scrollTrigger: {
                     trigger: triggerRef.current,
                     start: 'top top',
-                    end: `+=${cards.length * 150}%`, // Increased from 120% for smoother stacking
+                    // Reduced from 600% to 400% to eliminate blank scroll after last card
+                    end: `+=${cards.length * 100}%`,
                     pin: true,
-                    scrub: 1.5, // Slightly slower for smoother feel
+                    // Smoother scrub with physics damping
+                    scrub: 2,
                     anticipatePin: 1,
-                    pinSpacing: true, // Ensures proper spacing after pinned section
+                    pinSpacing: true,
+                    // Snap to card positions for premium magnetic feel
+                    snap: {
+                        snapTo: 1 / (cards.length - 1),
+                        duration: { min: 0.2, max: 0.5 },
+                        ease: 'power2.inOut',
+                        inertia: true
+                    }
                 }
             })
 
             cards.forEach((card, i) => {
                 if (i === 0) {
-                    gsap.set(card, { zIndex: 10 })
+                    // First card: Already visible, set in front
+                    gsap.set(card, {
+                        zIndex: 10,
+                        x: 0,
+                        z: 0,
+                        scale: 1,
+                        opacity: 1,
+                        rotate: 0,
+                        rotateX: 0
+                    })
                     return
                 }
 
-                // Card Entry Animation
+                // ═══════════════════════════════════════════════════════════
+                // AWARD-WINNING HYBRID ANIMATION
+                // Horizontal X-axis + 3D Z-depth + VengenceUI elastic easing
+                // ═══════════════════════════════════════════════════════════
+
+                // Card Entry Animation - Multi-Stage Keyframes (Overshoot + Settle)
                 tl.fromTo(
                     card,
                     {
-                        y: '110vh',
-                        rotate: i % 2 === 0 ? 6 : -6,
-                        scale: 0.85,
-                        opacity: 0
+                        // Starting position: Off-screen right, receded in Z-space
+                        x: '110vw',                          // ✓ Horizontal entry (user plan)
+                        z: -400,                             // ✓ 3D depth (current optimization)
+                        scale: 0.8,                          // Small
+                        opacity: 0,                          // Invisible
+                        rotate: i % 2 === 0 ? 3 : -3,        // ✓ Subtle rotation for horizontal
+                        rotateX: 5                           // Slight tilt
                     },
                     {
-                        y: '0vh',
-                        rotate: 0,
-                        scale: 1,
+                        // Target: Center with overshoot pattern
+                        keyframes: {
+                            // Stage 1 → 2 → 3 (VengenceUI technique)
+                            "0%": { x: '110vw', z: -400, scale: 0.8 },
+                            "60%": { x: '-5vw', z: 100, scale: 1.05 },   // OVERSHOOT: Past center, pop forward
+                            "100%": { x: '0vw', z: 0, scale: 1 }          // SETTLE: Perfect center
+                        },
                         opacity: 1,
-                        duration: 1.5,
-                        ease: 'power3.out',
+                        rotate: 0,
+                        rotateX: 0,
+                        duration: 0.6,                       // ✓ Snappy (VengenceUI timing)
+                        ease: 'elastic.out(1, 0.5)',         // ✓ Elastic bounce-back
                         zIndex: 10 + i
                     },
                     i * 0.8
                 )
 
-                // Previous Card Exit Animation
+                // Previous Card Exit Animation - Slide left with depth recession
                 tl.to(
                     cards[i - 1],
                     {
-                        scale: 0.85,
-                        opacity: 0.25,
-                        filter: 'blur(8px)',
-                        y: '-8vh',
-                        duration: 1.2,
+                        // Exit: Slide left, recede in Z-space, blur
+                        x: '-15vw',                          // ✓ Horizontal exit (user plan)
+                        z: -200,                             // Recede into background
+                        scale: 0.85,                         // Shrink
+                        opacity: 0.2,                        // Fade significantly
+                        filter: 'blur(10px)',                // Depth of field effect
+                        rotate: -2,                          // Slight counter-rotation
+                        duration: 0.5,                       // ✓ Fast exit
                         ease: 'power2.inOut'
                     },
                     i * 0.8

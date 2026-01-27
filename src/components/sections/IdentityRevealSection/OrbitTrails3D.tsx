@@ -7,11 +7,9 @@ import { PlanetState } from '@/store/orbitalStore'
 
 /**
  * OrbitTrails3D - 3D orbit ellipse paths (Dampened Intensity)
- * 
+ *
  * Uses THREE.EllipseCurve to create smooth orbital paths.
  * Normalizes pixel values from planet.orbital.radius to 3D scene units (100px = 1 unit).
- * 
- * Update: Reduced opacity to match the subtle "breathing" aesthetic of the 2D fallback.
  */
 interface OrbitTrails3DProps {
     planets: PlanetState[]

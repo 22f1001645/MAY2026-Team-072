@@ -1,0 +1,70 @@
+/* JoinCTASection - Minimal CTA Teaser Styles */
+
+.join-cta-section {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #050505 0%, #0E2F36 50%, #050505 100%);
+}
+
+/* Trust Signals Bar - Compact version */
+.trust-signals-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.trust-divider {
+    width: 1px;
+    height: 24px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .join-cta-section {
+        min-height: 70vh;
+        padding: 3rem 0;
+    }
+
+    .trust-signals-bar {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    .trust-divider {
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    }
+}
+
+/* Animation utilities */
+@keyframes subtle-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(92, 230, 201, 0.15);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(92, 230, 201, 0.25);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .join-cta-section * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

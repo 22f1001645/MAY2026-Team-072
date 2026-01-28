@@ -367,14 +367,12 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                 </div>
 
                 {/* CTA Button */}
-                <a
-                    href="https://www.instagram.com/ekatva_iitm/"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <Link
+                    href="/join-us"
                     className="hidden md:inline-flex px-6 py-2.5 bg-ekatva-teal rounded-full text-oneness-black font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_30px_rgba(92,230,201,0.5)] transition-all"
                 >
-                    Follow Us
-                </a>
+                    Join Us
+                </Link>
 
                 {/* Mobile Menu Toggle */}
                 <button

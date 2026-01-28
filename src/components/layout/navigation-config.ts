@@ -54,7 +54,7 @@ export const SECONDARY_NAV: Record<string, SectionLink[]> = {
         { label: 'What is EKATVA', target: '#identity-reveal' },
         { label: 'Our Vision', target: '#ripple' },
         { label: 'Testimonials', target: '#testimonials' },
-        { label: 'Join Us', target: '#build-with-us' },
+        { label: 'Join Us', target: '#join-the-movement' },
     ],
     '/about': [
         { label: 'Intro', target: '#hero' },

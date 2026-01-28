@@ -128,8 +128,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                                             <button
                                                 onClick={() => setEditionsExpanded(!editionsExpanded)}
                                                 className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-colors ${isActive
-                                                        ? 'bg-ekatva-teal/10 text-ekatva-teal'
-                                                        : 'text-white/80 hover:bg-white/5'
+                                                    ? 'bg-ekatva-teal/10 text-ekatva-teal'
+                                                    : 'text-white/80 hover:bg-white/5'
                                                     }`}
                                             >
                                                 <span className="flex items-center gap-3">
@@ -161,8 +161,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                                                                 >
                                                                     <span>{edition.name}</span>
                                                                     <span className={`text-xs px-2 py-0.5 rounded-full ${edition.status === 'completed'
-                                                                            ? 'bg-ekatva-teal/20 text-ekatva-teal'
-                                                                            : 'bg-white/10 text-white/40'
+                                                                        ? 'bg-ekatva-teal/20 text-ekatva-teal'
+                                                                        : 'bg-white/10 text-white/40'
                                                                         }`}>
                                                                         {edition.status === 'completed' ? '✓' : edition.date}
                                                                     </span>
@@ -192,8 +192,8 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                                                     }
                                                 }}
                                                 className={`flex-1 flex items-center gap-3 px-4 py-4 rounded-xl transition-colors ${isActive
-                                                        ? 'bg-ekatva-teal/10 text-ekatva-teal'
-                                                        : 'text-white/80 hover:bg-white/5'
+                                                    ? 'bg-ekatva-teal/10 text-ekatva-teal'
+                                                    : 'text-white/80 hover:bg-white/5'
                                                     }`}
                                             >
                                                 <span className="text-lg">{item.icon}</span>
@@ -248,15 +248,13 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
                         {/* CTA Button */}
                         <div className="p-6 pt-0">
-                            <a
-                                href="https://www.instagram.com/ekatva_iitm/"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <Link
+                                href="/join-us"
                                 onClick={onClose}
                                 className="block w-full px-6 py-4 bg-ekatva-teal rounded-xl text-oneness-black font-bold text-center uppercase tracking-wider hover:shadow-[0_0_30px_rgba(92,230,201,0.4)] transition-all"
                             >
-                                Follow Us
-                            </a>
+                                Join Us
+                            </Link>
                         </div>
                     </motion.div>
                 </>

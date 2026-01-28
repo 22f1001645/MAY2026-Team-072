@@ -1,4 +1,4 @@
-import { HeroSection, OriginStorySection, IdentityRevealSection, RippleSection, TestimonialsStackSection, BuildWithUsSection } from '@/components/sections'
+import { HeroSection, OriginStorySection, IdentityRevealSection, RippleSection, TestimonialsStackSection, JoinCTASection } from '@/components/sections'
 
 export default function Home() {
   return (
@@ -18,8 +18,8 @@ export default function Home() {
       {/* Section 5: Community Voices - Social Proof */}
       <TestimonialsStackSection />
 
-      {/* Section 6: Build With Us - Conversion */}
-      <BuildWithUsSection />
+      {/* Section 6: Join CTA - Minimal Teaser (full cards at /join-us) */}
+      <JoinCTASection />
     </main>
   )
 }

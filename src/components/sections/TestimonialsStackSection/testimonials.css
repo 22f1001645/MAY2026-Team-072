@@ -8,18 +8,21 @@
     background: linear-gradient(180deg, #050505 0%, #0E2F36 50%, #050505 100%);
 }
 
-/* Desktop Layout - Award-Winning 3D Stack */
+/* Desktop Layout - Flowfest-Inspired Vertical Stack */
 .testimonials-desktop {
     position: relative;
     width: 100%;
     height: 100vh;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    /* Center cards vertically */
     justify-content: center;
-    padding-top: 200px;
+    padding-top: 20vh;
+    /* Visual hierarchy: title breathing room */
+    padding-bottom: 5vh;
     box-sizing: border-box;
 
-    /* 3D Perspective for depth effect (VengenceUI-inspired) */
+    /* 3D Perspective for depth effect */
     perspective: 1400px;
     perspective-origin: 50% 50%;
 }
@@ -38,7 +41,7 @@
 /* Section Header */
 .testimonials-header {
     position: absolute;
-    top: 5vh;
+    top: 8vh;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
@@ -70,8 +73,11 @@
 .card-stack-container {
     position: relative;
     width: 90%;
-    max-width: 750px;
-    height: 520px;
+    max-width: 480px;
+    /* Compact - Flowfest parity */
+    height: clamp(240px, 32vh, 320px);
+    /* Fully viewable in viewport */
+    max-height: calc(100vh - 35vh);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -91,44 +97,42 @@
     justify-content: space-between;
     border-radius: 2rem;
 
-    /* Glassmorphism - aligned with .ripple-glass-card */
-    background: rgba(14, 47, 54, 0.55);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    /* 100% SOLID Background - Flowfest-parity, zero bleed-through */
+    background: #0E2F36;
     border: 1px solid rgba(92, 230, 201, 0.15);
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        0 50px 100px -20px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 40px 80px -20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
     /* GPU Optimization */
     will-change: transform, opacity, filter;
     backface-visibility: hidden;
     transform-style: preserve-3d;
 
-    /* Inner glow effect */
-    background-image: radial-gradient(circle at top right,
-            rgba(92, 230, 201, 0.08),
-            transparent 50%);
+    /* Subtle accent glow at top edge */
+    border-top: 1px solid rgba(92, 230, 201, 0.2);
 }
 
 @media (min-width: 768px) {
     .card-stack-container {
-        height: 480px;
+        height: 360px;
+        /* Compact - fully visible */
     }
 
     .testimonial-card {
-        padding: 2.5rem 3rem;
+        padding: 2rem 2.5rem;
     }
 }
 
 @media (min-width: 1024px) {
     .card-stack-container {
-        height: 520px;
+        height: 380px;
+        /* Slightly taller on desktop */
     }
 
     .testimonial-card {
-        padding: 3rem 3.5rem;
+        padding: 2.25rem 2.75rem;
     }
 }
 

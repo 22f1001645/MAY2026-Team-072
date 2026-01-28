@@ -63,25 +63,25 @@ function TestimonialCard({ name, role, content, accent, label, index }: Testimon
             <div className="flex justify-between items-start">
                 <div className="space-y-1">
                     <p
-                        className="text-[10px] font-black tracking-[0.3em] uppercase"
+                        className="text-[9px] font-black tracking-[0.2em] uppercase"
                         style={{ color: accent }}
                     >
                         {label}
                     </p>
-                    <div className="w-8 h-1 bg-white/10" />
+                    <div className="w-6 h-[2px] bg-white/10" />
                 </div>
-                <div className="text-5xl opacity-20 font-serif">&ldquo;</div>
+                <div className="text-4xl opacity-15 font-serif">&ldquo;</div>
             </div>
 
-            {/* Quote Content */}
-            <blockquote className="text-xl md:text-2xl lg:text-3xl text-gray-100 font-medium leading-[1.3] tracking-tight italic">
+            {/* Quote Content - Flowfest-sized (17px base) */}
+            <blockquote className="text-base md:text-lg text-gray-100 font-medium leading-relaxed tracking-tight italic">
                 &ldquo;{content}&rdquo;
             </blockquote>
 
-            {/* Attribution */}
-            <div className="flex items-center gap-5 pt-8 border-t border-white/5">
+            {/* Attribution - Compact */}
+            <div className="flex items-center gap-4 pt-6 border-t border-white/5">
                 <div
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center font-bold text-xl shadow-lg transform -rotate-3"
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg transform -rotate-3"
                     style={{
                         backgroundColor: accent,
                         color: isLightAccent ? '#050505' : '#FFFFFF'
@@ -90,10 +90,10 @@ function TestimonialCard({ name, role, content, accent, label, index }: Testimon
                     {name.charAt(0)}
                 </div>
                 <div>
-                    <h4 className="text-white font-extrabold text-lg md:text-xl lg:text-2xl tracking-tight">
+                    <h4 className="text-white font-bold text-base md:text-lg tracking-tight">
                         {name}
                     </h4>
-                    <p className="text-gray-400 text-sm md:text-base font-medium opacity-80 uppercase tracking-wider">
+                    <p className="text-gray-400 text-xs md:text-sm font-medium opacity-80 uppercase tracking-wider">
                         {role}
                     </p>
                 </div>
@@ -172,94 +172,95 @@ export default function TestimonialsStackSection() {
 
         const ctx = gsap.context(() => {
             const cards = gsap.utils.toArray<HTMLElement>('.testimonial-card')
+            const desktopContainer = document.querySelector('.testimonials-desktop') as HTMLElement
 
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: triggerRef.current,
                     start: 'top top',
-                    // Reduced from 600% to 400% to eliminate blank scroll after last card
-                    end: `+=${cards.length * 100}%`,
+                    // Optimized scroll distance for smooth transitions
+                    end: `+=${cards.length * 80}%`,
                     pin: true,
-                    // Smoother scrub with physics damping
-                    scrub: 2,
+                    // Flowfest-style tight scrub for responsive feel
+                    scrub: prefersReducedMotion ? 0 : 0.8,
                     anticipatePin: 1,
                     pinSpacing: true,
-                    // Snap to card positions for premium magnetic feel
-                    snap: {
-                        snapTo: 1 / (cards.length - 1),
-                        duration: { min: 0.2, max: 0.5 },
-                        ease: 'power2.inOut',
-                        inertia: true
-                    }
+                    // Flowfest-style: Simple natural unpin, no custom animation
+                    // The section just scrolls away naturally after last card stacks
                 }
             })
 
+            // ═══════════════════════════════════════════════════════════════
+            // FLOWFEST-INSPIRED VERTICAL STACK ANIMATION
+            // Natural scroll physics + 3D depth + "deck of cards" feel
+            // ═══════════════════════════════════════════════════════════════
+
             cards.forEach((card, i) => {
+                // Random subtle rotation for "deck of cards" feel (Flowfest technique)
+                const cardRotation = (i % 2 === 0 ? 1 : -1) * (1 + Math.random() * 2)
+
                 if (i === 0) {
-                    // First card: Already visible, set in front
+                    // First card: Already visible, slight rotation
                     gsap.set(card, {
-                        zIndex: 10,
-                        x: 0,
+                        zIndex: cards.length + 10,
+                        y: 0,
                         z: 0,
                         scale: 1,
                         opacity: 1,
-                        rotate: 0,
-                        rotateX: 0
+                        rotate: cardRotation * 0.5,
+                        filter: 'blur(0px)'
                     })
-                    return
-                }
+                } else {
+                    // CRITICAL: Hide all upcoming cards until their turn
+                    // This prevents text bleed-through from cards not yet in the stack
+                    gsap.set(card, {
+                        opacity: 0,
+                        y: '80vh',
+                        z: -150,
+                        scale: 0.92,
+                        zIndex: i
+                    })
 
-                // ═══════════════════════════════════════════════════════════
-                // AWARD-WINNING HYBRID ANIMATION
-                // Horizontal X-axis + 3D Z-depth + VengenceUI elastic easing
-                // ═══════════════════════════════════════════════════════════
-
-                // Card Entry Animation - Multi-Stage Keyframes (Overshoot + Settle)
-                tl.fromTo(
-                    card,
-                    {
-                        // Starting position: Off-screen right, receded in Z-space
-                        x: '110vw',                          // ✓ Horizontal entry (user plan)
-                        z: -400,                             // ✓ 3D depth (current optimization)
-                        scale: 0.8,                          // Small
-                        opacity: 0,                          // Invisible
-                        rotate: i % 2 === 0 ? 3 : -3,        // ✓ Subtle rotation for horizontal
-                        rotateX: 5                           // Slight tilt
-                    },
-                    {
-                        // Target: Center with overshoot pattern
-                        keyframes: {
-                            // Stage 1 → 2 → 3 (VengenceUI technique)
-                            "0%": { x: '110vw', z: -400, scale: 0.8 },
-                            "60%": { x: '-5vw', z: 100, scale: 1.05 },   // OVERSHOOT: Past center, pop forward
-                            "100%": { x: '0vw', z: 0, scale: 1 }          // SETTLE: Perfect center
+                    // Card Entry Animation - Vertical from bottom
+                    tl.fromTo(
+                        card,
+                        {
+                            // Starting: Below viewport, receded in Z-space
+                            y: '80vh',
+                            z: -150,
+                            scale: 0.92,
+                            opacity: 0,
+                            rotate: cardRotation
                         },
-                        opacity: 1,
-                        rotate: 0,
-                        rotateX: 0,
-                        duration: 0.6,                       // ✓ Snappy (VengenceUI timing)
-                        ease: 'elastic.out(1, 0.5)',         // ✓ Elastic bounce-back
-                        zIndex: 10 + i
-                    },
-                    i * 0.8
-                )
+                        {
+                            // Target: Stack on top with slight rotation
+                            y: 0,
+                            z: 0,
+                            scale: 1,
+                            opacity: 1,
+                            rotate: cardRotation * 0.5,
+                            duration: 1,
+                            ease: prefersReducedMotion ? 'none' : 'power2.out',
+                            zIndex: cards.length + 10 + i
+                        },
+                        i * 0.7
+                    )
 
-                // Previous Card Exit Animation - Slide left with depth recession
-                tl.to(
-                    cards[i - 1],
-                    {
-                        // Exit: Slide left, recede in Z-space, blur
-                        x: '-15vw',                          // ✓ Horizontal exit (user plan)
-                        z: -200,                             // Recede into background
-                        scale: 0.85,                         // Shrink
-                        opacity: 0.2,                        // Fade significantly
-                        filter: 'blur(10px)',                // Depth of field effect
-                        rotate: -2,                          // Slight counter-rotation
-                        duration: 0.5,                       // ✓ Fast exit
-                        ease: 'power2.inOut'
-                    },
-                    i * 0.8
-                )
+                    // Previous Card: HIDE content, show only shadow edges (Design Principal fix)
+                    tl.to(
+                        cards[i - 1],
+                        {
+                            y: '-10vh',           // Push further up
+                            z: -100 * i,          // Deeper recession
+                            scale: 0.85,          // More shrink
+                            opacity: 0.12,        // Nearly invisible (edges only)
+                            filter: 'blur(6px)',  // Heavy blur hides text
+                            duration: 0.8,
+                            ease: 'power2.inOut'
+                        },
+                        i * 0.7
+                    )
+                }
             })
         }, componentRef)
 

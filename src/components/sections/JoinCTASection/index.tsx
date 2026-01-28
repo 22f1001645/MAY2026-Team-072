@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Shield, Users, Globe } from 'lucide-react'
-import AnimatedShineButton from '@/components/ui/AnimatedShineButton'
+import PremiumCTAButton from '@/components/ui/PremiumCTAButton'
 import './joinCTA.css'
 
 /**
@@ -68,7 +68,7 @@ export default function JoinCTASection() {
                         unite IITM BS students across India.
                     </motion.p>
 
-                    {/* CTA Button */}
+                    {/* CTA Button - Award-Winning Premium Button */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -76,9 +76,9 @@ export default function JoinCTASection() {
                         transition={{ duration: 0.6, delay: 0.35 }}
                         className="mb-12"
                     >
-                        <AnimatedShineButton href="/join-us">
+                        <PremiumCTAButton href="/join-us">
                             Explore Your Path
-                        </AnimatedShineButton>
+                        </PremiumCTAButton>
                     </motion.div>
 
                     {/* Trust Signals */}

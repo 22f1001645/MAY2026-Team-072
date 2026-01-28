@@ -99,7 +99,7 @@
 
     /* 100% SOLID Background - Flowfest-parity, zero bleed-through */
     background: #0E2F36;
-    border: 1px solid rgba(92, 230, 201, 0.15);
+    border: 1.5px solid rgba(92, 230, 201, 0.18);
     box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.6),
         0 40px 80px -20px rgba(0, 0, 0, 0.4),
@@ -111,7 +111,38 @@
     transform-style: preserve-3d;
 
     /* Subtle accent glow at top edge */
-    border-top: 1px solid rgba(92, 230, 201, 0.2);
+    border-top: 1.5px solid rgba(92, 230, 201, 0.22);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STACKED EDGE EFFECT - "Cherry on the Cake" (Flowfest-inspired)
+   Creates visual depth with ghost layers behind each card
+   ═══════════════════════════════════════════════════════════════ */
+
+/* First ghost layer - closest to card */
+.testimonial-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.5px solid rgba(92, 230, 201, 0.12);
+    background: transparent;
+    z-index: -1;
+    transform: translate(-3px, -3px) rotate(-0.8deg);
+    pointer-events: none;
+}
+
+/* Second ghost layer - deeper */
+.testimonial-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.5px solid rgba(92, 230, 201, 0.08);
+    background: transparent;
+    z-index: -2;
+    transform: translate(-6px, -6px) rotate(-1.5deg);
+    pointer-events: none;
 }
 
 @media (min-width: 768px) {

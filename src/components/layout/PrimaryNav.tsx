@@ -332,12 +332,28 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="relative px-4 py-2 text-sm uppercase tracking-wider font-medium transition-colors rounded-lg hover:bg-white/5"
+                                className="relative px-4 py-2 text-sm uppercase tracking-wider font-medium transition-colors rounded-lg group hover:bg-ekatva-teal/5"
                                 style={{
                                     color: isActive ? '#5CE6C9' : 'rgba(255, 255, 255, 0.7)'
                                 }}
                             >
-                                {item.label}
+                                <span className="relative z-10 group-hover:text-ekatva-teal transition-colors">
+                                    {item.label}
+                                </span>
+
+                                {/* Spotlight / Underline Effect */}
+                                <motion.div
+                                    className="absolute -bottom-0.5 left-1/2 h-0.5 rounded-full bg-gradient-to-r from-transparent via-ekatva-teal to-transparent"
+                                    initial={{ width: 0, x: '-50%' }}
+                                    animate={{
+                                        width: '0%',
+                                        opacity: 0,
+                                    }}
+                                    whileHover={{ width: '80%', opacity: 0.7 }}
+                                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                                    style={{ transformOrigin: 'center' }}
+                                />
+
                                 {isActive && (
                                     <motion.div
                                         layoutId="activePage"

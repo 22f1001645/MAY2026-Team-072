@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import Image from 'next/image'
-import { ChevronDown } from 'lucide-react'
 import { scaleIn, fadeIn } from '@/lib/animations'
 
 /**
@@ -64,12 +63,7 @@ export default function HeroSection() {
         }
     }, [isMobile])
 
-    const handleScrollToNext = () => {
-        window.scrollTo({
-            top: window.innerHeight,
-            behavior: 'smooth'
-        })
-    }
+    // Scroll CTA removed - "Discover EKATVA" button handles navigation
 
     return (
         <section
@@ -103,7 +97,7 @@ export default function HeroSection() {
                         playsInline
                         className="absolute inset-0 w-full h-full object-cover animate-video-zoom"
                         style={{
-                            filter: 'brightness(1.1) contrast(1.05) saturate(1.1)'
+                            filter: 'brightness(0.85) contrast(1.05) saturate(0.9)'
                         }}
                         poster="https://res.cloudinary.com/davgdsnyd/video/upload/so_0,f_jpg,q_auto:best/v1767244223/Last_Part_Edit_-_Highlights_720p_qcarfn.jpg"
                     >
@@ -126,23 +120,23 @@ export default function HeroSection() {
 
                 {/* 3-LAYER OVERLAY SYSTEM FOR TEXT READABILITY */}
                 <div className="absolute inset-0 z-10">
-                    {/* Layer 1: Base darkening (30% opacity - lightened) */}
+                    {/* Layer 1: Base darkening (45% opacity - cinematic) */}
                     <div
                         className="absolute inset-0"
                         style={{
-                            background: 'rgba(5, 5, 5, 0.3)'
+                            background: 'rgba(5, 5, 5, 0.45)'
                         }}
                     />
 
-                    {/* Layer 2: Radial gradient spotlight (20-75% opacity - lightened) */}
+                    {/* Layer 2: Neutral radial gradient (no teal tint) */}
                     <div
                         className="absolute inset-0"
                         style={{
                             background: `radial-gradient(
-                                ellipse 60% 60% at 50% 45%,
-                                rgba(31, 79, 89, 0.2) 0%,
-                                rgba(14, 47, 54, 0.5) 40%,
-                                rgba(5, 5, 5, 0.75) 100%
+                                ellipse 70% 55% at 50% 42%,
+                                rgba(0, 0, 0, 0.15) 0%,
+                                rgba(5, 5, 5, 0.45) 50%,
+                                rgba(5, 5, 5, 0.8) 100%
                             )`
                         }}
                     />
@@ -168,27 +162,27 @@ export default function HeroSection() {
                 className="relative z-20 text-center px-fluid-xs max-w-6xl mx-auto"
                 style={{ opacity: contentOpacity, y: contentY }}
             >
-                {/* Pre-headline Badge */}
+                {/* Pre-headline Badge - Whispered Authority */}
                 <motion.div
                     variants={fadeIn}
                     initial="initial"
                     animate="animate"
-                    className="inline-block mb-fluid-sm px-fluid-sm py-fluid-xs rounded-full border border-ekatva-teal/40 bg-ekatva-teal/15 backdrop-blur-md"
+                    className="inline-block mb-4 md:mb-6 px-4 py-1.5 rounded-full border border-ekatva-teal/25 bg-ekatva-teal/8 backdrop-blur-md"
                 >
-                    <span className="text-fluid-caption text-ekatva-teal tracking-[0.25em] uppercase font-bold">
+                    <span className="text-[0.7rem] md:text-[0.75rem] text-ekatva-teal/80 tracking-[0.18em] uppercase font-medium">
                         India&apos;s First Regional Fest Movement
                     </span>
                 </motion.div>
 
-                {/* ULTRA-MASSIVE Headline - Award-Winning Scale */}
+                {/* ULTRA-MASSIVE Headline - Award-Winning Typography */}
                 <motion.h1
                     variants={scaleIn}
                     initial="initial"
                     animate="animate"
-                    className="font-serif text-fluid-h1 text-white leading-[1.1] mb-fluid-md"
+                    className="font-serif text-fluid-h1 text-white leading-[1.2] tracking-tight mb-6 md:mb-8"
                 >
                     <motion.span
-                        className="block"
+                        className="block font-normal"
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.9, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
@@ -196,12 +190,12 @@ export default function HeroSection() {
                         From Online
                     </motion.span>
                     <motion.span
-                        className="block text-unity-gold italic"
+                        className="block text-unity-gold italic font-bold"
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.9, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
                         style={{
-                            textShadow: '0 0 80px rgba(255, 207, 150, 0.6), 0 0 120px rgba(255, 207, 150, 0.4)'
+                            textShadow: '0 0 40px rgba(255, 207, 150, 0.45), 0 0 60px rgba(255, 207, 150, 0.2)'
                         }}
                     >
                         to Oneness.
@@ -213,9 +207,9 @@ export default function HeroSection() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
-                    className="text-white text-fluid-body max-w-4xl mx-auto mb-fluid-lg font-light leading-relaxed"
+                    className="text-white/95 text-fluid-body max-w-3xl mx-auto mb-8 md:mb-10 font-normal leading-relaxed"
                     style={{
-                        textShadow: '0 2px 20px rgba(0, 0, 0, 0.8)'
+                        textShadow: '0 2px 24px rgba(0, 0, 0, 0.9)'
                     }}
                 >
                     Uniting{' '}
@@ -233,50 +227,35 @@ export default function HeroSection() {
                     transition={{ duration: 0.8, delay: 0.8, ease: 'easeOut' }}
                     className="flex flex-col sm:flex-row gap-fluid-sm justify-center items-center"
                 >
-                    {/* Primary CTA - Bigger with stronger glow */}
+                    {/* Primary CTA - Refined elegance */}
                     <a
                         href="#origin-story"
-                        className="group relative px-fluid-md py-fluid-sm bg-ekatva-teal rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(92,230,201,0.7)]"
+                        className="group relative px-6 md:px-8 py-3 md:py-3.5 bg-ekatva-teal rounded-full overflow-hidden transition-all hover:scale-[1.03] hover:shadow-[0_0_40px_rgba(92,230,201,0.5)]"
                         style={{
-                            boxShadow: '0 0 40px rgba(92, 230, 201, 0.5)'
+                            boxShadow: '0 0 25px rgba(92, 230, 201, 0.35)'
                         }}
                     >
                         {/* Shimmer effect */}
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out -translate-x-full" />
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out -translate-x-full" />
 
-                        <span className="relative text-oneness-black font-bold tracking-widest uppercase text-fluid-caption">
+                        <span className="relative text-oneness-black font-semibold tracking-wider uppercase text-[0.8rem]">
                             Discover EKATVA
                         </span>
                     </a>
 
-                    {/* Secondary CTA - Join Movement */}
+                    {/* Secondary CTA - Properly receded */}
                     <a
                         href="https://www.instagram.com/ekatva_iitm/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-fluid-md py-fluid-sm rounded-full border-2 border-white/40 text-white hover:bg-white/15 hover:border-white/60 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all text-fluid-caption font-bold tracking-widest uppercase backdrop-blur-sm"
+                        className="px-6 md:px-8 py-3 md:py-3.5 rounded-full border border-white/30 text-white/90 hover:bg-white/10 hover:border-white/50 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all text-[0.8rem] font-semibold tracking-wider uppercase backdrop-blur-sm"
                     >
                         Join The Movement
                     </a>
                 </motion.div>
             </motion.div>
 
-            {/* Scroll Indicator - Slightly larger */}
-            <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                transition={{ duration: 1, delay: 1.5 }}
-                onClick={handleScrollToNext}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 p-4 rounded-full border border-white/20 hover:border-ekatva-teal/40 hover:opacity-100 transition-all duration-300 focus:outline-none backdrop-blur-sm"
-                aria-label="Scroll to explore EKATVA story"
-            >
-                <motion.div
-                    animate={{ y: [0, 8, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                    <ChevronDown className="w-6 h-6 text-white/70" />
-                </motion.div>
-            </motion.button>
+            {/* Scroll indicator removed - "Discover EKATVA" serves as the scroll CTA */}
         </section>
     )
 }

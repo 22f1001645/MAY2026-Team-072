@@ -162,70 +162,87 @@ export default function HeroSection() {
                 className="relative z-20 text-center px-fluid-xs max-w-6xl mx-auto"
                 style={{ opacity: contentOpacity, y: contentY }}
             >
-                {/* Pre-headline Badge - Whispered Authority */}
+                {/* Pre-headline Badge - Breathing Aura Animation */}
                 <motion.div
                     variants={fadeIn}
                     initial="initial"
                     animate="animate"
-                    className="inline-block mb-4 md:mb-6 px-4 py-1.5 rounded-full border border-ekatva-teal/25 bg-ekatva-teal/8 backdrop-blur-md"
+                    className="inline-block mb-8 md:mb-10 px-4 py-1.5 rounded-full border border-ekatva-teal/25 bg-ekatva-teal/8 backdrop-blur-md"
+                    style={{
+                        animation: 'badge-breathe 5s ease-in-out infinite',
+                    }}
                 >
                     <span className="text-[0.7rem] md:text-[0.75rem] text-ekatva-teal/80 tracking-[0.18em] uppercase font-medium">
                         India&apos;s First Regional Fest Movement
                     </span>
                 </motion.div>
 
-                {/* ULTRA-MASSIVE Headline - Award-Winning Typography */}
+                {/* ULTRA-MASSIVE Headline - Elite Typography with Weight Contrast */}
                 <motion.h1
                     variants={scaleIn}
                     initial="initial"
                     animate="animate"
-                    className="font-serif text-fluid-h1 text-white leading-[1.2] tracking-tight mb-6 md:mb-8"
+                    className="font-serif text-fluid-h1 text-white leading-[1.2] mb-10 md:mb-14"
+                    style={{
+                        WebkitFontSmoothing: 'antialiased',
+                        textRendering: 'optimizeLegibility',
+                    }}
                 >
                     <motion.span
-                        className="block font-normal"
+                        className="block font-medium text-white/95 tracking-normal"
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.9, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                        transition={{ duration: 0.9, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
                     >
                         From Online
                     </motion.span>
                     <motion.span
-                        className="block text-unity-gold italic font-bold"
+                        className="block text-unity-gold italic font-extrabold tracking-tight"
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.9, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                        transition={{ duration: 0.9, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
                         style={{
-                            textShadow: '0 0 40px rgba(255, 207, 150, 0.45), 0 0 60px rgba(255, 207, 150, 0.2)'
+                            textShadow: '0 0 30px rgba(255, 207, 150, 0.5), 0 0 60px rgba(255, 176, 96, 0.25), 0 0 90px rgba(255, 150, 70, 0.1)'
                         }}
                     >
                         to Oneness.
                     </motion.span>
                 </motion.h1>
 
-                {/* Subtitle - Forward-Looking & Movement-Focused */}
+                {/* Subtitle - Muted Information Layer (Hierarchy Fix) */}
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
-                    className="text-white/95 text-fluid-body max-w-3xl mx-auto mb-8 md:mb-10 font-normal leading-relaxed"
+                    transition={{ duration: 0.8, delay: 0.9, ease: 'easeOut' }}
+                    className="text-white/85 text-[0.95rem] md:text-fluid-body max-w-2xl lg:max-w-3xl mx-auto mb-8 md:mb-10 font-normal leading-relaxed"
                     style={{
                         textShadow: '0 2px 24px rgba(0, 0, 0, 0.9)'
                     }}
                 >
                     Uniting{' '}
-                    <span className="text-ekatva-teal font-semibold">34,000+ IITM BS students</span>{' '}
+                    <span
+                        className="text-ekatva-teal/70 font-normal"
+                        style={{ textShadow: '0 0 20px rgba(92, 230, 201, 0.15)' }}
+                    >
+                        34,000+ IITM BS students
+                    </span>{' '}
                     across India.{' '}
                     <br className="hidden lg:block" />
                     Bringing the campus experience to{' '}
-                    <span className="text-unity-gold font-medium">your city</span>.{' '}
+                    <span
+                        className="text-unity-gold/80 font-normal"
+                        style={{ textShadow: '0 0 20px rgba(255, 207, 150, 0.15)' }}
+                    >
+                        your city
+                    </span>.{' '}
                 </motion.p>
 
-                {/* CTA Buttons - Larger & More Prominent */}
+                {/* CTA Buttons - Refined with Staggered Timing */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.8, ease: 'easeOut' }}
-                    className="flex flex-col sm:flex-row gap-fluid-sm justify-center items-center"
+                    transition={{ duration: 0.8, delay: 1.2, ease: 'easeOut' }}
+                    className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center"
                 >
                     {/* Primary CTA - Refined elegance */}
                     <a

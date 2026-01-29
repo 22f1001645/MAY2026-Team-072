@@ -167,7 +167,7 @@ export default function HeroSection() {
                     variants={fadeIn}
                     initial="initial"
                     animate="animate"
-                    className="inline-block mb-8 md:mb-10 px-4 py-1.5 rounded-full border border-ekatva-teal/25 bg-ekatva-teal/8 backdrop-blur-md"
+                    className="inline-block mb-6 md:mb-7 lg:mb-8 px-4 py-1.5 rounded-full border border-ekatva-teal/25 bg-ekatva-teal/8 backdrop-blur-md"
                     style={{
                         animation: 'badge-breathe 5s ease-in-out infinite',
                     }}
@@ -182,7 +182,7 @@ export default function HeroSection() {
                     variants={scaleIn}
                     initial="initial"
                     animate="animate"
-                    className="font-serif text-fluid-h1 text-white leading-[1.2] mb-10 md:mb-14"
+                    className="font-serif text-fluid-h1 text-white leading-[1.2] mb-7 md:mb-9 lg:mb-10"
                     style={{
                         WebkitFontSmoothing: 'antialiased',
                         textRendering: 'optimizeLegibility',
@@ -209,12 +209,12 @@ export default function HeroSection() {
                     </motion.span>
                 </motion.h1>
 
-                {/* Subtitle - Muted Information Layer (Hierarchy Fix) */}
+                {/* Subtitle - Balanced Lines & Muted Hierarchy */}
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.9, ease: 'easeOut' }}
-                    className="text-white/85 text-[0.95rem] md:text-fluid-body max-w-2xl lg:max-w-3xl mx-auto mb-8 md:mb-10 font-normal leading-relaxed"
+                    className="text-white/85 text-[0.95rem] md:text-fluid-body max-w-[340px] sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto mb-7 md:mb-8 lg:mb-9 font-normal leading-relaxed text-balance"
                     style={{
                         textShadow: '0 2px 24px rgba(0, 0, 0, 0.9)'
                     }}
@@ -226,15 +226,16 @@ export default function HeroSection() {
                     >
                         34,000+ IITM BS students
                     </span>{' '}
-                    across India.{' '}
-                    <br className="hidden lg:block" />
+                    across India.
+                    <br className="sm:hidden" />
+                    <span className="hidden sm:inline">{' '}</span>
                     Bringing the campus experience to{' '}
                     <span
                         className="text-unity-gold/80 font-normal"
                         style={{ textShadow: '0 0 20px rgba(255, 207, 150, 0.15)' }}
                     >
                         your city
-                    </span>.{' '}
+                    </span>.
                 </motion.p>
 
                 {/* CTA Buttons - Refined with Staggered Timing */}

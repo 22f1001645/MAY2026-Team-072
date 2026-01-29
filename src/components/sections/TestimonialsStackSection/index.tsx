@@ -5,6 +5,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion, useInView } from 'framer-motion'
 import './testimonials.css'
+import MobileTestimonialsCarousel from './mobile/MobileTestimonialsCarousel'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -323,37 +324,10 @@ export default function TestimonialsStackSection() {
                 </div>
             )}
 
-            {/* Mobile Layout */}
+            {/* Mobile Layout - Smart Auto-Play Carousel */}
             {isMobile && (
                 <div className="testimonials-mobile">
-                    {/* Mobile Header */}
-                    <div className="text-center mb-8 px-4">
-                        <div className="flex items-center gap-2 justify-center mb-3">
-                            <span className="w-8 h-[2px] bg-ekatva-teal" />
-                            <span className="text-ekatva-teal font-bold uppercase tracking-[0.3em] text-[10px]">
-                                Voices of Ekatva
-                            </span>
-                            <span className="w-8 h-[2px] bg-ekatva-teal" />
-                        </div>
-                        <h3 className="text-white text-2xl font-black uppercase tracking-tight">
-                            Unity In Action
-                        </h3>
-                    </div>
-
-                    {/* Mobile Cards */}
-                    <div className="testimonials-mobile-grid">
-                        {testimonials.map((t, i) => (
-                            <MobileTestimonialCard
-                                key={i}
-                                index={i}
-                                name={t.name}
-                                role={t.role}
-                                content={t.content}
-                                accent={t.accent}
-                                label={t.label}
-                            />
-                        ))}
-                    </div>
+                    <MobileTestimonialsCarousel />
                 </div>
             )}
         </section>

@@ -28,7 +28,7 @@ export default function AtomicTruthsSection() {
                 </div>
 
                 <h3 className="font-serif text-3xl tracking-tight text-white mb-3">
-                    Atomic <span className="italic">Truths</span>.
+                    Atomic <span className="italic text-unity-gold">Truths.</span>
                 </h3>
 
                 <p className="text-sm text-white/70 max-w-md mx-auto leading-relaxed">

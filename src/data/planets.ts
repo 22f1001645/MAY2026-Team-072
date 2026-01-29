@@ -64,41 +64,12 @@ export interface PlanetConfig {
 
 export const PLANET_CONFIGS: PlanetConfig[] = [
     {
-        id: 'socio-cultural',
-        name: 'Socio-Cultural',
-        devanagari: 'सामाजिक-सांस्कृतिक',
-        orbital: {
-            radius: 240, // Corrected from 160 to avoid Core collision (Min Safe: 212)
-            angle: 0,
-            speed: 0.15,
-            eccentricity: 0.12,
-        },
-        appearance: {
-            baseColor: '#5CE6C9',
-            glowColor: 'rgba(92, 230, 201, 0.4)',
-            size: 100,
-            glowRadius: 30,
-            icon: Music,
-        },
-        content: {
-            headline: 'Where Culture Comes Alive',
-            description:
-                'Music, dance, drama, and art that celebrate the diverse heritage of India. From classical performances to contemporary expressions.',
-            activities: ['Live Music', 'Dance Performances', 'Drama', 'Art Exhibition', 'Fashion Show'],
-            stats: [
-                { value: '12+', label: 'Events' },
-                { value: '200+', label: 'Performers' },
-                { value: '5', label: 'Stages' },
-            ],
-        },
-    },
-    {
         id: 'techno-cultural',
         name: 'Techno-Cultural',
         devanagari: 'तकनीकी-सांस्कृतिक',
         orbital: {
-            radius: 300, // Corrected from 200 for spacing
-            angle: (2 * Math.PI) / 3, // 120 degrees
+            radius: 240, // Inner orbit (first pillar)
+            angle: 0,
             speed: 0.12,
             eccentricity: 0.12,
         },
@@ -122,11 +93,40 @@ export const PLANET_CONFIGS: PlanetConfig[] = [
         },
     },
     {
+        id: 'socio-cultural',
+        name: 'Socio-Cultural',
+        devanagari: 'सामाजिक-सांस्कृतिक',
+        orbital: {
+            radius: 300, // Middle orbit
+            angle: (2 * Math.PI) / 3, // 120 degrees
+            speed: 0.15,
+            eccentricity: 0.12,
+        },
+        appearance: {
+            baseColor: '#5CE6C9',
+            glowColor: 'rgba(92, 230, 201, 0.4)',
+            size: 100,
+            glowRadius: 30,
+            icon: Music,
+        },
+        content: {
+            headline: 'Where Culture Comes Alive',
+            description:
+                'Music, dance, drama, and art that celebrate the diverse heritage of India. From classical performances to contemporary expressions.',
+            activities: ['Live Music', 'Dance Performances', 'Drama', 'Art Exhibition', 'Fashion Show'],
+            stats: [
+                { value: '12+', label: 'Events' },
+                { value: '200+', label: 'Performers' },
+                { value: '5', label: 'Stages' },
+            ],
+        },
+    },
+    {
         id: 'sports',
         name: 'Sports',
         devanagari: 'खेल',
         orbital: {
-            radius: 360, // Corrected from 240 for spacing
+            radius: 360, // Outer orbit
             angle: (4 * Math.PI) / 3, // 240 degrees
             speed: 0.18,
             eccentricity: 0.08,

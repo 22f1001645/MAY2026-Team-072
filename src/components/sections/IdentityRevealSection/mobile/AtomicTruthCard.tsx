@@ -32,12 +32,15 @@ const colorConfig = {
 }
 
 /**
- * Atomic Truth Card
- * Expandable card for core EKATVA philosophies
- * Features glassmorphism, radial glows, and smooth expand/collapse
+ * Atomic Truth Card — Simplified
+ * 
+ * Structure:
+ * - Icon (colored circle with Lucide icon)
+ * - Title (serif, large)
+ * - Subtitle (uppercase tracking)
+ * - Accordion: Just the description inside
  */
 export default function AtomicTruthCard({
-    principle,
     title,
     subtitle,
     description,
@@ -49,15 +52,15 @@ export default function AtomicTruthCard({
 
     return (
         <motion.div
-            className="relative rounded-2xl p-6 cursor-pointer"
+            className="relative rounded-2xl p-5 cursor-pointer"
             style={{
                 background: `linear-gradient(135deg, ${colors.bg} 0%, rgba(255,255,255,0.02) 100%)`,
                 border: `1px solid rgba(255,255,255,0.08)`,
                 backdropFilter: 'blur(20px)',
             }}
             onClick={() => setIsExpanded(!isExpanded)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
         >
             {/* Radial Glow */}
             <div
@@ -67,8 +70,8 @@ export default function AtomicTruthCard({
                 }}
             />
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            {/* Header: Icon + Title + Subtitle + Chevron */}
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     {/* Icon */}
                     <div
@@ -78,12 +81,12 @@ export default function AtomicTruthCard({
                         <Icon className="w-7 h-7 text-black/80" strokeWidth={1.5} />
                     </div>
 
-                    {/* Title */}
+                    {/* Title + Subtitle */}
                     <div>
-                        <h4 className="font-serif text-xl font-bold text-white tracking-tight">
+                        <h4 className="font-serif text-xl font-medium text-white tracking-tight">
                             {title}
                         </h4>
-                        <p className="text-xs text-white/60 uppercase tracking-wider mt-0.5">
+                        <p className="text-[10px] text-white/50 uppercase tracking-[0.15em] mt-0.5">
                             {subtitle}
                         </p>
                     </div>
@@ -98,12 +101,7 @@ export default function AtomicTruthCard({
                 </motion.div>
             </div>
 
-            {/* Description (Always Visible) */}
-            <p className="text-sm text-white/75 leading-relaxed mb-4">
-                {description}
-            </p>
-
-            {/* Expanded Content */}
+            {/* Expanded Content — Just the description */}
             <AnimatePresence>
                 {isExpanded && (
                     <motion.div
@@ -113,41 +111,9 @@ export default function AtomicTruthCard({
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                     >
-                        <div className="pt-4 border-t border-white/10">
-                            {/* Extended philosophy - pulling from desktop Core data */}
-                            <div className="space-y-3 text-sm text-white/80 leading-relaxed">
-                                {principle === 'unity' && (
-                                    <>
-                                        <p>
-                                            <strong className="text-white/90">The Foundation:</strong> EKATVA began as a simple idea—what if 34,000+ IITM BS students, scattered across India, could come together? Not just as individuals, but as one unified force.
-                                        </p>
-                                        <p>
-                                            <strong className="text-white/90">The Reality:</strong> In 2025, we proved it's possible. From Hyderabad to the national stage, we've built a community where distance dissolves and unity emerges. One platform, one ambition, one identity: EKATVA.
-                                        </p>
-                                    </>
-                                )}
-                                {principle === 'imagination' && (
-                                    <>
-                                        <p>
-                                            <strong className="text-white/90">Beyond Code:</strong> Innovation isn't just about algorithms and frameworks. It's about daring to imagine what doesn't exist yet—and then building it with your bare hands.
-                                        </p>
-                                        <p>
-                                            <strong className="text-white/90">The EKATVA Way:</strong> From hackathons that push technical limits to cultural performances that defy gravity, we thrive at the intersection where logic meets magic. Where engineers become artists, and artists become engineers.
-                                        </p>
-                                    </>
-                                )}
-                                {principle === 'glory' && (
-                                    <>
-                                        <p>
-                                            <strong className="text-white/90">Competitive Spirit:</strong> We don't shy away from competition. We seek it out. Whether it's a cricket match, a coding battle, or a dance-off, we bring intensity and precision.
-                                        </p>
-                                        <p>
-                                            <strong className="text-white/90">The Reward:</strong> Glory isn't just about trophies. It's the collective roar of 34,000 students when one of us wins. It's the shared pride that comes from knowing we pushed each other to be better.
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                        <p className="pt-4 text-sm text-white/75 leading-relaxed">
+                            {description}
+                        </p>
                     </motion.div>
                 )}
             </AnimatePresence>

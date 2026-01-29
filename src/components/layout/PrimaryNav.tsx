@@ -80,7 +80,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
 
     return (
         <nav
-            className="px-6 py-4 rounded-2xl border border-white/10"
+            className="px-5 py-2.5 rounded-xl border border-white/10"
             style={{
                 background: 'rgba(5, 5, 5, 0.85)',
                 backdropFilter: 'blur(24px)',
@@ -90,7 +90,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-3 group">
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden border border-ekatva-teal/30 group-hover:border-ekatva-teal transition-colors">
+                    <div className="relative w-9 h-9 rounded-full overflow-hidden border border-ekatva-teal/30 group-hover:border-ekatva-teal transition-colors">
                         <Image
                             src="/assets/images/Ekatva Logo.png"
                             alt="EKATVA"
@@ -366,12 +366,41 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                     })}
                 </div>
 
-                {/* CTA Button */}
+                {/* CTA Button with Premium Shimmer Effect */}
                 <Link
                     href="/join-us"
-                    className="hidden md:inline-flex px-6 py-2.5 bg-ekatva-teal rounded-full text-oneness-black font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_30px_rgba(92,230,201,0.5)] transition-all"
+                    className="hidden md:inline-flex relative overflow-hidden group px-6 py-2.5 bg-ekatva-teal rounded-full text-oneness-black font-bold text-sm uppercase tracking-wider transition-all duration-300"
+                    style={{
+                        boxShadow: '0 0 20px rgba(92, 230, 201, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15)',
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 0 30px rgba(92, 230, 201, 0.4), 0 6px 18px rgba(0, 0, 0, 0.2)'
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = '0 0 20px rgba(92, 230, 201, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                    }}
                 >
-                    Join Us
+                    {/* Shimmer sweep overlay - visible on hover */}
+                    <span
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                        style={{
+                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+                            animation: 'shimmer 2.5s ease-in-out infinite',
+                        }}
+                    />
+
+                    {/* Persistent subtle shine */}
+                    <span
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+                            animation: 'shimmer-subtle 4s ease-in-out infinite',
+                        }}
+                    />
+
+                    <span className="relative z-10">Join Us</span>
                 </Link>
 
                 {/* Mobile Menu Toggle */}

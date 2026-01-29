@@ -61,3 +61,28 @@
     transform: scale(1.05);
   }
 }
+
+/* Premium CTA Shimmer Effects (Linear.app / Stripe style) */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shimmer-subtle {
+
+  0%,
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+}

@@ -12,7 +12,8 @@
    ============================================ */
 
 .section-6a {
-    padding: 60px 0 80px;
+    padding: clamp(5rem, 7vw, 7.5rem) 0;
+    /* POLISH: Rhythm 60px → 120px */
     background: #050505;
     position: relative;
     overflow: hidden;

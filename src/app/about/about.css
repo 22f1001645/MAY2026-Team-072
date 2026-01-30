@@ -32,6 +32,13 @@
     --easing: cubic-bezier(0.4, 0, 0.2, 1);
     --bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
+    /* POLISH: Motion & Glow Consistency System */
+    --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+    --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+    --glow-subtle: 0 0 10px rgba(92, 230, 201, 0.3);
+    --glow-medium: 0 0 20px rgba(92, 230, 201, 0.5);
+    --glow-strong: 0 0 30px rgba(92, 230, 201, 0.7);
+
     /* FORENSIC AUDIT: TYPOGRAPHY SYSTEM */
     --text-base: 1.125rem;
     /* 18px */
@@ -134,7 +141,8 @@
 /* Skip Link (Accessibility) */
 .skip-link {
     position: absolute;
-    top: -100px;
+    top: -100px !important;
+    /* Force hidden by default */
     left: 8px;
     background: #050505;
     color: #5CE6C9;
@@ -145,10 +153,16 @@
     font-weight: 500;
     z-index: 9999;
     transition: top 0.3s ease;
+    opacity: 0;
+    /* Additional invisibility */
+    pointer-events: none;
+    /* Non-interactive when hidden */
 }
 
 .skip-link:focus {
-    top: 8px;
+    top: 8px !important;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* Devanagari (एकत्व) */
@@ -753,8 +767,8 @@
    ============================================================================ */
 
 .about-belief {
-    padding: 6.25rem 0 5rem 0;
-    /* 100px -> 6.25rem, 80px -> 5rem */
+    padding: clamp(5rem, 7vw, 7.5rem) 0;
+    /* POLISH: Rhythm 80px → 120px (updated from fixed 100/80px) */
     background: linear-gradient(180deg, #050505 0%, #0A2329 100%);
 }
 
@@ -858,9 +872,10 @@
 }
 
 .principle-headline {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+    font-size: clamp(1.25rem, 1.5vw + 0.5rem, 1.5rem);
+    /* POLISH: Fluid 20px → 24px (updated from fixed 1.5rem) */
+    font-weight: 700;
+    margin-bottom: 0.75rem;
 }
 
 .principle-short {
@@ -938,7 +953,8 @@
    ============================================================================ */
 
 .about-story {
-    padding: 80px 0;
+    padding: clamp(5rem, 7vw, 7.5rem) 0;
+    /* POLISH: Rhythm 80px → 120px */
     background: var(--oneness-black);
 }
 
@@ -957,7 +973,8 @@
 }
 
 .story-subsection-title {
-    font-size: 1.75rem;
+    font-size: clamp(1.5rem, 1.5vw + 0.5rem, 1.75rem);
+    /* POLISH: Fluid 24px → 28px */
     font-weight: 600;
     color: var(--ekatva-teal);
     margin-bottom: 1.5rem;
@@ -1119,7 +1136,8 @@
 }
 
 .timeline-title {
-    font-size: 1.15rem;
+    font-size: clamp(1rem, 1vw + 0.25rem, 1.15rem);
+    /* POLISH: Fluid 16px → 18.4px */
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
@@ -1146,7 +1164,8 @@
    ============================================================================ */
 
 .about-philosophy {
-    padding: 80px 0;
+    padding: clamp(5rem, 7vw, 7.5rem) 0;
+    /* POLISH: Rhythm 80px → 120px */
     background: linear-gradient(180deg, #050505 0%, #0A2329 50%, #050505 100%);
 }
 
@@ -1229,12 +1248,14 @@
 }
 
 .pillar-title {
-    font-size: 1.75rem;
+    font-size: clamp(1.5rem, 1.5vw + 0.5rem, 1.75rem);
+    /* POLISH: Fluid 24px → 28px */
     font-weight: 700;
 }
 
 .pillar-tagline {
-    font-size: 1.15rem;
+    font-size: clamp(1rem, 1vw + 0.25rem, 1.15rem);
+    /* POLISH: Fluid 16px → 18.4px */
     font-style: italic;
     color: var(--ekatva-teal);
     line-height: 1.6;
@@ -1315,7 +1336,8 @@
    ============================================================================ */
 
 .about-proof {
-    padding: 80px 0;
+    padding: clamp(5rem, 7vw, 7.5rem) 0;
+    /* POLISH: Rhythm 80px → 120px */
     background: var(--oneness-black);
 }
 
@@ -1377,7 +1399,8 @@
 }
 
 .moment-title {
-    font-size: 1.25rem;
+    font-size: clamp(1.1rem, 1.25vw + 0.25rem, 1.25rem);
+    /* POLISH: Fluid 17.6px → 20px */
     font-weight: 600;
     margin-bottom: 0.75rem;
 }
@@ -1564,7 +1587,8 @@
    ============================================================================ */
 
 .about-system {
-    padding: 7rem 0;
+    padding: clamp(7rem, 9vw, 9.375rem) 0;
+    /* POLISH: Rhythm 112px → 150px */
     background: linear-gradient(180deg, #050505 0%, #0A2329 50%, #050505 100%);
 }
 
@@ -1580,7 +1604,8 @@
 }
 
 .process-title {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 1.5vw + 0.5rem, 1.5rem);
+    /* POLISH: Fluid 20px → 24px */
     font-weight: 600;
     text-align: center;
     margin-bottom: 0.5rem;
@@ -1753,7 +1778,8 @@
 }
 
 .city-name {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 0.75vw + 0.25rem, 1.1rem);
+    /* POLISH: Fluid 16px → 17.6px */
     font-weight: 600;
 }
 
@@ -1811,7 +1837,8 @@
    ============================================================================ */
 
 .about-join {
-    padding: 100px 0 120px 0;
+    padding: clamp(6.25rem, 8vw, 9.375rem) 0 clamp(7.5rem, 10vw, 11.25rem) 0;
+    /* POLISH: Rhythm 100/120px → 150/180px */
     background: var(--oneness-black);
 }
 

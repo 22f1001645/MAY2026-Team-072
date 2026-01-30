@@ -389,6 +389,16 @@ export function Section6A({ className = '' }: Section6AProps) {
                                     <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.3" />
                                     <stop offset="100%" stopColor="#FFCF96" stopOpacity="0.6" />
                                 </linearGradient>
+
+                                {/* Mobile Connector Gradients */}
+                                <linearGradient id="connectorGradient1to2" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#5CE6C9" stopOpacity="0.8" />
+                                    <stop offset="100%" stopColor="#FFCF96" stopOpacity="0.8" />
+                                </linearGradient>
+                                <linearGradient id="connectorGradient2to3" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#FFCF96" stopOpacity="0.8" />
+                                    <stop offset="100%" stopColor="rgba(255, 255, 255, 0.6)" stopOpacity="0.7" />
+                                </linearGradient>
                             </defs>
                         </svg>
 
@@ -460,8 +470,48 @@ export function Section6A({ className = '' }: Section6AProps) {
                             <span className="node-label">Support System</span>
                         </motion.div>
 
+
                         {/* AUDIT FIX: Missing Flow Label */}
                         <div className="flow-label flow-label-peer">PEER-TO-PEER</div>
+
+                        {/* MOBILE CONNECTORS (only visible on mobile) */}
+                        {/* Connector 1→2: GB to City Chapters */}
+                        <div
+                            className="mobile-connector-container"
+                            style={{
+                                top: '120px', // After first node + badge
+                                height: '88px', // Distance to next badge
+                            }}
+                        >
+                            <svg width="2" height="88" style={{ position: 'absolute', left: 0, top: 0 }}>
+                                <line
+                                    x1="1" y1="0"
+                                    x2="1" y2="88"
+                                    className="mobile-connector-line connector-draw connector-1-2"
+                                />
+                            </svg>
+                            <div className="connector-particle particle-1 teal" />
+                            <div className="connector-particle particle-2 teal" />
+                        </div>
+
+                        {/* Connector 2→3: City Chapters to Teams */}
+                        <div
+                            className="mobile-connector-container"
+                            style={{
+                                top: '232px', // After second node + badge
+                                height: '88px', // Distance to next badge
+                            }}
+                        >
+                            <svg width="2" height="88" style={{ position: 'absolute', left: 0, top: 0 }}>
+                                <line
+                                    x1="1" y1="0"
+                                    x2="1" y2="88"
+                                    className="mobile-connector-line connector-draw connector-2-3"
+                                />
+                            </svg>
+                            <div className="connector-particle particle-1 gold" />
+                            <div className="connector-particle particle-2 gold" />
+                        </div>
                     </motion.div>
 
                     {/* SUMMARY ROW - FLIP CARDS */}

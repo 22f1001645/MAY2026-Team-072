@@ -872,10 +872,12 @@
 .flip-card-back::-webkit-scrollbar {
     width: 4px;
 }
+
 .flip-card-back::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 2px;
 }
+
 .flip-card-back::-webkit-scrollbar-thumb {
     background: var(--flip-accent);
     border-radius: 2px;
@@ -1318,7 +1320,138 @@
     .dept-skills li {
         font-size: 13px;
     }
+
+    /* ============================================
+       MOBILE CONNECTOR LINES (Between Nodes)
+       ============================================ */
+
+    .mobile-connector-container {
+        display: block;
+        /* Show on mobile */
+        position: absolute;
+        left: 26px;
+        /* Aligned with badge center */
+        width: 2px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .mobile-connector-line {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        stroke-width: 2;
+        stroke-dasharray: 6 4;
+        fill: none;
+        opacity: 0;
+        animation: connectorFadeIn 0.6s ease-out 0.2s forwards;
+    }
+
+    @keyframes connectorFadeIn {
+        to {
+            opacity: 1;
+        }
+    }
+
+    .mobile-connector-line.connector-draw {
+        stroke-dasharray: 6 4;
+        stroke-dashoffset: 150;
+        animation: connectorDraw 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards,
+            connectorFadeIn 0.6s ease-out 0.2s forwards;
+    }
+
+    @keyframes connectorDraw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    /* Particle dots traveling along connector */
+    .connector-particle {
+        position: absolute;
+        left: -2px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        opacity: 0;
+    }
+
+    .connector-particle.particle-1 {
+        animation: particleTravel1 3s cubic-bezier(0.4, 0, 0.2, 1) 1s infinite;
+    }
+
+    .connector-particle.particle-2 {
+        animation: particleTravel2 3s cubic-bezier(0.4, 0, 0.2, 1) 2s infinite;
+    }
+
+    @keyframes particleTravel1 {
+        0% {
+            top: 0;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        10% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        90% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        100% {
+            top: 100%;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+    }
+
+    @keyframes particleTravel2 {
+        0% {
+            top: 0;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        15% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        85% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        100% {
+            top: 100%;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+    }
+
+    /* Gradient definitions for connectors */
+    .connector-1-2 {
+        stroke: url(#connectorGradient1to2);
+    }
+
+    .connector-2-3 {
+        stroke: url(#connectorGradient2to3);
+    }
+
+    .connector-particle.teal {
+        background: radial-gradient(circle, #5CE6C9 0%, rgba(92, 230, 201, 0.4) 100%);
+        box-shadow: 0 0 8px rgba(92, 230, 201, 0.6);
+    }
+
+    .connector-particle.gold {
+        background: radial-gradient(circle, #FFCF96 0%, rgba(255, 207, 150, 0.4) 100%);
+        box-shadow: 0 0 8px rgba(255, 207, 150, 0.6);
+    }
 }
+
 
 /* ============================================
    ACCESSIBILITY: REDUCED MOTION

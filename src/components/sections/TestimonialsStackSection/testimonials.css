@@ -169,7 +169,8 @@
 
 /* Mobile Layout */
 .testimonials-mobile {
-    padding: 3rem 0;
+    padding: 1.5rem 0 2rem;
+    /* Reduced top/bottom padding */
 }
 
 .testimonials-mobile-grid {

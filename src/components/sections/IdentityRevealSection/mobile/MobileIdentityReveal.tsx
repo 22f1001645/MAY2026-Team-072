@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import MobilePillarCarousel from './MobilePillarCarousel'
 import AtomicTruthsSection from './AtomicTruthsSection'
+import { SectionDivider } from '@/components/ui/SectionDivider'
 
 /**
  * Mobile Identity Reveal
@@ -12,10 +13,11 @@ import AtomicTruthsSection from './AtomicTruthsSection'
  * 1. Section Header — "What is EKATVA?" intro
  * 2. MobilePillarCarousel — Horizontal swipe carousel of pillars
  * 3. AtomicTruthsSection — Core philosophies cards
+ * 4. SectionDivider — Visual transition to next section
  */
 export default function MobileIdentityReveal() {
     return (
-        <div className="py-12">
+        <div className="pt-12 pb-4">
             {/* Section Header */}
             <motion.header
                 className="text-center mb-10 px-6"
@@ -51,6 +53,11 @@ export default function MobileIdentityReveal() {
             {/* Atomic Truths Section */}
             <div className="px-6">
                 <AtomicTruthsSection />
+            </div>
+
+            {/* Section Divider - Right after accordion, before Ripple */}
+            <div className="mt-8">
+                <SectionDivider />
             </div>
         </div>
     )

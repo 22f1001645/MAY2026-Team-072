@@ -6,14 +6,21 @@ import { LucideIcon } from 'lucide-react'
 import PlanetGlyph from './PlanetGlyph'
 
 /**
- * PillarCard — Individual pillar card for Mobile Carousel
+ * PillarCard — Award-Winning Mobile Pillar Card (v2.0)
  * 
- * Award-winning features:
- * - Full glassmorphism with pillar-colored radial glow
- * - Breathing glyph animation (scale 1 → 1.03 → 1)
- * - Staggered content entrance with Apple easing
- * - Activity pills with EXACT desktop styling
- * - No stats counters, no Devanagari (per requirements)
+ * REVAMP FEATURES:
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 1. COMPACT LAYOUT: Fits single viewport (508px total)
+ * 2. REORDERED: Pills BEFORE description (elevated visibility)
+ * 3. INLINE HEADER: 48px icon + label in horizontal layout
+ * 4. ENHANCED PILLS: Shadow, stronger border, 60ms stagger
+ * 5. DESCRIPTION BELOW: Secondary info, reduced opacity
+ * 
+ * DESIGN PHILOSOPHY:
+ * - Single viewport → No scroll fatigue
+ * - Pills first → Immediate value prop discovery
+ * - Compact icon → Modern, intentional layout
+ * - Subtle polish → Premium, not flashy
  */
 
 const APPLE_EASE = [0.16, 1, 0.3, 1] as const
@@ -44,46 +51,55 @@ const PillarCard = forwardRef<HTMLDivElement, PillarCardProps>(
                 className="scroll-snap-center flex-shrink-0 w-[calc(100vw-48px)] max-w-[360px]"
             >
                 <motion.div
-                    className="relative rounded-3xl px-6 py-10 overflow-hidden"
+                    className="relative rounded-3xl px-5 py-6 overflow-hidden"
                     style={{
-                        background: `linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 50%, transparent 100%)`,
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: `linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, transparent 100%)`,
+                        border: isActive
+                            ? `1px solid ${planet.appearance.baseColor}30`
+                            : '1px solid rgba(255,255,255,0.08)',
                         backdropFilter: 'blur(24px)',
                         WebkitBackdropFilter: 'blur(24px)',
+                        boxShadow: isActive
+                            ? `0 0 40px ${planet.appearance.glowColor}`
+                            : 'none',
                     }}
                     initial={{ opacity: 0.8 }}
-                    animate={{ opacity: isActive ? 1 : 0.7 }}
-                    transition={{ duration: 0.3 }}
+                    animate={{
+                        opacity: isActive ? 1 : 0.6,
+                        scale: isActive ? 1 : 0.95,
+                    }}
+                    transition={{ duration: 0.4, ease: APPLE_EASE }}
                 >
                     {/* Radial Glow Background */}
-                    <div
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] -z-10 blur-[80px] opacity-40"
+                    <motion.div
+                        className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] -z-10 blur-[60px]"
                         style={{
                             background: `radial-gradient(circle, ${planet.appearance.glowColor} 0%, transparent 70%)`,
                         }}
+                        animate={{ opacity: isActive ? 0.5 : 0.2 }}
+                        transition={{ duration: 0.5 }}
                     />
 
-                    {/* Planet Glyph with Breathing Animation */}
+                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* COMPACT HEADER: 48px Icon + Category Label (INLINE)     */}
+                    {/* ═══════════════════════════════════════════════════════ */}
                     <motion.div
-                        className="flex justify-center mb-6"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={isActive ? {
-                            opacity: 1,
-                            scale: 1
-                        } : {
-                            opacity: 0.5,
-                            scale: 0.9
-                        }}
-                        transition={{ duration: 0.5, ease: APPLE_EASE }}
+                        className="flex items-center gap-3 mb-4"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={isActive
+                            ? { opacity: 1, x: 0 }
+                            : { opacity: 0.5, x: -5 }
+                        }
+                        transition={{ duration: 0.4, ease: APPLE_EASE }}
                     >
+                        {/* Compact Icon with Breathing Animation */}
                         <motion.div
-                            animate={isActive ? {
-                                scale: [1, 1.03, 1]
-                            } : {
-                                scale: 1
-                            }}
+                            animate={isActive
+                                ? { scale: [1, 1.05, 1] }
+                                : { scale: 1 }
+                            }
                             transition={{
-                                duration: 4,
+                                duration: 3,
                                 repeat: Infinity,
                                 ease: 'easeInOut',
                             }}
@@ -92,88 +108,104 @@ const PillarCard = forwardRef<HTMLDivElement, PillarCardProps>(
                                 icon={planet.appearance.icon}
                                 baseColor={planet.appearance.baseColor}
                                 glowColor={planet.appearance.glowColor}
-                                size={140}
+                                size={48}
                             />
                         </motion.div>
-                    </motion.div>
 
-                    {/* Category Name (NO Devanagari) */}
-                    <motion.div
-                        className="text-center mb-4"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0.5, y: 5 }}
-                        transition={{ duration: 0.3, delay: 0.15, ease: APPLE_EASE }}
-                    >
+                        {/* Category Label */}
                         <span
-                            className="text-xs uppercase tracking-[0.2em] font-medium"
+                            className="text-xs uppercase tracking-[0.15em] font-semibold"
                             style={{ color: planet.appearance.baseColor }}
                         >
                             {planet.name}
                         </span>
                     </motion.div>
 
-                    {/* Headline */}
+                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* HEADLINE: Larger (24px), High Impact                    */}
+                    {/* ═══════════════════════════════════════════════════════ */}
                     <motion.h3
-                        className="font-serif text-xl text-center mb-4 text-white leading-tight tracking-tight"
+                        className="font-serif text-2xl text-left mb-4 text-white leading-tight tracking-tight"
                         initial={{ opacity: 0, y: 10 }}
-                        animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0.5, y: 5 }}
-                        transition={{ duration: 0.3, delay: 0.25, ease: APPLE_EASE }}
+                        animate={isActive
+                            ? { opacity: 1, y: 0 }
+                            : { opacity: 0.5, y: 5 }
+                        }
+                        transition={{ duration: 0.4, delay: 0.1, ease: APPLE_EASE }}
                     >
                         {planet.content.headline}
                     </motion.h3>
 
-                    {/* Description */}
-                    <motion.p
-                        className="text-sm text-center text-white/70 leading-relaxed mb-6 line-clamp-3"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0.3, y: 5 }}
-                        transition={{ duration: 0.3, delay: 0.35, ease: APPLE_EASE }}
-                    >
-                        {planet.content.description}
-                    </motion.p>
-
-                    {/* Activities Section */}
+                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* ACTIVITIES SECTION: ELEVATED (Before Description)       */}
+                    {/* ═══════════════════════════════════════════════════════ */}
                     <motion.div
+                        className="mb-4"
                         initial={{ opacity: 0, y: 10 }}
-                        animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0.3, y: 5 }}
-                        transition={{ duration: 0.3, delay: 0.45, ease: APPLE_EASE }}
+                        animate={isActive
+                            ? { opacity: 1, y: 0 }
+                            : { opacity: 0.3, y: 5 }
+                        }
+                        transition={{ duration: 0.4, delay: 0.2, ease: APPLE_EASE }}
                     >
                         {/* Featured Activities Label */}
-                        <h4 className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3 text-center font-semibold">
+                        <h4 className="text-[10px] uppercase tracking-[0.12em] text-white/40 mb-2.5 font-semibold">
                             Featured Activities
                         </h4>
 
-                        {/* Activity Pills — EXACT Desktop Styling */}
-                        <div className="flex flex-wrap gap-2 justify-center">
+                        {/* Activity Pills — Compact + Polished */}
+                        <div className="flex flex-wrap gap-2">
                             {planet.content.activities.map((activity, i) => (
                                 <motion.span
                                     key={activity}
-                                    className="px-3 py-1.5 rounded-full text-xs border transition-all"
+                                    className="px-3 py-1.5 rounded-full text-xs font-medium"
                                     style={{
-                                        borderColor: `${planet.appearance.baseColor}40`,
+                                        borderWidth: '1px',
+                                        borderStyle: 'solid',
+                                        borderColor: `${planet.appearance.baseColor}50`, // 50% opacity (was 40%)
                                         color: planet.appearance.baseColor,
-                                        backgroundColor: `${planet.appearance.baseColor}10`,
+                                        backgroundColor: `${planet.appearance.baseColor}12`,
+                                        boxShadow: isActive
+                                            ? `0 2px 8px ${planet.appearance.baseColor}15`
+                                            : 'none',
                                     }}
-                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    initial={{ opacity: 0, scale: 0.85, y: 8 }}
                                     animate={isActive ? {
                                         opacity: 1,
-                                        scale: 1
+                                        scale: 1,
+                                        y: 0,
                                     } : {
                                         opacity: 0.4,
-                                        scale: 0.95
+                                        scale: 0.95,
+                                        y: 0,
                                     }}
                                     transition={{
-                                        duration: 0.2,
-                                        delay: 0.5 + i * 0.03,
+                                        duration: 0.3,
+                                        delay: 0.25 + i * 0.06, // 60ms stagger
                                         ease: APPLE_EASE,
                                     }}
-                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
                                 >
                                     {activity}
                                 </motion.span>
                             ))}
                         </div>
                     </motion.div>
+
+                    {/* ═══════════════════════════════════════════════════════ */}
+                    {/* DESCRIPTION: Secondary Info (Below Pills, Reduced)      */}
+                    {/* ═══════════════════════════════════════════════════════ */}
+                    <motion.p
+                        className="text-sm text-left text-white/55 leading-relaxed line-clamp-2"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={isActive
+                            ? { opacity: 1, y: 0 }
+                            : { opacity: 0.25, y: 4 }
+                        }
+                        transition={{ duration: 0.4, delay: 0.35, ease: APPLE_EASE }}
+                    >
+                        {planet.content.description}
+                    </motion.p>
                 </motion.div>
             </div>
         )

@@ -183,6 +183,40 @@
         max-height: calc(100svh - clamp(48px, 8vh, 72px) - clamp(16px, 3vh, 24px));
     }
 
+    /* Section Divider - At section boundary (top edge) */
+    .ripple-mobile-divider {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 140px;
+        height: 3px;
+        background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(92, 230, 201, 0.6) 30%,
+                rgba(92, 230, 201, 0.9) 50%,
+                rgba(92, 230, 201, 0.6) 70%,
+                transparent 100%);
+        border-radius: 2px;
+        box-shadow:
+            0 0 10px rgba(92, 230, 201, 0.5),
+            0 0 20px rgba(92, 230, 201, 0.3),
+            0 0 30px rgba(92, 230, 201, 0.2);
+        animation: divider-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes divider-pulse {
+
+        0%,
+        100% {
+            opacity: 0.8;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+
     /* Map + Legend side by side container */
     .ripple-mobile-map-area {
         display: flex;

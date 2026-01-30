@@ -227,20 +227,18 @@ export default function RippleSection() {
 
             {/* Mobile Layout */}
             <div className="ripple-mobile-layout relative z-10">
-                {/* Mobile Heading */}
+                {/* Mobile Heading - Streamlined (No Badge) */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={animationStarted ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6, delay: 0.3 }}
-                    className="text-center py-3"
+                    className="text-center pt-5 pb-3 px-4"
                 >
-                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-white leading-tight mb-1">
+                    {/* Main Title - Large, impactful, no badge */}
+                    <h2 className="font-serif text-4xl font-bold text-white leading-tight">
                         <span className="text-ekatva-teal">9 Cities.</span>{' '}
-                        <span className="text-unity-gold">1 Mission.</span>
+                        <span className="text-unity-gold italic">1 Mission.</span>
                     </h2>
-                    <p className="text-xs text-white/60 tracking-widest uppercase">
-                        Limitless Experiences.
-                    </p>
                 </motion.div>
 
                 {/* Map + Legend side by side */}

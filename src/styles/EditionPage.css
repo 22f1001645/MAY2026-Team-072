@@ -1044,12 +1044,19 @@
 .container-testimonials {
     position: relative;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
 }
 
 .testimonials-header {
     text-align: center;
     margin-bottom: 60px;
     padding: 0 20px;
+    position: relative;
+    z-index: 2;
+    width: 100%;
 }
 
 .label-pill {
@@ -1073,6 +1080,7 @@
     background: linear-gradient(135deg, #FFCF96 0%, #FFB660 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .testimonial-quote-icon.text-gold {

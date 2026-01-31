@@ -120,8 +120,8 @@ export default function StatCard({
                 {suffix}
             </p>
 
-            {/* Label - Responsive wrapping for mobile */}
-            <p className="text-[clamp(0.55rem,1.2vw,0.8rem)] text-light-gray uppercase tracking-[0.15em] font-semibold leading-tight whitespace-normal md:whitespace-nowrap text-center">
+            {/* Label - Responsive wrapping with controlled spacing */}
+            <p className="text-[clamp(0.55rem,1.2vw,0.8rem)] text-light-gray uppercase tracking-[0.08em] font-semibold leading-[1.2] whitespace-normal text-center max-w-[180px] mx-auto">
                 {label}
             </p>
         </motion.div>

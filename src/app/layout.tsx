@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Poppins, Instrument_Serif } from 'next/font/google'
+import { Poppins, Instrument_Serif, Noto_Sans_Devanagari } from 'next/font/google'
 import { Navbar, Footer } from '@/components/layout'
 import ScrollToTop from '@/components/layout/ScrollToTop'
 import './globals.css'
@@ -17,6 +17,13 @@ const instrumentSerif = Instrument_Serif({
   display: 'swap',
   variable: '--font-serif',
   style: ['normal', 'italic'],
+})
+
+const notoSansDevanagari = Noto_Sans_Devanagari({
+  weight: ['400', '700'],
+  subsets: ['devanagari'],
+  display: 'swap',
+  variable: '--font-noto-sans-devanagari',
 })
 
 export const metadata: Metadata = {
@@ -48,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable} ${notoSansDevanagari.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://www.youtube.com" />
         <link rel="preconnect" href="https://www.google.com" />

@@ -24,7 +24,7 @@
 
     --font-serif: 'Instrument Serif', Georgia, serif;
     --font-sans: 'Poppins', -apple-system, sans-serif;
-    --font-devanagari: 'Noto Sans Devanagari', sans-serif;
+    --font-devanagari: var(--font-noto-sans-devanagari), 'Noto Sans Devanagari', sans-serif;
 
     --duration-fast: 0.25s;
     --duration-normal: 0.5s;

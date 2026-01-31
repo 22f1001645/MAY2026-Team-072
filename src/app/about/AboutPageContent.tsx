@@ -24,17 +24,18 @@ import {
     PartyPopper
 } from 'lucide-react'
 import { HeroMarquee, CircularScroll } from './AboutHeroComponents'
+import { SectionSkeleton } from '@/components/about/SectionSkeleton'
 
 // PERFORMANCE OPTIMIZATION: Lazy load heavy sections
 // Section6A: ~43KB, Section6B: ~30KB - Total savings: ~73KB on initial bundle
 const Section6A = dynamic(() => import('./Section6A').then(mod => ({ default: mod.Section6A })), {
     ssr: false,
-    loading: () => <div className="min-h-screen" /> // Minimal placeholder to prevent layout shift
+    loading: () => <SectionSkeleton />
 })
 
 const Section6B = dynamic(() => import('./Section6B').then(mod => ({ default: mod.Section6B })), {
     ssr: false,
-    loading: () => <div className="min-h-screen" /> // Minimal placeholder
+    loading: () => <SectionSkeleton />
 })
 
 import './about.css'

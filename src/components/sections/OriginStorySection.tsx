@@ -163,7 +163,7 @@ export default function OriginStorySection() {
 
                         {/* Stats Bar (Refactored Layout) */}
                         <div className="pt-[clamp(1.5rem,4vh,3rem)] border-t border-white/10">
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3">
                                 {stats.map((stat, index) => (
                                     <div key={index} className="h-full">
                                         <StatCard

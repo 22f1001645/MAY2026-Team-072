@@ -236,7 +236,7 @@ export default function PartnershipPageContent() {
             {/* Home Link - Matches About page */}
             <Link
                 href="/"
-                className="absolute top-6 left-6 z-50 flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm group"
+                className="absolute top-8 left-6 z-50 flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm group"
             >
                 <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
                 <span>Home</span>
@@ -280,7 +280,7 @@ export default function PartnershipPageContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.4 }}
-                        className="flex justify-center gap-8 md:gap-16 flex-wrap"
+                        className="flex justify-center gap-4 sm:gap-8 md:gap-16 flex-wrap"
                     >
                         {STATS.map((stat, i) => (
                             <div key={i} className="text-center">

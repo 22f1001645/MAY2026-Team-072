@@ -35,6 +35,7 @@
 .prose-invert em {
     color: #5CE6C9;
     font-style: italic;
+    letter-spacing: 0.025em;
 }
 
 /* Timeline responsive fixes */

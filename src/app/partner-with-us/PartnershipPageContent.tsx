@@ -239,7 +239,7 @@ export default function PartnershipPageContent() {
                 <div className="absolute inset-0 bg-gradient-to-br from-[#0A2329] via-[#0E2F36] to-[#0A2329]" />
                 <div className="absolute inset-0 bg-grid-pattern opacity-[0.03]" />
 
-                <div className="relative z-10 container-custom py-24 pt-32 lg:py-32">
+                <div className="relative z-10 container-custom py-24 pt-40 lg:pt-32 lg:py-32">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}

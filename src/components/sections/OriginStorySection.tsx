@@ -122,7 +122,7 @@ export default function OriginStorySection() {
                         {/* Heading */}
                         <h2
                             id="origin-story-title"
-                            className="font-serif text-fluid-h2 short:text-fluid-h2-compact font-bold text-unity-gold leading-[1.1]"
+                            className="font-serif text-fluid-h2-compact font-bold text-unity-gold leading-[1.1]"
                             style={{
                                 textShadow: '0 4px 30px rgba(255, 207, 150, 0.35)'
                             }}
@@ -130,8 +130,8 @@ export default function OriginStorySection() {
                             The Story Behind EKATVA
                         </h2>
 
-                        {/* Body Text: Compressed for Laptop */}
-                        <div className="space-y-[clamp(0.75rem,2.5vh,1.5rem)] text-[clamp(0.9rem,1.1vh,1.125rem)] leading-[1.6] text-white/90 max-w-2xl">
+                        {/* Body Text: Compressed for Single Viewport */}
+                        <div className="space-y-[clamp(0.5rem,2vh,1rem)] text-[clamp(0.9rem,1.1vh,1.125rem)] leading-[1.55] text-white/90 max-w-2xl">
                             <p>
                                 Most IITM BS students have never met. We&apos;re spread across cities,
                                 connecting through screens, assignments, and Zoom lectures. For many,
@@ -144,10 +144,11 @@ export default function OriginStorySection() {
                                 to transform digital classmates into lifelong friends?
                             </p>
 
-                            {/* Key Statement */}
+                            {/* Key Statement - Optimized for Single Viewport */}
                             <p
-                                className="text-fluid-h2 short:text-fluid-h2-compact font-semibold text-ekatva-teal py-[clamp(0.5rem,1.5vh,1rem)]"
+                                className="font-semibold text-ekatva-teal py-[clamp(0.25rem,1.25vh,0.75rem)]"
                                 style={{
+                                    fontSize: 'clamp(1.5rem, 2vw + 0.5rem, 2.5rem)',
                                     textShadow: '0 0 40px rgba(92, 230, 201, 0.5), 0 0 80px rgba(92, 230, 201, 0.3)'
                                 }}
                             >

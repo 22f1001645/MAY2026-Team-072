@@ -36,7 +36,7 @@ export function HeroSection({ data, status }: HeroSectionProps) {
     }
 
     return (
-        <section className="hero-section-theatrical min-h-screen relative flex flex-col items-center justify-center overflow-hidden py-20 bg-[#050505]">
+        <section className="hero-section-theatrical min-h-screen relative flex flex-col items-center justify-center overflow-hidden py-12 md:py-20 bg-[#050505]">
             {/* Background gradient */}
             <div className="hero-bg-gradient absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-[#050505] to-black z-0 pointer-events-none" />
 

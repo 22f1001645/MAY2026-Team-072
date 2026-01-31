@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import {
     ChevronDown,
     ChevronRight,
@@ -23,8 +24,19 @@ import {
     PartyPopper
 } from 'lucide-react'
 import { HeroMarquee, CircularScroll } from './AboutHeroComponents'
-import { Section6A } from './Section6A'
-import { Section6B } from './Section6B'
+
+// PERFORMANCE OPTIMIZATION: Lazy load heavy sections
+// Section6A: ~43KB, Section6B: ~30KB - Total savings: ~73KB on initial bundle
+const Section6A = dynamic(() => import('./Section6A').then(mod => ({ default: mod.Section6A })), {
+    ssr: false,
+    loading: () => <div className="min-h-screen" /> // Minimal placeholder to prevent layout shift
+})
+
+const Section6B = dynamic(() => import('./Section6B').then(mod => ({ default: mod.Section6B })), {
+    ssr: false,
+    loading: () => <div className="min-h-screen" /> // Minimal placeholder
+})
+
 import './about.css'
 
 // ============================================================================
@@ -302,15 +314,25 @@ export default function AboutPageContent() {
     const [showMorphing, setShowMorphing] = useState(false)
     const [currentScriptIndex, setCurrentScriptIndex] = useState(0)
 
-    // Morphing Typography Effect - cycles through scripts
+    // Morphing Typography Effect - DEFERRED to requestIdleCallback
     useEffect(() => {
-        // Start morphing after 2 seconds
-        const startTimer = setTimeout(() => setShowMorphing(true), 2000)
+        // Defer morphing animation until browser is idle (PERFORMANCE OPTIMIZATION)
+        // This prevents animation from blocking critical path rendering
+        const idleCallback = requestIdleCallback ? requestIdleCallback(
+            () => setShowMorphing(true),
+            { timeout: 2000 } // Fallback: force start after 2s max
+        ) : setTimeout(() => setShowMorphing(true), 2000)
 
-        return () => clearTimeout(startTimer)
+        return () => {
+            if (requestIdleCallback && typeof idleCallback === 'number') {
+                cancelIdleCallback(idleCallback)
+            } else {
+                clearTimeout(idleCallback as NodeJS.Timeout)
+            }
+        }
     }, [])
 
-    // Script cycling (3 seconds per script)
+    // Script cycling (3 seconds per script) - only runs AFTER morphing is enabled
     useEffect(() => {
         if (!showMorphing) return
 

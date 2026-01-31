@@ -95,6 +95,10 @@ export function Section6B({ className = '' }: Section6BProps) {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.4, delay: index * 0.05 }}
+                                style={{
+                                    willChange: 'transform, opacity', // GPU hint
+                                    transform: 'translateZ(0)' // Force layer
+                                }}
                             >
                                 <span className="evo-icon-mini">{area.icon}</span>
                                 <div className="evo-content">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { motion, useScroll, useTransform, useSpring, useVelocity, useAnimationFrame, useMotionValue, wrap } from 'framer-motion'
 import { ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,9 +22,58 @@ export function HeroMarquee({ children, baseVelocity = 100, className }: Marquee
     const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 5], { clamp: false })
 
     const x = useTransform(baseX, (v) => `${wrap(-20, -45, v)}%`)
-
     const directionFactor = useRef<number>(1)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const isAnimating = useRef(false) // Use ref to avoid rerenders during scroll
+
+    // PERFORMANCE OPTIMIZATION: Only animate when visible and tab is active
+    // This saves CPU cycles when the marquee is off-screen
+    useEffect(() => {
+        if (!containerRef.current) return
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                // Determine if we should be animating
+                // Only animate if intersecting AND document is visible
+                const shouldAnimate = entry.isIntersecting && document.visibilityState === 'visible'
+                isAnimating.current = shouldAnimate
+
+                // If we become visible, we might want to "wake up" the animation loop
+                // (framer-motion handles this primarily, but the ref gate helps our logic)
+            },
+            { threshold: 0.1 } // 10% visibility required
+        )
+
+        observer.observe(containerRef.current)
+
+        // Also listen for visibility change (tab switch)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                isAnimating.current = false
+            } else {
+                // Re-check intersection status if we really wanted to be perfect, 
+                // but usually just assuming we might be visible if we were before is okay,
+                // or letting the observer trigger again. 
+                // For safety/simplicity, we rely on IntersectionObserver remaining active 
+                // or just letting the RAF loop run if visible.
+                // A simpler RAF gate is:
+                isAnimating.current = document.visibilityState === 'visible'
+                // Note: Logic inside RAF is what matters most for CPU
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
+        return () => {
+            observer.disconnect()
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+    }, [])
+
     useAnimationFrame((t, delta) => {
+        // PERFORMANCE GATING: Skip calculation if off-screen or hidden
+        if (!isAnimating.current) return
+
         let moveBy = directionFactor.current * baseVelocity * (delta / 1000)
 
         // Change direction based on scroll (optional - keeps it dynamic)
@@ -36,8 +85,19 @@ export function HeroMarquee({ children, baseVelocity = 100, className }: Marquee
     })
 
     return (
-        <div className={cn("overflow-hidden whitespace-nowrap flex flex-nowrap absolute w-full", className)}>
-            <motion.div className="flex flex-nowrap gap-16" style={{ x }}>
+        <div
+            ref={containerRef}
+            className={cn("overflow-hidden whitespace-nowrap flex flex-nowrap absolute w-full", className)}
+        >
+            <motion.div
+                className="flex flex-nowrap gap-16"
+                style={{
+                    x,
+                    // GPU ACCELERATION HINTS
+                    willChange: 'transform',
+                    transform: 'translateZ(0)' // Force composite layer
+                }}
+            >
                 {Array.from({ length: 8 }).map((_, i) => (
                     <span key={i} className="flex-shrink-0">
                         {children}

@@ -271,7 +271,11 @@ export function Section6A({ className = '' }: Section6AProps) {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                                style={{ '--step-color': step.color } as React.CSSProperties}
+                                style={{
+                                    '--step-color': step.color,
+                                    willChange: 'transform, height', // GPU hint
+                                    transform: 'translateZ(0)' // Force layer
+                                } as React.CSSProperties}
                                 onClick={() => setExpandedStep(expandedStep === step.id ? null : step.id)}
                             >
                                 {/* Accordion Header Row */}
@@ -346,6 +350,10 @@ export function Section6A({ className = '' }: Section6AProps) {
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8, delay: 0.2 }}
+                        style={{
+                            willChange: 'opacity',
+                            transform: 'translateZ(0)'
+                        }}
                     >
                         {/* SVG Canvas for connections */}
                         {/* SVG Canvas for connections */}
@@ -586,6 +594,11 @@ export function Section6A({ className = '' }: Section6AProps) {
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ duration: 0.4, delay: index * 0.03 }}
+                                    style={{
+                                        '--dept-accent-color': dept.color,
+                                        willChange: 'transform',
+                                        transform: 'translateZ(0)'
+                                    } as React.CSSProperties}
                                 >
                                     <div className="dept-icon">
                                         <DepartmentIcon type={dept.icon} color={dept.color} />

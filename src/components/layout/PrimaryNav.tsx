@@ -218,9 +218,9 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                         <div className="absolute bottom-4 left-4 w-2 h-2 border-b border-l border-white/20" />
                                                         <div className="absolute bottom-4 right-4 w-2 h-2 border-b border-r border-white/20" />
 
-                                                        <div className="relative px-8 py-8">
+                                                        <div className="relative px-6 py-6">
                                                             {/* Header Row */}
-                                                            <div className="flex items-end justify-between mb-8">
+                                                            <div className="flex items-end justify-between mb-6">
                                                                 <div className="flex items-center gap-4">
                                                                     <div className="w-1 h-12 bg-gradient-to-b from-white/30 to-transparent rounded-full" />
                                                                     <div>
@@ -228,22 +228,14 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                         <p className="text-white/40 text-sm mt-1.5 font-light tracking-wide">10 cities by 2030 — one fest at a time</p>
                                                                     </div>
                                                                 </div>
-                                                                <Link
-                                                                    href="/editions"
-                                                                    className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition-all border border-white/5"
-                                                                    onClick={() => setEditionsOpen(false)}
-                                                                >
-                                                                    <span className="text-ekatva-teal text-xs font-bold uppercase tracking-widest">View All</span>
-                                                                    <span className="text-ekatva-teal group-hover:translate-x-1 transition-transform">→</span>
-                                                                </Link>
                                                             </div>
 
                                                             {/* Cards Grid - Visual Hierarchy */}
-                                                            <div className="grid grid-cols-4 gap-6">
+                                                            <div className="grid grid-cols-4 gap-5 mb-6">
                                                                 {/* Featured: Hyderabad */}
                                                                 <Link
                                                                     href="/editions/hyderabad-2025"
-                                                                    className="group relative p-6 rounded-xl border border-white/10 transition-all duration-300 overflow-hidden"
+                                                                    className="group relative p-5 rounded-xl border border-white/10 transition-all duration-300 overflow-hidden"
                                                                     onClick={() => setEditionsOpen(false)}
                                                                     onMouseEnter={(e) => {
                                                                         e.currentTarget.style.borderColor = 'rgba(92, 230, 201, 0.5)'
@@ -258,7 +250,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                     <div className="absolute inset-0 bg-gradient-to-br from-ekatva-teal/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                                                                     <div className="relative z-10">
-                                                                        <div className="flex items-start justify-between mb-4">
+                                                                        <div className="flex items-start justify-between mb-3">
                                                                             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-ekatva-teal text-oneness-black">
                                                                                 Completed
                                                                             </span>
@@ -266,7 +258,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                                 ↗
                                                                             </span>
                                                                         </div>
-                                                                        <h4 className="text-white font-serif text-2xl group-hover:text-ekatva-teal transition-colors">Hyderabad</h4>
+                                                                        <h4 className="text-white font-serif text-xl group-hover:text-ekatva-teal transition-colors">Hyderabad</h4>
                                                                         <div className="flex items-center gap-2 mt-2 text-white/50 text-sm">
                                                                             <span className="w-1.5 h-1.5 rounded-full bg-ekatva-teal/50" />
                                                                             Feb 2025
@@ -275,37 +267,37 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                 </Link>
 
                                                                 {/* Upcoming: Delhi */}
-                                                                <div className="p-6 rounded-xl border border-white/5 bg-white/[0.02]">
-                                                                    <div className="flex items-start justify-between mb-4">
+                                                                <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02]">
+                                                                    <div className="flex items-start justify-between mb-3">
                                                                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-ekatva-gold/20 text-ekatva-gold border border-ekatva-gold/30">
                                                                             Coming Soon
                                                                         </span>
                                                                     </div>
-                                                                    <h4 className="text-white/80 font-serif text-2xl">Delhi</h4>
+                                                                    <h4 className="text-white/80 font-serif text-xl">Delhi</h4>
                                                                     <div className="flex items-center gap-2 mt-2 text-white/40 text-sm">
                                                                         <span className="w-1.5 h-1.5 rounded-full bg-ekatva-gold/50" />
-                                                                        Q2 2025
+                                                                        Q4 2025
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Planned: Bangalore */}
-                                                                <div className="p-6 rounded-xl border border-white/5 bg-white/[0.01]">
-                                                                    <div className="flex items-start justify-between mb-4">
-                                                                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-white/10 text-white/40">
-                                                                            Planned
+                                                                {/* Coming Soon: Bangalore */}
+                                                                <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02]">
+                                                                    <div className="flex items-start justify-between mb-3">
+                                                                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-ekatva-gold/20 text-ekatva-gold border border-ekatva-gold/30">
+                                                                            Coming Soon
                                                                         </span>
                                                                     </div>
-                                                                    <h4 className="text-white/40 font-serif text-2xl">Bangalore</h4>
+                                                                    <h4 className="text-white/80 font-serif text-xl">Bangalore</h4>
                                                                     <div className="flex items-center gap-2 mt-2 text-white/30 text-sm">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                                                                        Q4 2025
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-ekatva-gold/50" />
+                                                                        Q2 2025
                                                                     </div>
                                                                 </div>
 
                                                                 {/* CTA Card */}
                                                                 <Link
                                                                     href="/editions/bring-ekatva-to-your-city"
-                                                                    className="group relative p-6 rounded-xl border border-dashed border-white/20 hover:border-ekatva-gold/60 transition-all bg-white/[0.01] hover:bg-ekatva-gold/5 flex flex-col justify-end"
+                                                                    className="group relative p-5 rounded-xl border border-dashed border-white/20 hover:border-ekatva-gold/60 transition-all bg-white/[0.01] hover:bg-ekatva-gold/5 flex flex-col justify-end"
                                                                     onClick={() => setEditionsOpen(false)}
                                                                 >
                                                                     <div className="mb-auto">
@@ -315,6 +307,18 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                         Bring EKATVA to Your City
                                                                     </h4>
                                                                     <p className="text-white/40 text-xs uppercase tracking-wider mt-2 group-hover:text-ekatva-gold/70">Host a regional fest</p>
+                                                                </Link>
+                                                            </div>
+
+                                                            {/* View All - Repositioned Below Grid */}
+                                                            <div className="flex justify-center pt-4 border-t border-white/5">
+                                                                <Link
+                                                                    href="/editions"
+                                                                    className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition-all border border-white/5"
+                                                                    onClick={() => setEditionsOpen(false)}
+                                                                >
+                                                                    <span className="text-ekatva-teal text-xs font-bold uppercase tracking-widest">View All Editions</span>
+                                                                    <span className="text-ekatva-teal group-hover:translate-x-1 transition-transform">→</span>
                                                                 </Link>
                                                             </div>
                                                         </div>
@@ -364,10 +368,10 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                             </Link>
                         )
                     })}
-                </div>
+                </div >
 
                 {/* CTA Button with Premium Shimmer Effect */}
-                <Link
+                < Link
                     href="/join-us"
                     className="hidden md:inline-flex relative overflow-hidden group px-6 py-2.5 bg-ekatva-teal rounded-full text-oneness-black font-bold text-sm uppercase tracking-wider transition-all duration-300"
                     style={{
@@ -383,7 +387,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                     }}
                 >
                     {/* Shimmer sweep overlay - visible on hover */}
-                    <span
+                    < span
                         className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
                         style={{
                             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
@@ -401,7 +405,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                     />
 
                     <span className="relative z-10">Join Us</span>
-                </Link>
+                </Link >
 
                 {/* Mobile Menu Toggle */}
                 <button

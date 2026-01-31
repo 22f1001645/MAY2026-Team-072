@@ -169,6 +169,32 @@ export default function CenterCore3D() {
                 EKATVA
             </Text>
 
+            {/* BACK SIDE (180 deg rotation) - Devanagari */}
+            <Text
+                position={[0, 0.15, -(coreSize + 0.05)]}
+                rotation={[0, Math.PI, 0]}
+                fontSize={0.35}
+                color="#5CE6C9"
+                anchorX="center"
+                anchorY="middle"
+            >
+                एकत्व
+            </Text>
+
+            {/* BACK SIDE (180 deg rotation) - English */}
+            <Text
+                position={[0, -0.28, -(coreSize + 0.05)]}
+                rotation={[0, Math.PI, 0]}
+                fontSize={0.16}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="middle"
+                letterSpacing={0.25}
+                fillOpacity={0.9}
+            >
+                EKATVA
+            </Text>
+
         </group>
     )
 }

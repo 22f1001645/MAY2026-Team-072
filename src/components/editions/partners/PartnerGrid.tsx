@@ -1,34 +1,57 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { PARTNER_ENTITIES } from '@/data/partners'
 import { LogoCard } from './LogoCard'
 import { DataTray } from './DataTray'
 
 export const PartnerGrid: React.FC = () => {
-    const [activeEntityId, setActiveEntityId] = useState<string | null>(null)
+    const [activeEntityId, setActiveEntityId] = useState<string | null>('pravaha') // Default to Pravāha
+    const [windowWidth, setWindowWidth] = useState<number>(
+        typeof window !== 'undefined' ? window.innerWidth : 1920
+    )
+
+    // Listen to window resize for responsive tray positioning
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowWidth(window.innerWidth)
+        }
+
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     const activeEntity = useMemo(
         () => PARTNER_ENTITIES.find(e => e.id === activeEntityId),
         [activeEntityId]
     )
 
-    // Calculate where to inject the tray (after the row containing the active card)
+    // Calculate where to inject the tray
+    // Desktop: after the row containing the active card
+    // Mobile (≤768px): immediately after the active card (inline expansion)
     const trayIndex = useMemo(() => {
         if (!activeEntityId) return -1
 
         const currentIndex = PARTNER_ENTITIES.findIndex(e => e.id === activeEntityId)
 
-        // Calculate items per row based on viewport
+        // Detect mobile viewport (≤768px) - inline expansion
+        const isMobile = windowWidth <= 768
+
+        if (isMobile) {
+            // Mobile: inject tray immediately after selected item
+            return currentIndex
+        }
+
+        // Desktop: Calculate items per row and inject at row-end
         // Desktop: 5 columns (compact grid)
         // Tablet: 4 columns
-        // Mobile: 3 columns
+        // Mobile grid fallback: 3 columns (shouldn't reach here due to isMobile check)
         const itemsPerRow = 5
 
         // Find the last item in the current row
         const rowEndIndex = Math.ceil((currentIndex + 1) / itemsPerRow) * itemsPerRow - 1
 
         return Math.min(rowEndIndex, PARTNER_ENTITIES.length - 1)
-    }, [activeEntityId])
+    }, [activeEntityId, windowWidth])
 
     const handleToggleEntity = (entityId: string) => {
         if (activeEntityId === entityId) {

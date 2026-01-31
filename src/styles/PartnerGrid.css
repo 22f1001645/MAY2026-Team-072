@@ -369,10 +369,10 @@
 }
 
 /* ============================================
-   RESPONSIVE DESIGN - Compact Grid
+   RESPONSIVE DESIGN - MOBILE-NATIVE ARCHITECTURE
    ============================================ */
 
-/* Large Tablet */
+/* Large Tablet - Reduce to 4 columns */
 @media (max-width: 900px) {
     .entities-grid {
         grid-template-columns: repeat(4, 1fr);
@@ -386,7 +386,7 @@
     }
 }
 
-/* Tablet */
+/* Tablet - 3 columns (transition point) */
 @media (max-width: 700px) {
     .partner-communities {
         margin: 60px auto;
@@ -413,7 +413,143 @@
     }
 }
 
-/* Mobile */
+/* Mobile - VERTICAL STACK ARCHITECTURE (≤ 768px) */
+@media (max-width: 768px) {
+
+    /* === LAYOUT TRANSFORMATION === */
+    .entities-grid {
+        grid-template-columns: 1fr;
+        /* Single column */
+        gap: 16px;
+        /* Vertical spacing between items */
+        max-width: 100%;
+        /* Full width */
+    }
+
+    /* === LOGO CARD - HORIZONTAL LAYOUT === */
+    .logo-card {
+        flex-direction: row;
+        /* Logo + Name side-by-side */
+        align-items: center;
+        justify-content: flex-start;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        min-height: 100px;
+        transition: all 300ms ease;
+    }
+
+    .logo-card:hover {
+        transform: translateY(0);
+        /* No vertical lift on mobile */
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(92, 230, 201, 0.3);
+    }
+
+    .logo-card.active {
+        transform: none;
+        /* No scale on mobile */
+        background: rgba(92, 230, 201, 0.05);
+        border-color: rgba(92, 230, 201, 0.6);
+        border-width: 2px;
+        box-shadow: 0 4px 20px rgba(92, 230, 201, 0.2);
+    }
+
+    /* === LOGO CONTAINER - LEFT ALIGNED === */
+    .logo-container {
+        width: 80px;
+        height: 80px;
+        margin-right: 16px;
+        flex-shrink: 0;
+    }
+
+    .logo-card:hover .logo-container {
+        border-color: rgba(92, 230, 201, 0.4);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 12px rgba(92, 230, 201, 0.15);
+    }
+
+    .logo-card.active .logo-container {
+        border-color: rgba(92, 230, 201, 0.8);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(92, 230, 201, 0.25);
+    }
+
+    /* === ENTITY NAME - LEFT ALIGNED === */
+    .entity-name {
+        text-align: left;
+        margin-top: 0;
+        margin-left: 0;
+        font-size: 15px;
+        font-weight: 500;
+        max-width: none;
+        white-space: normal;
+        flex: 1;
+    }
+
+    .logo-card.active .entity-name {
+        font-weight: 600;
+    }
+
+    /* === CONNECTOR LINE - HIDDEN (Spatial proximity replaces arrow) === */
+    .connector-line {
+        display: none;
+    }
+
+    /* === DATA TRAY - INLINE EXPANSION === */
+    .data-tray {
+        grid-column: 1;
+        /* Single column, not full-width span */
+        margin-top: 12px;
+        /* Directly attached to logo above */
+        margin-bottom: 4px;
+        padding: 20px 16px;
+        border-radius: 12px;
+        max-height: 500px;
+    }
+
+    .tray-header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .tray-title-main {
+        font-size: 14px;
+        letter-spacing: 0.05em;
+    }
+
+    .tray-title-sub {
+        font-size: 12px;
+    }
+
+    .tray-close {
+        width: 28px;
+        height: 28px;
+    }
+
+    .gb-members-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .gb-member-card {
+        padding: 12px 14px;
+    }
+
+    .member-name {
+        font-size: 14px;
+    }
+
+    .member-role {
+        font-size: 12px;
+    }
+
+    .role-icon {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* Small Mobile - Ultra-compact (≤ 480px) */
 @media (max-width: 480px) {
     .partner-communities {
         margin: 48px auto;
@@ -424,31 +560,52 @@
         margin-bottom: 32px;
     }
 
-    .entities-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px 12px;
-        max-width: 320px;
+    .partner-communities .section-title {
+        font-size: 22px;
+        letter-spacing: 0.06em;
+    }
+
+    .partner-communities .section-subtitle {
+        font-size: 14px;
+    }
+
+    .logo-card {
+        padding: 14px 16px;
+        min-height: 90px;
     }
 
     .logo-container {
         width: 70px;
         height: 70px;
+        margin-right: 14px;
     }
 
     .entity-name {
-        font-size: 10px;
-        margin-top: 6px;
+        font-size: 14px;
     }
 
     .data-tray {
-        padding: 20px 16px;
+        padding: 16px 14px;
     }
 
-    .tray-title {
-        font-size: 20px;
+    .tray-title-main {
+        font-size: 13px;
     }
 
-    .partner-communities .section-title {
-        font-size: 22px;
+    .tray-title-sub {
+        font-size: 11px;
+    }
+
+    .member-name {
+        font-size: 13px;
+    }
+
+    .member-role {
+        font-size: 11px;
+    }
+
+    .role-icon {
+        width: 32px;
+        height: 32px;
     }
 }

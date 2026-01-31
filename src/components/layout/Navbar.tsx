@@ -33,7 +33,7 @@ export default function Navbar() {
     const scrollThreshold = 100 // Minimum scroll before triggering smart hide
 
     // Pages with hero sections that need scroll-triggered visibility
-    const pagesWithHero = ['/', '/about']
+    const pagesWithHero = ['/', '/about', '/partner-with-us']
     const hasHeroSection = pagesWithHero.includes(pathname ?? '/')
     const showSecondary = hasSecondaryNav(pathname ?? '/')
 

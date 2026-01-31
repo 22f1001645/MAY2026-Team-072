@@ -4382,3 +4382,105 @@ section {
         font-size: 14px;
     }
 }
+
+/* ============================================
+   ANTIGRAVITY RESPONSIVE ARCHITECTURE PATCHES
+   Enforcing Single-Viewport Discipline
+   ============================================ */
+
+/* 1. STATS SECTION HARDENING */
+@media (max-width: 900px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        padding: 24px;
+    }
+
+    .stat-value {
+        font-size: 42px;
+    }
+}
+
+/* 2. TEAM SECTION HARDENING - TIER 1 (SPARK ARC) */
+@media (max-width: 1250px) {
+    .core-spark-arc {
+        grid-template-columns: repeat(2, minmax(300px, 400px));
+        gap: 32px;
+    }
+
+    /* Flatten the arc on smaller screens */
+    .core-spark-arc .core-card:nth-child(1),
+    .core-spark-arc .core-card:nth-child(2),
+    .core-spark-arc .core-card:nth-child(3) {
+        transform: translateY(0) !important;
+    }
+}
+
+@media (max-width: 850px) {
+    .core-spark-arc {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 0 16px;
+    }
+
+    .core-card {
+        width: 100%;
+        max-width: 100%;
+        min-height: auto;
+    }
+
+    .core-card .photo-wrapper {
+        margin-bottom: 16px;
+    }
+}
+
+/* 3. TEAM SECTION HARDENING - TIER 2 (EXECUTIVE GRID) */
+@media (max-width: 1100px) {
+    .core-executive-grid {
+        grid-template-columns: repeat(2, minmax(280px, 350px));
+        gap: 24px;
+    }
+}
+
+@media (max-width: 750px) {
+    .core-executive-grid {
+        grid-template-columns: 1fr;
+        padding: 0 16px;
+    }
+
+    .executive-card {
+        width: 100%;
+        max-width: 100%;
+        min-height: auto;
+    }
+}
+
+/* 4. GALLERY SECTION HARDENING */
+.memory-deck-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 60px;
+}
+
+@media (max-width: 1024px) {
+    .memory-deck-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .memory-deck-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}

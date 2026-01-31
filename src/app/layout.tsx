@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Poppins, Instrument_Serif } from 'next/font/google'
 import { Navbar, Footer } from '@/components/layout'
+import ScrollToTop from '@/components/layout/ScrollToTop'
 import './globals.css'
 
 const poppins = Poppins({
@@ -47,12 +48,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable} scroll-smooth`} suppressHydrationWarning>
+    <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://www.youtube.com" />
         <link rel="preconnect" href="https://www.google.com" />
       </head>
       <body className="font-sans" suppressHydrationWarning>
+        <ScrollToTop />
         <Navbar />
         {children}
         <Footer />

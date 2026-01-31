@@ -1,1 +1,0 @@
-﻿src/components/sections/RippleSection/IndiaMapSVG.tsx(48,35): error TS7006: Parameter 'location' implicitly has an 'any' type.

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { useMediaQuery } from '@/hooks/useMediaQuery'
+
 import OrbitalSystem from './OrbitalSystem'
 import DynamicContentPanel from './DynamicContentPanel'
 import MobileIdentityReveal from './mobile/MobileIdentityReveal'
@@ -22,8 +22,6 @@ import MobileIdentityReveal from './mobile/MobileIdentityReveal'
  * - Tap-to-flip pages, expand cards for philosophy
  */
 export default function IdentityRevealSection() {
-    const isMobile = useMediaQuery('(max-width: 768px)')
-
     // Scroll detection to prevent accidental taps during scroll (desktop only)
     const [isScrolling, setIsScrolling] = useState(false)
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -58,11 +56,13 @@ export default function IdentityRevealSection() {
             className="relative bg-oneness-black py-20"
             aria-labelledby="identity-title"
         >
-            {isMobile ? (
-                // MOBILE: Interactive Book + Atomic Truths Cards
+            {/* MOBILE: Interactive Book + Atomic Truths Cards */}
+            <div className="block md:hidden">
                 <MobileIdentityReveal />
-            ) : (
-                // DESKTOP: 3D Orbital System + Content Panel
+            </div>
+
+            {/* DESKTOP: 3D Orbital System + Content Panel */}
+            <div className="hidden md:block">
                 <>
                     {/* Background Ambient Glow */}
                     <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -162,7 +162,7 @@ export default function IdentityRevealSection() {
                         </div>
                     </div>
                 </>
-            )}
+            </div>
         </section>
     )
 }

@@ -225,7 +225,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                     <div className="w-1 h-12 bg-gradient-to-b from-white/30 to-transparent rounded-full" />
                                                                     <div>
                                                                         <h3 className="text-white font-serif text-3xl tracking-wide leading-none">Editions</h3>
-                                                                        <p className="text-white/40 text-sm mt-1.5 font-light tracking-wide">10 cities by 2030 — one fest at a time</p>
+                                                                        <p className="text-white/40 text-sm mt-1 font-light tracking-wide">10 cities by 2030 — one fest at a time</p>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -266,31 +266,31 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                                     </div>
                                                                 </Link>
 
-                                                                {/* Upcoming: Delhi */}
+                                                                {/* Coming Soon: Bangalore (Q2 2025) */}
                                                                 <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02]">
                                                                     <div className="flex items-start justify-between mb-3">
                                                                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-ekatva-gold/20 text-ekatva-gold border border-ekatva-gold/30">
                                                                             Coming Soon
                                                                         </span>
                                                                     </div>
-                                                                    <h4 className="text-white/80 font-serif text-xl">Delhi</h4>
+                                                                    <h4 className="text-white/85 font-serif text-xl">Bangalore</h4>
                                                                     <div className="flex items-center gap-2 mt-2 text-white/40 text-sm">
                                                                         <span className="w-1.5 h-1.5 rounded-full bg-ekatva-gold/50" />
-                                                                        Q4 2025
+                                                                        Q2 2025
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Coming Soon: Bangalore */}
+                                                                {/* Coming Soon: Delhi (Q4 2025) */}
                                                                 <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02]">
                                                                     <div className="flex items-start justify-between mb-3">
                                                                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-ekatva-gold/20 text-ekatva-gold border border-ekatva-gold/30">
                                                                             Coming Soon
                                                                         </span>
                                                                     </div>
-                                                                    <h4 className="text-white/80 font-serif text-xl">Bangalore</h4>
-                                                                    <div className="flex items-center gap-2 mt-2 text-white/30 text-sm">
+                                                                    <h4 className="text-white/85 font-serif text-xl">Delhi</h4>
+                                                                    <div className="flex items-center gap-2 mt-2 text-white/40 text-sm">
                                                                         <span className="w-1.5 h-1.5 rounded-full bg-ekatva-gold/50" />
-                                                                        Q2 2025
+                                                                        Q4 2025
                                                                     </div>
                                                                 </div>
 
@@ -314,7 +314,7 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                                             <div className="flex justify-center pt-4 border-t border-white/5">
                                                                 <Link
                                                                     href="/editions"
-                                                                    className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition-all border border-white/5"
+                                                                    className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(92,230,201,0.3)] transition-all border border-white/5"
                                                                     onClick={() => setEditionsOpen(false)}
                                                                 >
                                                                     <span className="text-ekatva-teal text-xs font-bold uppercase tracking-widest">View All Editions</span>
@@ -345,17 +345,9 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                                     {item.label}
                                 </span>
 
-                                {/* Spotlight / Underline Effect */}
-                                <motion.div
-                                    className="absolute -bottom-0.5 left-1/2 h-0.5 rounded-full bg-gradient-to-r from-transparent via-ekatva-teal to-transparent"
-                                    initial={{ width: 0, x: '-50%' }}
-                                    animate={{
-                                        width: '0%',
-                                        opacity: 0,
-                                    }}
-                                    whileHover={{ width: '80%', opacity: 0.7 }}
-                                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                                    style={{ transformOrigin: 'center' }}
+                                {/* Underline Effect - CSS-based for proper group-hover propagation */}
+                                <span
+                                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-to-r from-transparent via-ekatva-teal to-transparent w-0 opacity-0 group-hover:w-4/5 group-hover:opacity-70 transition-all duration-200 ease-out"
                                 />
 
                                 {isActive && (
@@ -368,10 +360,10 @@ export default function PrimaryNav({ onMobileMenuToggle, isMobileMenuOpen }: Pri
                             </Link>
                         )
                     })}
-                </div >
+                </div>
 
                 {/* CTA Button with Premium Shimmer Effect */}
-                < Link
+                <Link
                     href="/join-us"
                     className="hidden md:inline-flex relative overflow-hidden group px-6 py-2.5 bg-ekatva-teal rounded-full text-oneness-black font-bold text-sm uppercase tracking-wider transition-all duration-300"
                     style={{

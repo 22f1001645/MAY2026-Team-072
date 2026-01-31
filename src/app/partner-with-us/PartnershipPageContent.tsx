@@ -233,22 +233,13 @@ export default function PartnershipPageContent() {
     return (
         <main className="partnership-page bg-oneness-black min-h-screen">
 
-            {/* Home Link - Matches About page */}
-            <Link
-                href="/"
-                className="absolute top-8 left-6 z-50 flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm group"
-            >
-                <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                <span>Home</span>
-            </Link>
-
             {/* ============ SECTION 1: HERO ============ */}
             <section id="video" className="hero-partnership min-h-screen flex items-center justify-center relative overflow-hidden">
                 {/* Background gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#0A2329] via-[#0E2F36] to-[#0A2329]" />
                 <div className="absolute inset-0 bg-grid-pattern opacity-[0.03]" />
 
-                <div className="relative z-10 container-custom py-24 lg:py-32">
+                <div className="relative z-10 container-custom py-24 pt-32 lg:py-32">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}

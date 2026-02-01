@@ -55,7 +55,7 @@ export default function EditionsIndex() {
                 </div>
 
                 {/* INDIA MAP SECTION - SCALE CONTEXT */}
-                <div className="mt-32 w-full">
+                <div className="mt-20 w-full">
                     <EditionsMapSection />
                 </div>
 

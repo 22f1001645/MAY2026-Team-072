@@ -150,10 +150,10 @@ export function EditionsMapSection() {
     const [selectedCity, setSelectedCity] = useState(CITIES[0])
 
     return (
-        <section className="editions-map-section py-12 relative">
+        <section className="editions-map-section py-16 relative">
 
             {/* Header for Map Context */}
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -173,10 +173,10 @@ export function EditionsMapSection() {
                 </motion.p>
             </div>
 
-            <div className="map-container max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-12 px-4">
+            <div className="map-container max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] items-start gap-8 lg:gap-10 px-4">
                 {/* India Map with Overlay Markers */}
                 <motion.div
-                    className="india-map w-full lg:w-1/2 max-w-[600px] aspect-[612/696] relative"
+                    className="india-map w-full max-w-[520px] mx-auto lg:mx-0 aspect-[612/696] relative bg-white/[0.02] border border-white/10 rounded-2xl p-5"
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
@@ -283,11 +283,11 @@ export function EditionsMapSection() {
 
                 {/* City Details Panel */}
                 <motion.div
-                    className="city-details w-full lg:w-1/3 bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm min-h-[300px] flex flex-col justify-center"
-                    initial={{ opacity: 0, x: 30 }}
+                    className="city-details w-full max-w-[480px] mx-auto lg:mx-0 bg-white/[0.03] border border-white/10 rounded-2xl p-8 backdrop-blur-sm min-h-[420px] flex flex-col justify-start lg:sticky lg:top-24"
+                    initial={{ opacity: 0, x: 20 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
+                    transition={{ duration: 0.6, delay: 0.15 }}
                 >
                     <AnimatePresence mode="wait">
                         <motion.div

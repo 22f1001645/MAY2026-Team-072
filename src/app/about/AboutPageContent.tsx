@@ -125,7 +125,7 @@ const BELIEF_PRINCIPLES = [
             "We believe: It is the organizer's responsibility — not the participant's — to break the ice.",
             'The Core Design Question: How do we make 200+ students — most of whom have never met — feel comfortable, connected, and equal within the first hour?',
             'Every activity was chosen using four filters: Maximum Interaction (fast & forced in a good way), Radical Inclusivity (no talent, no elimination), Non-Competitive by Design (fun before leaderboards), and Cultural Familiarity + Virality.',
-            "By the time the first activity block ended: People knew names, groups had formed, energy had shifted, the fest felt \"safe.\" After that, performances landed better, team games felt natural, and the DJ night felt communal.",
+            "By the time the first activity block ended: People knew names, groups had formed, energy had shifted, the fest felt &quot;safe.&quot; After that, performances landed better, team games felt natural, and the DJ night felt communal.",
             "We didn't design activities to entertain students. We designed them to connect humans."
         ],
         icon: Zap,
@@ -136,7 +136,7 @@ const BELIEF_PRINCIPLES = [
 const BROKEN_SYSTEMS = [
     {
         number: 1,
-        headline: "Paradox — And Many Can't Attend",
+        headline: "Paradox — And Many Can&apos;t Attend",
         short: 'Many dual-degree students miss the annual fest entirely because of exam overlaps, travel difficulties, and timing conflicts.'
     },
     {
@@ -319,18 +319,18 @@ export default function AboutPageContent() {
     useEffect(() => {
         // Defer morphing animation until browser is idle (PERFORMANCE OPTIMIZATION)
         // This prevents animation from blocking critical path rendering
-        const idleCallback = requestIdleCallback ? requestIdleCallback(
-            () => setShowMorphing(true),
-            { timeout: 2000 } // Fallback: force start after 2s max
-        ) : setTimeout(() => setShowMorphing(true), 2000)
+        const timeoutId = setTimeout(() => setShowMorphing(true), 2000)
 
-        return () => {
-            if (requestIdleCallback && typeof idleCallback === 'number') {
-                cancelIdleCallback(idleCallback)
-            } else {
-                clearTimeout(idleCallback as NodeJS.Timeout)
-            }
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            const idleId = (window as any).requestIdleCallback(() => {
+                clearTimeout(timeoutId)
+                setShowMorphing(true)
+            }, { timeout: 2000 })
+
+            return () => (window as any).cancelIdleCallback(idleId)
         }
+
+        return () => clearTimeout(timeoutId)
     }, [])
 
     // Script cycling (3 seconds per script) - only runs AFTER morphing is enabled
@@ -483,8 +483,8 @@ export default function AboutPageContent() {
                     >
                         <h2 className="about-section-title">What We Stand For</h2>
                         <p className="about-section-subtitle">
-                            These aren't values we chose.<br />
-                            They're the foundations EKATVA was built on.
+                            These aren&apos;t values we chose.<br />
+                            They&apos;re the foundations EKATVA was built on.
                         </p>
                     </motion.header>
 
@@ -598,7 +598,7 @@ export default function AboutPageContent() {
                         >
                             <h3 className="story-subsection-title about-subhead">Why I Took This On</h3>
                             <blockquote className="personal-quote">
-                                "Once you've felt belonging, you can't ignore those who never will."
+                                &quot;Once you&apos;ve felt belonging, you can&apos;t ignore those who never will.&quot;
                             </blockquote>
                             <div className="personal-text">
                                 <p>
@@ -607,11 +607,11 @@ export default function AboutPageContent() {
                                 </p>
                                 <p>
                                     And then came the realization: So many students would never experience this.
-                                    Not because they didn't want to — but because the system didn't allow them to.
+                                    Not because they didn&apos;t want to — but because the system didn&apos;t allow them to.
                                 </p>
                                 <p>
                                     I could have just attended Paradox, enjoyed my experience, and moved on.
-                                    But once you've felt belonging, you can't ignore those who never will.
+                                    But once you&apos;ve felt belonging, you can&apos;t ignore those who never will.
                                 </p>
                                 <p><strong>What about everyone else?</strong></p>
                             </div>

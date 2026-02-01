@@ -589,10 +589,6 @@ export function Section6A({ className = '' }: Section6AProps) {
                                 <motion.div
                                     key={dept.id}
                                     className="department-card"
-                                    style={{ '--dept-accent-color': dept.color } as React.CSSProperties}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
                                     transition={{ duration: 0.4, delay: index * 0.03 }}
                                     style={{
                                         '--dept-accent-color': dept.color,

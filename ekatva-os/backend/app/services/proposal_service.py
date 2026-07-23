@@ -1,0 +1,108 @@
+from datetime import datetime
+
+from ..constants import (
+    EVENT_UPCOMING,
+    MEETUPS_PER_CITY_PER_MONTH,
+    POINTS,
+    PROPOSAL_APPROVED,
+    PROPOSAL_CHANGES,
+    PROPOSAL_REJECTED,
+    PROPOSAL_SUBMITTED,
+)
+from ..errors import ApiError
+from ..extensions import db
+from ..models import Activity, BudgetLine, ContributionPoint, Notification, Proposal
+from ..repositories.repos import ActivityRepository, AuditRepository, OrgRepository
+
+
+def submit_proposal(data: dict, organiser) -> Activity:
+    org = OrgRepository.by_id(data["org_id"])
+    if not org:
+        raise ApiError("Organisation not found", "org_not_found", 404)
+
+    # Quota guardrail (FR-B2): one meetup per city per month
+    if data["scale"] in ("local_meetup", "regional_meetup"):
+        count = ActivityRepository.meetups_in_city_month(data["city"], data["starts_at"])
+        if count >= MEETUPS_PER_CITY_PER_MONTH:
+            raise ApiError(
+                f"Quota guardrail: {data['city']} already has a meetup this month",
+                "quota_exceeded",
+                409,
+            )
+
+    activity = Activity(
+        org_id=org.id,
+        title=data["title"],
+        description=data.get("description", ""),
+        city=data["city"],
+        scale=data["scale"],
+        venue=data["venue"],
+        starts_at=data["starts_at"],
+        capacity=data["capacity"],
+        status=EVENT_UPCOMING,
+        organiser_id=organiser.id,
+    )
+    db.session.add(activity)
+    db.session.flush()
+
+    for line in data.get("budget", []):
+        db.session.add(
+            BudgetLine(activity_id=activity.id, label=line["label"], planned=line["planned"])
+        )
+
+    proposal = Proposal(activity_id=activity.id, submitted_by=organiser.id, status=PROPOSAL_SUBMITTED)
+    db.session.add(proposal)
+
+    AuditRepository.record("proposal", activity.id, "Submitted proposal", organiser)
+    db.session.commit()
+    return activity
+
+
+def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity or not activity.proposal:
+        raise ApiError("Proposal not found", "proposal_not_found", 404)
+
+    proposal = activity.proposal
+    if proposal.status in (PROPOSAL_APPROVED, PROPOSAL_REJECTED):
+        raise ApiError("This proposal has already been decided", "already_decided", 409)
+
+    if decision == "approve":
+        proposal.status = PROPOSAL_APPROVED
+        # On approval the Activity auto-publishes as a live event (FR-C1)
+        activity.status = EVENT_UPCOMING
+        AuditRepository.record("proposal", activity.id, "Approved & auto-published", admin, note)
+        # Organiser earns points for a run/approved activity (FR-G2)
+        db.session.add(
+            ContributionPoint(
+                user_id=activity.organiser_id,
+                activity_id=activity.id,
+                action="organised",
+                points=POINTS["organised"],
+            )
+        )
+        _notify(activity.organiser_id, activity.id, "approval",
+                "Proposal approved", f"'{activity.title}' is live on the city feed.")
+    elif decision == "changes":
+        if not note:
+            raise ApiError("A note is required when requesting changes", "note_required", 400)
+        proposal.status = PROPOSAL_CHANGES
+        AuditRepository.record("proposal", activity.id, "Requested changes", admin, note)
+        _notify(activity.organiser_id, activity.id, "update", "Changes requested", note)
+    elif decision == "reject":
+        proposal.status = PROPOSAL_REJECTED
+        AuditRepository.record("proposal", activity.id, "Rejected", admin, note)
+        _notify(activity.organiser_id, activity.id, "update", "Proposal rejected", note or "")
+
+    db.session.commit()
+    return activity
+
+
+def audit_trail(activity_id: str):
+    return AuditRepository.for_entity(activity_id)
+
+
+def _notify(user_id, activity_id, ntype, title, body):
+    db.session.add(
+        Notification(user_id=user_id, activity_id=activity_id, type=ntype, title=title, body=body)
+    )

@@ -129,8 +129,8 @@ export function Section6B({ className = '' }: Section6BProps) {
                         <span className="dream-label-mini">The 2030 Dream</span>
 
                         <blockquote className="dream-quote-compact">
-                            "We want EKATVA to be a reason someone
-                            <strong>chooses IIT Madras BS."</strong>
+                            &ldquo;We want EKATVA to be a reason someone
+                            <strong>chooses IIT Madras BS.&rdquo;</strong>
                         </blockquote>
 
                         <cite className="dream-attribution-mini">— Ekatva Team</cite>

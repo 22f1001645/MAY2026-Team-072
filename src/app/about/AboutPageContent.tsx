@@ -322,12 +322,17 @@ export default function AboutPageContent() {
         const timeoutId = setTimeout(() => setShowMorphing(true), 2000)
 
         if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-            const idleId = (window as any).requestIdleCallback(() => {
+            interface WindowWithIdleCallback extends Window {
+                requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number
+                cancelIdleCallback: (id: number) => void
+            }
+            const w = window as WindowWithIdleCallback
+            const idleId = w.requestIdleCallback(() => {
                 clearTimeout(timeoutId)
                 setShowMorphing(true)
             }, { timeout: 2000 })
 
-            return () => (window as any).cancelIdleCallback(idleId)
+            return () => w.cancelIdleCallback(idleId)
         }
 
         return () => clearTimeout(timeoutId)

@@ -1,17 +1,33 @@
+import React from 'react'
 import { render, screen } from '@testing-library/react'
 import OriginStorySection from '@/components/sections/OriginStorySection'
 
+type MotionProps = React.HTMLAttributes<HTMLElement> & {
+  children?: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+  initial?: unknown
+  animate?: unknown
+  transition?: unknown
+  variants?: unknown
+}
+
 // Mock animation
 jest.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: any) => <div className={className} {...props}>{children}</div>,
-    },
-    useInView: () => true,
+  motion: {
+    div: ({ children, className, style }: MotionProps) =>
+      <div className={className} style={style}>{children}</div>,
+  },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useInView: () => true,
+  useScroll: () => ({ scrollYProgress: { get: () => 0 } }),
+  useTransform: () => 0,
 }))
 
 // Mock StatCard to simplify tree
 jest.mock('@/components/ui', () => ({
-    StatCard: ({ value, label }: any) => <div data-testid="stat-card">{value} - {label}</div>,
+  StatCard: ({ value, label }: { value: string; label: string }) =>
+    <div data-testid="stat-card">{value} - {label}</div>,
 }))
 
 describe('OriginStorySection', () => {

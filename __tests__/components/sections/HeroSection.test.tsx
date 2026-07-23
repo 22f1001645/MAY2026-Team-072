@@ -1,36 +1,65 @@
+import React from 'react'
 import { render, screen } from '@testing-library/react'
 import HeroSection from '@/components/sections/HeroSection'
 
-// Mock animation to avoid issues in test environment
+type MotionProps = React.HTMLAttributes<HTMLElement> & {
+  children?: React.ReactNode
+  className?: string
+  initial?: unknown
+  animate?: unknown
+  exit?: unknown
+  transition?: unknown
+  variants?: unknown
+  whileHover?: unknown
+  whileTap?: unknown
+  style?: React.CSSProperties
+  onClick?: React.MouseEventHandler
+}
+
+// Mock framer-motion — include every export HeroSection uses
 jest.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: any) => <div className={className} {...props}>{children}</div>,
-        h1: ({ children, className, ...props }: any) => <h1 className={className} {...props}>{children}</h1>,
-        h2: ({ children, className, ...props }: any) => <h2 className={className} {...props}>{children}</h2>,
-        p: ({ children, className, ...props }: any) => <p className={className} {...props}>{children}</p>,
-        button: ({ children, className, onClick, ...props }: any) => <button className={className} onClick={onClick} {...props}>{children}</button>,
-    },
-    useInView: () => true,
+  motion: {
+    div: ({ children, className, style, onClick, ...rest }: MotionProps) =>
+      <div className={className} style={style} onClick={onClick} data-testid={(rest as Record<string, string>)['data-testid']}>{children}</div>,
+    h1: ({ children, className, style }: MotionProps) =>
+      <h1 className={className} style={style}>{children}</h1>,
+    h2: ({ children, className, style }: MotionProps) =>
+      <h2 className={className} style={style}>{children}</h2>,
+    p: ({ children, className, style }: MotionProps) =>
+      <p className={className} style={style}>{children}</p>,
+    span: ({ children, className, style }: MotionProps) =>
+      <span className={className} style={style}>{children}</span>,
+    section: ({ children, className, style }: MotionProps) =>
+      <section className={className} style={style}>{children}</section>,
+    button: ({ children, className, onClick }: MotionProps) =>
+      <button className={className} onClick={onClick}>{children}</button>,
+    header: ({ children, className, style }: MotionProps) =>
+      <header className={className} style={style}>{children}</header>,
+    a: ({ children, className }: MotionProps) =>
+      <a className={className}>{children}</a>,
+  },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useInView: () => true,
+  useScroll: () => ({ scrollYProgress: { get: () => 0 } }),
+  useTransform: () => 0,
+  useMotionValue: (initial: number) => ({ get: () => initial }),
+  useSpring: (value: unknown) => value,
 }))
 
 describe('HeroSection', () => {
-    it('renders the main tagline', () => {
-        render(<HeroSection />)
-        expect(screen.getByText('Unite.')).toBeInTheDocument()
-        expect(screen.getByText('Inspire.')).toBeInTheDocument()
-        expect(screen.getByText('Celebrate.')).toBeInTheDocument()
-    })
+  it('renders the main tagline', () => {
+    render(<HeroSection />)
+    expect(screen.getByText('From Online')).toBeInTheDocument()
+  })
 
-    it('renders the brand name', () => {
-        render(<HeroSection />)
-        expect(screen.getByText('EKATVA')).toBeInTheDocument()
-    })
+  it('renders the CTA buttons', () => {
+    render(<HeroSection />)
+    expect(screen.getByText('Discover EKATVA')).toBeInTheDocument()
+    expect(screen.getByText('Join The Movement')).toBeInTheDocument()
+  })
 
-    it('renders the scroll indicator button', () => {
-        render(<HeroSection />)
-        expect(screen.getByRole('button', { name: /scroll down to explore/i })).toBeInTheDocument()
-    })
-
-    // Note: We cannot easily test the video vs image logic without mocking window.innerWidth and events,
-    // but testing the content is a good baseline.
+  it('renders the subtitle text', () => {
+    render(<HeroSection />)
+    expect(screen.getByText(/34,000\+ IITM BS students/i)).toBeInTheDocument()
+  })
 })

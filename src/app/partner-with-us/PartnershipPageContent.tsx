@@ -306,8 +306,8 @@ export default function PartnershipPageContent() {
                         className="prose prose-lg prose-invert mx-auto mb-12"
                     >
                         <p className="text-lg md:text-xl text-white/80 text-center leading-relaxed">
-                            EKATVA (meaning <em>"oneness"</em> in Sanskrit) is India's first regional festival movement
-                            for IITM BS students. We're solving a simple problem:
+                            EKATVA (meaning <em>&ldquo;oneness&rdquo;</em> in Sanskrit) is India&apos;s first regional festival movement
+                            for IITM BS students. We&apos;re solving a simple problem:
                         </p>
                     </motion.div>
 

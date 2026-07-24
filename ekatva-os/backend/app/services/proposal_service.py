@@ -11,7 +11,7 @@ from ..constants import (
 )
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Activity, BudgetLine, ContributionPoint, Notification, Proposal
+from ..models import Activity, BudgetLine, ContributionPoint, Notification, Proposal, Report
 from ..repositories.repos import ActivityRepository, AuditRepository, OrgRepository
 
 
@@ -100,6 +100,30 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
 
 def audit_trail(activity_id: str):
     return AuditRepository.for_entity(activity_id)
+
+
+def submit_report(activity_id: str, summary: str, organiser) -> Report:
+    """FR-F2 — On completion, an organiser files a short post-event report."""
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity:
+        raise ApiError("Activity not found", "not_found", 404)
+
+    report = Report(activity_id=activity_id, summary=summary)
+    activity.status = "completed"
+    db.session.add(report)
+    AuditRepository.record("report", activity_id, "Filed post-event report", organiser)
+    db.session.commit()
+    return report
+
+
+def get_report(activity_id: str) -> Report:
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity:
+        raise ApiError("Activity not found", "not_found", 404)
+    report = Report.query.filter_by(activity_id=activity_id).first()
+    if not report:
+        raise ApiError("Report not found", "not_found", 404)
+    return report
 
 
 def _notify(user_id, activity_id, ntype, title, body):

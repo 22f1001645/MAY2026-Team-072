@@ -4,7 +4,7 @@ Conventions (per the design): UUID string PKs, created_at/updated_at on every
 table, FKs indexed, the audit_log append-only. UUID-as-string keeps the schema
 portable across SQLite (dev) and PostgreSQL 15 (prod)."""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..extensions import db
 
@@ -13,15 +13,19 @@ def _uuid() -> str:
     return uuid.uuid4().hex
 
 
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
 class Base(db.Model):
     """Shared PK + timestamps for every entity."""
 
     __abstract__ = True
 
     id = db.Column(db.String(32), primary_key=True, default=_uuid)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False
     )
 
 
@@ -336,12 +340,28 @@ class Report(Base):
     summary = db.Column(db.Text)
     deleted_at = db.Column(db.DateTime)  # soft-delete
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "summary": self.summary,
+            "submitted_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
 
 class Document(Base):
     __tablename__ = "documents"
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"))
     url = db.Column(db.String(300))
     deleted_at = db.Column(db.DateTime)  # soft-delete
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "url": self.url,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
 class AuditLog(Base):

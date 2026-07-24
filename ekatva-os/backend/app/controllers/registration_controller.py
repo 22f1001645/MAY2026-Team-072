@@ -1,7 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
 from ..rbac import auth_required, organiser_required
-from ..schemas import BroadcastSchema, CheckInSchema
+from ..schemas import BroadcastSchema, CheckInSchema, VolunteerSchema
 from ..services import attendance_service, registration_service
 
 registration_bp = Blueprint("registration", __name__, url_prefix="/api/v1")
@@ -53,3 +53,14 @@ def broadcast(activity_id):
 def my_registrations():
     regs = registration_service.my_registrations(g.current_user)
     return jsonify([r.to_dict() for r in regs]), 200
+
+
+@registration_bp.post("/events/<activity_id>/volunteer")
+@organiser_required
+def award_volunteer(activity_id):
+    """FR-G3 — Award volunteer contribution points (20 points) for an assigned role."""
+    data = VolunteerSchema().load(request.get_json() or {})
+    result = attendance_service.award_volunteer_points(
+        activity_id, data["user_id"], data["role_name"], g.current_user
+    )
+    return jsonify(result), 200

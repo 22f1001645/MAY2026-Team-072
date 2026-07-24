@@ -42,3 +42,29 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
 
     db.session.commit()
     return {"checked_in": newly, "total_attended": activity.attended_count()}
+
+
+def award_volunteer_points(activity_id: str, user_id: str, role_name: str, organiser) -> dict:
+    """FR-G3 — Award volunteer contribution points (20 points) for an assigned role."""
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity:
+        raise ApiError("Event not found", "event_not_found", 404)
+
+    point_entry = ContributionPoint(
+        user_id=user_id,
+        activity_id=activity_id,
+        action="volunteered",
+        points=POINTS["volunteered"],
+    )
+    db.session.add(point_entry)
+    db.session.add(
+        Notification(
+            user_id=user_id,
+            activity_id=activity_id,
+            type="points",
+            title=f"You earned {POINTS['volunteered']} volunteer points",
+            body=f"For volunteering as {role_name} at '{activity.title}'.",
+        )
+    )
+    db.session.commit()
+    return {"user_id": user_id, "action": "volunteered", "points": POINTS["volunteered"]}

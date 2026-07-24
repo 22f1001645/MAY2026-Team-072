@@ -1,9 +1,9 @@
 from flask import Blueprint, g, jsonify, request
 
 from ..errors import ApiError
-from ..rbac import admin_required, organiser_required
+from ..rbac import admin_required, auth_required, organiser_required
 from ..repositories.repos import ActivityRepository
-from ..schemas import DecisionSchema, ProposalSchema
+from ..schemas import DecisionSchema, ProposalSchema, ReportSchema
 from ..services import proposal_service
 
 proposal_bp = Blueprint("proposals", __name__, url_prefix="/api/v1")
@@ -48,3 +48,19 @@ def decision(activity_id):
 @admin_required
 def audit(activity_id):
     return jsonify([a.to_dict() for a in proposal_service.audit_trail(activity_id)]), 200
+
+
+@proposal_bp.post("/activities/<activity_id>/report")
+@organiser_required
+def submit_report(activity_id):
+    """FR-F2 — On completion, an organiser files a short post-event report."""
+    data = ReportSchema().load(request.get_json() or {})
+    report = proposal_service.submit_report(activity_id, data["summary"], g.current_user)
+    return jsonify(report.to_dict()), 201
+
+
+@proposal_bp.get("/activities/<activity_id>/report")
+@auth_required
+def get_report(activity_id):
+    report = proposal_service.get_report(activity_id)
+    return jsonify(report.to_dict()), 200

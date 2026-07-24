@@ -67,3 +67,12 @@ class OrgSchema(Schema):
     name = fields.Str(required=True)
     type = fields.Str(required=True, validate=validate.OneOf(["house", "society", "region", "council"]))
     city = fields.Str(required=True)
+
+
+class ReportSchema(Schema):
+    summary = fields.Str(required=True, validate=validate.Length(min=10))
+
+
+class VolunteerSchema(Schema):
+    user_id = fields.Str(required=True)
+    role_name = fields.Str(load_default="Volunteer")

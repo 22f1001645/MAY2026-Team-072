@@ -102,6 +102,10 @@ def audit_trail(activity_id: str):
     return AuditRepository.for_entity(activity_id)
 
 
+def global_audit_trail(limit=50):
+    return AuditRepository.all_logs(limit)
+
+
 def submit_report(activity_id: str, summary: str, organiser) -> Report:
     """FR-F2 — On completion, an organiser files a short post-event report."""
     activity = ActivityRepository.by_id(activity_id)

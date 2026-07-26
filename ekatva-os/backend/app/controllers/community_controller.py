@@ -41,3 +41,11 @@ def assign_por(org_id):
 @admin_required
 def list_pors():
     return jsonify([p.to_dict() for p in org_service.list_pors()]), 200
+
+
+@community_bp.patch("/pors/<por_id>/deactivate")
+@admin_required
+def deactivate_por(por_id):
+    """FR-A5 — Deactivate a POR assignment during term handover."""
+    por = org_service.deactivate_por(por_id, g.current_user)
+    return jsonify(por.to_dict()), 200

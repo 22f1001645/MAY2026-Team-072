@@ -50,3 +50,19 @@ def for_activity(activity_id):
 
 def all_expenses():
     return ExpenseRepository.all()
+
+
+def bulk_advance(expense_ids: list, admin) -> list:
+    """FR-E3 — Bulk advance multiple expense bills at once."""
+    updated = []
+    for eid in expense_ids:
+        expense = ExpenseRepository.by_id(eid)
+        if not expense:
+            continue
+        idx = EXPENSE_FLOW.index(expense.status)
+        if idx < len(EXPENSE_FLOW) - 1:
+            expense.status = EXPENSE_FLOW[idx + 1]
+            AuditRepository.record("expense", expense.id, f"Bulk advanced to {expense.status}", admin)
+            updated.append(expense)
+    db.session.commit()
+    return updated

@@ -36,3 +36,14 @@ def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin) -> PO
 
 def list_pors():
     return OrgRepository.por_assignments()
+
+
+def deactivate_por(por_id: str, admin) -> PORAssignment:
+    """FR-A5 — Deactivate a POR assignment during leadership handover."""
+    por = PORAssignment.query.get(por_id)
+    if not por:
+        raise ApiError("POR assignment not found", "por_not_found", 404)
+    por.active = False
+    AuditRepository.record("por", por.id, f"Deactivated POR {por.por_type}", admin)
+    db.session.commit()
+    return por

@@ -170,6 +170,10 @@ class AuditRepository:
         )
 
     @staticmethod
+    def all_logs(limit=50):
+        return AuditLog.query.order_by(AuditLog.created_at.desc()).limit(limit).all()
+
+    @staticmethod
     def record(entity, entity_id, action, actor, note=None):
         entry = AuditLog(
             entity=entity,

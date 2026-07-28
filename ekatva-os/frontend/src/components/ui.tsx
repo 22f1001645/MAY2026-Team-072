@@ -188,6 +188,18 @@ export function EmptyState({ title, sub }: { title: string; sub?: string }) {
 }
 
 // The mandala/oneness mark — used across surfaces (Brand Kit §4, icon variant)
+export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      className={cx(
+        'w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/40',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Mandala({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg

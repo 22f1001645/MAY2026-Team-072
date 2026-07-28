@@ -12,13 +12,67 @@ def create_org(data: dict, admin) -> Organisation:
     return org
 
 
-def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin) -> PORAssignment:
+def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin, region_id: str = None) -> PORAssignment:
     org = OrgRepository.by_id(org_id)
     if not org:
         raise ApiError("Organisation not found", "org_not_found", 404)
     user = UserRepository.by_id(user_id)
+    if not user and "@" in user_id:
+        user = UserRepository.by_email(user_id)
     if not user:
-        raise ApiError("Member not found", "user_not_found", 404)
+        raise ApiError("Member not found by ID or email", "user_not_found", 404)
+    user_id = user.id
+
+    # Auto-determine council tier from position type
+    upper_positions = {"House Secretary", "Deputy House Secretary"}
+    lower_positions = {"Regional Coordinator"}
+    if por_type in upper_positions:
+        council_tier = "upper_house_council"
+    elif por_type in lower_positions:
+        council_tier = "lower_house_council"
+    else:
+        council_tier = None
+
+    # Guardrail 1: House Secretary / Deputy House Secretary uniqueness per House
+    if por_type in upper_positions:
+        existing = (
+            PORAssignment.query.join(Membership)
+            .filter(
+                Membership.org_id == org_id,
+                PORAssignment.por_type == por_type,
+                PORAssignment.active == True,
+            )
+            .first()
+        )
+        if existing:
+            raise ApiError(
+                f"{por_type} is already assigned for {org.name}",
+                "slot_already_filled",
+                409,
+            )
+
+    # Guardrail 2: Regional Coordinator uniqueness per House + Region pair
+    if por_type == "Regional Coordinator":
+        if not region_id:
+            raise ApiError("Region selection is required for Regional Coordinator assignment", "region_required", 400)
+        existing = (
+            PORAssignment.query.join(Membership)
+            .filter(
+                Membership.org_id == org_id,
+                PORAssignment.region_id == region_id,
+                PORAssignment.por_type == "Regional Coordinator",
+                PORAssignment.active == True,
+            )
+            .first()
+        )
+        if existing:
+            region_org = OrgRepository.by_id(region_id)
+            region_name = region_org.name if region_org else "selected region"
+            raise ApiError(
+                f"Regional Coordinator is already assigned for {org.name} in {region_name}",
+                "rc_slot_already_filled",
+                409,
+            )
 
     # A POR is always scoped to a Membership (create one if needed)
     membership = OrgRepository.membership_for(user_id, org_id)
@@ -27,9 +81,17 @@ def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin) -> PO
         db.session.add(membership)
         db.session.flush()
 
-    por = PORAssignment(membership_id=membership.id, por_type=por_type, term=term, active=True)
+    por = PORAssignment(
+        membership_id=membership.id,
+        por_type=por_type,
+        term=term,
+        active=True,
+        region_id=region_id,
+        council_tier=council_tier,
+    )
     db.session.add(por)
-    AuditRepository.record("por", por.id, f"Assigned {por_type} to {user.name}", admin)
+    council_label = f" [{council_tier}]" if council_tier else ""
+    AuditRepository.record("por", por.id, f"Assigned {por_type}{council_label} to {user.name}", admin)
     db.session.commit()
     return por
 

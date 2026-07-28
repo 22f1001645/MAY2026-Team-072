@@ -131,7 +131,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  register: (data: { name: string; email: string; password: string; city: string }) =>
+  register: (data: { name: string; email: string; password: string; region_id: string; city?: string }) =>
     request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -139,11 +139,23 @@ export const api = {
   me: () => request<any>('/auth/me'),
 
   // Community (A)
-  cities: () => request<{ id: string; name: string }[]>('/cities'),
+  cities: () => request<{ id: string; name: string; region_id: string | null; region: string | null }[]>('/cities'),
+  regions: () => request<{ id: string; name: string; type: string }[]>('/regions'),
+  citiesForRegion: (regionId: string) =>
+    request<{ id: string; name: string; region_id: string; region: string }[]>(`/regions/${regionId}/cities`),
+  addCityToRegion: (regionId: string, name: string) =>
+    request<{ id: string; name: string; region_id: string; region: string }>(
+      `/regions/${regionId}/cities`,
+      { method: 'POST', body: JSON.stringify({ name }) }
+    ),
   orgs: () => request<any[]>('/orgs'),
   pors: () => request<any[]>('/pors'),
+  users: (q?: string) =>
+    request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createOrg: (data: { name: string; type: string; city: string }) =>
     request('/orgs', { method: 'POST', body: JSON.stringify(data) }),
+  assignPor: (orgId: string, data: { user_id: string; por_type: string; term?: string; region_id?: string }) =>
+    request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Discovery (C)
   events: (city?: string) =>

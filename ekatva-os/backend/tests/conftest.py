@@ -34,16 +34,22 @@ def client(app):
 
 
 def _seed_minimal():
-    db.session.add(City(name="Hyderabad"))
     org = Organisation(name="Hyderabad Regional Chapter", type="region", city="Hyderabad")
-    db.session.add(org)
+    house = Organisation(name="Nilgiri House", type="house", city="Pan-India")
+    db.session.add_all([org, house])
+    db.session.flush()
+
+    # City scoped to the Hyderabad region
+    db.session.add(City(name="Hyderabad", region_id=org.id))
 
     admin = User(name="Admin", email="admin@ekatva.os",
                  password_hash=generate_password_hash("admin123"), role="admin", city="Chennai")
     rc = User(name="Sai Teja", email="rc@ekatva.os",
-              password_hash=generate_password_hash("rc12345"), role="student", city="Hyderabad")
+              password_hash=generate_password_hash("rc12345"), role="student",
+              city="Hyderabad", region_id=org.id)
     student = User(name="Arav", email="arav@ekatva.os",
-                   password_hash=generate_password_hash("student123"), role="student", city="Hyderabad")
+                   password_hash=generate_password_hash("student123"), role="student",
+                   city="Hyderabad", region_id=org.id)
     db.session.add_all([admin, rc, student])
     db.session.flush()
 

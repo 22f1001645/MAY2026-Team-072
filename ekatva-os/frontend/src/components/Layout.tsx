@@ -1,7 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
+import { api } from '../lib/api'
 import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
 import { Mandala } from './ui'
@@ -66,6 +68,51 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   const nav = NAV[role]
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  const { data: searchUsers = [] } = useQuery({
+    queryKey: ['search-users', searchQuery],
+    queryFn: () => api.users(searchQuery),
+    enabled: searchQuery.trim().length >= 1,
+  })
+
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['search-events'],
+    queryFn: () => api.events(),
+    enabled: searchQuery.trim().length >= 1,
+  })
+
+  const { data: allOrgs = [] } = useQuery({
+    queryKey: ['search-orgs'],
+    queryFn: () => api.orgs(),
+    enabled: searchQuery.trim().length >= 1,
+  })
+
+  const filteredEvents = allEvents.filter(
+    (e) =>
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
+
+  const filteredOrgs = allOrgs.filter(
+    (o) =>
+      o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.type.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -161,12 +208,111 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             <Icon d="M4 6h16M4 12h16M4 18h16" />
           </button>
-          <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3.5 py-2 text-[13px] text-graytext-light sm:flex">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3-3" strokeLinecap="round" />
-            </svg>
-            Search events, people, orgs…
+          <div ref={searchRef} className="relative hidden sm:block">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[13px] text-graytext-light focus-within:border-teal/50 focus-within:bg-black/40">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0 text-graytext-mid">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3-3" strokeLinecap="round" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search events, people, orgs…"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setSearchOpen(true)
+                }}
+                onFocus={() => setSearchOpen(true)}
+                className="w-48 bg-transparent text-[13px] text-offwhite placeholder:text-graytext-mid focus:outline-none md:w-64"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSearchOpen(false)
+                  }}
+                  className="text-graytext-mid hover:text-offwhite text-[12px] px-1"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Global Search Dropdown */}
+            {searchOpen && searchQuery.trim().length >= 1 && (
+              <div className="absolute left-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx/95 p-3 shadow-2xl backdrop-blur-xl z-50 max-h-96 overflow-y-auto space-y-3">
+                {/* Events Section */}
+                {filteredEvents.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-teal mb-1 px-2">Events ({filteredEvents.length})</div>
+                    <div className="space-y-1">
+                      {filteredEvents.slice(0, 3).map((evt) => (
+                        <div
+                          key={evt.id}
+                          onClick={() => {
+                            setSearchOpen(false)
+                            navigate(`/events/${evt.id}`)
+                          }}
+                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="text-[13px] font-semibold text-offwhite">{evt.title}</div>
+                          <div className="text-[11px] text-graytext-light">{evt.city} · {evt.startsAt}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* People / Members Section */}
+                {searchUsers.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-gold mb-1 px-2">People / Members ({searchUsers.length})</div>
+                    <div className="space-y-1">
+                      {searchUsers.slice(0, 3).map((usr) => (
+                        <div
+                          key={usr.id}
+                          onClick={() => {
+                            setSearchOpen(false)
+                            if (role === 'admin') navigate('/admin/orgs')
+                          }}
+                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="text-[13px] font-semibold text-offwhite">{usr.name}</div>
+                          <div className="text-[11px] text-graytext-light">{usr.email} · {usr.city}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Organisations Section */}
+                {filteredOrgs.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-1 px-2">Organisations ({filteredOrgs.length})</div>
+                    <div className="space-y-1">
+                      {filteredOrgs.slice(0, 3).map((org) => (
+                        <div
+                          key={org.id}
+                          onClick={() => {
+                            setSearchOpen(false)
+                            if (role === 'admin') navigate('/admin/orgs')
+                            else navigate('/discover')
+                          }}
+                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="text-[13px] font-semibold text-offwhite">{org.name}</div>
+                          <div className="text-[11px] text-graytext-light">Type: {org.type}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {filteredEvents.length === 0 && searchUsers.length === 0 && filteredOrgs.length === 0 && (
+                  <div className="p-4 text-center text-[13px] text-graytext-mid">No matching events, people, or orgs found.</div>
+                )}
+              </div>
+            )}
           </div>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-caption text-graytext-mid sm:block">

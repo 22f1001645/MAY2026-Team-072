@@ -37,6 +37,14 @@ class UserRepository:
     def students():
         return User.query.filter_by(role="student").all()
 
+    @staticmethod
+    def search(query: str):
+        q = f"%{query.strip().lower()}%"
+        return User.query.filter(
+            User.role == "student",
+            (db.func.lower(User.email).like(q) | db.func.lower(User.name).like(q))
+        ).all()
+
 
 class OrgRepository:
     @staticmethod
@@ -50,6 +58,21 @@ class OrgRepository:
     @staticmethod
     def cities():
         return City.query.order_by(City.name).all()
+
+    @staticmethod
+    def cities_for_region(region_id: str):
+        return City.query.filter_by(region_id=region_id).order_by(City.name).all()
+
+    @staticmethod
+    def add_city_to_region(name: str, region_id: str):
+        existing = City.query.filter_by(name=name.strip(), region_id=region_id).first()
+        if existing:
+            return existing
+        city = City(name=name.strip(), region_id=region_id)
+        from ..extensions import db
+        db.session.add(city)
+        db.session.commit()
+        return city
 
     @staticmethod
     def por_assignments():
@@ -86,6 +109,31 @@ class ActivityRepository:
     def by_organiser(user_id):
         return Activity.query.filter_by(organiser_id=user_id).order_by(Activity.created_at.desc()).all()
 
+    @staticmethod
+    def meetups_in_region_month(org_id: str, ref: datetime):
+        """FR-B2 quota: counts meetups in a Region per month (via Activity.org_id).
+        Excludes rejected proposals so they don't consume the quota.
+        For backward compat, also accepts a city string as fallback."""
+        start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        q = Activity.query.filter(
+            Activity.org_id == org_id,
+            Activity.starts_at >= start,
+            Activity.scale.in_(["local_meetup", "regional_meetup"]),
+        ).join(Proposal).filter(~Proposal.status.in_(["rejected", "revoked"]))
+        return q.count()
+
+    @staticmethod
+    def approved_meetups_in_region_month(org_id: str, ref: datetime):
+        """Used strictly during Admin decision to ensure an approved meetup doesn't violate quota."""
+        start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        q = Activity.query.filter(
+            Activity.org_id == org_id,
+            Activity.starts_at >= start,
+            Activity.scale.in_(["local_meetup", "regional_meetup"]),
+        ).join(Proposal).filter(Proposal.status == "approved")
+        return q.count()
+
+    # Keep old method for backward compat with existing tests
     @staticmethod
     def meetups_in_city_month(city, ref: datetime):
         start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

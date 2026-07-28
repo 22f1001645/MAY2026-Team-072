@@ -32,3 +32,13 @@ def verify(expense_id):
 @admin_required
 def queue():
     return jsonify([e.to_dict() for e in expense_service.all_expenses()]), 200
+
+
+@expense_bp.patch("/expenses/bulk-verify")
+@admin_required
+def bulk_verify():
+    """FR-E3 — bulk advance reimbursement status for multiple expenses."""
+    data = request.get_json() or {}
+    expense_ids = data.get("expense_ids", [])
+    updated = expense_service.bulk_advance(expense_ids, g.current_user)
+    return jsonify([e.to_dict() for e in updated]), 200

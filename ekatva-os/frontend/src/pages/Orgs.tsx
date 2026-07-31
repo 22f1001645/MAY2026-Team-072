@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCities, useOrgs, usePors, useUsers, useCreateOrg, useAssignPor, useRegions } from '../lib/queries'
+import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor } from '../lib/queries'
 import { api } from '../lib/api'
-import { Badge, Button, Card, Input, SectionTitle } from '../components/ui'
+import { Badge, Button, Card, Input, SectionTitle, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
+import { IndiaMap } from '../components/IndiaMap'
 
 const ORG_TONE: Record<string, any> = {
   house: 'gold',
@@ -14,19 +16,19 @@ const ORG_TONE: Record<string, any> = {
 }
 
 // 12 Forest Houses with national park metadata
-const HOUSE_META: Record<string, { park: string; state: string; color: string }> = {
-  'Bandipur House':    { park: 'Bandipur National Park',    state: 'Karnataka',    color: '#4ade80' },
-  'Corbett House':     { park: 'Jim Corbett National Park', state: 'Uttarakhand',  color: '#60a5fa' },
-  'Gir House':         { park: 'Gir Forest National Park',  state: 'Gujarat',      color: '#f59e0b' },
-  'Kanha House':       { park: 'Kanha National Park',       state: 'M.P.',         color: '#a78bfa' },
-  'Kaziranga House':   { park: 'Kaziranga National Park',   state: 'Assam',        color: '#34d399' },
-  'Nallamala House':   { park: 'Nagarjunasagar-Srisailam',  state: 'Telangana',    color: '#f97316' },
-  'Namdapha House':    { park: 'Namdapha National Park',    state: 'Arunachal P.', color: '#06b6d4' },
-  'Nilgiri House':     { park: 'Nilgiri Biosphere Reserve', state: 'Tamil Nadu',   color: '#5CE6C9' },
-  'Pichavaram House':  { park: 'Pichavaram Mangrove Forest',state: 'Tamil Nadu',   color: '#e879f9' },
-  'Saranda House':     { park: 'Saranda Forest',            state: 'Jharkhand',    color: '#fb923c' },
-  'Sundarbans House':  { park: 'Sundarbans National Park',  state: 'West Bengal',  color: '#2dd4bf' },
-  'Wayanad House':     { park: 'Wayanad Wildlife Sanctuary',state: 'Kerala',       color: '#a3e635' },
+const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
+  'Bandipur House':    { park: 'Bandipur National Park',    state: 'Karnataka',    color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
+  'Corbett House':     { park: 'Jim Corbett National Park', state: 'Uttarakhand',  color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
+  'Gir House':         { park: 'Gir Forest National Park',  state: 'Gujarat',      color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
+  'Kanha House':       { park: 'Kanha National Park',       state: 'M.P.',         color: '#a78bfa', logo: '🦌', imageLogo: '/houses/kanha.png', website: 'https://kanha.iitmbs.org/' },
+  'Kaziranga House':   { park: 'Kaziranga National Park',   state: 'Assam',        color: '#34d399', logo: '🦏', imageLogo: '/houses/kaziranga.png', website: 'https://kaziranga.iitmbs.org/' },
+  'Nallamala House':   { park: 'Nagarjunasagar-Srisailam',  state: 'Telangana',    color: '#f97316', logo: '🐆', imageLogo: '/houses/nallamala.png', website: 'https://nallamala.iitmbs.org/' },
+  'Namdapha House':    { park: 'Namdapha National Park',    state: 'Arunachal P.', color: '#06b6d4', logo: '🦅', imageLogo: '/houses/namdapha.png', website: 'https://namdapha.iitmbs.org/' },
+  'Nilgiri House':     { park: 'Nilgiri Biosphere Reserve', state: 'Tamil Nadu',   color: '#5CE6C9', logo: '⛰️', imageLogo: '/houses/nilgiri.png', website: 'https://nilgiri.iitmbs.org/' },
+  'Pichavaram House':  { park: 'Pichavaram Mangrove Forest',state: 'Tamil Nadu',   color: '#e879f9', logo: '🛶', imageLogo: '/houses/pichavaram.png', website: 'https://pichavaram.iitmbs.org/' },
+  'Saranda House':     { park: 'Saranda Forest',            state: 'Jharkhand',    color: '#fb923c', logo: '🌳', imageLogo: '/houses/saranda.png', website: 'https://saranda.iitmbs.org/' },
+  'Sundarbans House':  { park: 'Sundarbans National Park',  state: 'West Bengal',  color: '#2dd4bf', logo: '🐊', imageLogo: '/houses/sundarbans.png', website: 'https://sundarbans.iitmbs.org/#/' },
+  'Wayanad House':     { park: 'Wayanad Wildlife Sanctuary',state: 'Kerala',       color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
 }
 
 const POR_TYPES = [
@@ -34,9 +36,6 @@ const POR_TYPES = [
   'Deputy House Secretary',
   'Regional Coordinator',
   'Web Admin',
-  'Event Lead',
-  'Society Secretary',
-  'Technical Secretary',
 ]
 
 const REGIONS = [
@@ -53,7 +52,7 @@ const REGIONS = [
 ]
 
 export default function Orgs() {
-  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'councils' | 'cities'>('houses')
+  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities'>('houses')
   const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
 
   const [userSearch, setUserSearch] = useState('')
@@ -67,9 +66,13 @@ export default function Orgs() {
 
   const createOrgMutation = useCreateOrg()
   const assignPorMutation = useAssignPor()
+  const deactivatePorMutation = useDeactivatePor()
+  const { addToast } = useToast()
 
   const [showSeedModal, setShowSeedModal] = useState(false)
   const [showPorModal, setShowPorModal] = useState(false)
+  const [viewingHouseId, setViewingHouseId] = useState<string | null>(null)
+  const [selectedMapRegionId, setSelectedMapRegionId] = useState<string | null>(null)
 
   // Seed Org form state
   const [orgName, setOrgName] = useState('')
@@ -94,6 +97,16 @@ export default function Orgs() {
   const [addCityRegionName, setAddCityRegionName] = useState('')
   const [newCityName, setNewCityName] = useState('')
   const [addCityError, setAddCityError] = useState<string | null>(null)
+
+  // POR Directory search & deactivate state
+  const [porSearch, setPorSearch] = useState('')
+  const [porOrgFilter, setPorOrgFilter] = useState('')
+  const [porRoleFilter, setPorRoleFilter] = useState('')
+  const [porStatusFilter, setPorStatusFilter] = useState('')
+  const [porRegionFilter, setPorRegionFilter] = useState('')
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
+  const confirmPor = pors.find((p: any) => p.id === confirmDeactivateId)
+
   const qc = useQueryClient()
 
   const addCityMutation = useMutation({
@@ -121,7 +134,7 @@ export default function Orgs() {
     if (!orgName.trim()) return
     createOrgMutation.mutate(
       { name: orgName.trim(), type: orgType, city: orgCity },
-      { onSuccess: () => { setShowSeedModal(false); setOrgName('') } },
+      { onSuccess: () => { setShowSeedModal(false); setOrgName(''); addToast('Organisation seeded successfully!') } },
     )
   }
 
@@ -145,6 +158,7 @@ export default function Orgs() {
           setUserId('')
           setUserSearch('')
           setAssignmentError(null)
+          addToast('Role authorized successfully!')
         },
         onError: (err: any) => {
           setAssignmentError(err.message || 'Failed to assign POR position.')
@@ -156,12 +170,13 @@ export default function Orgs() {
   if (lo) return <Loading label="Loading organisations…" />
   if (eo) return <ErrorState error={erro} />
 
+  const filteredOrgs = orgs.filter((o: any) => o.type !== 'house' && o.type !== 'region')
+
   const tabs = [
     ['houses', `12 Forest Houses`],
-    ['pors', `POR Assignments (${pors.length})`],
-    ['councils', `Council Members`],
-    ['orgs', `All Orgs (${orgs.length})`],
+    ['orgs', `Societies & Councils (${filteredOrgs.length})`],
     ['cities', `Regions & Cities`],
+    ['pors', `POR Directory (${pors.length})`],
   ] as const
 
   const selectedUserObj = users.find((u: any) => u.id === userId || u.email === userId)
@@ -170,8 +185,14 @@ export default function Orgs() {
     <div>
       <SectionTitle
         eyebrow="Admin"
-        title="Orgs, PORs & Councils"
-        sub="Manage the 12 Forest Houses, 10 Regions, Upper House Council (Secretaries) and Lower House Council (Regional Coordinators). Permissions follow PORs, not logins."
+        title="Orgs, PORs & Cities"
+        sub="Manage Forest Houses, Regions, Societies, and the POR Directory. Permissions follow PORs."
+        right={
+          <div className="flex gap-3">
+            <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Seed Org</Button>
+            <Button size="sm" onClick={() => setShowPorModal(true)}>+ Authorize Role</Button>
+          </div>
+        }
       />
 
       {/* Tab Bar */}
@@ -206,13 +227,17 @@ export default function Orgs() {
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
               const rcs = pors.filter((p: any) => p.org === h.name && p.por_type === 'Regional Coordinator' && p.active)
               return (
-                <Card key={h.id} hover className="p-5">
+                <Card key={h.id} hover className="p-5" onClick={() => setViewingHouseId(h.id)}>
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[18px]"
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[18px] overflow-hidden"
                       style={{ background: `${meta.color}18`, color: meta.color }}
                     >
-                      🌿
+                      {meta.imageLogo ? (
+                        <img src={meta.imageLogo} alt={`${h.name} logo`} className="h-full w-full object-cover" />
+                      ) : (
+                        meta.logo
+                      )}
                     </div>
                     <Badge tone="gold">{meta.state}</Badge>
                   </div>
@@ -243,11 +268,56 @@ export default function Orgs() {
         </div>
       )}
 
-      {/* ---- POR ASSIGNMENTS TAB ---- */}
+      {/* ---- POR DIRECTORY TAB ---- */}
       {tab === 'pors' && (
         <div>
-          <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => setShowPorModal(true)}>+ Authorize Role</Button>
+          {/* Search + Filter bar */}
+          <div className="mb-4 flex flex-wrap gap-3">
+            <Input
+              placeholder="Search by member name…"
+              value={porSearch}
+              onChange={e => setPorSearch(e.target.value)}
+              className="max-w-xs"
+            />
+            <select
+              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
+              value={porOrgFilter}
+              onChange={e => setPorOrgFilter(e.target.value)}
+            >
+              <option value="">All Houses / Orgs</option>
+              {Array.from(new Set(pors.map((p: any) => p.org))).sort().map((org: any) => (
+                <option key={org} value={org}>{org}</option>
+              ))}
+            </select>
+            <select
+              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
+              value={porRoleFilter}
+              onChange={e => setPorRoleFilter(e.target.value)}
+            >
+              <option value="">All Positions</option>
+              {Array.from(new Set(pors.map((p: any) => p.por_type))).sort().map((role: any) => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+            <select
+              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
+              value={porRegionFilter}
+              onChange={e => setPorRegionFilter(e.target.value)}
+            >
+              <option value="">All Regions</option>
+              {Array.from(new Set(pors.map((p: any) => p.region).filter(Boolean))).sort().map((region: any) => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+            <select
+              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
+              value={porStatusFilter}
+              onChange={e => setPorStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="past">Past Only</option>
+            </select>
           </div>
           {pors.length === 0 ? (
             <Card className="p-10 text-center text-graytext-light">No PORs assigned yet.</Card>
@@ -263,10 +333,20 @@ export default function Orgs() {
                     <th className="px-5 py-3 text-left">Council</th>
                     <th className="px-5 py-3 text-left">Term</th>
                     <th className="px-5 py-3 text-right">Status</th>
+                    <th className="px-5 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pors.map((p: any) => (
+                  {pors
+                    .filter((p: any) => {
+                      const matchName = !porSearch || (p.member ?? '').toLowerCase().includes(porSearch.toLowerCase())
+                      const matchOrg = !porOrgFilter || p.org === porOrgFilter
+                      const matchRole = !porRoleFilter || p.por_type === porRoleFilter
+                      const matchRegion = !porRegionFilter || p.region === porRegionFilter
+                      const matchStatus = !porStatusFilter || (porStatusFilter === 'active' ? p.active : !p.active)
+                      return matchName && matchOrg && matchRole && matchRegion && matchStatus
+                    })
+                    .map((p: any) => (
                     <tr key={p.id} className="border-b border-white/5 last:border-0">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
@@ -288,6 +368,16 @@ export default function Orgs() {
                       <td className="px-5 py-3.5 text-right">
                         {p.active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Past</Badge>}
                       </td>
+                      <td className="px-5 py-3.5 text-right">
+                        {p.active && (
+                          <button
+                            onClick={() => setConfirmDeactivateId(p.id)}
+                            className="rounded-full border border-red-400/30 px-3 py-1 text-[12px] font-medium text-red-300 transition-colors hover:bg-red-500/10"
+                          >
+                            Deactivate
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -298,99 +388,51 @@ export default function Orgs() {
         </div>
       )}
 
-      {/* ---- COUNCIL MEMBERS TAB ---- */}
-      {tab === 'councils' && (
-        <div>
-          <div className="mb-4 flex gap-2">
-            {(['upper', 'lower'] as const).map((ct) => (
-              <button
-                key={ct}
-                onClick={() => setCouncilTab(ct)}
-                className={cx(
-                  'rounded-full border px-4 py-1.5 text-[13px] font-semibold transition-colors',
-                  councilTab === ct
-                    ? ct === 'upper' ? 'border-gold/40 bg-gold/10 text-gold' : 'border-teal/40 bg-teal/10 text-teal'
-                    : 'border-white/10 text-graytext-mid hover:text-offwhite',
-                )}
+      {/* ---- DEACTIVATE CONFIRMATION MODAL ---- */}
+      {confirmDeactivateId && confirmPor && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-sm p-6">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-300">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Deactivate POR?</h3>
+            <p className="mb-5 text-[14px] text-graytext-light">
+              This will remove <strong className="text-offwhite">{confirmPor.member}</strong>'s role as{' '}
+              <strong className="text-offwhite">{confirmPor.por_type}</strong> in{' '}
+              <strong className="text-offwhite">{confirmPor.org}</strong> and revoke their permissions immediately.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setConfirmDeactivateId(null)}>Cancel</Button>
+              <Button
+                variant="danger"
+                disabled={deactivatePorMutation.isPending}
+                onClick={() => {
+                  deactivatePorMutation.mutate(confirmDeactivateId, {
+                    onSuccess: () => {
+                      setConfirmDeactivateId(null)
+                      addToast(`${confirmPor.por_type} role for ${confirmPor.member} deactivated.`, 'info')
+                    },
+                    onError: (err: any) => addToast(err.message || 'Deactivation failed.', 'error'),
+                  })
+                }}
               >
-                {ct === 'upper' ? `Upper House Council (${upperCouncil.length})` : `Lower House Council (${lowerCouncil.length})`}
-              </button>
-            ))}
-          </div>
-
-          {councilTab === 'upper' && (
-            <div>
-              <p className="mb-3 text-caption text-graytext-mid">
-                12 House Secretaries + 12 Deputy House Secretaries — governs macro policies with Student Affairs.
-              </p>
-              {upperCouncil.length === 0 ? (
-                <Card className="p-10 text-center text-graytext-light">No Upper House Council members yet.</Card>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {upperCouncil.map((p: any) => (
-                    <Card key={p.id} className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-full bg-gold/15 text-[13px] font-bold text-gold">
-                          {(p.member ?? '?').split(' ').map((n: string) => n[0]).join('')}
-                        </div>
-                        <div>
-                          <div className="text-[14px] font-semibold text-offwhite">{p.member}</div>
-                          <div className="text-caption text-graytext-light">{p.org}</div>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <Badge tone="gold">{p.por_type}</Badge>
-                        <span className="text-caption text-graytext-mid">{p.term}</span>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                {deactivatePorMutation.isPending ? 'Deactivating…' : 'Yes, Deactivate'}
+              </Button>
             </div>
-          )}
-
-          {councilTab === 'lower' && (
-            <div>
-              <p className="mb-3 text-caption text-graytext-mid">
-                10 Regional Coordinators per House (120 total) — handles regional meetups, academic support, and orientation.
-              </p>
-              {lowerCouncil.length === 0 ? (
-                <Card className="p-10 text-center text-graytext-light">No Lower House Council members yet.</Card>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {lowerCouncil.map((p: any) => (
-                    <Card key={p.id} className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-full bg-teal/15 text-[13px] font-bold text-teal">
-                          {(p.member ?? '?').split(' ').map((n: string) => n[0]).join('')}
-                        </div>
-                        <div>
-                          <div className="text-[14px] font-semibold text-offwhite">{p.member}</div>
-                          <div className="text-caption text-graytext-light">{p.org}</div>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <Badge tone="teal">RC</Badge>
-                        <span className="text-caption text-graytext-mid">{p.region ?? 'All Regions'}</span>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          </Card>
+        </div>,
+        document.body
       )}
 
-      {/* ---- ALL ORGS TAB ---- */}
+      {/* ---- SOCIETIES & COUNCILS TAB ---- */}
       {tab === 'orgs' && (
         <div>
-          <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Seed Organisation</Button>
-          </div>
           <div className="space-y-8">
-            {Array.from(new Set(orgs.map((o: any) => o.type))).map((type: any) => {
-              const typedOrgs = orgs.filter((o: any) => o.type === type)
+            {Array.from(new Set(filteredOrgs.map((o: any) => o.type))).map((type: any) => {
+              const typedOrgs = filteredOrgs.filter((o: any) => o.type === type)
               return (
                 <div key={type}>
                   <h3 className="mb-4 border-b border-white/10 pb-2 text-[16px] font-bold capitalize text-offwhite">
@@ -436,62 +478,106 @@ export default function Orgs() {
           {regions.length === 0 ? (
             <Card className="p-10 text-center text-graytext-light">No regions seeded yet.</Card>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-2">
-              {regions.map((region: any) => {
-                const regionCities = cities.filter((c: any) => c.region_id === region.id)
-                return (
-                  <Card key={region.id} className="p-5">
-                    <div className="mb-3 flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[16px]">🗺️</span>
-                          <span className="text-[15px] font-bold text-offwhite">{region.name}</span>
-                        </div>
-                        <div className="mt-0.5 text-caption text-graytext-mid">
-                          {regionCities.length} {regionCities.length === 1 ? 'city' : 'cities'}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setAddCityRegionId(region.id)
-                          setAddCityRegionName(region.name)
-                          setNewCityName('')
-                          setAddCityError(null)
-                          setShowAddCityModal(true)
-                        }}
-                        className="shrink-0 rounded-lg border border-teal/30 bg-teal/10 px-2.5 py-1 text-[12px] font-semibold text-teal hover:bg-teal/20 transition-colors"
-                      >
-                        + Add City
-                      </button>
-                    </div>
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Map Area */}
+              <div className="flex-1 rounded-2xl border border-white/5 bg-white/[0.02] relative overflow-hidden flex items-center justify-center p-6">
+                <IndiaMap 
+                  regions={regions} 
+                  selectedRegionId={selectedMapRegionId} 
+                  onSelect={setSelectedMapRegionId} 
+                />
+              </div>
 
-                    {regionCities.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-white/10 py-3 text-center text-[12px] text-graytext-mid">
-                        No cities yet — add one above.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {regionCities.map((c: any) => (
-                          <span
-                            key={c.id}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[12px] text-offwhite"
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-teal" />
-                            {c.name}
-                          </span>
-                        ))}
+              {/* Side Panel Area */}
+              <div className="w-full lg:w-[400px] shrink-0">
+                {(() => {
+                  const region = regions.find((r: any) => r.id === selectedMapRegionId)
+                  if (!region) {
+                    return (
+                      <Card className="p-10 text-center text-graytext-mid h-full flex items-center justify-center border-dashed">
+                        Select a region on the map to view details.
+                      </Card>
+                    )
+                  }
+
+                  const regionCities = cities.filter((c: any) => c.region_id === region.id)
+                  const rcs = pors.filter((p: any) => p.por_type === 'Regional Coordinator' && p.region === region.name && p.active)
+
+                  return (
+                    <Card className="p-6 h-full flex flex-col">
+                      <div className="mb-4 flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[18px]">📍</span>
+                            <span className="text-[18px] font-bold text-offwhite">{region.name}</span>
+                          </div>
+                          <div className="mt-1 text-caption text-graytext-mid">
+                            {regionCities.length} {regionCities.length === 1 ? 'city' : 'cities'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setAddCityRegionId(region.id)
+                            setAddCityRegionName(region.name)
+                            setNewCityName('')
+                            setAddCityError(null)
+                            setShowAddCityModal(true)
+                          }}
+                          className="shrink-0 rounded-lg border border-teal/30 bg-teal/10 px-3 py-1.5 text-[12px] font-semibold text-teal hover:bg-teal/20 transition-colors"
+                        >
+                          + Add City
+                        </button>
                       </div>
-                    )}
-                  </Card>
-                )
-              })}
+
+                      {regionCities.length > 0 && (
+                        <div className="mb-6 flex flex-wrap gap-2">
+                          {regionCities.map((c: any) => (
+                            <span
+                              key={c.id}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[12px] text-offwhite"
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-teal" />
+                              {c.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="border-t border-white/5 pt-5 flex-1">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-[13px] font-semibold text-graytext-mid uppercase tracking-wider">Regional Coordinators</h4>
+                          <Badge tone="teal">{rcs.length} / 10</Badge>
+                        </div>
+                        
+                        {rcs.length === 0 ? (
+                          <p className="text-caption text-graytext-light italic">No RCs assigned yet.</p>
+                        ) : (
+                          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {rcs.map((rc: any) => (
+                              <div key={rc.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors">
+                                <div className="grid h-8 w-8 place-items-center rounded-full bg-teal/15 text-[12px] font-bold text-teal shrink-0">
+                                  {(rc.member ?? '?').split(' ').map((n: string) => n[0]).join('')}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[14px] font-semibold text-offwhite truncate">{rc.member}</div>
+                                  <div className="text-[11px] text-graytext-light truncate mt-0.5">{rc.org}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )
+                })()}
+              </div>
             </div>
           )}
         </div>
       )}
 
       {/* ---- SEED ORGANISATION MODAL ---- */}
-      {showSeedModal && (
+      {showSeedModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md p-6">
             <h3 className="mb-1 text-[18px] font-bold text-offwhite">Seed New Organisation</h3>
@@ -526,11 +612,12 @@ export default function Orgs() {
               </div>
             </form>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ---- AUTHORIZE ROLE MODAL ---- */}
-      {showPorModal && (
+      {showPorModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-lg p-6">
             <h3 className="mb-1 text-[18px] font-bold text-offwhite">Authorize Elected Representative</h3>
@@ -558,23 +645,27 @@ export default function Orgs() {
                     setUserId('')
                   }}
                 />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Select Student Candidate</label>
-                <select
-                  className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  required
-                >
-                  <option value="">-- Select Member ({users.length} matching) --</option>
-                  {users.map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} — {u.email} ({u.city})
-                    </option>
-                  ))}
-                </select>
+                
+                {/* Search Results List */}
+                {userSearch.trim() !== '' && !userId && (
+                  <div className="mt-2 max-h-[160px] overflow-y-auto rounded-xl border border-white/10 bg-onyx custom-scrollbar">
+                    {users.length === 0 ? (
+                      <div className="px-3.5 py-3 text-[13px] text-graytext-mid">No members found matching "{userSearch}"</div>
+                    ) : (
+                      users.map((u: any) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          className="w-full border-b border-white/5 px-3.5 py-2.5 text-left text-[13px] last:border-0 hover:bg-white/5 focus:bg-white/5 focus:outline-none"
+                          onClick={() => setUserId(u.id)}
+                        >
+                          <div className="font-semibold text-offwhite">{u.name}</div>
+                          <div className="text-graytext-mid">{u.email} <span className="mx-1">•</span> {u.city}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               {selectedUserObj && (
@@ -593,7 +684,7 @@ export default function Orgs() {
                     required
                   >
                     <option value="">-- Select House --</option>
-                    {(houses.length > 0 ? houses : orgs.filter((o: any) => o.type === 'house')).map((h: any) => (
+                    {houses.map((h: any) => (
                       <option key={h.id} value={h.id}>{h.name}</option>
                     ))}
                   </select>
@@ -603,7 +694,7 @@ export default function Orgs() {
                   <select
                     className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
                     value={selectedPorType}
-                    onChange={(e) => setSelectedPorType(e.target.value)}
+                    onChange={(e) => { setSelectedPorType(e.target.value); setSelectedHouseId('') }}
                   >
                     {POR_TYPES.map((pt) => <option key={pt} value={pt}>{pt}</option>)}
                   </select>
@@ -653,24 +744,18 @@ export default function Orgs() {
               </div>
             </form>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ---- ADD CITY TO REGION MODAL ---- */}
-      {showAddCityModal && (
+      {/* ---- ADD CITY MODAL ---- */}
+      {showAddCityModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md p-6">
-            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Add City to Region</h3>
+          <Card className="w-full max-w-sm p-6">
+            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Add City</h3>
             <p className="mb-4 text-caption text-graytext-light">
-              Adding city to: <span className="font-semibold text-teal">{addCityRegionName}</span>
+              Adding a city to <strong>{addCityRegionName}</strong>.
             </p>
-
-            {addCityError && (
-              <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-[13px] text-red-300">
-                ⚠️ {addCityError}
-              </div>
-            )}
-
             <form onSubmit={handleAddCity} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">City Name</label>
@@ -679,9 +764,13 @@ export default function Orgs() {
                   value={newCityName}
                   onChange={(e) => setNewCityName(e.target.value)}
                   required
-                  autoFocus
                 />
               </div>
+              {addCityError && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-[13px] text-red-200">
+                  {addCityError}
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="ghost" onClick={() => setShowAddCityModal(false)}>Cancel</Button>
                 <Button type="submit" disabled={addCityMutation.isPending}>
@@ -690,7 +779,124 @@ export default function Orgs() {
               </div>
             </form>
           </Card>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ---- HOUSE DETAIL MODAL ---- */}
+      {viewingHouseId && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setViewingHouseId(null) }}>
+          <Card className="relative w-full max-w-2xl p-8 overflow-hidden">
+            {(() => {
+              const h = orgs.find((o: any) => o.id === viewingHouseId)
+              if (!h) return null
+              const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9', logo: '🌿' }
+              const secretary = pors.find((p: any) => p.org === h.name && p.por_type === 'House Secretary' && p.active)
+              const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
+              const webAdmin = pors.find((p: any) => p.org === h.name && p.por_type === 'Web Admin' && p.active)
+              const rcs = pors.filter((p: any) => p.org === h.name && p.por_type === 'Regional Coordinator' && p.active)
+              
+              return (
+                <>
+                  <div className="absolute right-4 top-4">
+                    <button onClick={() => setViewingHouseId(null)} className="text-graytext-mid hover:text-white transition-colors">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                  <div className="mb-8 flex items-center gap-5">
+                    <div
+                      className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-[36px] shadow-lg overflow-hidden"
+                      style={{ background: `${meta.color}20`, color: meta.color, border: `1px solid ${meta.color}40` }}
+                    >
+                      {meta.imageLogo ? (
+                        <img src={meta.imageLogo} alt={`${h.name} logo`} className="h-full w-full object-cover" />
+                      ) : (
+                        meta.logo
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h2 className="text-[28px] font-bold text-offwhite tracking-tight">{h.name}</h2>
+                        <Badge tone="gold">{meta.state}</Badge>
+                        {meta.website && (
+                          <a href={meta.website} target="_blank" rel="noreferrer" className="ml-2 flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[13px] font-semibold text-graytext-mid transition-colors hover:bg-white/10 hover:text-offwhite">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            Website
+                          </a>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[15px] text-graytext-light flex items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
+                        {meta.park}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 relative overflow-hidden group">
+                      <div className="absolute -right-6 -top-6 text-[100px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-emerald-400">👑</div>
+                      <p className="text-caption font-semibold text-graytext-mid mb-1 uppercase tracking-wider">House Secretary</p>
+                      {secretary ? (
+                        <>
+                          <div className="text-[18px] font-bold text-emerald-300">{secretary.member}</div>
+                          <div className="text-caption text-graytext-light mt-1 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            Term: {secretary.term}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-[16px] font-medium text-graytext-mid italic">Vacant Position</div>
+                      )}
+                    </div>
+                    
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 relative overflow-hidden group">
+                      <div className="absolute -right-6 -top-6 text-[100px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-teal">⭐</div>
+                      <p className="text-caption font-semibold text-graytext-mid mb-1 uppercase tracking-wider">Deputy Secretary</p>
+                      {deputy ? (
+                        <>
+                          <div className="text-[18px] font-bold text-teal">{deputy.member}</div>
+                          <div className="text-caption text-graytext-light mt-1 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal"></span>
+                            Term: {deputy.term}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-[16px] font-medium text-graytext-mid italic">Vacant Position</div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 relative overflow-hidden group">
+                      <div className="absolute -right-6 -top-6 text-[100px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-blue-400">💻</div>
+                      <p className="text-caption font-semibold text-graytext-mid mb-1 uppercase tracking-wider">Web Admin</p>
+                      {webAdmin ? (
+                        <>
+                          <div className="text-[18px] font-bold text-blue-400">{webAdmin.member}</div>
+                          <div className="text-caption text-graytext-light mt-1 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                            Term: {webAdmin.term}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-[16px] font-medium text-graytext-mid italic">Vacant Position</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-5 flex items-center justify-between">
+                    <div>
+                      <p className="text-caption font-semibold text-graytext-mid uppercase tracking-wider">Regional Coordinators</p>
+                      <p className="text-[13px] text-graytext-light mt-1">Responsible for regional meetups and student support.</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[24px] font-bold text-offwhite">{rcs.length} <span className="text-[16px] text-graytext-mid font-medium">/ 10</span></div>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+          </Card>
+        </div>,
+        document.body
       )}
     </div>
   )

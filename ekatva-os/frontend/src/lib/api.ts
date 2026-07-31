@@ -5,7 +5,7 @@ import type { EkatvaEvent } from './types'
  * the backend's { error, code } envelope. Mirrors Milestone 2 §7 (src/lib).
  * ------------------------------------------------------------------------- */
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1'
 const TOKEN_KEY = 'ekatva_token'
 
 export function getToken(): string | null {
@@ -148,6 +148,7 @@ export const api = {
       `/regions/${regionId}/cities`,
       { method: 'POST', body: JSON.stringify({ name }) }
     ),
+  houses: () => request<any[]>('/houses'),
   orgs: () => request<any[]>('/orgs'),
   pors: () => request<any[]>('/pors'),
   users: (q?: string) =>
@@ -156,6 +157,8 @@ export const api = {
     request('/orgs', { method: 'POST', body: JSON.stringify(data) }),
   assignPor: (orgId: string, data: { user_id: string; por_type: string; term?: string; region_id?: string }) =>
     request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
+  deactivatePor: (porId: string) =>
+    request(`/pors/${porId}/deactivate`, { method: 'PATCH' }),
 
   // Discovery (C)
   events: (city?: string) =>

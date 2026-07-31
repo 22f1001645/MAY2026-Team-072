@@ -60,6 +60,9 @@ export const useCitiesForRegion = (regionId: string | null) =>
 export const useOrgs = () =>
   useQuery({ queryKey: ['orgs'], queryFn: api.orgs })
 
+export const useHouses = () =>
+  useQuery({ queryKey: ['houses'], queryFn: api.houses })
+
 export const usePors = () =>
   useQuery({ queryKey: ['pors'], queryFn: api.pors })
 
@@ -156,6 +159,14 @@ export const useAssignPor = () => {
   return useMutation({
     mutationFn: (v: { orgId: string; user_id: string; por_type: string; term?: string; region_id?: string }) =>
       api.assignPor(v.orgId, { user_id: v.user_id, por_type: v.por_type, term: v.term, region_id: v.region_id }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pors'] }),
+  })
+}
+
+export const useDeactivatePor = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (porId: string) => api.deactivatePor(porId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pors'] }),
   })
 }

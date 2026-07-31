@@ -23,6 +23,15 @@ def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin, regio
         raise ApiError("Member not found by ID or email", "user_not_found", 404)
     user_id = user.id
 
+    # Guardrail 0: House-scoped POR types must only be assigned to House orgs
+    HOUSE_ONLY_POR_TYPES = {"House Secretary", "Deputy House Secretary", "Regional Coordinator", "Web Admin"}
+    if por_type in HOUSE_ONLY_POR_TYPES and org.type != "house":
+        raise ApiError(
+            f"'{por_type}' can only be assigned to a Forest House, not a {org.type}.",
+            "invalid_org_type_for_por",
+            400,
+        )
+
     # Auto-determine council tier from position type
     upper_positions = {"House Secretary", "Deputy House Secretary"}
     lower_positions = {"Regional Coordinator"}

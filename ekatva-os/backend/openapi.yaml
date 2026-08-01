@@ -1,0 +1,476 @@
+openapi: 3.0.3
+info:
+  title: Ekatva OS REST API
+  description: |
+    Unified OpenAPI specification for Ekatva OS — the Community Operating System for the IIT Madras BS Ecosystem.
+    Built for Team-072 (BSCS3001 Software Engineering Project, May 2026 Term).
+    
+    All endpoints map to functional requirements (FR-A1 through FR-H7) and User Stories defined in PRD v2.2.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development Server
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Returns status of API server.
+      responses:
+        '200':
+          description: API is healthy
+
+  /auth/register:
+    post:
+      summary: Register Student Account (FR-A1)
+      description: Self-service registration for new students. Automatically initializes term fee record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, city]
+              properties:
+                name: { type: string, example: "Arav Mehta" }
+                email: { type: string, example: "arav@ekatva.os" }
+                password: { type: string, example: "student123" }
+                city: { type: string, example: "Hyderabad" }
+      responses:
+        '201':
+          description: User registered successfully
+        '409':
+          description: Email already registered
+        '422':
+          description: Validation error
+
+  /auth/login:
+    post:
+      summary: User Login (FR-A1)
+      description: Authenticates user credentials and returns a Bearer JWT token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, example: "admin@ekatva.os" }
+                password: { type: string, example: "admin123" }
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid email or password
+
+  /auth/me:
+    get:
+      summary: Get Current User Identity (FR-A3)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user profile and active PORs
+        '401':
+          description: Unauthorized
+
+  /cities:
+    get:
+      summary: List Cities (FR-A1)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of available cities
+
+  /orgs:
+    get:
+      summary: List Organisations (FR-A1)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of organisations
+    post:
+      summary: Create Organisation (Admin) (FR-A1)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, city]
+              properties:
+                name: { type: string, example: "Coding Club" }
+                type: { type: string, enum: [house, society, region, council] }
+                city: { type: string, example: "Chennai" }
+      responses:
+        '201':
+          description: Organisation created
+
+  /orgs/{id}/pors:
+    post:
+      summary: Assign Position of Responsibility (Admin) (FR-A2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, por_type]
+              properties:
+                user_id: { type: string }
+                por_type: { type: string, example: "Regional Coordinator" }
+                term: { type: string, example: "May 2026" }
+      responses:
+        '201':
+          description: POR assigned successfully
+        '404':
+          description: User or Org not found
+
+  /pors:
+    get:
+      summary: List All Active PORs (Admin) (FR-A2)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of all POR assignments
+
+  /activities:
+    post:
+      summary: Submit Meetup/Fest Proposal (Organiser) (FR-B1, FR-B2)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, org_id, city, scale, venue, starts_at, capacity]
+              properties:
+                title: { type: string, example: "Hyderabad Chai & Charcha" }
+                org_id: { type: string }
+                city: { type: string, example: "Hyderabad" }
+                scale: { type: string, enum: [local_meetup, regional_meetup, regional_fest] }
+                venue: { type: string, example: "Roastery Coffee House" }
+                starts_at: { type: string, format: date-time }
+                capacity: { type: integer, example: 40 }
+                description: { type: string }
+                budget:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label: { type: string }
+                      planned: { type: integer }
+      responses:
+        '201':
+          description: Proposal submitted successfully
+        '403':
+          description: Forbidden (Organiser POR required)
+        '409':
+          description: Quota guardrail exceeded (1 meetup/city/month)
+
+  /proposals:
+    get:
+      summary: Proposal Queue (Admin) (FR-B3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, default: "pending" }
+      responses:
+        '200':
+          description: List of pending proposals
+
+  /proposals/{id}/decision:
+    post:
+      summary: Proposal Decision (Admin) (FR-B3, FR-B4, FR-C1)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approve, changes, reject] }
+                note: { type: string }
+      responses:
+        '200':
+          description: Decision recorded & event auto-published if approved
+
+  /events:
+    get:
+      summary: City Event Discovery Feed (FR-C2, FR-C4)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of published events
+
+  /events/{id}:
+    get:
+      summary: Event Details (FR-C3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Event detail payload
+
+  /events/{id}/register:
+    post:
+      summary: Register for Event (Student) (FR-D1, FR-D2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Registered successfully
+        '409':
+          description: Already registered OR Event at capacity
+    delete:
+      summary: Unregister from Event (Student)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unregistered successfully
+
+  /events/{id}/attendance:
+    post:
+      summary: Check-In Attendees (Organiser) (FR-D6, FR-G1)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [registration_ids]
+              properties:
+                registration_ids:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Attendance recorded and points awarded
+
+  /events/{id}/broadcast:
+    post:
+      summary: Broadcast Event Update (Organiser) (FR-D3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: { type: string }
+                body: { type: string }
+      responses:
+        '200':
+          description: Broadcast sent to registrants
+
+  /events/{id}/volunteer:
+    post:
+      summary: Award Volunteer Points (Organiser) (FR-G3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: string }
+                role_name: { type: string, default: "Volunteer" }
+      responses:
+        '200':
+          description: Volunteer points awarded (20 points)
+
+  /activities/{id}/report:
+    post:
+      summary: Submit Post-Event Report (Organiser) (FR-F2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [summary]
+              properties:
+                summary: { type: string }
+      responses:
+        '201':
+          description: Report submitted and activity marked completed
+    get:
+      summary: Fetch Post-Event Report (FR-F2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Report object returned
+
+  /expenses:
+    post:
+      summary: Submit Expense Bill (Organiser) (FR-E2)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activity_id, label, amount]
+              properties:
+                activity_id: { type: string }
+                budget_line_id: { type: string }
+                label: { type: string }
+                amount: { type: integer }
+                bill_name: { type: string, default: "bill.pdf" }
+      responses:
+        '201':
+          description: Expense submitted
+
+  /expenses/{id}/verify:
+    patch:
+      summary: Advance Reimbursement Pipeline (Admin) (FR-E3, FR-E4)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Reimbursement status advanced (Submitted -> Verified -> Approved -> Paid)
+
+  /dashboard:
+    get:
+      summary: Role-Based Dashboard (FR-F4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics tailored to Student, Organiser, or Admin role
+
+  /leaderboard:
+    get:
+      summary: Points Leaderboard (FR-G5)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Leaderboard rankings
+
+  /me/points:
+    get:
+      summary: Contribution Points Ledger (FR-G4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Student contribution points ledger
+
+  /analytics:
+    get:
+      summary: Admin Community Analytics (FR-H1 to FR-H4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Descriptive community metrics
+
+  /analytics/fee-utilisation:
+    get:
+      summary: Rs 100 Activity-Fee Utilisation (FR-H5)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Fee utilisation percentage by city
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

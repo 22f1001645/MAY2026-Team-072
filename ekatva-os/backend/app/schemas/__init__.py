@@ -10,7 +10,8 @@ class RegisterSchema(Schema):
     name = fields.Str(required=True, validate=validate.Length(min=2, max=120))
     email = fields.Email(required=True)
     password = fields.Str(required=True, validate=validate.Length(min=6))
-    city = fields.Str(required=True)
+    region_id = fields.Str(required=True)            # Official 10-region anchor
+    city = fields.Str(load_default=None, allow_none=True)  # Specific city (optional)
 
 
 class LoginSchema(Schema):
@@ -61,6 +62,7 @@ class PORSchema(Schema):
     user_id = fields.Str(required=True)
     por_type = fields.Str(required=True)
     term = fields.Str(load_default="May 2026")
+    region_id = fields.Str(load_default=None, allow_none=True)   # Required for RC assignments
 
 
 class OrgSchema(Schema):

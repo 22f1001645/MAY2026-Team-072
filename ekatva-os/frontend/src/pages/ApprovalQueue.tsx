@@ -7,7 +7,8 @@ import { cx, formatDate, scaleLabel } from '../lib/format'
 
 // FR-B3/B4: admin approves / requests changes / rejects, with an audit trail
 export default function ApprovalQueue() {
-  const { data: proposals = [], isLoading, isError, error } = useProposals('pending')
+  const [statusTab, setStatusTab] = useState<'pending' | 'approved'>('pending')
+  const { data: proposals = [], isLoading, isError, error } = useProposals(statusTab)
   const [selected, setSelected] = useState<string>('')
   const [note, setNote] = useState('')
   const decisionMut = useDecision()
@@ -39,8 +40,23 @@ export default function ApprovalQueue() {
         eyebrow="Admin"
         title="Approval Queue"
         sub="Approve, request changes, or reject — with a comment and an immutable audit trail on every decision."
-        right={<Badge tone="warn">{proposals.length} awaiting decision</Badge>}
+        right={<Badge tone="warn">{proposals.length} {statusTab === 'pending' ? 'awaiting decision' : 'approved'}</Badge>}
       />
+
+      <div className="mb-6 flex gap-2 border-b border-white/5 pb-2">
+        <button
+          className={cx("px-4 py-2 text-[14px] font-semibold transition-colors rounded-t-lg", statusTab === 'pending' ? "text-teal bg-teal/10" : "text-graytext-mid hover:text-offwhite")}
+          onClick={() => { setStatusTab('pending'); setSelected(''); setNote(''); }}
+        >
+          Pending Queue
+        </button>
+        <button
+          className={cx("px-4 py-2 text-[14px] font-semibold transition-colors rounded-t-lg", statusTab === 'approved' ? "text-teal bg-teal/10" : "text-graytext-mid hover:text-offwhite")}
+          onClick={() => { setStatusTab('approved'); setSelected(''); setNote(''); }}
+        >
+          Past Approvals
+        </button>
+      </div>
 
       {proposals.length === 0 ? (
         <Card className="p-12 text-center text-graytext-light">
@@ -141,16 +157,27 @@ export default function ApprovalQueue() {
                     {(decisionMut.error as Error).message}
                   </p>
                 )}
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Button onClick={() => decide('approve')} disabled={decisionMut.isPending}>
-                    ✓ Approve & publish
-                  </Button>
-                  <Button variant="secondary" onClick={() => decide('changes')} disabled={decisionMut.isPending}>
-                    Request changes
-                  </Button>
-                  <Button variant="danger" onClick={() => decide('reject')} disabled={decisionMut.isPending}>
-                    Reject
-                  </Button>
+                <div className="flex justify-end gap-3 pt-2">
+                  {statusTab === 'pending' ? (
+                    <>
+                      <Button variant="ghost" onClick={() => setNote('')}>Clear</Button>
+                      <Button onClick={() => decide('approve')} disabled={decisionMut.isPending}>
+                        Approve & Publish
+                      </Button>
+                      <Button variant="secondary" onClick={() => decide('changes')} disabled={decisionMut.isPending}>
+                        Request Changes
+                      </Button>
+                      <Button variant="danger" onClick={() => decide('reject')} disabled={decisionMut.isPending}>
+                        Reject
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="danger" onClick={() => decide('revoke')} disabled={decisionMut.isPending}>
+                        Revoke Approval
+                      </Button>
+                    </>
+                  )}
                 </div>
               </Card>
 

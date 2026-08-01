@@ -2,11 +2,13 @@ from datetime import datetime
 
 from ..constants import (
     EVENT_UPCOMING,
+    EVENT_CANCELLED,
     MEETUPS_PER_CITY_PER_MONTH,
     POINTS,
     PROPOSAL_APPROVED,
     PROPOSAL_CHANGES,
     PROPOSAL_REJECTED,
+    PROPOSAL_REVOKED,
     PROPOSAL_SUBMITTED,
 )
 from ..errors import ApiError
@@ -20,12 +22,12 @@ def submit_proposal(data: dict, organiser) -> Activity:
     if not org:
         raise ApiError("Organisation not found", "org_not_found", 404)
 
-    # Quota guardrail (FR-B2): one meetup per city per month
+    # Quota guardrail (FR-B2): one meetup per region per month
     if data["scale"] in ("local_meetup", "regional_meetup"):
-        count = ActivityRepository.meetups_in_city_month(data["city"], data["starts_at"])
+        count = ActivityRepository.meetups_in_region_month(data["org_id"], data["starts_at"])
         if count >= MEETUPS_PER_CITY_PER_MONTH:
             raise ApiError(
-                f"Quota guardrail: {data['city']} already has a meetup this month",
+                f"Quota guardrail: this region already has a meetup this month",
                 "quota_exceeded",
                 409,
             )
@@ -64,10 +66,22 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         raise ApiError("Proposal not found", "proposal_not_found", 404)
 
     proposal = activity.proposal
-    if proposal.status in (PROPOSAL_APPROVED, PROPOSAL_REJECTED):
+    if proposal.status in (PROPOSAL_REJECTED, PROPOSAL_REVOKED):
         raise ApiError("This proposal has already been decided", "already_decided", 409)
+    if proposal.status == PROPOSAL_APPROVED and decision != "revoke":
+        raise ApiError("This proposal has already been approved", "already_decided", 409)
 
     if decision == "approve":
+        # FR-B2: Enforce the 1-meetup-per-month quota before allowing approval
+        if activity.scale in ["local_meetup", "regional_meetup"]:
+            count = ActivityRepository.approved_meetups_in_region_month(activity.org_id, activity.starts_at)
+            if count >= 1:
+                raise ApiError(
+                    f"Quota exceeded: An approved meetup already exists in {activity.starts_at.strftime('%B %Y')} for this region.",
+                    "quota_exceeded",
+                    409,
+                )
+
         proposal.status = PROPOSAL_APPROVED
         # On approval the Activity auto-publishes as a live event (FR-C1)
         activity.status = EVENT_UPCOMING
@@ -93,6 +107,18 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         proposal.status = PROPOSAL_REJECTED
         AuditRepository.record("proposal", activity.id, "Rejected", admin, note)
         _notify(activity.organiser_id, activity.id, "update", "Proposal rejected", note or "")
+    elif decision == "revoke":
+        proposal.status = PROPOSAL_REVOKED
+        activity.status = EVENT_CANCELLED
+        AuditRepository.record("proposal", activity.id, "Revoked", admin, note)
+        
+        point = ContributionPoint.query.filter_by(
+            user_id=activity.organiser_id, activity_id=activity.id, action="organised"
+        ).first()
+        if point:
+            db.session.delete(point)
+            
+        _notify(activity.organiser_id, activity.id, "update", "Approval Revoked", note or "The admin has revoked the approval for this event.")
 
     db.session.commit()
     return activity

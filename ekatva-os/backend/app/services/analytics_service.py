@@ -4,6 +4,7 @@ from ..models import (
     Activity,
     ActivityFeeRecord,
     Attendance,
+    Organisation,
     Proposal,
     Registration,
     User,
@@ -12,18 +13,18 @@ from ..models import (
 
 def community_analytics() -> dict:
     """Descriptive admin analytics + the Rs 100 fee-utilisation wedge (FR-H)."""
-    cities = [c[0] for c in db.session.query(User.city).distinct() if c[0]]
+    regions = Organisation.query.filter_by(type="region").order_by(Organisation.name).all()
     per_city = []
     tot = {"meetups": 0, "attendance": 0, "unique": 0, "repeat": 0, "fee_paid": 0, "fee_used": 0}
 
-    for city in sorted(cities):
+    for region in regions:
         meetups = (
             Activity.query.join(Proposal)
-            .filter(Activity.city == city, Proposal.status == "approved")
+            .filter(Activity.org_id == region.id, Proposal.status == "approved")
             .count()
         )
-        # Attendance rows for students in this city
-        student_ids = [u.id for u in User.query.filter_by(city=city, role="student").all()]
+        # Attendance rows for students in this region
+        student_ids = [u.id for u in User.query.filter_by(region_id=region.id, role="student").all()]
         fee_paid = ActivityFeeRecord.query.filter(
             ActivityFeeRecord.user_id.in_(student_ids or ["-"])
         ).count()
@@ -46,7 +47,7 @@ def community_analytics() -> dict:
         unique = len(attended_students)
         fee_used = unique  # utilised = attended >= 1 activity this term
         row = {
-            "city": city,
+            "city": region.name,  # Key remains 'city' for frontend compat, but holds Region name
             "meetups": meetups,
             "attendance": attendance_count,
             "unique": unique,

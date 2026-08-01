@@ -250,3 +250,48 @@ def test_bulk_verify_expenses(client, rc_headers, admin_headers):
     assert res.status_code == 200
     assert len(res.get_json()) == 2
     assert all(e["status"] == "verified" for e in res.get_json())
+
+
+def test_duplicate_secretary_assignment_blocked(client, admin_headers):
+    house = Organisation.query.filter_by(type="house").first()
+    student = User.query.filter_by(role="student").first()
+
+    # First assignment
+    res1 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "House Secretary", "term": "May 2026"},
+        headers=admin_headers,
+    )
+    assert res1.status_code in [201, 409]
+
+    # Duplicate assignment attempt for same house
+    res2 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "House Secretary", "term": "May 2026"},
+        headers=admin_headers,
+    )
+    assert res2.status_code == 409
+    assert res2.get_json()["code"] == "slot_already_filled"
+
+
+def test_duplicate_rc_assignment_blocked(client, admin_headers):
+    house = Organisation.query.filter_by(type="house").first()
+    region = Organisation.query.filter_by(type="region").first()
+    student = User.query.filter_by(role="student").first()
+
+    # First RC assignment
+    res1 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "Regional Coordinator", "term": "May 2026", "region_id": region.id},
+        headers=admin_headers,
+    )
+    assert res1.status_code in [201, 409]
+
+    # Duplicate RC assignment attempt for same house + region
+    res2 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "Regional Coordinator", "term": "May 2026", "region_id": region.id},
+        headers=admin_headers,
+    )
+    assert res2.status_code == 409
+    assert res2.get_json()["code"] == "rc_slot_already_filled"

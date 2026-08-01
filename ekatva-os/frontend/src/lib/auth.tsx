@@ -45,7 +45,8 @@ interface AuthCtx {
     name: string
     email: string
     password: string
-    city: string
+    region_id: string
+    city?: string
   }) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
 }
@@ -123,8 +124,8 @@ export function useAuth() {
 // Demo credentials surfaced on the login screen (seeded in the backend DB)
 export const DEMO_ACCOUNTS = [
   { name: 'Student Affairs', email: 'admin@ekatva.os', password: 'admin123', role: 'admin' as Role },
-  { name: 'Sai Teja', email: 'saiteja@ekatva.os', password: 'rc12345', role: 'organiser' as Role },
-  { name: 'Arav Mehta', email: 'arav@ekatva.os', password: 'student123', role: 'student' as Role },
+  { name: 'Sai Teja', email: 'saiteja@ds.study.iitm.ac.in', password: 'rc12345', role: 'organiser' as Role },
+  { name: 'Arav Mehta', email: 'arav@ds.study.iitm.ac.in', password: 'student123', role: 'student' as Role },
 ]
 
 // Where each role lands after login

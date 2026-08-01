@@ -39,10 +39,12 @@ class User(Base):
     name = db.Column(db.String(120), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="student")  # admin|student
-    city = db.Column(db.String(80))
+    city = db.Column(db.String(80))          # free-text specific city (e.g. Warangal)
+    region_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=True)  # official Region
 
     memberships = db.relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     registrations = db.relationship("Registration", back_populates="student")
+    region = db.relationship("Organisation", foreign_keys=[region_id])
 
     def to_dict(self):
         return {
@@ -51,16 +53,27 @@ class User(Base):
             "name": self.name,
             "role": self.role,
             "city": self.city,
+            "region": self.region.name if self.region else None,
+            "region_id": self.region_id,
             "pors": [p.to_dict() for m in self.memberships for p in m.pors if p.active],
         }
 
 
 class City(Base):
     __tablename__ = "cities"
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(80), nullable=False)
+    # Region-scoped: every city belongs to one of the 10 official Regions
+    region_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=True, index=True)
+
+    region = db.relationship("Organisation", foreign_keys=[region_id])
 
     def to_dict(self):
-        return {"id": self.id, "name": self.name}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "region_id": self.region_id,
+            "region": self.region.name if self.region else None,
+        }
 
 
 class Organisation(Base):
@@ -89,7 +102,11 @@ class Membership(Base):
 
 
 class PORAssignment(Base):
-    """A Position of Responsibility — the *source of permissions* (PRD P3)."""
+    """A Position of Responsibility — the *source of permissions* (PRD P3).
+
+    council_tier distinguishes Upper House Council (Secretaries) from Lower
+    House Council (Regional Coordinators). region_id scopes an RC to one of
+    the 10 geographic regions within their house."""
 
     __tablename__ = "por_assignments"
 
@@ -97,8 +114,12 @@ class PORAssignment(Base):
     por_type = db.Column(db.String(80), nullable=False)
     term = db.Column(db.String(40))
     active = db.Column(db.Boolean, default=True, nullable=False)
+    # Council governance fields (House & Region POR Architecture)
+    region_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=True)
+    council_tier = db.Column(db.String(50), nullable=True)  # upper_house_council | lower_house_council
 
     membership = db.relationship("Membership", back_populates="pors")
+    region = db.relationship("Organisation", foreign_keys=[region_id])
 
     def to_dict(self):
         m = self.membership
@@ -110,6 +131,10 @@ class PORAssignment(Base):
             "org_id": m.org_id if m else None,
             "org": m.org.name if m and m.org else None,
             "member": m.user.name if m and m.user else None,
+            "member_id": m.user_id if m else None,
+            "council_tier": self.council_tier,
+            "region": self.region.name if self.region else None,
+            "region_id": self.region_id,
         }
 
 

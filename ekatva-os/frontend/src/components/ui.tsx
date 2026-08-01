@@ -1,5 +1,74 @@
 import type { ReactNode } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { createPortal } from 'react-dom'
 import { cx } from '../lib/format'
+
+/* ---------------------------------------------------------------------------
+ * Toast notification system
+ * ------------------------------------------------------------------------- */
+type Toast = { id: string; message: string; type: 'success' | 'error' | 'info' }
+type ToastContextType = { addToast: (message: string, type?: Toast['type']) => void }
+
+const ToastContext = createContext<ToastContextType>({ addToast: () => {} })
+export const useToast = () => useContext(ToastContext)
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([])
+
+  const addToast = useCallback((message: string, type: Toast['type'] = 'success') => {
+    const id = Math.random().toString(36).slice(2)
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+  }, [])
+
+  const icons = {
+    success: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    ),
+    error: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    ),
+    info: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    ),
+  }
+  const colors = {
+    success: 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300',
+    error: 'bg-red-500/15 border-red-400/30 text-red-300',
+    info: 'bg-teal/15 border-teal/30 text-teal',
+  }
+
+  return (
+    <ToastContext.Provider value={{ addToast }}>
+      {children}
+      {createPortal(
+        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+          {toasts.map(t => (
+            <div
+              key={t.id}
+              className={cx(
+                'flex items-center gap-3 rounded-xl border px-4 py-3 text-[13px] font-medium shadow-xl backdrop-blur-sm pointer-events-auto',
+                'animate-[slideInRight_0.3s_ease-out]',
+                colors[t.type],
+              )}
+            >
+              <span className="shrink-0">{icons[t.type]}</span>
+              {t.message}
+            </div>
+          ))}
+        </div>,
+        document.body,
+      )}
+    </ToastContext.Provider>
+  )
+}
+
 
 /* ---------------------------------------------------------------------------
  * Design-system primitives — every token traces to the EKATVA Brand Kit v1.0
@@ -188,6 +257,18 @@ export function EmptyState({ title, sub }: { title: string; sub?: string }) {
 }
 
 // The mandala/oneness mark — used across surfaces (Brand Kit §4, icon variant)
+export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      className={cx(
+        'w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/40',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Mandala({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg

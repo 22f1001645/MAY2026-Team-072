@@ -474,3 +474,148 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  /houses:
+    get:
+      summary: List Forest Houses (FR-A1)
+      description: Returns only organisations of type "house". Used to populate the Admin Dashboard house cards.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of Forest Houses
+
+  /pors/{id}/deactivate:
+    patch:
+      summary: Deactivate POR Assignment (Admin) (FR-A5)
+      description: Marks a POR assignment as inactive (historical record preserved). Used during leadership handovers.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: POR deactivated successfully — returns updated POR object with `active = false`
+        '404':
+          description: POR assignment not found
+        '403':
+          description: Admin access required
+
+  /notifications:
+    get:
+      summary: Student Notification Inbox (FR-D4)
+      description: Returns all notifications for the currently authenticated student (registrations, broadcasts, reminders).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of notification objects
+
+  /expenses/bulk-verify:
+    patch:
+      summary: Bulk Verify Expenses (Admin) (FR-E3)
+      description: Advances multiple expenses from "submitted" to "verified" in a single API call.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expense_ids]
+              properties:
+                expense_ids:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: All specified expenses advanced to "verified" status
+
+  /audit-log:
+    get:
+      summary: Global Audit Log (Admin) (FR-B4)
+      description: Returns the complete immutable audit trail of all admin actions — approvals, POR assignments, deactivations.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of audit log entries with entity type, actor, timestamp and note
+
+  /users:
+    get:
+      summary: List All Users (Admin) (FR-A1)
+      description: Returns all registered users. Used in Admin Dashboard for POR assignment search.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of user objects
+
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string }
+    
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [student, admin] }
+        city: { type: string }
+    
+    Organisation:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [house, society, region, council] }
+        city: { type: string }
+    
+    PORAssignment:
+      type: object
+      properties:
+        id: { type: string }
+        por_type: { type: string }
+        term: { type: string }
+        active: { type: boolean }
+        council_tier: { type: string, nullable: true }
+        member: { type: string }
+        org: { type: string }
+    
+    Activity:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        city: { type: string }
+        scale: { type: string }
+        venue: { type: string }
+        starts_at: { type: string, format: date-time }
+        capacity: { type: integer }
+        proposal_status: { type: string }
+    
+    Expense:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        amount: { type: integer }
+        status: { type: string, enum: [submitted, verified, approved, paid] }
+    
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        type: { type: string }
+        read: { type: boolean }
+        created_at: { type: string, format: date-time }

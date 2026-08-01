@@ -17,6 +17,7 @@ from .extensions import db, jwt
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
+    app.json.sort_keys = False
 
     # Extensions
     db.init_app(app)

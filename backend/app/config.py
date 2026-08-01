@@ -28,8 +28,6 @@ class Config:
         "http://localhost:5173,http://localhost:5174,http://localhost:5175",
     ).split(",")
 
-    JSON_SORT_KEYS = False
-
 
 class TestConfig(Config):
     TESTING = True

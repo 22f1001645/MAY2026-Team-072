@@ -42,17 +42,17 @@ def houses():
 
 
 @community_bp.get("/regions")
-@auth_required
 def regions():
-    """Returns all 10 Geographic Regions."""
+    """Returns all 10 Geographic Regions. Public — needed by the signup form
+    before a user has an account."""
     all_orgs = OrgRepository.all()
     return jsonify([o.to_dict() for o in all_orgs if o.type == "region"]), 200
 
 
 @community_bp.get("/regions/<region_id>/cities")
-@auth_required
 def cities_for_region(region_id):
-    """Returns all cities belonging to a specific Region."""
+    """Returns all cities belonging to a specific Region. Public — needed by
+    the signup form before a user has an account."""
     cities = OrgRepository.cities_for_region(region_id)
     return jsonify([c.to_dict() for c in cities]), 200
 

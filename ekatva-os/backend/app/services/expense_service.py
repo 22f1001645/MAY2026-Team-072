@@ -1,4 +1,4 @@
-from ..constants import EXPENSE_FLOW, EXPENSE_SUBMITTED
+from ..constants import ACTIVITY_FEE_INR, EXPENSE_FLOW, EXPENSE_SUBMITTED, EXPENSE_APPROVED, EXPENSE_PAID
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Expense
@@ -36,7 +36,17 @@ def advance(expense_id: str, admin) -> Expense:
     if idx >= len(EXPENSE_FLOW) - 1:
         raise ApiError("Expense is already marked paid", "already_paid", 409)
 
-    expense.status = EXPENSE_FLOW[idx + 1]
+    next_status = EXPENSE_FLOW[idx + 1]
+    
+    if next_status == EXPENSE_APPROVED:
+        activity = expense.activity
+        if activity:
+            approved_total = sum(e.amount for e in activity.expenses if e.status in (EXPENSE_APPROVED, EXPENSE_PAID))
+            max_allowed = ACTIVITY_FEE_INR * activity.attended_count()
+            if (approved_total + expense.amount) > max_allowed:
+                raise ApiError(f"Reimbursement cap exceeded. Max allowed based on actual check-ins is ₹{max_allowed}.", "cap_exceeded", 409)
+
+    expense.status = next_status
     AuditRepository.record(
         "expense", expense.id, f"Advanced to {expense.status}", admin
     )
@@ -50,3 +60,19 @@ def for_activity(activity_id):
 
 def all_expenses():
     return ExpenseRepository.all()
+
+
+def bulk_advance(expense_ids: list, admin) -> list:
+    """FR-E3 — Bulk advance multiple expense bills at once."""
+    updated = []
+    for eid in expense_ids:
+        expense = ExpenseRepository.by_id(eid)
+        if not expense:
+            continue
+        idx = EXPENSE_FLOW.index(expense.status)
+        if idx < len(EXPENSE_FLOW) - 1:
+            expense.status = EXPENSE_FLOW[idx + 1]
+            AuditRepository.record("expense", expense.id, f"Bulk advanced to {expense.status}", admin)
+            updated.append(expense)
+    db.session.commit()
+    return updated

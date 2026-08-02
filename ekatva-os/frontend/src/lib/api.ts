@@ -5,7 +5,7 @@ import type { EkatvaEvent } from './types'
  * the backend's { error, code } envelope. Mirrors Milestone 2 §7 (src/lib).
  * ------------------------------------------------------------------------- */
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1'
 const TOKEN_KEY = 'ekatva_token'
 
 export function getToken(): string | null {
@@ -71,12 +71,6 @@ function coverFor(scale: string, seed: string): string {
   const h = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0)
   return opts[h % opts.length]
 }
-const TAGS_BY_SCALE: Record<string, string[]> = {
-  regional_fest: ['Fest'],
-  regional_meetup: ['Regional'],
-  local_meetup: ['Local'],
-}
-
 export interface ApiActivity {
   id: string
   title: string
@@ -93,6 +87,7 @@ export interface ApiActivity {
   organiser: string
   description?: string
   budget?: { id: string; label: string; planned: number; actual: number }[]
+  tags?: string[]
 }
 
 export function adaptEvent(a: ApiActivity): EkatvaEvent {
@@ -112,7 +107,7 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     attended: a.attended,
     cover: coverFor(a.scale, a.id),
     organiser: a.organiser,
-    tags: TAGS_BY_SCALE[a.scale] ?? [],
+    tags: a.tags ?? [],
     budget: (a.budget ?? []).map((b) => ({
       id: b.id,
       label: b.label,
@@ -131,7 +126,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  register: (data: { name: string; email: string; password: string; city: string }) =>
+  register: (data: { name: string; email: string; password: string; region_id: string; city?: string }) =>
     request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -139,11 +134,26 @@ export const api = {
   me: () => request<any>('/auth/me'),
 
   // Community (A)
-  cities: () => request<{ id: string; name: string }[]>('/cities'),
+  cities: () => request<{ id: string; name: string; region_id: string | null; region: string | null }[]>('/cities'),
+  regions: () => request<{ id: string; name: string; type: string }[]>('/regions'),
+  citiesForRegion: (regionId: string) =>
+    request<{ id: string; name: string; region_id: string; region: string }[]>(`/regions/${regionId}/cities`),
+  addCityToRegion: (regionId: string, name: string) =>
+    request<{ id: string; name: string; region_id: string; region: string }>(
+      `/regions/${regionId}/cities`,
+      { method: 'POST', body: JSON.stringify({ name }) }
+    ),
+  houses: () => request<any[]>('/houses'),
   orgs: () => request<any[]>('/orgs'),
   pors: () => request<any[]>('/pors'),
+  users: (q?: string) =>
+    request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createOrg: (data: { name: string; type: string; city: string }) =>
     request('/orgs', { method: 'POST', body: JSON.stringify(data) }),
+  assignPor: (orgId: string, data: { user_id: string; por_type: string; term?: string; region_id?: string }) =>
+    request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
+  deactivatePor: (porId: string) =>
+    request(`/pors/${porId}/deactivate`, { method: 'PATCH' }),
 
   // Discovery (C)
   events: (city?: string) =>
@@ -163,7 +173,11 @@ export const api = {
     }),
   broadcast: (id: string, title: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title, body }) }),
+  announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
+  postAnnouncement: (id: string, body: string) =>
+    request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: 'Update', body }) }),
   notifications: () => request<any[]>('/notifications'),
+  markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
 
   // Proposals / approval (B)
   submitProposal: (payload: any) =>

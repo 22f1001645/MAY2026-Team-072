@@ -231,7 +231,7 @@ paths:
           schema: { type: string }
       responses:
         '200':
-          description: List of published events
+          description: List of published events including event tags
 
   /events/{id}:
     get:
@@ -259,9 +259,9 @@ paths:
           schema: { type: string }
       responses:
         '201':
-          description: Registered successfully
+          description: Registered successfully OR placed on waitlist if at capacity
         '409':
-          description: Already registered OR Event at capacity
+          description: Already registered
     delete:
       summary: Unregister from Event (Student)
       security:
@@ -322,7 +322,16 @@ paths:
                 body: { type: string }
       responses:
         '200':
-          description: Broadcast sent to registrants
+          description: Broadcast sent to registrants (including waitlisted)
+
+  /notifications:
+    get:
+      summary: Fetch User Notifications (FR-D4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of notifications for the current user
 
   /events/{id}/volunteer:
     post:
@@ -441,6 +450,15 @@ paths:
         '200':
           description: Leaderboard rankings
 
+  /me/registrations:
+    get:
+      summary: Fetch User Registrations (FR-D5)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of event registrations for the current user (includes confirmed and waitlisted status)
+
   /me/points:
     get:
       summary: Contribution Points Ledger (FR-G4)
@@ -468,9 +486,144 @@ paths:
         '200':
           description: Fee utilisation percentage by city
 
+  /houses:
+    get:
+      summary: List Forest Houses (FR-A1)
+      description: Returns only organisations of type "house". Used to populate the Admin Dashboard house cards.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of Forest Houses
+
+  /pors/{id}/deactivate:
+    patch:
+      summary: Deactivate POR Assignment (Admin) (FR-A5)
+      description: Marks a POR assignment as inactive (historical record preserved). Used during leadership handovers.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: POR deactivated successfully — returns updated POR object with `active = false`
+        '404':
+          description: POR assignment not found
+        '403':
+          description: Admin access required
+
+  /expenses/bulk-verify:
+    patch:
+      summary: Bulk Verify Expenses (Admin) (FR-E3)
+      description: Advances multiple expenses from "submitted" to "verified" in a single API call.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expense_ids]
+              properties:
+                expense_ids:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: All specified expenses advanced to "verified" status
+
+  /audit-log:
+    get:
+      summary: Global Audit Log (Admin) (FR-B4)
+      description: Returns the complete immutable audit trail of all admin actions — approvals, POR assignments, deactivations.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of audit log entries with entity type, actor, timestamp and note
+
+  /users:
+    get:
+      summary: List All Users (Admin) (FR-A1)
+      description: Returns all registered users. Used in Admin Dashboard for POR assignment search.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of user objects
+
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string }
+    
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [student, admin] }
+        city: { type: string }
+    
+    Organisation:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [house, society, region, council] }
+        city: { type: string }
+    
+    PORAssignment:
+      type: object
+      properties:
+        id: { type: string }
+        por_type: { type: string }
+        term: { type: string }
+        active: { type: boolean }
+        council_tier: { type: string, nullable: true }
+        member: { type: string }
+        org: { type: string }
+    
+    Activity:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        city: { type: string }
+        scale: { type: string }
+        venue: { type: string }
+        starts_at: { type: string, format: date-time }
+        capacity: { type: integer }
+        proposal_status: { type: string }
+    
+    Expense:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        amount: { type: integer }
+        status: { type: string, enum: [submitted, verified, approved, paid] }
+    
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        type: { type: string }
+        read: { type: boolean }
+        created_at: { type: string, format: date-time }

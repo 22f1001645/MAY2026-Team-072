@@ -17,9 +17,26 @@ def _token(user: User) -> str:
     return create_access_token(identity=user.id, additional_claims={"role": user.role})
 
 
-def register(name: str, email: str, password: str, city: str) -> dict:
+def register(name: str, email: str, password: str, region_id: str, city: str = None) -> dict:
     if UserRepository.by_email(email):
         raise ApiError("An account with that email already exists", "email_taken", 409)
+
+    # Resolve region — must be one of the 10 official Organisation rows with type="region"
+    from ..repositories.repos import OrgRepository
+    region = OrgRepository.by_id(region_id)
+    if not region or region.type != "region":
+        raise ApiError("Invalid region selected", "region_invalid", 400)
+
+    # Derive city: use provided city or fall back to region name
+    city_name = city.strip() if city else region.name
+
+    # Auto-seed the city under the region if it doesn't exist yet
+    from ..models import City
+    existing_city = City.query.filter_by(name=city_name, region_id=region.id).first()
+    if not existing_city:
+        existing_city = City(name=city_name, region_id=region.id)
+        db.session.add(existing_city)
+        db.session.flush()
 
     # Self-service signups are always Students; organiser access is an
     # Admin-assigned POR (PRD assumption — two login roles).
@@ -28,7 +45,8 @@ def register(name: str, email: str, password: str, city: str) -> dict:
         email=email.strip(),
         password_hash=generate_password_hash(password),
         role=ROLE_STUDENT,
-        city=city,
+        city=city_name,
+        region_id=region.id,
     )
     UserRepository.add(user)
     db.session.flush()

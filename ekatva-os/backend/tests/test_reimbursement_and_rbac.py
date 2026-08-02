@@ -1,4 +1,5 @@
-from app.models import Organisation
+from app.models import Organisation, User, Registration, Attendance
+from app.extensions import db
 
 
 def _org_id():
@@ -24,6 +25,17 @@ def _make_approved_activity(client, rc_headers, admin_headers):
 
 def test_reimbursement_pipeline_advances_in_order(client, rc_headers, admin_headers):
     aid = _make_approved_activity(client, rc_headers, admin_headers)
+    
+    # Register and check-in 25 attendees so max_allowed = 25 * 200 = 5000 (enough for 4200 expense)
+    for i in range(25):
+        uid = f"dummy_{aid}_{i}"
+        if not User.query.get(uid):
+            db.session.add(User(id=uid, email=f"{uid}@ds.study.iitm.ac.in", name=uid, role="student", password_hash="dummy"))
+        r = Registration(activity_id=aid, student_id=uid)
+        db.session.add(r)
+        db.session.flush()
+        db.session.add(Attendance(registration_id=r.id, checked_in_by="test"))
+    db.session.commit()
 
     # Organiser submits an expense
     exp = client.post("/api/v1/expenses", json={
@@ -36,6 +48,9 @@ def test_reimbursement_pipeline_advances_in_order(client, rc_headers, admin_head
     # Admin advances the pipeline: submitted → verified → approved → paid
     for expected in ["verified", "approved", "paid"]:
         res = client.patch(f"/api/v1/expenses/{eid}/verify", headers=admin_headers)
+        if res.status_code != 200:
+            print("ERROR response:", res.get_json())
+        assert res.status_code == 200
         assert res.status_code == 200
         assert res.get_json()["status"] == expected
 

@@ -1,47 +1,80 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { CITIES } from '../lib/mock'
 import { Button } from '../components/ui'
 import { cx } from '../lib/format'
 import AuthShell from './AuthShell'
+import { useRegions, useCitiesForRegion } from '../lib/queries'
+import { api } from '../lib/api'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function Register() {
   const { register } = useAuth()
   const nav = useNavigate()
+  const qc = useQueryClient()
   const [form, setForm] = useState({
     name: '',
     email: '',
-    city: CITIES[0].name,
+    region_id: '',
+    city: '',
     password: '',
     confirm: '',
   })
+  const [cityMode, setCityMode] = useState<'select' | 'other'>('select')
+  const [customCity, setCustomCity] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm({ ...form, [k]: e.target.value })
+  const { data: regions = [], isLoading: regionsLoading } = useRegions()
+  const { data: regionCities = [], isLoading: citiesLoading } = useCitiesForRegion(
+    form.region_id || null,
+  )
+
+  const set =
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm({ ...form, [k]: e.target.value })
+
+  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setForm({ ...form, region_id: e.target.value, city: '' })
+    setCityMode('select')
+    setCustomCity('')
+  }
 
   const pwStrength = strength(form.password)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (form.password.length < 6)
-      return setError('Password must be at least 6 characters.')
+    if (!form.region_id) return setError('Please select your region.')
+    if (form.password.length < 6) return setError('Password must be at least 6 characters.')
     if (form.password !== form.confirm) return setError('Passwords do not match.')
 
+    const resolvedCity = cityMode === 'other' ? customCity.trim() : form.city
+
     setLoading(true)
-    const res = await register({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      city: form.city,
-    })
-    setLoading(false)
-    if (!res.ok) return setError(res.error || 'Registration failed.')
-    // New students land straight on their city discovery feed
-    nav('/discover')
+    try {
+      if (cityMode === 'other' && resolvedCity) {
+        await api.addCityToRegion(form.region_id, resolvedCity)
+        qc.invalidateQueries({ queryKey: ['cities-for-region', form.region_id] })
+      }
+      const res = await register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        region_id: form.region_id,
+        city: resolvedCity || undefined,
+      })
+      if (!res.ok) {
+        setError(res.error || 'Registration failed.')
+      } else {
+        nav('/discover')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -53,7 +86,7 @@ export default function Register() {
     >
       <h1 className="text-h1 font-bold text-gold">Join the community</h1>
       <p className="mt-1 text-body text-graytext-light">
-        Create a student account and find your city.
+        Create a student account and find your region.
       </p>
 
       <form onSubmit={submit} className="mt-8 space-y-4">
@@ -73,20 +106,82 @@ export default function Register() {
             required
             value={form.email}
             onChange={set('email')}
-            placeholder="you@iitm.ac.in"
+            placeholder="22f1001234@ds.study.iitm.ac.in"
             className={inputCls}
           />
         </Field>
 
-        <Field label="Your city">
-          <select value={form.city} onChange={set('city')} className={inputCls}>
-            {CITIES.map((c) => (
-              <option key={c.id} className="bg-onyx">
-                {c.name}
+        {/* Step 1: Region (required) */}
+        <Field label="Region">
+          <select
+            required
+            value={form.region_id}
+            onChange={handleRegionChange}
+            className={inputCls}
+            disabled={regionsLoading}
+          >
+            <option value="" disabled className="bg-onyx">
+              {regionsLoading ? 'Loading regions...' : 'Select your region'}
+            </option>
+            {regions.map((r) => (
+              <option key={r.id} value={r.id} className="bg-onyx">
+                {r.name}
               </option>
             ))}
           </select>
         </Field>
+
+        {/* Step 2: City (optional, unlocks after region is chosen) */}
+        {form.region_id && (
+          <Field label="Your city">
+            {cityMode === 'select' ? (
+              <div className="flex gap-2">
+                <select
+                  value={form.city}
+                  onChange={set('city')}
+                  className={cx(inputCls, 'flex-1')}
+                  disabled={citiesLoading}
+                >
+                  <option value="" className="bg-onyx">
+                    {citiesLoading ? 'Loading cities...' : 'Select your city (optional)'}
+                  </option>
+                  {regionCities.map((c) => (
+                    <option key={c.id} value={c.name} className="bg-onyx">
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setCityMode('other')}
+                  className="shrink-0 rounded-xl border border-teal/30 bg-teal/10 px-3 text-[13px] text-teal hover:bg-teal/20 transition-colors"
+                >
+                  + Other
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={customCity}
+                  onChange={(e) => setCustomCity(e.target.value)}
+                  placeholder="Type your city name..."
+                  className={cx(inputCls, 'flex-1')}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => { setCityMode('select'); setCustomCity('') }}
+                  className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 text-[13px] text-graytext-mid hover:bg-white/10 transition-colors"
+                >
+                  Back
+                </button>
+              </div>
+            )}
+            <p className="mt-1.5 text-[12px] text-graytext-mid">
+              City is optional. Your Region is the primary anchor for events and analytics.
+            </p>
+          </Field>
+        )}
 
         <Field label="Password">
           <input
@@ -143,7 +238,7 @@ export default function Register() {
         )}
 
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
-          {loading ? 'Creating account…' : 'Create account'}
+          {loading ? 'Creating account...' : 'Create account'}
         </Button>
 
         <p className="text-center text-caption text-graytext-mid">

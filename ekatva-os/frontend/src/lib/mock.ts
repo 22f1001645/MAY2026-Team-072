@@ -333,14 +333,18 @@ export const ATTENDEES: Attendee[] = [
   { id: 'a8', name: 'Dev A', regId: 'REG-1049', checkedIn: false },
 ]
 
-// Analytics — descriptive slice (FR-H). Per-city participation.
+// Analytics — descriptive slice (FR-H). Per-region participation.
 export const CITY_ANALYTICS = [
-  { city: 'Hyderabad', meetups: 8, attendance: 312, unique: 190, repeat: 122, feePaid: 640, feeUsed: 190 },
-  { city: 'Bangalore', meetups: 5, attendance: 168, unique: 121, repeat: 47, feePaid: 520, feeUsed: 121 },
-  { city: 'Chennai', meetups: 6, attendance: 205, unique: 140, repeat: 65, feePaid: 480, feeUsed: 140 },
-  { city: 'Delhi', meetups: 4, attendance: 138, unique: 110, repeat: 28, feePaid: 410, feeUsed: 110 },
-  { city: 'Mumbai', meetups: 3, attendance: 92, unique: 78, repeat: 14, feePaid: 360, feeUsed: 78 },
-  { city: 'Pune', meetups: 2, attendance: 54, unique: 49, repeat: 5, feePaid: 210, feeUsed: 49 },
+  { city: 'Hyderabad (AP & Telangana)', meetups: 8, attendance: 312, unique: 190, repeat: 122, feePaid: 640, feeUsed: 190 },
+  { city: 'Bengaluru (Karnataka, Kerala)', meetups: 5, attendance: 168, unique: 121, repeat: 47, feePaid: 520, feeUsed: 121 },
+  { city: 'Chennai (Tamil Nadu)', meetups: 6, attendance: 205, unique: 140, repeat: 65, feePaid: 480, feeUsed: 140 },
+  { city: 'Delhi (Delhi-NCR)', meetups: 4, attendance: 138, unique: 110, repeat: 28, feePaid: 410, feeUsed: 110 },
+  { city: 'Mumbai (Maharashtra, Gujarat)', meetups: 3, attendance: 92, unique: 78, repeat: 14, feePaid: 360, feeUsed: 78 },
+  { city: 'Kolkata (WB, NE, Odisha)', meetups: 2, attendance: 54, unique: 49, repeat: 5, feePaid: 210, feeUsed: 49 },
+  { city: 'Chandigarh (Punjab, HP, RJ, J&K)', meetups: 1, attendance: 35, unique: 30, repeat: 5, feePaid: 180, feeUsed: 30 },
+  { city: 'Lucknow (UP, Gwalior)', meetups: 1, attendance: 28, unique: 25, repeat: 3, feePaid: 150, feeUsed: 25 },
+  { city: 'Patna (Bihar, Jharkhand, Chhattisgarh)', meetups: 1, attendance: 22, unique: 20, repeat: 2, feePaid: 120, feeUsed: 20 },
+  { city: 'International', meetups: 1, attendance: 15, unique: 15, repeat: 0, feePaid: 90, feeUsed: 15 },
 ]
 
 export const getEvent = (id: string) =>

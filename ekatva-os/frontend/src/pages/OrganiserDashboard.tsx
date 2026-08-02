@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useDashboard } from '../lib/queries'
 import { inr } from '../lib/mock'
 import { Badge, Button, Card, Progress, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { daysUntil, formatDate } from '../lib/format'
+import EventAnnouncementsModal from '../components/EventAnnouncementsModal'
 
 const STATUS_TONE: Record<string, any> = {
   approved: 'success',
@@ -22,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function OrganiserDashboard() {
   const { data, isLoading, isError, error } = useDashboard()
+  const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
 
   if (isLoading) return <Loading label="Loading your dashboard…" />
   if (isError) return <ErrorState error={error} />
@@ -102,6 +105,7 @@ export default function OrganiserDashboard() {
                       <Link to={`/events/${e.id}/checkin`}>
                         <Button variant="secondary" size="sm">Check-in</Button>
                       </Link>
+                      <Button variant="secondary" size="sm" onClick={() => setActiveBroadcastEventId(e.id)}>Broadcast</Button>
                     </>
                   )}
                   {e.status === 'completed' && (
@@ -115,6 +119,13 @@ export default function OrganiserDashboard() {
           </div>
         )}
       </div>
+
+      {activeBroadcastEventId && (
+        <EventAnnouncementsModal
+          eventId={activeBroadcastEventId}
+          onClose={() => setActiveBroadcastEventId(null)}
+        />
+      )}
     </div>
   )
 }

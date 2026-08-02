@@ -1,12 +1,15 @@
 from flask import Blueprint, g, jsonify
+from ..extensions import db
 
 from ..constants import ROLE_ADMIN
 from ..rbac import auth_required, is_organiser
 from ..repositories.repos import (
     ActivityRepository,
+    AuditRepository,
     ExpenseRepository,
     NotificationRepository,
     RegistrationRepository,
+    UserRepository,
 )
 
 misc_bp = Blueprint("misc", __name__, url_prefix="/api/v1")
@@ -24,6 +27,15 @@ def notifications():
     return jsonify([n.to_dict() for n in items]), 200
 
 
+@misc_bp.patch("/notifications/read")
+@auth_required
+def mark_notifications_read():
+    from ..models import Notification
+    db.session.query(Notification).filter_by(user_id=g.current_user.id, read=False).update({"read": True})
+    db.session.commit()
+    return jsonify({"ok": True}), 200
+
+
 @misc_bp.get("/dashboard")
 @auth_required
 def dashboard():
@@ -33,12 +45,18 @@ def dashboard():
     if user.role == ROLE_ADMIN:
         pending = ActivityRepository.proposals_by_status("pending")
         reimb = [e for e in ExpenseRepository.all() if e.status != "paid"]
+        recent = AuditRepository.all_logs(limit=5)
+        published = ActivityRepository.published_feed()
+        students = UserRepository.students()
         return jsonify(
             {
                 "role": "admin",
                 "pending_approvals": len(pending),
                 "pending_reimbursements": len(reimb),
                 "reimbursement_value": sum(e.amount for e in reimb),
+                "total_events": len(published),
+                "total_students": len(students),
+                "recent_audits": [a.to_dict() for a in recent],
             }
         ), 200
 

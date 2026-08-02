@@ -19,15 +19,29 @@ def test_login_wrong_password(client):
 
 
 def test_register_creates_student(client):
+    from app.extensions import db
+    from app.models import Organisation
+    from flask import current_app
+    with client.application.app_context():
+        region = Organisation.query.filter_by(type='region').first()
     res = client.post("/api/v1/auth/register", json={
-        "name": "New Student", "email": "new@ekatva.os", "password": "secret1", "city": "Delhi",
+        "name": "New Student", "email": "new@ekatva.os",
+        "password": "secret1", "region_id": region.id,
     })
     assert res.status_code == 201
-    assert res.get_json()["user"]["role"] == "student"
+    body = res.get_json()
+    assert body["user"]["role"] == "student"
+    assert body["user"]["region_id"] == region.id
 
 
 def test_register_duplicate_email_conflicts(client):
-    payload = {"name": "Dup", "email": "arav@ekatva.os", "password": "secret1", "city": "Hyderabad"}
+    with client.application.app_context():
+        from app.models import Organisation
+        region = Organisation.query.filter_by(type='region').first()
+    payload = {
+        "name": "Dup", "email": "arav@ekatva.os",
+        "password": "secret1", "region_id": region.id,
+    }
     res = client.post("/api/v1/auth/register", json=payload)
     assert res.status_code == 409
     assert res.get_json()["code"] == "email_taken"

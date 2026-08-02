@@ -64,3 +64,11 @@ def award_volunteer(activity_id):
         activity_id, data["user_id"], data["role_name"], g.current_user
     )
     return jsonify(result), 200
+
+
+@registration_bp.get("/events/<activity_id>/announcements")
+@auth_required
+def get_announcements(activity_id):
+    """Fetch broadcast announcements for an event."""
+    items = registration_service.announcements(activity_id)
+    return jsonify([i.to_dict() for i in items]), 200

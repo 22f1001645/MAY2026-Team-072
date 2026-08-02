@@ -50,6 +50,14 @@ def audit(activity_id):
     return jsonify([a.to_dict() for a in proposal_service.audit_trail(activity_id)]), 200
 
 
+@proposal_bp.get("/audit-log")
+@admin_required
+def global_audit_log():
+    """FR-B4 — System-wide append-only audit log feed across all activities."""
+    logs = proposal_service.global_audit_trail()
+    return jsonify([a.to_dict() for a in logs]), 200
+
+
 @proposal_bp.post("/activities/<activity_id>/report")
 @organiser_required
 def submit_report(activity_id):

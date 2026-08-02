@@ -12,7 +12,6 @@ import Discover from './pages/Discover'
 import EventDetail from './pages/EventDetail'
 import MyRegistrations from './pages/MyRegistrations'
 import Leaderboard from './pages/Leaderboard'
-import Notifications from './pages/Notifications'
 // Organiser
 import OrganiserDashboard from './pages/OrganiserDashboard'
 import ProposalNew from './pages/ProposalNew'
@@ -52,7 +51,6 @@ function AppShell() {
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/me" element={<MyRegistrations />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/notifications" element={<Notifications />} />
 
         {/* Organiser */}
         <Route path="/organiser" element={<OrganiserDashboard />} />

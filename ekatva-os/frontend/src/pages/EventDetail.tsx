@@ -26,7 +26,9 @@ export default function EventDetail() {
       </Card>
     )
 
-  const registered = myRegs.some((r: any) => r.activity_id === e.id)
+  const registration = myRegs.find((r: any) => r.activity_id === e.id)
+  const registered = !!registration
+  const isWaitlisted = registration?.status === 'waitlisted'
   const count = e.registered
   const spotsLeft = e.capacity - count
   const plannedTotal = e.budget.reduce((s, b) => s + b.planned, 0)
@@ -74,21 +76,6 @@ export default function EventDetail() {
               <InfoRow icon="clock" label="Time" value={formatTime(e.startsAt)} />
               <InfoRow icon="pin" label="Venue" value={e.venue} />
               <InfoRow icon="user" label="Organiser" value={e.organiser} />
-            </div>
-          </Card>
-
-          {/* Updates — broadcasts to registrants (FR-D3) */}
-          <Card className="p-6">
-            <h2 className="mb-4 text-h3 font-semibold text-gold">Updates from the organiser</h2>
-            <div className="space-y-4">
-              <Update
-                at="2 days ago"
-                text="Registration is open! Bus pickup points will be shared with confirmed registrants closer to the date."
-              />
-              <Update
-                at="5 days ago"
-                text="We crossed 150 registrations — thank you. Meals confirmed for everyone who signs up."
-              />
             </div>
           </Card>
 
@@ -149,10 +136,14 @@ export default function EventDetail() {
             {role === 'student' ? (
               registered ? (
                 <div className="mt-5">
-                  <div className="rounded-xl border border-teal/30 bg-teal/10 p-4 text-center">
-                    <div className="text-h3 font-semibold text-teal">You're in! 🎉</div>
+                  <div className={`rounded-xl border p-4 text-center ${isWaitlisted ? 'border-warn/30 bg-warn/10' : 'border-teal/30 bg-teal/10'}`}>
+                    <div className={`text-h3 font-semibold ${isWaitlisted ? 'text-warn' : 'text-teal'}`}>
+                      {isWaitlisted ? "You're on the waitlist ⏳" : "You're in! 🎉"}
+                    </div>
                     <p className="mt-1 text-caption text-graytext-light">
-                      A confirmation and reminders will reach you. See you there.
+                      {isWaitlisted 
+                        ? 'We will notify you if a spot opens up.' 
+                        : 'A confirmation and reminders will reach you. See you there.'}
                     </p>
                   </div>
                   <Button
@@ -169,13 +160,13 @@ export default function EventDetail() {
                   <Button
                     className="w-full"
                     size="lg"
-                    disabled={registerMut.isPending || spotsLeft <= 0}
+                    disabled={registerMut.isPending}
                     onClick={() => registerMut.mutate(e.id)}
                   >
                     {registerMut.isPending
-                      ? 'Registering…'
+                      ? 'Processing…'
                       : spotsLeft <= 0
-                        ? 'Event full'
+                        ? 'Join Waitlist'
                         : "Register — it's free"}
                   </Button>
                   {registerMut.isError && (
@@ -225,15 +216,6 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
         <div className="text-caption uppercase tracking-wider text-graytext-mid">{label}</div>
         <div className="text-[14px] text-offwhite">{value}</div>
       </div>
-    </div>
-  )
-}
-
-function Update({ at, text }: { at: string; text: string }) {
-  return (
-    <div className="border-l-2 border-teal/40 pl-4">
-      <div className="text-caption text-graytext-mid">{at}</div>
-      <div className="text-[14px] text-graytext-light">{text}</div>
     </div>
   )
 }

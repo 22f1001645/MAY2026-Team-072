@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { EkatvaEvent } from '../lib/types'
+import type { EkatvaEvent, ActivityScale } from '../lib/types'
 import { CITIES } from '../lib/mock'
-import { useEvents } from '../lib/queries'
+import { useEvents, useMyRegistrations } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { Badge, Button, Card, Mandala } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
@@ -13,21 +13,29 @@ export default function Discover() {
   // Feed defaults to the student's city/region (FR-C4)
   const [activeCity, setActiveCity] = useState<string>(city)
   const [q, setQ] = useState('')
+  const [activeScale, setActiveScale] = useState<ActivityScale | 'all'>('all')
+  const [sortBy, setSortBy] = useState<'asc' | 'desc'>('asc')
 
   // Live city feed from the API (server-side city filter + client search)
   const { data: events = [], isLoading, isError, error } = useEvents(activeCity)
+  const { data: regs = [] } = useMyRegistrations()
 
-  const upcoming = useMemo(
-    () =>
-      events
-        .filter((e) => e.status === 'upcoming')
-        .filter((e) => e.title.toLowerCase().includes(q.toLowerCase()))
-        .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt)),
-    [events, q],
-  )
-
-  const featured = upcoming.find((e) => e.scale === 'regional_fest') ?? upcoming[0]
-  const rest = upcoming.filter((e) => e.id !== featured?.id)
+  const upcoming = useMemo(() => {
+    let filtered = events.filter((e) => e.status === 'upcoming')
+    
+    if (q) {
+      filtered = filtered.filter((e) => e.title.toLowerCase().includes(q.toLowerCase()))
+    }
+    
+    if (activeScale !== 'all') {
+      filtered = filtered.filter((e) => e.scale === activeScale)
+    }
+    
+    return filtered.sort((a, b) => {
+      const diff = +new Date(a.startsAt) - +new Date(b.startsAt)
+      return sortBy === 'asc' ? diff : -diff
+    })
+  }, [events, q, activeScale, sortBy])
 
   return (
     <div>
@@ -62,25 +70,47 @@ export default function Discover() {
       {/* Filters */}
       <div id="feed" className="mb-6 flex flex-wrap items-center gap-3">
         <h2 className="mr-auto text-h2 font-semibold text-gold">Upcoming near you</h2>
-        <div className="relative">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search events…"
-            className="w-52 rounded-full border border-white/8 bg-white/5 py-2 pl-9 pr-4 text-[13px] text-offwhite placeholder:text-graytext-mid focus:border-teal/40 focus:outline-none"
-          />
-          <svg
-            className="absolute left-3 top-2.5 text-graytext-mid"
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={activeScale}
+            onChange={(e) => setActiveScale(e.target.value as ActivityScale | 'all')}
+            className="rounded-full border border-white/8 bg-white/5 py-2 pl-4 pr-8 text-[13px] text-offwhite focus:border-teal/40 focus:outline-none appearance-none"
+            style={{ background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23a1a1aa\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E") no-repeat right 0.75rem center/12px 12px, rgba(255, 255, 255, 0.05)' }}
           >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3-3" strokeLinecap="round" />
-          </svg>
+            <option value="all" className="bg-onyx">All Scales</option>
+            <option value="local_meetup" className="bg-onyx">Local Meetup</option>
+            <option value="regional_meetup" className="bg-onyx">Regional Meetup</option>
+            <option value="regional_fest" className="bg-onyx">Regional Fest</option>
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'asc' | 'desc')}
+            className="rounded-full border border-white/8 bg-white/5 py-2 pl-4 pr-8 text-[13px] text-offwhite focus:border-teal/40 focus:outline-none appearance-none"
+            style={{ background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23a1a1aa\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E") no-repeat right 0.75rem center/12px 12px, rgba(255, 255, 255, 0.05)' }}
+          >
+            <option value="asc" className="bg-onyx">Date: Soonest</option>
+            <option value="desc" className="bg-onyx">Date: Furthest</option>
+          </select>
+          <div className="relative">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search events…"
+              className="w-52 rounded-full border border-white/8 bg-white/5 py-2 pl-9 pr-4 text-[13px] text-offwhite placeholder:text-graytext-mid focus:border-teal/40 focus:outline-none"
+            />
+            <svg
+              className="absolute left-3 top-2.5 text-graytext-mid"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3-3" strokeLinecap="round" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -106,59 +136,16 @@ export default function Discover() {
       {isLoading && <Loading label="Loading events near you…" />}
       {isError && <ErrorState error={error} />}
 
-      {/* Featured */}
-      {!isLoading && !isError && featured && (
-        <Link to={`/events/${featured.id}`}>
-          <Card hover className="mb-8 grid overflow-hidden md:grid-cols-2">
-            <div
-              className="relative min-h-[220px] p-6"
-              style={{ background: cover(featured.cover) }}
-            >
-              <div className="grain absolute inset-0" />
-              <div className="relative flex h-full flex-col justify-between">
-                <Badge tone="gold">★ Featured · {scaleLabel[featured.scale]}</Badge>
-                <div>
-                  <div className="text-caption uppercase tracking-widest text-offwhite/70">
-                    {featured.org}
-                  </div>
-                  <div className="mt-1 text-h2 font-bold text-offwhite">
-                    {featured.title}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="mb-3 flex items-center gap-2 text-caption text-teal">
-                <Badge tone="teal">{daysUntil(featured.startsAt)}</Badge>
-                {featured.tags.map((t) => (
-                  <Badge key={t}>{t}</Badge>
-                ))}
-              </div>
-              <p className="text-body text-graytext-light">{featured.description}</p>
-              <div className="mt-5 grid grid-cols-2 gap-4 text-[13px]">
-                <Meta label="When" value={`${formatDate(featured.startsAt)} · ${formatTime(featured.startsAt)}`} />
-                <Meta label="Where" value={featured.venue} />
-                <Meta label="City" value={featured.city} />
-                <Meta
-                  label="Spots"
-                  value={`${featured.registered}/${featured.capacity} filled`}
-                />
-              </div>
-              <div className="mt-6">
-                <Button>View & register →</Button>
-              </div>
-            </div>
-          </Card>
-        </Link>
-      )}
-
       {/* Grid */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {rest.map((e) => (
-          <Link key={e.id} to={`/events/${e.id}`}>
-            <EventCard e={e} />
-          </Link>
-        ))}
+        {upcoming.map((e) => {
+          const isRegistered = regs.some((r: any) => r.activity?.id === e.id)
+          return (
+            <Link key={e.id} to={`/events/${e.id}`}>
+              <EventCard e={e} isRegistered={isRegistered} />
+            </Link>
+          )
+        })}
       </div>
 
       {!isLoading && !isError && upcoming.length === 0 && (
@@ -176,18 +163,7 @@ export default function Discover() {
   )
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-caption uppercase tracking-wider text-graytext-mid">
-        {label}
-      </div>
-      <div className="text-offwhite">{value}</div>
-    </div>
-  )
-}
-
-function EventCard({ e }: { e: EkatvaEvent }) {
+function EventCard({ e, isRegistered }: { e: EkatvaEvent; isRegistered?: boolean }) {
   const nearlyFull = e.registered / e.capacity > 0.85
   return (
     <Card hover className="h-full overflow-hidden">
@@ -208,6 +184,15 @@ function EventCard({ e }: { e: EkatvaEvent }) {
         <div className="mt-1 line-clamp-2 text-h3 font-semibold text-offwhite">
           {e.title}
         </div>
+        {e.tags && e.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {e.tags.slice(0, 3).map((t) => (
+              <span key={t} className="rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-graytext-mid">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="mt-3 flex items-center gap-2 text-[13px] text-graytext-light">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -226,7 +211,11 @@ function EventCard({ e }: { e: EkatvaEvent }) {
           <span className="text-caption text-graytext-mid">
             {e.registered}/{e.capacity} going
           </span>
-          <span className="text-caption font-semibold text-teal">Register →</span>
+          {isRegistered ? (
+            <Badge tone="success">Registered ✓</Badge>
+          ) : (
+            <span className="text-caption font-semibold text-teal">Register →</span>
+          )}
         </div>
       </div>
     </Card>

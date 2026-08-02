@@ -1,10 +1,13 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
+import { api } from '../lib/api'
 import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
 import { Mandala } from './ui'
+import NotificationsDropdown from './NotificationsDropdown'
 
 interface NavItem {
   to: string
@@ -18,7 +21,6 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/discover', label: 'Discover', icon: <Icon d="M12 2 4 7v10l8 5 8-5V7z" /> },
     { to: '/me', label: 'My Registrations', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
-    { to: '/notifications', label: 'Notifications', icon: <Icon d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /> },
   ],
   organiser: [
     { to: '/organiser', label: 'Dashboard', icon: <Icon d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z" /> },
@@ -67,6 +69,57 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
   const nav = NAV[role]
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+
+  const { data: searchUsers = [] } = useQuery({
+    queryKey: ['search-users', searchQuery],
+    queryFn: () => api.users(searchQuery),
+    enabled: searchQuery.trim().length >= 1,
+  })
+
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['search-events'],
+    queryFn: () => api.events(),
+    enabled: searchQuery.trim().length >= 1,
+  })
+
+  const { data: allOrgs = [] } = useQuery({
+    queryKey: ['search-orgs'],
+    queryFn: () => api.orgs(),
+    enabled: searchQuery.trim().length >= 1,
+  })
+
+  const filteredEvents = allEvents.filter(
+    (e) =>
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
+
+  const filteredOrgs = allOrgs.filter(
+    (o) =>
+      o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.type.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false)
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const handleLogout = () => {
     logout()
     navigate('/login')
@@ -77,7 +130,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cx(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/5 bg-brand-gradient transition-transform duration-300 ease-material lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/5 bg-brand-gradient transition-transform duration-300 ease-material lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -161,22 +214,124 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             <Icon d="M4 6h16M4 12h16M4 18h16" />
           </button>
-          <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3.5 py-2 text-[13px] text-graytext-light sm:flex">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3-3" strokeLinecap="round" />
-            </svg>
-            Search events, people, orgs…
+          <div ref={searchRef} className="relative hidden sm:block">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[13px] text-graytext-light focus-within:border-teal/50 focus-within:bg-black/40">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0 text-graytext-mid">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3-3" strokeLinecap="round" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search events, people, orgs…"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setSearchOpen(true)
+                }}
+                onFocus={() => setSearchOpen(true)}
+                className="w-48 bg-transparent text-[13px] text-offwhite placeholder:text-graytext-mid focus:outline-none md:w-64"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSearchOpen(false)
+                  }}
+                  className="text-graytext-mid hover:text-offwhite text-[12px] px-1"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Global Search Dropdown */}
+            {searchOpen && searchQuery.trim().length >= 1 && (
+              <div className="absolute left-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx/95 p-3 shadow-2xl backdrop-blur-xl z-50 max-h-96 overflow-y-auto space-y-3">
+                {/* Events Section */}
+                {filteredEvents.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-teal mb-1 px-2">Events ({filteredEvents.length})</div>
+                    <div className="space-y-1">
+                      {filteredEvents.slice(0, 3).map((evt) => (
+                        <div
+                          key={evt.id}
+                          onClick={() => {
+                            setSearchOpen(false)
+                            navigate(`/events/${evt.id}`)
+                          }}
+                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="text-[13px] font-semibold text-offwhite">{evt.title}</div>
+                          <div className="text-[11px] text-graytext-light">{evt.city} · {evt.startsAt}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* People / Members Section */}
+                {searchUsers.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-gold mb-1 px-2">People / Members ({searchUsers.length})</div>
+                    <div className="space-y-1">
+                      {searchUsers.slice(0, 3).map((usr) => (
+                        <div
+                          key={usr.id}
+                          onClick={() => {
+                            setSearchOpen(false)
+                            if (role === 'admin') navigate('/admin/orgs')
+                          }}
+                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="text-[13px] font-semibold text-offwhite">{usr.name}</div>
+                          <div className="text-[11px] text-graytext-light">{usr.email} · {usr.city}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Organisations Section */}
+                {filteredOrgs.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-1 px-2">Organisations ({filteredOrgs.length})</div>
+                    <div className="space-y-1">
+                      {filteredOrgs.slice(0, 3).map((org) => (
+                        <div
+                          key={org.id}
+                          onClick={() => {
+                            setSearchOpen(false)
+                            if (role === 'admin') navigate('/admin/orgs')
+                            else navigate('/discover')
+                          }}
+                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="text-[13px] font-semibold text-offwhite">{org.name}</div>
+                          <div className="text-[11px] text-graytext-light">Type: {org.type}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {filteredEvents.length === 0 && searchUsers.length === 0 && filteredOrgs.length === 0 && (
+                  <div className="p-4 text-center text-[13px] text-graytext-mid">No matching events, people, or orgs found.</div>
+                )}
+              </div>
+            )}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-caption text-graytext-mid sm:block">
-              v1 · City-meetup lifecycle
-            </span>
-            <div className="relative">
-              <button className="grid h-9 w-9 place-items-center rounded-full border border-white/8 bg-white/5 text-graytext-light hover:text-teal">
+            <div className="relative" ref={notificationsRef}>
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className={cx("grid h-9 w-9 place-items-center rounded-full border border-white/8 text-graytext-light hover:text-teal transition-colors", notificationsOpen ? 'bg-white/10 text-offwhite' : 'bg-white/5')}
+              >
                 <Icon d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               </button>
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-teal ring-2 ring-onyx" />
+              {notificationsOpen && (
+                <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />
+              )}
             </div>
           </div>
         </header>

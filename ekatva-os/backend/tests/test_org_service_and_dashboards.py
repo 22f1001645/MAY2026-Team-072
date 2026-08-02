@@ -155,8 +155,8 @@ def test_registration_capacity_limit(client, rc_headers, admin_headers, student_
 
     # Register second user (RC also acts as student for this test)
     reg2 = client.post(f"/api/v1/events/{aid}/register", headers=rc_headers)
-    assert reg2.status_code == 409
-    assert reg2.get_json()["code"] == "at_capacity"
+    assert reg2.status_code == 201
+    assert reg2.get_json()["status"] == "waitlisted"
 
 
 def test_post_event_report_flow(client, rc_headers, admin_headers, student_headers):
@@ -213,3 +213,85 @@ def test_award_volunteer_points_flow(client, rc_headers, admin_headers, student_
     # Student checks ledger
     pts = client.get("/api/v1/me/points", headers=student_headers).get_json()
     assert any(e["action"] == "volunteered" for e in pts["entries"])
+
+
+def test_global_audit_log(client, admin_headers):
+    res = client.get("/api/v1/audit-log", headers=admin_headers)
+    assert res.status_code == 200
+    assert isinstance(res.get_json(), list)
+
+
+def test_deactivate_por(client, admin_headers):
+    por = PORAssignment.query.first()
+    res = client.patch(f"/api/v1/pors/{por.id}/deactivate", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.get_json()["active"] is False
+
+
+def test_bulk_verify_expenses(client, rc_headers, admin_headers):
+    payload = {
+        "title": "Bulk Verify Event",
+        "org_id": Organisation.query.first().id,
+        "city": "Hyderabad",
+        "scale": "local_meetup",
+        "venue": "Venue",
+        "starts_at": "2026-11-20T10:00:00",
+        "capacity": 10,
+    }
+    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
+
+    # Submit 2 expenses
+    exp1 = client.post("/api/v1/expenses", json={"activity_id": aid, "label": "E1", "amount": 500}, headers=rc_headers).get_json()["id"]
+    exp2 = client.post("/api/v1/expenses", json={"activity_id": aid, "label": "E2", "amount": 800}, headers=rc_headers).get_json()["id"]
+
+    # Bulk verify
+    res = client.patch("/api/v1/expenses/bulk-verify", json={"expense_ids": [exp1, exp2]}, headers=admin_headers)
+    assert res.status_code == 200
+    assert len(res.get_json()) == 2
+    assert all(e["status"] == "verified" for e in res.get_json())
+
+
+def test_duplicate_secretary_assignment_blocked(client, admin_headers):
+    house = Organisation.query.filter_by(type="house").first()
+    student = User.query.filter_by(role="student").first()
+
+    # First assignment
+    res1 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "House Secretary", "term": "May 2026"},
+        headers=admin_headers,
+    )
+    assert res1.status_code in [201, 409]
+
+    # Duplicate assignment attempt for same house
+    res2 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "House Secretary", "term": "May 2026"},
+        headers=admin_headers,
+    )
+    assert res2.status_code == 409
+    assert res2.get_json()["code"] == "slot_already_filled"
+
+
+def test_duplicate_rc_assignment_blocked(client, admin_headers):
+    house = Organisation.query.filter_by(type="house").first()
+    region = Organisation.query.filter_by(type="region").first()
+    student = User.query.filter_by(role="student").first()
+
+    # First RC assignment
+    res1 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "Regional Coordinator", "term": "May 2026", "region_id": region.id},
+        headers=admin_headers,
+    )
+    assert res1.status_code in [201, 409]
+
+    # Duplicate RC assignment attempt for same house + region
+    res2 = client.post(
+        f"/api/v1/orgs/{house.id}/pors",
+        json={"user_id": student.id, "por_type": "Regional Coordinator", "term": "May 2026", "region_id": region.id},
+        headers=admin_headers,
+    )
+    assert res2.status_code == 409
+    assert res2.get_json()["code"] == "rc_slot_already_filled"

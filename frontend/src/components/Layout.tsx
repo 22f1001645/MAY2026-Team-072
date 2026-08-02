@@ -148,7 +148,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 cx(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-300 ease-material',
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition duration-200 ease-material focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
                   isActive || location.pathname === item.to
                     ? 'bg-teal/12 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
                     : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
@@ -181,7 +181,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <button
               onClick={handleLogout}
               title="Sign out"
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-graytext-mid transition-colors hover:bg-white/5 hover:text-red-300"
+              aria-label="Sign out"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-graytext-mid transition-colors hover:bg-white/5 hover:text-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
@@ -231,6 +232,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     setSearchQuery('')
                     setSearchOpen(false)
                   }}
+                  aria-label="Clear search"
                   className="text-graytext-mid hover:text-offwhite text-[12px] px-1"
                 >
                   ✕
@@ -247,17 +249,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <div className="text-[11px] font-bold uppercase tracking-wider text-teal mb-1 px-2">Events ({filteredEvents.length})</div>
                     <div className="space-y-1">
                       {filteredEvents.slice(0, 3).map((evt) => (
-                        <div
+                        <button
                           key={evt.id}
+                          type="button"
                           onClick={() => {
                             setSearchOpen(false)
                             navigate(`/events/${evt.id}`)
                           }}
-                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
                         >
                           <div className="text-[13px] font-semibold text-offwhite">{evt.title}</div>
                           <div className="text-[11px] text-graytext-light">{evt.city} · {evt.startsAt}</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -269,17 +272,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <div className="text-[11px] font-bold uppercase tracking-wider text-gold mb-1 px-2">People / Members ({searchUsers.length})</div>
                     <div className="space-y-1">
                       {searchUsers.slice(0, 3).map((usr) => (
-                        <div
+                        <button
                           key={usr.id}
+                          type="button"
                           onClick={() => {
                             setSearchOpen(false)
                             if (role === 'admin') navigate('/admin/orgs')
                           }}
-                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
                         >
                           <div className="text-[13px] font-semibold text-offwhite">{usr.name}</div>
                           <div className="text-[11px] text-graytext-light">{usr.email} · {usr.city}</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -291,18 +295,19 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <div className="text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-1 px-2">Organisations ({filteredOrgs.length})</div>
                     <div className="space-y-1">
                       {filteredOrgs.slice(0, 3).map((org) => (
-                        <div
+                        <button
                           key={org.id}
+                          type="button"
                           onClick={() => {
                             setSearchOpen(false)
                             if (role === 'admin') navigate('/admin/orgs')
                             else navigate('/discover')
                           }}
-                          className="cursor-pointer rounded-xl p-2 hover:bg-white/5 transition-colors"
+                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
                         >
                           <div className="text-[13px] font-semibold text-offwhite">{org.name}</div>
                           <div className="text-[11px] text-graytext-light">Type: {org.type}</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -319,7 +324,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               v1 · City-meetup lifecycle
             </span>
             <div className="relative">
-              <button className="grid h-9 w-9 place-items-center rounded-full border border-white/8 bg-white/5 text-graytext-light hover:text-teal">
+              <button
+                aria-label="Notifications"
+                className="grid h-9 w-9 place-items-center rounded-full border border-white/8 bg-white/5 text-graytext-light hover:text-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
+              >
                 <Icon d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               </button>
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-teal ring-2 ring-onyx" />

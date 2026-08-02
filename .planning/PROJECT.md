@@ -33,17 +33,25 @@ A Regional Coordinator can propose, get approved, publish, fill, run, and reimbu
 
 <!-- Current milestone: Organiser Dashboard deepening. This is PRD v2.2 §18's own "Phase 2: Deepen operations" roadmap item (full workspace/tasks, knowledge search & templates, auto-filled reports), scoped for this pass. Full TRD covers all of these; build order is phased (see ROADMAP.md once created). -->
 
+Full detail + REQ-IDs live in `REQUIREMENTS.md` (43 v1 requirements across 13 categories). Summary of the actual pipeline this milestone builds:
+
+**Propose → approve → design → campaign → live → execute:**
+- [ ] Proposal gains multi-entity collaboration (many-to-many collaborating Organisations, one primary), auto-labeled "Mega Meetup" at 3+ collaborators, and a team roster assembled at submission time from a fixed role catalog (Meetup Head required exactly once, plus Co-Head/Designer/Video-Content/PR/Logistics/Volunteer-Coordinator/Finance) — admin reviews the team+collaborators alongside the existing proposal fields
+- [ ] Once accepted, organiser fills an event-design template (ordered schedule/agenda with starter presets per scale)
+- [ ] Campaign creator: brand-kit-driven mail-template draft (facts template-interpolated, all collaborating entities' logos on multi-entity campaigns), poster upload, registration link, and a fixed-plus-custom-fields registration form
+- [ ] The assigned Meetup Head (reassignable, POR not required) must explicitly review and approve the full campaign package before it pushes live to students
+- [ ] Once live, the team/task workspace (Kanban-style board) activates for the roster assembled at proposal time
+
+**Supporting/foundational work:**
 - [ ] Dashboard switcher: a user holding an organiser POR can toggle between their Student view and Organiser view (today they're hard-locked into one nav)
-- [ ] POR taxonomy completion + frontend/backend sync: fix the live bug (frontend `ORGANISER_POR_TYPES` missing `Deputy House Secretary`/`Web Admin` vs backend `ORGANISER_PORS`) by having `/auth/me` return server-computed capabilities instead of a second hardcoded frontend list; also close the taxonomy gap the Constitution confirms exists in `constants.py` itself — add `Society Deputy Secretary` and `Coordinator` (Core Committee role, House/Society/Council-scoped) as POR types. SEC-level secretary roles (Finance/Sports/Cultural/Student Relations/Election & Ethics/Web Ops secretaries) and Paradox/national-fest roles stay out — both are Vision Horizon per PRD (SEC has "least operational visibility today"; national fest is explicitly out of v1 scope)
+- [ ] POR taxonomy completion + frontend/backend sync: fix the live bug (frontend `ORGANISER_POR_TYPES` missing `Deputy House Secretary`/`Web Admin` vs backend `ORGANISER_PORS`) by having `/auth/me` return server-computed capabilities instead of a second hardcoded frontend list; also close the taxonomy gap the Constitution confirms exists in `constants.py` itself — add `Society Deputy Secretary` and `Coordinator` (Core Committee role, House/Society/Council-scoped) as POR types. SEC-level secretary roles and Paradox/national-fest roles stay out — both are Vision Horizon per PRD
 - [ ] Auth: long-lived refresh token + short-lived access token, so login feels persistent without a forced re-login
 - [ ] Academic-status field on User (level: foundation/diploma/degree; status: active/on-break/withdrawn), with a termly self-confirmation nudge and admin override — decoupled from session/auth, designed to be swapped for an official IITM BS feed later
-- [ ] Activity-scoped team/task model: any org member can be tagged as a collaborator on an Activity with a task + deadline, persisted server-side (replaces the current mock)
-- [ ] Entity profile + social-link editing: Secretary/Deputy Secretary can edit their organisation's social links (link-tree style) and their own profile, across all org types (house/society/region/council)
+- [ ] Entity profile + brand kit: Secretary/Deputy Secretary can edit their organisation's social links, profile, and a brand kit (voice/tone/palette) that drives campaign generation — with an optional AI-assist button to draft a starting brand kit — across all org types
 - [ ] Event timeline with post-event feedback: organiser reflection (challenges, learnings — feeds the existing report flow) plus a lightweight attendee-facing rating/feedback prompt
-- [ ] AI campaign creator: mail-template generation, poster upload/generate, registration-link generation, unlocked on proposal approval
-- [ ] Progression-gating: fest-scale / sponsorship-tier proposals unlock for an org once it completes its meetup milestones
+- [ ] Progression-gating: an org's eligibility to propose a `regional_fest` in a given city unlocks after completing ≥1 `local_meetup` + ≥1 `regional_meetup` in that same city; a fest proposal additionally needs ≥6 collaborating entities; reaching fest-tier flags (not builds) sponsorship/outreach tooling as unlocked
 - [ ] Chat + polls scoped to an event's registration window
-- [ ] QR-code check-in, replacing the current tap-based roster check-in
+- [ ] QR-code check-in, additive alongside the existing tap-based roster check-in (never replacing it)
 - [ ] Budget/report tracking wired into the redesigned organiser dashboard (existing Expenses/BudgetLine/report flow, surfaced against the new team/task view)
 
 ### Out of Scope
@@ -96,6 +104,14 @@ A Regional Coordinator can propose, get approved, publish, fill, run, and reimbu
 | AI campaign creator ships mail-template generation + poster upload only; poster *generation* stays behind an `AI_IMAGE_ENABLED` flag, off by default | Gemini image generation has no free tier (~$0.039/image, needs GCP billing) on a graded course project; user wants to revisit paid generation later as a revenue-model feature, not this milestone | — Pending |
 | POR taxonomy fix scoped to House/Region/Society/Council levels only (add `Society Deputy Secretary`, `Coordinator`); SEC-level secretary roles and Paradox roles excluded | Constitution confirms the gap is real (not just frontend drift) but SEC-level and Paradox/national-fest are both Vision Horizon per PRD — fixing only the levels Ekatva OS already models keeps this in scope | — Pending |
 | Build progression-gating now (using the safe `approved AND starts_at < now()` count, not `status == completed`), validate the mechanic with real RCs in parallel | Architecturally free, but it's the milestone's one feature with no market analogue — ship the workaround, don't wait for validation to start building | — Pending |
+| Activity gets many-to-many collaborating Organisations (one primary), not a single org_id | Notes describe proposals run "in collaboration with" multiple entities; a single FK can't express that | — Pending |
+| "Mega Meetup" (3+ collaborators, display tag) and "Regional Fest eligibility" (progression-gated, ≥6 collaborators) are two separate concepts, not one threshold | User confirmed explicitly — conflating them would misrepresent both a display label and a hard gate as the same thing | — Pending |
+| Team roles at proposal time use a fixed catalog (Meetup Head, Co-Head, Designer, Video/Content, PR & Outreach, Logistics, Volunteer Coordinator, Finance), assigned at submission and reviewed by admin alongside the proposal | Keeps role data queryable/consistent; team assembly happens as part of the proposal, not bolted on after acceptance | — Pending |
+| Meetup Head: exactly one per Activity (even in multi-entity Mega Meetups), any team member regardless of POR status, assigned at proposal time, reassignable by proposer/admin later, holds sole campaign-approval authority | User confirmed all four explicitly — RCs commonly fill it today but it must not be hard-restricted to RCs, especially for fest-tier proposals where broader participation matters | — Pending |
+| Registration form: fixed core fields + a bounded set of organiser-defined custom fields, not a full dynamic form-builder | Ships this milestone with far less schema/UI investment than a form-builder; revisit only if real demand for more surfaces | — Pending |
+| Brand kit: manual entry with an optional AI-assist button, never auto-applied without review | Matches the campaign creator's own "never auto-send" principle — AI drafts, humans confirm | — Pending |
+| Sponsorship/outreach CRM stays a flag/stub this milestone even once fest-tier is reached; real CRM tooling is a future milestone | Keeps this milestone's scope bounded; building a real CRM is a significant separate undertaking | — Pending |
+| Student home-city profile editing deferred to a future student-dashboard milestone | User confirmed this milestone is organiser-dashboard scoped; existing discovery city-filter behavior is untouched | — Pending |
 
 ## Evolution
 

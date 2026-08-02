@@ -155,27 +155,27 @@ Populated during roadmap creation — see ROADMAP.md.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHEMA-01, SCHEMA-02, SCHEMA-03 | — | Pending |
-| RBAC-01, RBAC-02, RBAC-03 | — | Pending |
-| AUTH-01, AUTH-02, AUTH-03, AUTH-04 | — | Pending |
-| DASH-01 | — | Pending |
-| PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | — | Pending |
-| BUDGET-01 | — | Pending |
-| DESIGN-01 | — | Pending |
-| CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06 | — | Pending |
-| ORG-01, ORG-02, ORG-03, ORG-04 | — | Pending |
-| TEAM-01, TEAM-02, TEAM-03, TEAM-04 | — | Pending |
-| TIMELINE-01, TIMELINE-02, FEEDBACK-01, FEEDBACK-02 | — | Pending |
-| REIMB-01, REIMB-02 | — | Pending |
-| QR-01, QR-02, QR-03, QR-04 | — | Pending |
-| PROG-01, PROG-02, PROG-03, PROG-04 | — | Pending |
-| CHAT-01, CHAT-02, CHAT-03, CHAT-04 | — | Pending |
+| SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Pending |
+| RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Pending |
+| AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Pending |
+| DASH-01 | Phase 2 | Pending |
+| PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | Phase 3 | Pending |
+| BUDGET-01 | Phase 3 | Pending |
+| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Pending |
+| DESIGN-01 | Phase 5 | Pending |
+| CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06 | Phase 5 | Pending |
+| TEAM-01, TEAM-02, TEAM-03, TEAM-04 | Phase 5 | Pending |
+| QR-01, QR-02, QR-03, QR-04 | Phase 6 | Pending |
+| TIMELINE-01, TIMELINE-02, FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
+| REIMB-01, REIMB-02 | Phase 6 | Pending |
+| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Pending |
+| CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 51 total
-- Mapped to phases: 0 (roadmapper runs next)
-- Unmapped: 51 ⚠️ (expected until roadmap is created)
+- v1 requirements: 52 total (corrected — `PROPOSAL-00` was added after the original 51-count was written; see ROADMAP.md's note)
+- Mapped to phases: 52
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-02*
-*Last updated: 2026-08-03 after adding collaboration-consent, budget guardrails, submit-rights (Meetup Head), and the query-only chat model*
+*Last updated: 2026-08-03 after roadmap creation — all 52 requirements mapped to 8 phases*

@@ -1,0 +1,175 @@
+# Roadmap: Ekatva OS — Organiser Dashboard Deepening (v1.1)
+
+## Overview
+
+Ekatva OS already ships the city-meetup spine: propose → admin approval → auto-publish → discover → register → check in → reimburse → recognise. This milestone deepens the organiser half of that spine into a real operating surface. The journey runs foundation-first: make the database safely changeable and make authorization resource-scoped (nothing else in the milestone is deployable without both), then stabilise the session and nav shell every later screen rides on. From there the milestone follows the actual lifecycle of a meetup — a proposal that names collaborating entities, assembles a team and respects a budget ceiling; an accepted proposal that becomes a designed, brand-driven, Meetup-Head-approved campaign that pushes live and activates a Kanban workspace; a live event that is run at the door with QR check-in, narrated by a timeline, and closed out with reflection, attendee feedback and an evidence-backed reimbursement. The last two phases add the two capabilities with the least coupling and the most external uncertainty: progression gating (which needs real completed-activity data to be meaningful) and the event announcement/poll/query channel (whose polling design depends on an unconfirmed deployment target).
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Migration & Authorization Foundation** - Schema becomes changeable without data loss, and authorization becomes activity/org-scoped
+- [ ] **Phase 2: Identity, Session & Dashboard Shell** - Sessions persist, organiser status comes from the server, and POR holders can switch views
+- [ ] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget
+- [ ] **Phase 4: Organisation Profile & Brand Kit** - Every org type gets an editable identity and a brand kit that drives campaigns
+- [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
+- [ ] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement
+- [ ] **Phase 7: Progression Gating** - Fest-scale proposals unlock from an org's own track record, enforced server-side
+- [ ] **Phase 8: Event Announcements, Polls & Queries** - One official, moderated event channel — never a chat room
+
+## Phase Details
+
+### Phase 1: Migration & Authorization Foundation
+**Goal**: The team can change the database schema without destroying anyone's data, and the backend can answer "can this specific person act on this specific activity or org?"
+**Depends on**: Nothing (first phase)
+**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03, RBAC-01, RBAC-02, RBAC-03
+**Success Criteria** (what must be TRUE):
+  1. A developer can add *and drop* a column and apply it with `flask db upgrade` on SQLite without any teammate losing existing data — the metadata naming convention is in place before the first migration is generated.
+  2. Running the destructive reset against a non-development `DATABASE_URL` exits non-zero and refuses; reference data (Houses/Regions/Cities) can be re-seeded idempotently against any environment.
+  3. Every table and column this milestone needs exists after a single reseed — no later phase requires a second destructive reset.
+  4. A plain student with no organiser POR is granted `can_participate_in_activity` for an event they registered for, and denied `can_manage_activity` for an event they are not crew on; a Secretary of org A is denied `can_manage_org` for org B.
+  5. `is_meetup_head` exists as a distinct per-activity check and rejects a team member who manages the activity but is not the assigned Meetup Head; no activity/org-scoped endpoint added from this point uses the coarse `organiser_required`.
+**Plans**: TBD
+
+### Phase 2: Identity, Session & Dashboard Shell
+**Goal**: A user stays logged in across sessions, the server (not a duplicated frontend list) decides who is an organiser, and POR holders can move between their student and organiser views.
+**Depends on**: Phase 1
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, DASH-01
+**Success Criteria** (what must be TRUE):
+  1. A user who closes the tab and returns two hours later is still logged in — no forced re-login while the refresh token is valid.
+  2. Several dashboard queries expiring simultaneously produce exactly one refresh call and zero logouts.
+  3. A Deputy House Secretary, Web Admin, Society Deputy Secretary and Coordinator each see the organiser surface, because organiser status arrives from `/auth/me` and no POR list survives in the frontend.
+  4. A POR holder can switch between Student and Organiser views from the nav, the choice survives a reload and lands on that view's home route; a single-role student sees no switcher at all, and the choice changes zero authorization outcomes.
+  5. A user can declare and later re-confirm their academic level and status (and an admin can override it) with no effect on login or session behaviour.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails
+**Goal**: A proposal expresses who is collaborating, who is running the event, and a budget that policy cannot be talked out of — and admins review all three together.
+**Depends on**: Phase 2
+**Requirements**: PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06, BUDGET-01
+**Success Criteria** (what must be TRUE):
+  1. Any organiser-POR holder of the primary entity (RC, Secretary, Deputy Secretary, Event Lead, Coordinator) can submit a proposal naming one or more collaborating organisations with exactly one marked primary.
+  2. A named collaborator's Secretary/Deputy Secretary/RC is notified and can accept or decline; only accepted collaborators count, and the "Mega Meetup" tag appears automatically once 3 have accepted.
+  3. Submission is rejected server-side when the roster has zero or more than one Meetup Head, or when the budget exceeds `min(capacity × ₹200, ₹20,000)` on a local or regional meetup — with the reason shown, not a generic error.
+  4. The admin approval queue shows the team roster and collaborating-entity list alongside description, highlights, budget and city, in one review.
+  5. The proposer or an admin can reassign the Meetup Head to any team member — POR or not — at any point before the campaign goes live.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 4: Organisation Profile & Brand Kit
+**Goal**: Every organisation type — house, society, region, council — has an editable public identity and a brand kit that later drives campaign generation.
+**Depends on**: Phase 1 (parallel-safe with Phase 3)
+**Requirements**: ORG-01, ORG-02, ORG-03, ORG-04
+**Success Criteria** (what must be TRUE):
+  1. A Secretary or Deputy Secretary can edit their organisation's bio, logo and social links for all four org types — and a Secretary of org A gets a 403 attempting to edit org B.
+  2. A social link with a non-http(s) scheme or a non-allowlisted host is rejected at save time and never rendered anywhere.
+  3. A Secretary can define and save a brand kit (voice/tone descriptors, colour palette, sample phrases) that is readable by the campaign creator.
+  4. An organisation with no brand kit can request an AI-drafted starting kit, edit every field, and nothing applies until they explicitly save it.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)
+**Goal**: An accepted proposal becomes a designed, brand-driven, Meetup-Head-approved live event whose team workspace is running.
+**Depends on**: Phase 3, Phase 4
+**Requirements**: DESIGN-01, CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06, TEAM-01, TEAM-02, TEAM-03, TEAM-04
+**Success Criteria** (what must be TRUE):
+  1. Once a proposal is accepted, the organiser can fill an ordered event schedule (time block + activity + owner), starting from a scale-appropriate best-practice preset.
+  2. The organiser gets a usable mail-template draft whose dates, venue and fees are backend-interpolated (never model-written), carrying the primary org's brand voice and every accepted collaborator's logo on a multi-entity campaign — and it still produces a draft with no AI key configured.
+  3. The organiser can upload a poster, copy a shareable registration link, and add a bounded set of custom fields on top of the registration form's fixed core fields.
+  4. Nothing reaches students until the assigned Meetup Head explicitly approves the full package; a non-Meetup-Head team member's push-live attempt is rejected server-side.
+  5. Once live, the roster assembled at proposal time sees a Kanban board whose tasks (assignee, deadline, status) survive a hard reload and are visible to another team member on another device; volunteer points can only be awarded to actual crew members, and crew membership grants no org-wide permission anywhere else.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: Event Execution & Close-Out
+**Goal**: The team can run the door, see the event's full history, and close it out with evidence that cannot be gamed.
+**Depends on**: Phase 5
+**Requirements**: QR-01, QR-02, QR-03, QR-04, TIMELINE-01, TIMELINE-02, FEEDBACK-01, FEEDBACK-02, REIMB-01, REIMB-02
+**Success Criteria** (what must be TRUE):
+  1. An attendee displays a signed short-TTL code and any team member scans it to check them in; a re-scan returns a friendly already-checked-in response with exactly one attendance row, and an expired or wrong-event code is rejected.
+  2. The existing tap-based roster check-in still works with the camera denied or unavailable — QR never became the only door.
+  3. Anyone with access to an event can view a timeline showing proposal, approval, registration, check-in, expense and report events in order, built entirely from existing records with no second source of truth.
+  4. Any team member can draft the post-event reflection and expense entries, but only the assigned Meetup Head can submit either — and reimbursement submission requires a social-post link alongside bills.
+  5. Only people with a real Attendance record are prompted for and can submit a rating (once each), and the QR-verified attendance count is what points, fee-utilisation and budget-reasonableness use — photo evidence never overrides it.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 7: Progression Gating
+**Goal**: An organisation's ability to propose bigger events unlocks from its own completed track record, enforced by the server and explained in the UI.
+**Depends on**: Phase 3, Phase 6
+**Requirements**: PROG-01, PROG-02, PROG-03, PROG-04
+**Success Criteria** (what must be TRUE):
+  1. An org that has completed at least one local meetup and one regional meetup in a city can select `regional_fest` for that city; an org that has not sees the option locked with an explicit "1 of 2 completed" style explanation rather than a bare disabled control.
+  2. A direct API call proposing a locked scale returns 403 — the gate is server-side, computed by one function, and checked on both submit and approve.
+  3. A `regional_fest` proposal with fewer than 6 accepted collaborating organisations is rejected with a reason naming the shortfall.
+  4. An org that reaches fest tier sees a recorded "Sponsorship & outreach tools unlocked" state surfaced in the UI, with no CRM tooling behind it (deliberately out of scope).
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 8: Event Announcements, Polls & Queries
+**Goal**: A live event has exactly one official channel that carries announcements, polls and attendee questions — and cannot become a chat room.
+**Depends on**: Phase 1, Phase 5
+**Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04
+**Success Criteria** (what must be TRUE):
+  1. The organising team can post announcements and create polls scoped to an event's registration window, and registrants see them and can vote exactly once each.
+  2. A registrant can submit a query to the team and cancel their registration — and can do nothing else: no replies to other attendees, no open feed, no peer-to-peer messaging.
+  3. Posting to an event whose registration window has closed is rejected server-side with an explicit closed-state message, not merely hidden in the UI.
+  4. Query submission is rate-limited and every moderation action lands in the audit log — both shipping with the feature, not after it.
+  5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
+**Plans**: TBD
+**UI hint**: yes
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, different pages).
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Migration & Authorization Foundation | 0/TBD | Not started | - |
+| 2. Identity, Session & Dashboard Shell | 0/TBD | Not started | - |
+| 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
+| 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |
+| 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |
+| 6. Event Execution & Close-Out | 0/TBD | Not started | - |
+| 7. Progression Gating | 0/TBD | Not started | - |
+| 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
+
+## Coverage
+
+All 52 v1 requirements map to exactly one phase. No orphans, no duplicates.
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| 1 | SCHEMA-01/02/03, RBAC-01/02/03 | 6 |
+| 2 | AUTH-01/02/03/04, DASH-01 | 5 |
+| 3 | PROPOSAL-00/01/02/03/04/05/06, BUDGET-01 | 8 |
+| 4 | ORG-01/02/03/04 | 4 |
+| 5 | DESIGN-01, CAMPAIGN-01/02/03/04/05/06, TEAM-01/02/03/04 | 11 |
+| 6 | QR-01/02/03/04, TIMELINE-01/02, FEEDBACK-01/02, REIMB-01/02 | 10 |
+| 7 | PROG-01/02/03/04 | 4 |
+| 8 | CHAT-01/02/03/04 | 4 |
+| **Total** | | **52** |
+
+> Note: REQUIREMENTS.md's summary line stated 51 v1 requirements. The actual enumerated count is 52 — the stated total was written before `PROPOSAL-00` was added. All 52 are mapped.
+
+## Research Flags
+
+Phases where `/gsd:research-phase` is recommended before planning:
+- **Phase 5** — LLM provider/billing decision (Gemini text is free-tier, image generation is not), and there is no blob storage anywhere in the architecture, so poster *upload* currently has nowhere to land.
+- **Phase 6** — STACK.md and ARCHITECTURE.md disagree on QR scan/render libraries, and the scanner ecosystem is in flux (both prior incumbents unmaintained). Make one current decision before implementation.
+- **Phase 8** — The Flask backend's deployment target is unconfirmed (`.vercel/project.json` with no matching WSGI/Procfile config). This materially changes rate-limiter storage, refresh-token blocklist storage, and whether polling is viable at all.
+
+Phases with well-documented patterns (skip research-phase): 1, 2, 3, 4, 7.
+
+## Open Decisions Carried Into Phase 1
+
+- **Flask-Migrate adoption vs. one-batch schema declaration.** PROJECT.md's "no new frameworks" constraint makes this an explicit team decision, not a quiet commit. Both research files present the batch-only alternative as viable. Decide at the top of Phase 1 — the naming convention must land before any migration is generated either way.
+- **Doc drift to reconcile:** PROJECT.md says a ₹100 activity fee; `constants.ACTIVITY_FEE_INR = 200`. Phase 6/7 analytics will surface this. Reconcile before demo day.
+- **Progression-gating is the milestone's one unvalidated mechanic** (no market analogue). Validate with real Regional Coordinators in parallel with Phases 1-6, not after Phase 7 ships.

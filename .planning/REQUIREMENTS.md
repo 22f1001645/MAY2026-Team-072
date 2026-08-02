@@ -32,11 +32,17 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Proposal & Collaboration
 
-- [ ] **PROPOSAL-01**: A proposal can name one or more collaborating Organisations (many-to-many), with exactly one designated as the primary/owning entity
+- [ ] **PROPOSAL-01**: A proposal can name one or more collaborating Organisations (many-to-many), with exactly one designated as the primary/owning entity. A named collaborating org is `pending` until that org's Secretary/Deputy Secretary/RC accepts — only `accepted` collaborators count toward the Mega-Meetup label (PROPOSAL-03) and fest-collaborator threshold (PROG-02)
+- [ ] **PROPOSAL-00**: Any organiser-POR holder of the primary entity (RC, Secretary, Deputy Secretary, Event Lead, Coordinator) can submit a proposal for that entity — not restricted to a single role; the existing region+month quota guardrail is what bounds this, not a role restriction
 - [ ] **PROPOSAL-02**: At submission time, the proposer assembles a team from a fixed role catalog (Meetup Head, Co-Head, Designer, Video/Content, PR & Outreach, Logistics, Volunteer Coordinator, Finance) — exactly one Meetup Head is required; other roles are optional and repeatable
 - [ ] **PROPOSAL-03**: A proposal naming 3 or more collaborating Organisations is auto-labeled "Mega Meetup" (display tag, independent of activity scale)
 - [ ] **PROPOSAL-04**: The admin approval queue shows the team/role roster and collaborating-entity list alongside the existing proposal fields (description, highlights, budget, city) for review
 - [ ] **PROPOSAL-05**: The proposer or an admin can reassign the Meetup Head to a different team member at any point before the campaign is pushed live; Meetup Head does not require holding an organiser POR
+- [ ] **PROPOSAL-06**: A collaborating org's Secretary/Deputy Secretary/RC receives a notification and can accept or decline the collaboration invite; a declined or still-pending collaborator does not count toward PROPOSAL-03 or PROG-02
+
+### Budget Guardrails
+
+- [ ] **BUDGET-01**: For `local_meetup`/`regional_meetup` scale, proposed budget is hard-capped server-side at `min(requested, capacity × ₹200)`, with an absolute ceiling of ₹20,000 and 100-person capacity — submission is rejected above this, same enforcement style as the existing region/month quota guardrail. `regional_fest` scale is exempt (sponsor-funded model, out of this milestone)
 
 ### Event Design Template
 
@@ -69,14 +75,20 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 - [ ] **TIMELINE-01**: An event's timeline is a read-only projection over `AuditLog` + `Registration`/`Attendance`/`Report` data — no new source-of-truth table
 - [ ] **TIMELINE-02**: `registration_service`, `attendance_service`, and `expense_service` are backfilled to actually write `AuditLog` rows for the state changes they already claim to record
-- [ ] **FEEDBACK-01**: Organiser can submit a post-event reflection (challenges, learnings) that feeds the existing `Report`
-- [ ] **FEEDBACK-02**: Attendee can submit a lightweight post-event rating/feedback, gated on having actually attended
+- [ ] **FEEDBACK-01**: Any team member can draft the post-event reflection (challenges, learnings), but only the assigned Meetup Head can submit it — feeds the existing `Report`, same single-submitter pattern as CAMPAIGN-06
+- [ ] **FEEDBACK-02**: Attendee can submit a lightweight post-event rating/feedback, gated on having actually attended (per QR-04's authoritative Attendance record)
+
+### Reimbursement
+
+- [ ] **REIMB-01**: Any team member can draft expense entries against budget lines, but only the assigned Meetup Head can submit the final reimbursement request — consistent with the campaign-approval and report-submission pattern (CAMPAIGN-06, FEEDBACK-01)
+- [ ] **REIMB-02**: Reimbursement submission requires a social-post link (photos with attendees, posted to the entity's socials) alongside bill attachments; admin reviews this as supplementary context only — the QR-verified Attendance count (QR-04) remains the sole authoritative number, never overridden by photo review
 
 ### QR Check-In
 
-- [ ] **QR-01**: Each registration gets a signed, short-TTL QR payload; the attendee displays it, the organiser scans it (never the reverse — a single displayed event QR is a fraud vector against the points ledger)
+- [ ] **QR-01**: Each registration gets a signed, short-TTL QR payload; the attendee displays it, any team member (not Meetup-Head-exclusive — real events need multiple simultaneous scanners) scans it (never the reverse — a single displayed event QR is a fraud vector against the points ledger)
 - [ ] **QR-02**: A QR scan is idempotent — re-scanning doesn't double-count attendance, enforced via the existing unique `Attendance.registration_id` constraint (catch the IntegrityError, don't check-then-insert)
 - [ ] **QR-03**: The existing tap-based roster check-in remains available as a manual fallback — QR is additive, never a replacement
+- [ ] **QR-04**: The QR-verified `Attendance` count is the sole authoritative number for points, fee-utilisation, and budget-reasonableness checks — admin-reviewed reimbursement photos (REIMB-02) are supplementary evidence only, never a substitute count (prevents attendance-count gaming via non-student photos)
 
 ### Progression Gating
 
@@ -85,12 +97,12 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 - [ ] **PROG-03**: Reaching fest-tier eligibility sets a server-recorded "Sponsorship & outreach tools unlocked" flag for that org/city, surfaced as UI messaging — the sponsorship/CRM tooling itself stays out of scope this milestone (see v2)
 - [ ] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
 
-### Event Chat & Polls
+### Event Announcements, Polls & Queries
 
-- [ ] **CHAT-01**: Organiser can create polls scoped to an event's registration window
-- [ ] **CHAT-02**: Registrants (gated by `can_participate_in_activity`) can post to a moderated, event-scoped announcement/reply feed — not an open group chat
-- [ ] **CHAT-03**: Moderation controls (report/flag, soft-delete, mute-participant, rate-limit, audit-log entry) ship in the same phase as the feed itself, never after
-- [ ] **CHAT-04**: The feed uses cursor-based polling (10–15s + jitter) via TanStack Query, not WebSockets/Flask-SocketIO
+- [ ] **CHAT-01**: Organiser/team can post announcements and create polls scoped to an event's registration window
+- [ ] **CHAT-02**: Registrants (auto-added to the event's channel on registration, gated by `can_participate_in_activity`) have exactly two self-service actions: submit a query (visible to the team, who respond) and cancel their registration — never peer-to-peer reply/chat, never an open feed (Swiggy-support-ticket model, not WhatsApp)
+- [ ] **CHAT-03**: Moderation controls (rate-limit on query submission, audit-log entry) ship in the same phase as the feature itself
+- [ ] **CHAT-04**: Announcements/polls/queries use cursor-based polling (10–15s + jitter) via TanStack Query, not WebSockets/Flask-SocketIO
 
 ## v2 Requirements
 
@@ -147,21 +159,23 @@ Populated during roadmap creation — see ROADMAP.md.
 | RBAC-01, RBAC-02, RBAC-03 | — | Pending |
 | AUTH-01, AUTH-02, AUTH-03, AUTH-04 | — | Pending |
 | DASH-01 | — | Pending |
-| PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05 | — | Pending |
+| PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | — | Pending |
+| BUDGET-01 | — | Pending |
 | DESIGN-01 | — | Pending |
 | CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06 | — | Pending |
 | ORG-01, ORG-02, ORG-03, ORG-04 | — | Pending |
 | TEAM-01, TEAM-02, TEAM-03, TEAM-04 | — | Pending |
 | TIMELINE-01, TIMELINE-02, FEEDBACK-01, FEEDBACK-02 | — | Pending |
-| QR-01, QR-02, QR-03 | — | Pending |
+| REIMB-01, REIMB-02 | — | Pending |
+| QR-01, QR-02, QR-03, QR-04 | — | Pending |
 | PROG-01, PROG-02, PROG-03, PROG-04 | — | Pending |
 | CHAT-01, CHAT-02, CHAT-03, CHAT-04 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 43 total
+- v1 requirements: 51 total
 - Mapped to phases: 0 (roadmapper runs next)
-- Unmapped: 43 ⚠️ (expected until roadmap is created)
+- Unmapped: 51 ⚠️ (expected until roadmap is created)
 
 ---
 *Requirements defined: 2026-08-02*
-*Last updated: 2026-08-03 after folding in the full proposal→design→campaign→workspace pipeline*
+*Last updated: 2026-08-03 after adding collaboration-consent, budget guardrails, submit-rights (Meetup Head), and the query-only chat model*

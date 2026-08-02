@@ -112,6 +112,13 @@ Full detail + REQ-IDs live in `REQUIREMENTS.md` (43 v1 requirements across 13 ca
 | Brand kit: manual entry with an optional AI-assist button, never auto-applied without review | Matches the campaign creator's own "never auto-send" principle — AI drafts, humans confirm | — Pending |
 | Sponsorship/outreach CRM stays a flag/stub this milestone even once fest-tier is reached; real CRM tooling is a future milestone | Keeps this milestone's scope bounded; building a real CRM is a significant separate undertaking | — Pending |
 | Student home-city profile editing deferred to a future student-dashboard milestone | User confirmed this milestone is organiser-dashboard scoped; existing discovery city-filter behavior is untouched | — Pending |
+| Proposer eligibility: any organiser-POR holder of the primary entity (RC, Secretary, Deputy, Event Lead, Coordinator), not restricted to one role | Already matches existing `organiser_required`; region+month quota guardrail is what bounds it, not a role restriction | ✓ Good |
+| Collaborating orgs must accept before counting toward Mega-Meetup/fest thresholds | Prevents one org unilaterally roping others into a collaboration count without their Secretary/Deputy/RC's consent | — Pending |
+| One consistent "any team member drafts, only Meetup Head submits" rule across campaign push-live, reimbursement, and post-event report | Single accountable submitter per gated action beats three different ad-hoc rules; reassignable if Meetup Head is unavailable | — Pending |
+| QR scanning is any-team-member, not Meetup-Head-exclusive | Real events need multiple simultaneous scanners at the door | ✓ Good |
+| Budget hard-capped server-side at ₹200/head × capacity, ceiling ₹20,000/100 people, local/regional scale only | Concrete new business rule from the user; hard-enforced like the existing quota guardrail rather than a soft admin-override warning | — Pending |
+| Chat is Swiggy-bot style: organiser/team broadcast + polls, registrants get cancel-registration + submit-query only, no peer-to-peer reply | Matches both the user's own instinct and the earlier research finding that open chat is an anti-feature given moderation/infra burden | ✓ Good |
+| Reimbursement needs a social-post-link field for admin's supplementary review, but QR-verified Attendance stays the sole authoritative count | Photos can be gamed (any random person, not necessarily a student); QR scan cannot | ✓ Good |
 
 ## Evolution
 

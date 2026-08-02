@@ -24,8 +24,8 @@ A Regional Coordinator can propose, get approved, publish, fill, run, and reimbu
 - ✓ Broadcasts + per-user notifications for time-critical updates — v1
 - ✓ Line-item budget on a proposal → expense/bill submission → admin verification → reimbursement status tracking (Submitted→Verified→Approved→Paid, no real money movement) — v1
 - ✓ Attendance capture (organiser check-in), the basis for points and fee utilisation — v1
-- ✓ Recognition: points ledger (attend/organise/volunteer) + per-city leaderboard, computed over attendance data — v1
-- ✓ Admin community analytics + ₹100 activity-fee utilisation tracking, computed over the same data — v1
+- ✓ Recognition: points ledger (attend/organise/volunteer) + per-city leaderboard, computed over attendance data — v1 (point values are hardcoded in `constants.py`, NOT admin-configurable — PRD FR-G6 is SH-priority and not actually shipped, see Context)
+- ✓ Admin community analytics + ₹100 activity-fee utilisation tracking, computed over the same data — v1 (city heatmap/ranking and organiser-activity view are NOT implemented — PRD FR-H6/H7 are SH-priority and not actually shipped, see Context)
 - ✓ Organiser workspace (registration list) and activity auto-archive — v1, THIN (explicitly flagged in PRD as "deepen in Phase 2")
 - ✓ Task assignment on an activity — v1, THIN/mocked only (client-side mock array, never persisted — the gap this milestone closes)
 
@@ -69,6 +69,7 @@ A Regional Coordinator can propose, get approved, publish, fill, run, and reimbu
 - **Tech stack** (Milestone 2 design, matches `.planning/codebase/STACK.md`/`ARCHITECTURE.md`): React 18 + Vite + TypeScript + Tailwind + TanStack Query frontend; Flask 3 + SQLAlchemy + JWT REST backend (SQLite dev / Postgres prod); three-tier controllers → services → repositories → models; POR-based RBAC enforced server-side, deny-by-default.
 - **Codebase reality surfaced this session**: the 2-login-role model is already implemented exactly per PRD; organiser surface is already derived from POR client- and server-side. The dashboard-switcher gap, the mocked (never-persisted) task list, and the Houses-only precedent for org metadata (`HOUSE_META`) are the concrete gaps this milestone closes.
 - **This milestone = PRD's own roadmap**: PRD v2.2 §18 names "Phase 2: Deepen operations — full workspace/tasks, logistics calendar, knowledge search & templates, auto-filled reports, announcements" as the next Vision-Horizon phase. This milestone is that phase, scoped down to what's practical for this pass, with a couple of session-emerged additions (dashboard switcher, auth persistence, academic-status field) folded in because they're prerequisites for it.
+- **Known v1 gaps NOT part of this milestone**: cross-checking PRD §12's MoSCoW priorities (not just its Vision-Horizon exclusions) against the actual codebase surfaced two SH-priority v1 requirements that were labelled "v1" but never actually shipped — FR-G6 (point values admin-configurable; currently a hardcoded `POINTS` dict in `constants.py`) and FR-H6/H7 (city heatmap/ranking, organiser-activity view; not present anywhere in `analytics_service.py`). Both are Admin-analytics/Recognition-config concerns, not Organiser-dashboard concerns, so they're deliberately left out of this milestone's Active list rather than scope-creeping it — but they're recorded here so they aren't silently lost. Candidate for a small follow-up milestone.
 
 ## Constraints
 

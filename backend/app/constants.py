@@ -131,6 +131,16 @@ EXPENSE_APPROVED = "approved"
 EXPENSE_PAID = "paid"
 EXPENSE_FLOW = [EXPENSE_SUBMITTED, EXPENSE_VERIFIED, EXPENSE_APPROVED, EXPENSE_PAID]
 
+# --- Pre-submission expense draft (REIMB-01) ---
+# EXPENSE_DRAFT is deliberately NOT a member of EXPENSE_FLOW. EXPENSE_FLOW models
+# the admin verification pipeline (submitted, verified, approved, paid) and
+# `expense_service.advance()` walks it by index, so inserting a pre-submission
+# state would change how every existing expense advances. Phase 6 wires the draft
+# state when it implements REIMB-01 ("any team member drafts, only the Meetup
+# Head submits"); until then this name exists only so nothing invents a second
+# spelling for it.
+EXPENSE_DRAFT = "draft"
+
 # --- Recognition: points per action (FR-G1-G3, admin-configurable in spirit) ---
 POINTS = {
     "attended": 30,
@@ -145,3 +155,58 @@ MEETUPS_PER_CITY_PER_MONTH = MEETUPS_PER_REGION_PER_MONTH
 
 # --- Activity fee (PRD assumption) ---
 ACTIVITY_FEE_INR = 200
+
+# --- Academic level & status (AUTH-04) ---
+# Self-declared by the student and overridable by an admin. Deliberately
+# decoupled from session/auth: neither value may gate a login or a token refresh,
+# so an out-of-date declaration never locks anyone out. Designed so a future
+# official IITM BS registration feed can replace the self-declare step without
+# touching the auth path.
+ACADEMIC_LEVELS = ("foundation", "diploma", "degree")
+ACADEMIC_STATUSES = ("active", "on_break", "withdrawn")
+
+# --- Post-event report states (FEEDBACK-01) ---
+# Any team member may draft a report; only the assigned Meetup Head may move it
+# to `submitted`. The runtime gate is `meetup_head_required` from plan 01-05.
+REPORT_DRAFT = "draft"
+REPORT_SUBMITTED = "submitted"
+REPORT_STATES = (REPORT_DRAFT, REPORT_SUBMITTED)
+
+# --- Attendance capture method (QR-01/QR-03/QR-04) ---
+# QR-04 treats every Attendance row as authoritative regardless of method: the
+# column records how the check-in happened, it does not weight it. QR check-in is
+# additive alongside the existing tap-based roster flow, never a replacement.
+ATTENDANCE_METHOD_QR = "qr"
+ATTENDANCE_METHOD_MANUAL = "manual"
+ATTENDANCE_METHODS = (ATTENDANCE_METHOD_QR, ATTENDANCE_METHOD_MANUAL)
+
+# --- Registration states (CHAT-02) ---
+# `confirmed` and `waitlisted` are the values registration_service already writes
+# as bare string literals; naming them here does not refactor those call sites.
+# `cancelled` is what CHAT-02's "registrants may cancel their registration" needs.
+REGISTRATION_CONFIRMED = "confirmed"
+REGISTRATION_WAITLISTED = "waitlisted"
+REGISTRATION_CANCELLED = "cancelled"
+REGISTRATION_STATES = (
+    REGISTRATION_CONFIRMED,
+    REGISTRATION_WAITLISTED,
+    REGISTRATION_CANCELLED,
+)
+
+# --- Event poll states (CHAT-01) ---
+POLL_OPEN = "open"
+POLL_CLOSED = "closed"
+POLL_STATES = (POLL_OPEN, POLL_CLOSED)
+
+# --- Event query states (CHAT-02) ---
+QUERY_OPEN = "open"
+QUERY_ANSWERED = "answered"
+QUERY_STATES = (QUERY_OPEN, QUERY_ANSWERED)
+
+# --- Brand kit provenance (ORG-03/ORG-04) ---
+# An AI-drafted kit is never applied without an explicit save (ORG-04), so
+# `ai_draft` describes where the saved content came from, not an unapproved
+# pending state waiting on review.
+BRAND_KIT_MANUAL = "manual"
+BRAND_KIT_AI_DRAFT = "ai_draft"
+BRAND_KIT_SOURCES = (BRAND_KIT_MANUAL, BRAND_KIT_AI_DRAFT)

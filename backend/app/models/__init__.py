@@ -613,7 +613,20 @@ class RegistrationFieldResponse(Base):
     )
 
     registration_id = db.Column(db.String(32), db.ForeignKey("registrations.id"), nullable=False, index=True)
-    field_id = db.Column(db.String(32), db.ForeignKey("registration_form_fields.id"), nullable=False, index=True)
+    # The FK carries an explicit name because the convention-derived one,
+    # fk_registration_field_responses_field_id_registration_form_fields, is 65
+    # characters — over PostgreSQL's 63-byte identifier limit, which would
+    # silently truncate it on the production store and leave Alembic unable to
+    # address the constraint by name later. It is the only such name in the
+    # schema, and naming it here is free only while the table is unmigrated.
+    field_id = db.Column(
+        db.String(32),
+        db.ForeignKey(
+            "registration_form_fields.id", name="fk_registration_field_responses_field_id"
+        ),
+        nullable=False,
+        index=True,
+    )
     value = db.Column(db.Text)
 
     registration = db.relationship(

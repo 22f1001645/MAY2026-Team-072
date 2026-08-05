@@ -40,56 +40,21 @@ STRUCTURAL_OPS = {"add_table", "remove_table", "add_column", "remove_column"}
 # 01-03 therefore declare models with no migration, and plan 01-04 emits a
 # single revision covering all of them at once.
 #
-# For that window only, these tables are allowed to exist in the models while
-# being absent from the migration chain. The gate stays fully live for every
-# other table: anything drifting outside this list still fails.
+# THE WINDOW IS CLOSED. Plan 01-04 emitted revision 213804635519 — the single
+# batch covering all 16 tables and all 11 columns — so every declaration that
+# was deliberately unmigrated is now in the chain. Both sets are empty, which
+# means the drift gate is once again live for the ENTIRE schema with no
+# exceptions: any model changed from here on without a migration fails
+# test_models_match_migrations_no_drift.
 #
-# Plan 01-03 appends its own tables here. Plan 01-04 empties this set in the
-# same commit as the batch revision — and `test_pending_batch_list_is_accurate`
-# below forces that, because it fails once a listed table is actually migrated.
-PENDING_BATCH_TABLES = frozenset(
-    {
-        # declared by plan 01-02 (proposal → campaign spine)
-        "activity_collaborators",
-        "activity_team_members",
-        "activity_tasks",
-        "event_schedule_items",
-        "registration_form_fields",
-        "registration_field_responses",
-        "campaign_packages",
-        # declared by plan 01-03 (org identity, close-out, channel, session)
-        "organisation_social_links",
-        "brand_kits",
-        "event_feedback",
-        "event_polls",
-        "event_poll_votes",
-        "event_queries",
-        "refresh_token_blocklist",
-        "org_progression_unlocks",
-        "reimbursement_requests",
-    }
-)
+# These names are kept rather than deleted so the mechanism is available if a
+# future milestone needs another deliberate batch window. Re-populating either
+# set reopens a hole, so it should happen only in a plan that also commits to
+# emptying it again — `test_pending_batch_list_is_accurate` enforces that by
+# failing the moment a listed table or column reaches the migration chain.
+PENDING_BATCH_TABLES = frozenset()
 
-# Plan 01-03 also adds columns to four tables that are ALREADY fully migrated.
-# Those are listed as (table, column) pairs rather than by table name on purpose:
-# allowlisting `users` wholesale would blind the drift gate to every future
-# column on the most security-relevant table in the schema, which is a far bigger
-# hole than the one the batch window needs.
-PENDING_BATCH_COLUMNS = frozenset(
-    {
-        ("users", "academic_level"),
-        ("users", "academic_status"),
-        ("users", "academic_confirmed_at"),
-        ("organisations", "bio"),
-        ("organisations", "logo_url"),
-        ("reports", "challenges"),
-        ("reports", "learnings"),
-        ("reports", "status"),
-        ("reports", "submitted_by"),
-        ("reports", "submitted_at"),
-        ("attendance", "method"),
-    }
-)
+PENDING_BATCH_COLUMNS = frozenset()
 
 
 def _entry_table(entry):

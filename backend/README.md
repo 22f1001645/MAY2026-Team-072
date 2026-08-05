@@ -56,6 +56,50 @@ Two details make this work and must not be edited casually:
   `ALTER`/`DROP COLUMN` possible on SQLite at all, and `compare_type=True` so autogenerate
   notices column type changes.
 
+## Database migrations & seeding
+
+### The milestone v1.1 schema landed as one batch
+
+There are exactly two revisions, and there is no third one coming for this milestone:
+
+| Revision | What it is |
+|---|---|
+| `312ea9fc2c96` | baseline — the 18 tables that existed before Flask-Migrate |
+| `213804635519` | **the milestone v1.1 batch** — 16 new tables and 11 new columns, in a single revision |
+
+The whole milestone schema was declared up front and migrated once, on purpose. Per-feature
+schema changes would have cost a destructive wipe per feature across five developers; one batch
+costs one. **To pick it up, you run one command:**
+
+```bash
+cd backend
+flask db upgrade
+```
+
+That is the entire upgrade path, and it is safe on a database that already has your data — the
+11 new columns are all either nullable or carry a `server_default`, so existing rows are
+backfilled rather than rejected. **No destructive reset is required for this milestone**, and no
+later phase in this milestone should ask you for one. If a future phase does need a schema
+change, it writes a new forward revision; it does not reseed.
+
+### Seeding
+
+`seed.py` has two modes, and only one of them destroys anything:
+
+```bash
+python seed.py                    # DESTRUCTIVE — drops everything, re-runs the migration
+                                  # chain, then seeds reference + demo data
+python seed.py --reference-only   # safe & idempotent — Houses, Regions and Cities only,
+                                  # no user accounts, no data destroyed, re-runnable anywhere
+```
+
+The destructive path refuses to run against anything that is not a local SQLite file under
+`backend/`. That refusal reads the resolved `SQLALCHEMY_DATABASE_URI` and nothing else — there
+is deliberately **no environment variable and no flag that turns it off**, because a production
+Postgres URL and a dev SQLite URL are one `export` apart, and a guard with an escape hatch is
+not a guard. `--reference-only` is unguarded precisely because it is non-destructive: reference
+data is meant to be seedable against a real deployment.
+
 ## Seeded accounts (match the frontend demo logins)
 
 | Role | Email | Password |

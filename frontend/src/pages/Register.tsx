@@ -5,10 +5,13 @@ import { Button } from '../components/ui'
 import { cx } from '../lib/format'
 import AuthShell from './AuthShell'
 import { useRegions, useCitiesForRegion } from '../lib/queries'
+import { api } from '../lib/api'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function Register() {
   const { register } = useAuth()
   const nav = useNavigate()
+  const qc = useQueryClient()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -51,6 +54,10 @@ export default function Register() {
 
     setLoading(true)
     try {
+      if (cityMode === 'other' && resolvedCity) {
+        await api.addCityToRegion(form.region_id, resolvedCity)
+        qc.invalidateQueries({ queryKey: ['cities-for-region', form.region_id] })
+      }
       const res = await register({
         name: form.name,
         email: form.email,

@@ -155,8 +155,8 @@ def test_registration_capacity_limit(client, rc_headers, admin_headers, student_
 
     # Register second user (RC also acts as student for this test)
     reg2 = client.post(f"/api/v1/events/{aid}/register", headers=rc_headers)
-    assert reg2.status_code == 409
-    assert reg2.get_json()["code"] == "at_capacity"
+    assert reg2.status_code == 201
+    assert reg2.get_json()["status"] == "waitlisted"
 
 
 def test_post_event_report_flow(client, rc_headers, admin_headers, student_headers):

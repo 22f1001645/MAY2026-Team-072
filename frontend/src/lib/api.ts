@@ -71,12 +71,6 @@ function coverFor(scale: string, seed: string): string {
   const h = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0)
   return opts[h % opts.length]
 }
-const TAGS_BY_SCALE: Record<string, string[]> = {
-  regional_fest: ['Fest'],
-  regional_meetup: ['Regional'],
-  local_meetup: ['Local'],
-}
-
 export interface ApiActivity {
   id: string
   title: string
@@ -93,6 +87,7 @@ export interface ApiActivity {
   organiser: string
   description?: string
   budget?: { id: string; label: string; planned: number; actual: number }[]
+  tags?: string[]
 }
 
 export function adaptEvent(a: ApiActivity): EkatvaEvent {
@@ -112,7 +107,7 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     attended: a.attended,
     cover: coverFor(a.scale, a.id),
     organiser: a.organiser,
-    tags: TAGS_BY_SCALE[a.scale] ?? [],
+    tags: a.tags ?? [],
     budget: (a.budget ?? []).map((b) => ({
       id: b.id,
       label: b.label,
@@ -178,7 +173,11 @@ export const api = {
     }),
   broadcast: (id: string, title: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title, body }) }),
+  announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
+  postAnnouncement: (id: string, body: string) =>
+    request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: 'Update', body }) }),
   notifications: () => request<any[]>('/notifications'),
+  markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
 
   // Proposals / approval (B)
   submitProposal: (payload: any) =>

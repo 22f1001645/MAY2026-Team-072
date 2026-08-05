@@ -4,6 +4,7 @@ import { TASKS } from '../lib/mock'
 import { useEvent, useRoster } from '../lib/queries'
 import { Badge, Button, Card, Progress, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import EventAnnouncementsModal from '../components/EventAnnouncementsModal'
 import { cx, daysUntil } from '../lib/format'
 
 // FR-F1 (thin): registration list + basic task assignment
@@ -13,6 +14,7 @@ export default function ManageEvent() {
   const { data: roster = [] } = useRoster(id)
   const [tasks, setTasks] = useState(TASKS) // v1 tasks are thin — local, not persisted
   const [tab, setTab] = useState<'roster' | 'tasks'>('roster')
+  const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
 
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
@@ -32,6 +34,7 @@ export default function ManageEvent() {
         sub="Your control panel for the same event students see as an invitation."
         right={
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setActiveBroadcastEventId(e.id)}>Broadcast</Button>
             <Link to={`/events/${e.id}/checkin`}>
               <Button variant="secondary">Check-in</Button>
             </Link>
@@ -163,6 +166,13 @@ export default function ManageEvent() {
             Task assignment is a thin v1 slice — deepened in Phase 2 (PRD §10).
           </p>
         </Card>
+      )}
+
+      {activeBroadcastEventId && (
+        <EventAnnouncementsModal
+          eventId={activeBroadcastEventId}
+          onClose={() => setActiveBroadcastEventId(null)}
+        />
       )}
     </div>
   )

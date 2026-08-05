@@ -1,4 +1,5 @@
 from flask import Blueprint, g, jsonify
+from ..extensions import db
 
 from ..constants import ROLE_ADMIN
 from ..rbac import auth_required, is_organiser
@@ -24,6 +25,15 @@ def health():
 def notifications():
     items = NotificationRepository.for_user(g.current_user.id)
     return jsonify([n.to_dict() for n in items]), 200
+
+
+@misc_bp.patch("/notifications/read")
+@auth_required
+def mark_notifications_read():
+    from ..models import Notification
+    db.session.query(Notification).filter_by(user_id=g.current_user.id, read=False).update({"read": True})
+    db.session.commit()
+    return jsonify({"ok": True}), 200
 
 
 @misc_bp.get("/dashboard")

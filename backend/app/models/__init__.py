@@ -17,6 +17,15 @@ def _utcnow():
     return datetime.now(UTC)
 
 
+def _iso(dt):
+    if not dt:
+        return None
+    s = dt.isoformat()
+    if not s.endswith("Z") and "+" not in s:
+        return s + "Z"
+    return s
+
+
 class Base(db.Model):
     """Shared PK + timestamps for every entity."""
 
@@ -41,6 +50,7 @@ class User(Base):
     role = db.Column(db.String(20), nullable=False, default="student")  # admin|student
     city = db.Column(db.String(80))          # free-text specific city (e.g. Warangal)
     region_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=True)  # official Region
+    interests = db.Column(db.JSON, default=list)
 
     memberships = db.relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     registrations = db.relationship("Registration", back_populates="student")
@@ -157,6 +167,7 @@ class Activity(Base):
     capacity = db.Column(db.Integer, default=50)
     status = db.Column(db.String(20), default="upcoming")  # upcoming|live|completed|archived
     organiser_id = db.Column(db.String(32), db.ForeignKey("users.id"))
+    tags = db.Column(db.JSON, default=list)
 
     org = db.relationship("Organisation", back_populates="activities")
     organiser = db.relationship("User")
@@ -166,7 +177,7 @@ class Activity(Base):
     expenses = db.relationship("Expense", back_populates="activity", cascade="all, delete-orphan")
 
     def registered_count(self):
-        return len(self.registrations)
+        return sum(1 for r in self.registrations if r.status == "confirmed")
 
     def attended_count(self):
         return sum(1 for r in self.registrations if r.attendance is not None)
@@ -179,9 +190,10 @@ class Activity(Base):
             "city": self.city,
             "scale": self.scale,
             "venue": self.venue,
-            "starts_at": self.starts_at.isoformat() if self.starts_at else None,
+            "starts_at": _iso(self.starts_at),
             "capacity": self.capacity,
             "status": self.status,
+            "tags": self.tags,
             "registered": self.registered_count(),
             "attended": self.attended_count(),
             "organiser": self.organiser.name if self.organiser else None,
@@ -191,6 +203,30 @@ class Activity(Base):
             d["description"] = self.description
             d["budget"] = [b.to_dict() for b in self.budget_lines]
         return d
+
+
+class Announcement(Base):
+    """A broadcast message sent to all registrants of an activity."""
+
+    __tablename__ = "announcements"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    sender_id = db.Column(db.String(32), db.ForeignKey("users.id"))
+    title = db.Column(db.String(200))
+    body = db.Column(db.Text)
+
+    activity = db.relationship("Activity", backref=db.backref("announcements", cascade="all, delete-orphan"))
+    sender = db.relationship("User")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "eventId": self.activity_id,
+            "senderName": self.sender.name if self.sender else "Organising Team",
+            "senderRole": "Organiser",
+            "title": self.title,
+            "content": self.body,
+            "createdAt": _iso(self.created_at),
+        }
 
 
 class Proposal(Base):
@@ -233,6 +269,7 @@ class Registration(Base):
 
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    status = db.Column(db.String(20), default="confirmed")  # confirmed|waitlisted
 
     activity = db.relationship("Activity", back_populates="registrations")
     student = db.relationship("User", back_populates="registrations")
@@ -245,6 +282,7 @@ class Registration(Base):
             "activity_id": self.activity_id,
             "student_id": self.student_id,
             "student": self.student.name if self.student else None,
+            "status": self.status,
             "attended": self.attendance is not None,
             # Embedded activity summary so the student's list renders without a join
             "activity": {
@@ -254,7 +292,7 @@ class Registration(Base):
                 "scale": a.scale,
                 "venue": a.venue,
                 "status": a.status,
-                "starts_at": a.starts_at.isoformat() if a.starts_at else None,
+                "starts_at": _iso(a.starts_at),
             }
             if a
             else None,
@@ -280,6 +318,8 @@ class Notification(Base):
     body = db.Column(db.Text)
     read = db.Column(db.Boolean, default=False)
 
+    activity = db.relationship("Activity")
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -287,7 +327,8 @@ class Notification(Base):
             "title": self.title,
             "body": self.body,
             "read": self.read,
-            "at": self.created_at.isoformat() if self.created_at else None,
+            "activity_title": self.activity.title if self.activity else None,
+            "at": _iso(self.created_at),
         }
 
 
@@ -343,7 +384,7 @@ class ContributionPoint(Base):
             "action": self.action,
             "points": self.points,
             "activity": self.activity.title if self.activity else None,
-            "at": self.created_at.isoformat() if self.created_at else None,
+            "at": _iso(self.created_at),
         }
 
 
@@ -370,7 +411,7 @@ class Report(Base):
             "id": self.id,
             "activity_id": self.activity_id,
             "summary": self.summary,
-            "submitted_at": self.created_at.isoformat() if self.created_at else None,
+            "submitted_at": _iso(self.created_at),
         }
 
 
@@ -385,7 +426,7 @@ class Document(Base):
             "id": self.id,
             "activity_id": self.activity_id,
             "url": self.url,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": _iso(self.created_at),
         }
 
 
@@ -405,5 +446,5 @@ class AuditLog(Base):
             "action": self.action,
             "actor": self.actor_name,
             "note": self.note,
-            "at": self.created_at.isoformat() if self.created_at else None,
+            "at": _iso(self.created_at),
         }

@@ -7,6 +7,7 @@ import { api } from '../lib/api'
 import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
 import { Mandala } from './ui'
+import NotificationsDropdown from './NotificationsDropdown'
 
 interface NavItem {
   to: string
@@ -73,6 +74,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+
   const { data: searchUsers = [] } = useQuery({
     queryKey: ['search-users', searchQuery],
     queryFn: () => api.users(searchQuery),
@@ -109,6 +113,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setSearchOpen(false)
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -124,7 +131,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cx(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/5 bg-brand-gradient transition-transform duration-300 ease-material lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/5 bg-brand-gradient transition-transform duration-300 ease-material lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -323,14 +330,18 @@ export default function Layout({ children }: { children: ReactNode }) {
             <span className="hidden text-caption text-graytext-mid sm:block">
               v1 · City-meetup lifecycle
             </span>
-            <div className="relative">
+            <div className="relative" ref={notificationsRef}>
               <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
                 aria-label="Notifications"
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/8 bg-white/5 text-graytext-light hover:text-teal focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
+                className={cx("grid h-9 w-9 place-items-center rounded-full border border-white/8 text-graytext-light hover:text-teal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50", notificationsOpen ? 'bg-white/10 text-offwhite' : 'bg-white/5')}
               >
                 <Icon d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               </button>
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-teal ring-2 ring-onyx" />
+              {notificationsOpen && (
+                <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />
+              )}
             </div>
           </div>
         </header>

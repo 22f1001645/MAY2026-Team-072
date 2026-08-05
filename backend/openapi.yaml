@@ -231,7 +231,7 @@ paths:
           schema: { type: string }
       responses:
         '200':
-          description: List of published events
+          description: List of published events including event tags
 
   /events/{id}:
     get:
@@ -259,9 +259,9 @@ paths:
           schema: { type: string }
       responses:
         '201':
-          description: Registered successfully
+          description: Registered successfully OR placed on waitlist if at capacity
         '409':
-          description: Already registered OR Event at capacity
+          description: Already registered
     delete:
       summary: Unregister from Event (Student)
       security:
@@ -322,7 +322,16 @@ paths:
                 body: { type: string }
       responses:
         '200':
-          description: Broadcast sent to registrants
+          description: Broadcast sent to registrants (including waitlisted)
+
+  /notifications:
+    get:
+      summary: Fetch User Notifications (FR-D4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of notifications for the current user
 
   /events/{id}/volunteer:
     post:
@@ -441,6 +450,15 @@ paths:
         '200':
           description: Leaderboard rankings
 
+  /me/registrations:
+    get:
+      summary: Fetch User Registrations (FR-D5)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of event registrations for the current user (includes confirmed and waitlisted status)
+
   /me/points:
     get:
       summary: Contribution Points Ledger (FR-G4)
@@ -467,13 +485,6 @@ paths:
       responses:
         '200':
           description: Fee utilisation percentage by city
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
 
   /houses:
     get:
@@ -503,16 +514,6 @@ components:
           description: POR assignment not found
         '403':
           description: Admin access required
-
-  /notifications:
-    get:
-      summary: Student Notification Inbox (FR-D4)
-      description: Returns all notifications for the currently authenticated student (registrations, broadcasts, reminders).
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: List of notification objects
 
   /expenses/bulk-verify:
     patch:
@@ -554,6 +555,13 @@ components:
       responses:
         '200':
           description: List of user objects
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
   schemas:
     ErrorEnvelope:

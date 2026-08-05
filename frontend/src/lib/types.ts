@@ -123,3 +123,13 @@ export interface Attendee {
   regId: string
   checkedIn: boolean
 }
+
+export interface AnnouncementMessage {
+  id: string
+  eventId: string
+  senderName: string
+  senderRole: string
+  content: string
+  createdAt: string
+  isImportant?: boolean
+}

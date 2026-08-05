@@ -146,6 +146,25 @@ export const useBroadcast = () =>
       api.broadcast(v.id, v.title, v.body),
   })
 
+export const useAnnouncements = (id?: string) =>
+  useQuery({ queryKey: ['announcements', id], queryFn: () => api.announcements(id!), enabled: !!id })
+
+export const usePostAnnouncement = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; body: string }) => api.postAnnouncement(v.id, v.body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['announcements', v.id] })
+  })
+}
+
+export const useMarkNotificationsRead = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.markNotificationsRead(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
+  })
+}
+
 export const useCreateOrg = () => {
   const qc = useQueryClient()
   return useMutation({

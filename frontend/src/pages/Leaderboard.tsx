@@ -4,6 +4,7 @@ import { useLeaderboard, useMyPoints } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { Badge, Card, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import type { LeaderRow, LedgerEntry } from '../lib/types'
 import { cx } from '../lib/format'
 
 // Recognition — points + leaderboard, computed over attendance data (FR-G5)
@@ -15,8 +16,8 @@ export default function Leaderboard() {
   )
   const { data: points } = useMyPoints()
 
-  const ranked = rows.map((r: any) => ({ ...r, isMe: r.name === name }))
-  const me = ranked.find((r: any) => r.isMe)
+  const ranked = rows.map((r: LeaderRow) => ({ ...r, isMe: r.name === name }))
+  const me = ranked.find((r: LeaderRow) => r.isMe)
   const totalPoints = points?.total ?? 0
 
   return (
@@ -53,14 +54,15 @@ export default function Leaderboard() {
           {!isLoading && !isError && (
             <>
               {/* Podium */}
-              {ranked.length >= 3 && (
-                <div className="mb-6 grid grid-cols-3 items-end gap-3">
-                  {[ranked[1], ranked[0], ranked[2]].map((r: any, i: number) => {
+              {ranked.length > 0 && (
+                <div className="mb-6 flex justify-center items-end gap-4">
+                  {[ranked[1], ranked[0], ranked[2]].map((r: LeaderRow | undefined, i: number) => {
+                    if (!r) return null;
                     const heights = ['h-24', 'h-32', 'h-20']
                     const medals = ['🥈', '🥇', '🥉']
                     const order = [1, 0, 2][i]
                     return (
-                      <div key={r.name} className="text-center">
+                      <div key={r.name} className="text-center flex-1 max-w-[120px]">
                         <div className="mb-2 text-2xl">{medals[i]}</div>
                         <div className="truncate text-[13px] font-semibold text-offwhite">
                           {r.name}
@@ -93,7 +95,7 @@ export default function Leaderboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ranked.map((r: any) => (
+                    {ranked.map((r: LeaderRow) => (
                       <tr
                         key={r.name}
                         className={cx(
@@ -147,15 +149,17 @@ export default function Leaderboard() {
             </div>
             <div className="my-1 text-[44px] font-bold leading-none text-teal">{totalPoints}</div>
             <div className="text-caption text-graytext-light">
-              {me ? `Rank #${me.rank} in ${me.city}` : 'Attend an event to get on the board'}
+              {me 
+                ? `Rank #${me.rank} ${scope === 'Overall' ? 'Overall' : `in ${scope}`}` 
+                : `No rank in ${scope} yet`}
             </div>
           </Card>
 
           <Card className="p-5">
             <h3 className="mb-3 text-h3 font-semibold text-gold">Contribution ledger</h3>
-            {points && points.entries.length > 0 ? (
+            {points?.entries?.length ? (
               <div className="space-y-3">
-                {points.entries.map((l: any) => (
+                {points.entries.map((l: LedgerEntry) => (
                   <div key={l.id} className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate text-[13px] text-offwhite">

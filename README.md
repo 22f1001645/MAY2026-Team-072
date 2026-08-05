@@ -1,146 +1,63 @@
-# EKATVA Portfolio Website
+# Ekatva OS
 
-EKATVA (एकत्व = Oneness) is IITM BS's first regional fest movement, connecting 34,000+ geographically dispersed students across India. This website is a cinematic, scroll-driven portfolio that transforms digital connection into tangible community through visceral storytelling.
+> The Community Operating System for the IIT Madras BS ecosystem.
+> **Unite. Inspire. Celebrate.**
 
-## Tech Stack
+The v1 **city-meetup lifecycle** built end-to-end for the BSCS3001 Software
+Engineering Project (CodeCrafters · Team-072), to the Unified PRD v2.2 and the
+Milestone 2 design. This folder is a two-part monorepo:
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Animation**: Framer Motion
-- **Icons**: Lucide React
-- **Testing**: Jest + React Testing Library
-
-## Getting Started
-
-1. **Install Dependencies**
-
-   ```bash
-   npm install
-
-   or
-
-   bun install
-   # This will automatically set up Husky pre-commit hooks
-   ```
-
-2. **Run Development Server**
-
-   ```bash
-   npm run dev
-
-   or
-
-   bun run dev
-   ```
-
-3. **Build for Production**
-
-   ```bash
-   npm run build
-
-   or
-
-   bun run build
-   ```
-
-## Project Structure
-
-- `app/`: Next.js App Router pages and layouts
-- `components/`: UI components and page sections
-- `lib/`: Utility functions and animation variants
-- `types/`: TypeScript type definitions
-- `__tests__/`: Unit tests
-
-## Key Features (Sprint 1)
-
-- **Hero Arrival**: Cinematic video background with logo reveal and scroll animations.
-- **Origin Story**: Memory Wall photo collage and statistical impact section.
-- **Design System**: Comprehensive scalable token system (colors, typography, spacing).
-
-## Testing
-
-Run unit tests with:
-
-```bash
-npm test
-
-or
-
-bun test
+```
+ekatva-os/
+├── frontend/   React 18 + Vite + TypeScript + Tailwind (+ TanStack Query)
+└── backend/    Flask 3 + SQLAlchemy + JWT REST API (SQLite dev / Postgres prod)
 ```
 
-## Contributing
+> Note: this lives on the `feat/ekatva-os-platform` branch and sits alongside the
+> Ekatva movement website at the repo root — it does not modify the website.
 
-Please follow this step-by-step workflow to contribute to the project:
+## Run it (two terminals)
 
-### 1. Create a Branch
-
-Always create a new branch for your work. Do not push directly to `main` or `develop`.
-
-```bash
-# Update your local repository
-git checkout develop
-git pull origin develop
-
-# Create a new branch (use 'feature/' or 'fix/' prefix)
-git checkout -b feature/your-feature-name
-```
-
-### 2. Make Your Changes
-
-Write your code, following the project's coding standards.
-
-### 3. Run Checks Manually
-
-Before committing, it's good practice to run checks locally to ensure everything is fine.
+**1 · Backend** (start first — the frontend expects it on `:5000`):
 
 ```bash
-# Run linting and formatting on staged files
-npx lint-staged
-
-or
-
-bun run lint-staged
-
-# Run full project linting
-npm run lint
-
-or
-
-bun run lint
-
-# Run unit tests
-npm test
-
-or
-
-bun test
+cd ekatva-os/backend
+python -m venv .venv
+.venv/Scripts/activate          # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+python seed.py                  # create + seed the demo world
+python run.py                   # → http://localhost:5000
+pytest                          # 19 tests, ~85% coverage
 ```
 
-### 4. Commit Your Changes
-
-We use `husky` to automatically run checks before you commit. If checks fail, the commit will be blocked until issues are resolved.
-Follow the conventional commit format:
-
-- `feat:` for new features
-- `fix:` for bug fixes
-- `style:` for styling changes
-- `test:` for test additions/modifications
+**2 · Frontend:**
 
 ```bash
-git add .
-git commit -m "feat: add amazing new feature"
+cd ekatva-os/frontend
+npm install
+npm run dev                     # → http://localhost:5173
 ```
 
-### 5. Push and Create Pull Request
+## Seeded accounts
 
-```bash
-git push origin feature/your-feature-name
-```
+| Role | Email | Password |
+|------|-------|----------|
+| Admin (pre-provisioned) | `admin@ekatva.os` | `admin123` |
+| Organiser (RC POR) | `saiteja@ekatva.os` | `rc12345` |
+| Student | `arav@ekatva.os` | `student123` |
 
-Then, go to GitHub and create a Pull Request targeting the `develop` branch.
+## What's inside
 
-## License
+- **Full v1 spine, end to end:** propose → admin approve (audit trail) →
+  auto-publish → city discovery feed → register → attendance check-in →
+  points & leaderboard → reimbursement pipeline → community analytics + ₹100
+  fee-utilisation.
+- **Three role surfaces** (Student · Organiser · Admin), POR-driven — a student
+  holding a Regional-Coordinator POR sees the organiser surfaces (PRD P3).
+- **Real auth:** JWT login/register; RBAC enforced at the API.
+- **Design system** straight from the EKATVA Brand Kit (Ekatva Teal `#5CE6C9`,
+  Unity Gold `#FFCF96`, Oneness Black `#050505`, Poppins).
 
-Private property of EKATVA Team.
+See `frontend/README.md` and `backend/README.md` for detail and the endpoint map.
+
+**Team-072:** Atharva Shree · Harsh Raj · Kavya Jain · Mili Parashar · Vishal Bhandari

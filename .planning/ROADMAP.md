@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A plain student with no organiser POR is granted `can_participate_in_activity` for an event they registered for, and denied `can_manage_activity` for an event they are not crew on; a Secretary of org A is denied `can_manage_org` for org B.
   5. `is_meetup_head` exists as a distinct per-activity check and rejects a team member who manages the activity but is not the assigned Meetup Head; no activity/org-scoped endpoint added from this point uses the coarse `organiser_required`.
 
-**Plans**: 2/5 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -50,7 +50,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Schema batch part 2: 9 org-identity/close-out/channel/session tables + 11 columns on populated tables (SCHEMA-02)
+- [x] 01-03-PLAN.md — Schema batch part 2: 9 org-identity/close-out/channel/session tables + 11 columns on populated tables (SCHEMA-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -180,7 +180,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Migration & Authorization Foundation | 2/5 | In Progress|  |
+| 1. Migration & Authorization Foundation | 3/5 | In Progress|  |
 | 2. Identity, Session & Dashboard Shell | 0/TBD | Not started | - |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
 | 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |

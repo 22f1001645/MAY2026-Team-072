@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: migration-authorization-foundation
 status: executing
-stopped_at: Completed 01-02-PLAN.md (7 spine tables declared, no migration — 01-04 owns the batch revision)
-last_updated: "2026-08-05T18:52:55.561Z"
+stopped_at: Completed 01-03-PLAN.md (9 identity/close-out/channel tables + 11 upgrade-safe columns; still no migration — 01-04 owns the batch revision)
+last_updated: "2026-08-05T19:13:32.621Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 01 (migration-authorization-foundation) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-05 — Phase 01 execution started
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [████░░░░░░] 40%
 |------|----------|-------|-------|
 | Phase 01 P01 | 25min | 4 tasks | 11 files |
 | Phase 01 P02 | 35min | 3 tasks | 4 files |
+| Phase 01 P03 | 22min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 1]: USER DECISION (01-01 checkpoint): Flask-Migrate legitimacy verified on PyPI (Miguel Grinberg); pinned Flask-Migrate==4.0.7.
 - [Phase 1]: Resolved the 01-01 drift gate vs 01-02 no-migration conflict with PENDING_BATCH_TABLES — a named, self-retiring allowlist in test_migrations.py that keeps the gate live for every table outside the deliberate SCHEMA-02 batch window. Plan 01-04 must empty it with the batch revision.
 - [Phase 1]: The two authorization singletons (one primary collaborating org, one Meetup Head per Activity) are partial unique indexes, not service checks — uq_activity_primary_org and uq_team_meetup_head, both verified by negative control.
+- [Phase 1]: The SCHEMA-02 batch window was extended by (table, column) pair (PENDING_BATCH_COLUMNS), not by table name — allowlisting users wholesale to cover three academic columns would have blinded the drift gate to every future column on the most security-relevant table.
+- [Phase 1]: Columns landing on populated tables must be nullable or carry a server_default, and the two backfills (reports.status='submitted', attendance.method='manual') record what actually happened — enforced by a permanent test, negative-control verified.
 
 ### Pending Todos
 
@@ -94,8 +97,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-05T18:52:55.544Z
-Stopped at: Completed 01-02-PLAN.md (7 spine tables declared, no migration — 01-04 owns the batch revision)
+Last session: 2026-08-05T19:13:32.601Z
+Stopped at: Completed 01-03-PLAN.md (9 identity/close-out/channel tables + 11 upgrade-safe columns; still no migration — 01-04 owns the batch revision)
 Resume file: None
 
 Next: `/gsd:plan-phase 1`

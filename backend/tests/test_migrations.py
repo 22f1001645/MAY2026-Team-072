@@ -24,7 +24,7 @@ from sqlalchemy.exc import IntegrityError
 from app import create_app
 from app.config import TestConfig
 from app.extensions import NAMING_CONVENTION, db
-from app.models import Organisation, User
+import app.models  # noqa: F401  - registers every model on db.metadata
 
 MIGRATIONS_DIR = str(Path(__file__).resolve().parents[1] / "migrations")
 
@@ -57,6 +57,37 @@ PENDING_BATCH_TABLES = frozenset(
         "registration_form_fields",
         "registration_field_responses",
         "campaign_packages",
+        # declared by plan 01-03 (org identity, close-out, channel, session)
+        "organisation_social_links",
+        "brand_kits",
+        "event_feedback",
+        "event_polls",
+        "event_poll_votes",
+        "event_queries",
+        "refresh_token_blocklist",
+        "org_progression_unlocks",
+        "reimbursement_requests",
+    }
+)
+
+# Plan 01-03 also adds columns to four tables that are ALREADY fully migrated.
+# Those are listed as (table, column) pairs rather than by table name on purpose:
+# allowlisting `users` wholesale would blind the drift gate to every future
+# column on the most security-relevant table in the schema, which is a far bigger
+# hole than the one the batch window needs.
+PENDING_BATCH_COLUMNS = frozenset(
+    {
+        ("users", "academic_level"),
+        ("users", "academic_status"),
+        ("users", "academic_confirmed_at"),
+        ("organisations", "bio"),
+        ("organisations", "logo_url"),
+        ("reports", "challenges"),
+        ("reports", "learnings"),
+        ("reports", "status"),
+        ("reports", "submitted_by"),
+        ("reports", "submitted_at"),
+        ("attendance", "method"),
     }
 )
 
@@ -69,6 +100,16 @@ def _entry_table(entry):
     if op in {"add_column", "remove_column"}:
         return entry[2]
     return None
+
+
+def _is_inside_batch_window(entry):
+    """True when this diff is one of the deliberately unmigrated declarations."""
+    table = _entry_table(entry)
+    if table in PENDING_BATCH_TABLES:
+        return True
+    if entry[0] in {"add_column", "remove_column"}:
+        return (table, entry[3].name) in PENDING_BATCH_COLUMNS
+    return False
 
 
 @pytest.fixture
@@ -101,6 +142,50 @@ def _batch_users(operation):
                 "users", naming_convention=NAMING_CONVENTION
             ) as batch_op:
                 operation(batch_op)
+
+
+_STAMP = "2026-01-01 00:00:00"
+
+
+def _insert_user(user_id, email, name, region_id=None):
+    """Insert one users row naming only columns the migration chain created."""
+    with db.engine.begin() as connection:
+        connection.execute(
+            sa.text(
+                "INSERT INTO users (id, email, name, password_hash, role, region_id,"
+                " created_at, updated_at) VALUES (:id, :email, :name, :pw, 'student',"
+                " :region_id, :now, :now)"
+            ),
+            {
+                "id": user_id,
+                "email": email,
+                "name": name,
+                "pw": "not-a-real-hash",
+                "region_id": region_id,
+                "now": _STAMP,
+            },
+        )
+
+
+def _insert_probe_rows():
+    """One organisation and one user, so the FK on users.region_id is exercised."""
+    with db.engine.begin() as connection:
+        connection.execute(
+            sa.text(
+                "INSERT INTO organisations (id, name, type, city, created_at,"
+                " updated_at) VALUES ('org-probe', 'Hyderabad Regional Chapter',"
+                " 'region', 'Hyderabad', :now, :now)"
+            ),
+            {"now": _STAMP},
+        )
+    _insert_user("user-probe", "probe@ekatva.os", "Probe", region_id="org-probe")
+
+
+def _probe_email():
+    with db.engine.connect() as connection:
+        return connection.execute(
+            sa.text("SELECT email FROM users WHERE id = 'user-probe'")
+        ).scalar()
 
 
 def _flatten(diff):
@@ -149,22 +234,14 @@ def test_batch_add_and_drop_column_preserves_rows(migrated_app):
     `users` is deliberately the subject — it carries both a unique index and a
     foreign key, so the table-copy that batch mode performs has to reflect and
     recreate both. A table without them would not exercise the risky path.
-    """
-    org = Organisation(name="Hyderabad Regional Chapter", type="region", city="Hyderabad")
-    db.session.add(org)
-    db.session.flush()
 
-    user = User(
-        email="probe@ekatva.os",
-        name="Probe",
-        password_hash="not-a-real-hash",
-        role="student",
-        region_id=org.id,
-    )
-    db.session.add(user)
-    db.session.commit()
-    user_id = user.id
-    db.session.remove()  # release the session's connection before running DDL
+    Rows go in through explicit SQL rather than the ORM: during the SCHEMA-02
+    batch window the models carry columns (users.academic_level,
+    organisations.bio) that the migration chain has not created yet, so an ORM
+    insert would fail here for a reason that has nothing to do with batch mode
+    and would mask the behaviour this test exists to prove.
+    """
+    _insert_probe_rows()
 
     # --- add ---------------------------------------------------------------
     _batch_users(
@@ -172,33 +249,19 @@ def test_batch_add_and_drop_column_preserves_rows(migrated_app):
             sa.Column("scratch_probe", sa.String(16), nullable=True)
         )
     )
-    survivor = db.session.get(User, user_id)
-    assert survivor is not None, "row lost during batch add_column"
-    assert survivor.email == "probe@ekatva.os"
-    db.session.remove()
+    assert _probe_email() == "probe@ekatva.os", "row lost during batch add_column"
 
     # --- drop --------------------------------------------------------------
     _batch_users(lambda batch_op: batch_op.drop_column("scratch_probe"))
-    survivor = db.session.get(User, user_id)
-    assert survivor is not None, "row lost during batch drop_column"
-    assert survivor.email == "probe@ekatva.os"
+    assert _probe_email() == "probe@ekatva.os", "row lost during batch drop_column"
 
     columns = {c["name"] for c in sa.inspect(db.engine).get_columns("users")}
     assert "scratch_probe" not in columns
 
     # The unique index has to have survived the table copy, otherwise the drop
     # silently removed a constraint the application depends on.
-    db.session.add(
-        User(
-            email="probe@ekatva.os",
-            name="Duplicate",
-            password_hash="not-a-real-hash",
-            role="student",
-        )
-    )
     with pytest.raises(IntegrityError):
-        db.session.commit()
-    db.session.rollback()
+        _insert_user("user-duplicate", "probe@ekatva.os", "Duplicate")
 
 
 def test_models_match_migrations_no_drift(migrated_app):
@@ -216,7 +279,7 @@ def test_models_match_migrations_no_drift(migrated_app):
         if isinstance(entry, tuple)
         and entry
         and entry[0] in STRUCTURAL_OPS
-        and _entry_table(entry) not in PENDING_BATCH_TABLES
+        and not _is_inside_batch_window(entry)
     ]
 
     assert not structural, (
@@ -243,4 +306,28 @@ def test_pending_batch_list_is_accurate(migrated_app):
     assert not already_done, (
         "these tables are in the migration chain now — remove them from "
         f"PENDING_BATCH_TABLES: {sorted(already_done)}"
+    )
+
+    # The same two failure modes, for the (table, column) half of the window.
+    inspector = sa.inspect(db.engine)
+    undeclared_columns = {
+        (table, column)
+        for table, column in PENDING_BATCH_COLUMNS
+        if table not in db.metadata.tables
+        or column not in db.metadata.tables[table].c
+    }
+    assert not undeclared_columns, (
+        "PENDING_BATCH_COLUMNS names columns no model declares: "
+        f"{sorted(undeclared_columns)}"
+    )
+
+    already_done_columns = {
+        (table, column)
+        for table, column in PENDING_BATCH_COLUMNS
+        if table in migrated
+        and column in {c["name"] for c in inspector.get_columns(table)}
+    }
+    assert not already_done_columns, (
+        "these columns are in the migration chain now — remove them from "
+        f"PENDING_BATCH_COLUMNS: {sorted(already_done_columns)}"
     )

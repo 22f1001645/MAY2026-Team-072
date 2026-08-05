@@ -25,6 +25,37 @@ Run the tests (course deliverable — currently **19 passing, ~85% coverage**):
 pytest                         # coverage gate configured in pytest.ini
 ```
 
+## Database migrations
+
+Schema changes go through **Flask-Migrate (Alembic)** — editing a model and rerunning the
+destructive `seed.py` is no longer the way to change the schema. `migrations/` is committed
+to git, so every revision is a reviewable diff.
+
+```bash
+cd backend
+flask db migrate -m "describe the change"   # autogenerate a revision from the models
+flask db upgrade                            # apply pending revisions (safe to rerun; no-op at head)
+flask db downgrade                          # step back one revision — DEVELOPMENT ONLY
+```
+
+`flask db current` prints the revision the database sits at. The Flask CLI finds the app via
+`.flaskenv` (`FLASK_APP=run.py`), which is committed.
+
+**`downgrade` is a development-only affordance.** It is never part of a deployment step: on
+SQLite a downgrade is executed as a table copy, and rolling one back against real data is a
+data-loss risk rather than a rollback strategy. To undo a bad revision in production, write a
+new forward revision.
+
+Two details make this work and must not be edited casually:
+
+- `app/extensions.py` attaches a `NAMING_CONVENTION` to `db.metadata`, so every constraint has
+  a deterministic name. SQLite batch migrations can only reflect and recreate constraints that
+  are named. This convention landed in the same commit that added Flask-Migrate, before the
+  first revision existed; changing it now would mean rewriting migration history.
+- `app/__init__.py` initialises Flask-Migrate with `render_as_batch=True`, which is what makes
+  `ALTER`/`DROP COLUMN` possible on SQLite at all, and `compare_type=True` so autogenerate
+  notices column type changes.
+
 ## Seeded accounts (match the frontend demo logins)
 
 | Role | Email | Password |

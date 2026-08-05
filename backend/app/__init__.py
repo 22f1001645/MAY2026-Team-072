@@ -11,7 +11,7 @@ from flask_cors import CORS
 from .config import Config
 from .controllers import ALL_BLUEPRINTS
 from .errors import register_error_handlers
-from .extensions import db, jwt
+from .extensions import db, jwt, migrate
 
 
 def create_app(config_object=Config):
@@ -21,6 +21,10 @@ def create_app(config_object=Config):
 
     # Extensions
     db.init_app(app)
+    # render_as_batch is what makes ALTER/DROP COLUMN possible on SQLite at all
+    # (Alembic rewrites them as a table copy); compare_type makes autogenerate
+    # notice column type changes rather than silently ignoring them.
+    migrate.init_app(app, db, render_as_batch=True, compare_type=True)
     jwt.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
 

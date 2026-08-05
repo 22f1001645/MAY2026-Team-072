@@ -9,7 +9,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Schema Foundation
 
-- [ ] **SCHEMA-01**: Backend adopts Flask-Migrate with a metadata naming convention landed before the first migration is generated
+- [x] **SCHEMA-01**: Backend adopts Flask-Migrate with a metadata naming convention landed before the first migration is generated
 - [ ] **SCHEMA-02**: All new tables/columns for this milestone (collaborating orgs, team/roles, tasks, event-design schedule, registration form fields, org profile, social links, brand kit, campaign content, feedback, chat, polls, refresh-token blocklist) are declared in one batch, not per-feature
 - [ ] **SCHEMA-03**: `seed.py` is split into a destructive-reset function and an idempotent-reference-data function, and refuses to run its destructive path against a non-dev `DATABASE_URL`
 
@@ -172,6 +172,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 52 total (corrected — `PROPOSAL-00` was added after the original 51-count was written; see ROADMAP.md's note)
 - Mapped to phases: 52
 - Unmapped: 0 ✓

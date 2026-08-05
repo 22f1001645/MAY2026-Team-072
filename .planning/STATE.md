@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Migration & Authorization Foundation
+current_phase: 01
+current_phase_name: migration-authorization-foundation
 status: executing
-stopped_at: ROADMAP.md and STATE.md written; REQUIREMENTS.md traceability populated
-last_updated: "2026-08-05T17:38:32.258Z"
-last_activity: 2026-08-03
-last_activity_desc: Roadmap created; 52 v1 requirements mapped across 8 phases
+stopped_at: Completed 01-01-PLAN.md (migration foundation, baseline revision 312ea9fc2c96)
+last_updated: "2026-08-05T18:16:04.133Z"
+last_activity: 2026-08-05
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 1 — Migration & Authorization Foundation
+**Current focus:** Phase 01 — migration-authorization-foundation
 
 ## Current Position
 
-Phase: 1 of 8 (Migration & Authorization Foundation)
-Plan: 0 of TBD in current phase
+Phase: 01 (migration-authorization-foundation) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-03 — Roadmap created; 52 v1 requirements mapped across 8 phases
+Last activity: 2026-08-05 — Phase 01 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -55,6 +55,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 25min | 4 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -68,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 2]: Refresh token lands before the dashboard switcher (same files; refresh changes the token contract every later fetch rides on).
 - [Phase 3/5/6]: One consistent "any team member drafts, only the Meetup Head submits" rule across campaign push-live, reimbursement, and post-event report.
 - [Phase 5]: AI campaign ships mail-template generation + poster upload only; poster generation stays behind `AI_IMAGE_ENABLED`, off by default.
+- [Phase 1]: USER DECISION (01-01 checkpoint, option-a): adopt Flask-Migrate with the metadata naming convention as the first commit — named constraints from revision 1, not Alembic defaults. Landed in commit 12f07ad; baseline revision 312ea9fc2c96.
+- [Phase 1]: USER DECISION (01-01 checkpoint): Flask-Migrate legitimacy verified on PyPI (Miguel Grinberg); pinned Flask-Migrate==4.0.7.
 
 ### Pending Todos
 
@@ -84,8 +91,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-03
-Stopped at: ROADMAP.md and STATE.md written; REQUIREMENTS.md traceability populated
+Last session: 2026-08-05T18:16:04.109Z
+Stopped at: Completed 01-01-PLAN.md (migration foundation, baseline revision 312ea9fc2c96)
 Resume file: None
 
 Next: `/gsd:plan-phase 1`

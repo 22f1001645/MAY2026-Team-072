@@ -11,7 +11,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 - [x] **SCHEMA-01**: Backend adopts Flask-Migrate with a metadata naming convention landed before the first migration is generated
 - [x] **SCHEMA-02**: All new tables/columns for this milestone (collaborating orgs, team/roles, tasks, event-design schedule, registration form fields, org profile, social links, brand kit, campaign content, feedback, chat, polls, refresh-token blocklist) are declared in one batch, not per-feature
-- [ ] **SCHEMA-03**: `seed.py` is split into a destructive-reset function and an idempotent-reference-data function, and refuses to run its destructive path against a non-dev `DATABASE_URL`
+- [x] **SCHEMA-03**: `seed.py` is split into a destructive-reset function and an idempotent-reference-data function, and refuses to run its destructive path against a non-dev `DATABASE_URL`
 
 ### Authorization
 

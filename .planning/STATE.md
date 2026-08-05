@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: migration-authorization-foundation
 status: executing
-stopped_at: Completed 01-03-PLAN.md (9 identity/close-out/channel tables + 11 upgrade-safe columns; still no migration — 01-04 owns the batch revision)
-last_updated: "2026-08-05T19:13:32.621Z"
+stopped_at: Completed 01-04-PLAN.md (batch revision 213804635519 applied to the live dev database; seed.py split into a guarded reset + idempotent reference seeder)
+last_updated: "2026-08-05T19:37:58.129Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 01 (migration-authorization-foundation) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-05 — Phase 01 execution started
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [██████░░░░] 60%
 | Phase 01 P01 | 25min | 4 tasks | 11 files |
 | Phase 01 P02 | 35min | 3 tasks | 4 files |
 | Phase 01 P03 | 22min | 3 tasks | 4 files |
+| Phase 01 P04 | 30min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,11 @@ Recent decisions affecting current work:
 - [Phase 1]: The two authorization singletons (one primary collaborating org, one Meetup Head per Activity) are partial unique indexes, not service checks — uq_activity_primary_org and uq_team_meetup_head, both verified by negative control.
 - [Phase 1]: The SCHEMA-02 batch window was extended by (table, column) pair (PENDING_BATCH_COLUMNS), not by table name — allowlisting users wholesale to cover three academic columns would have blinded the drift gate to every future column on the most security-relevant table.
 - [Phase 1]: Columns landing on populated tables must be nullable or carry a server_default, and the two backfills (reports.status='submitted', attendance.method='manual') record what actually happened — enforced by a permanent test, negative-control verified.
+- [Phase ?]: Settled the deferred 65-character FK name by naming it explicitly before autogenerate — the last moment it was free, since the table was still unmigrated.
+- [Phase ?]: The milestone schema landed as ONE revision (213804635519) and was verified against the LIVE database by inspector, because pytest builds its own schema and would pass either way.
+- [Phase ?]: seed.py's destructive path is gated on the resolved database URI alone — no override variable, no flag, and a test naming an invented bypass variable so nobody adds one later.
+- [Phase ?]: reset_destructive drops alembic_version explicitly and rebuilds via the migration chain, never create_all, so the version marker and schema stay in agreement.
+- [Phase ?]: Path containment in the dev guard is checked in both POSIX and Windows form — Path.is_absolute() reports False for '/var/lib/x.db' on Windows, which had silently disabled the check.
 
 ### Pending Todos
 
@@ -97,8 +103,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-05T19:13:32.601Z
-Stopped at: Completed 01-03-PLAN.md (9 identity/close-out/channel tables + 11 upgrade-safe columns; still no migration — 01-04 owns the batch revision)
+Last session: 2026-08-05T19:37:58.110Z
+Stopped at: Completed 01-04-PLAN.md (batch revision 213804635519 applied to the live dev database; seed.py split into a guarded reset + idempotent reference seeder)
 Resume file: None
 
 Next: `/gsd:plan-phase 1`

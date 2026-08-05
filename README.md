@@ -5,23 +5,19 @@
 
 The v1 **city-meetup lifecycle** built end-to-end for the BSCS3001 Software
 Engineering Project (CodeCrafters · Team-072), to the Unified PRD v2.2 and the
-Milestone 2 design. This folder is a two-part monorepo:
+Milestone 2 design. This repo is a two-part monorepo:
 
 ```
-ekatva-os/
 ├── frontend/   React 18 + Vite + TypeScript + Tailwind (+ TanStack Query)
 └── backend/    Flask 3 + SQLAlchemy + JWT REST API (SQLite dev / Postgres prod)
 ```
-
-> Note: this lives on the `feat/ekatva-os-platform` branch and sits alongside the
-> Ekatva movement website at the repo root — it does not modify the website.
 
 ## Run it (two terminals)
 
 **1 · Backend** (start first — the frontend expects it on `:5000`):
 
 ```bash
-cd ekatva-os/backend
+cd backend
 python -m venv .venv
 .venv/Scripts/activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
@@ -33,7 +29,7 @@ pytest                          # 19 tests, ~85% coverage
 **2 · Frontend:**
 
 ```bash
-cd ekatva-os/frontend
+cd frontend
 npm install
 npm run dev                     # → http://localhost:5173
 ```

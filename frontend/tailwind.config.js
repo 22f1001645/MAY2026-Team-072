@@ -16,7 +16,7 @@ export default {
           DEFAULT: '#FFCF96', // Unity Gold — headings, accents, celebration
         },
         onyx: {
-          DEFAULT: '#050505', // Oneness Black — backgrounds, grounding
+          DEFAULT: 'oklch(0.13 0.015 175)', // Oneness Black — teal-tinted, not flat gray (~#030907), backgrounds/grounding
           soft: '#111111', // Near Black — text on light
         },
         // Neutrals
@@ -42,7 +42,7 @@ export default {
       backgroundImage: {
         'brand-gradient': 'linear-gradient(135deg, #1F4F59 0%, #0E2F36 100%)',
         'hero-gradient':
-          'radial-gradient(1200px 600px at 20% -10%, rgba(92,230,201,0.18), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(255,207,150,0.12), transparent 55%), linear-gradient(180deg, #050505 0%, #08120f 100%)',
+          'radial-gradient(1200px 600px at 20% -10%, rgba(92,230,201,0.18), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(255,207,150,0.12), transparent 55%), linear-gradient(180deg, oklch(0.1 0.012 175) 0%, oklch(0.16 0.018 175) 100%)',
       },
       boxShadow: {
         'card': '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)',

@@ -1,6 +1,6 @@
 // Cover gradient keys → on-brand gradients (blend, never contrast — Brand Kit §1)
 export const COVERS: Record<string, string> = {
-  fest: 'linear-gradient(135deg,#1F4F59 0%,#0E2F36 55%,#050505 100%)',
+  fest: 'linear-gradient(135deg,#1F4F59 0%,#0E2F36 55%,oklch(0.13 0.015 175) 100%)', // ends in Oneness Black
   evening: 'linear-gradient(135deg,#3FD4B6 0%,#1F4F59 60%,#0E2F36 100%)',
   studio: 'linear-gradient(135deg,#0E2F36 0%,#1F4F59 60%,#5CE6C9 130%)',
   trek: 'linear-gradient(135deg,#1F4F59 0%,#0E2F36 60%,#111111 100%)',

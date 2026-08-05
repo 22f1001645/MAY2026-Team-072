@@ -48,13 +48,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ addToast }}>
       {children}
       {createPortal(
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none"
+        >
           {toasts.map(t => (
             <div
               key={t.id}
               className={cx(
                 'flex items-center gap-3 rounded-xl border px-4 py-3 text-[13px] font-medium shadow-xl backdrop-blur-sm pointer-events-auto',
-                'animate-[slideInRight_0.3s_ease-out]',
+                'animate-fade-up',
                 colors[t.type],
               )}
             >
@@ -88,9 +93,9 @@ export function Button({
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const base =
     'inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wide rounded-full ' +
-    'transition-all duration-300 ease-material focus:outline-none focus:ring-2 focus:ring-teal/50 ' +
-    'disabled:opacity-40 disabled:cursor-not-allowed'
-  // CTA hover: scale 1.02, lighten 10% (Brand Kit §7)
+    'transition duration-200 ease-material focus:outline-none focus:ring-2 focus:ring-teal/50 ' +
+    'active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100'
+  // CTA hover: scale 1.02, lighten 10% (Brand Kit §7); press: scale 0.97 (feedback on press, not just release)
   const variants = {
     primary:
       'bg-teal text-onyx hover:bg-teal-accent hover:scale-[1.02] shadow-glow-teal',
@@ -123,14 +128,28 @@ export function Card({
   hover?: boolean
   onClick?: () => void
 }) {
+  const interactive = hover && !!onClick
   return (
     <div
       onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick?.()
+              }
+            }
+          : undefined
+      }
       className={cx(
         'relative rounded-xl2 border border-white/5 bg-gradient-to-b from-white/[0.04] to-white/[0.01] shadow-card',
-        // Card hover: lift 4px + border glow (Brand Kit §7)
+        // Card hover: lift 4px + border glow (Brand Kit §7); press: scale 0.99 (subtler than Button)
         hover &&
-          'cursor-pointer transition-all duration-300 ease-material hover:-translate-y-1 hover:border-teal/40 hover:shadow-glow-teal',
+          'cursor-pointer transition duration-200 ease-material hover:-translate-y-1 hover:border-teal/40 hover:shadow-glow-teal active:scale-[0.99]',
+        interactive && 'focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
         className,
       )}
     >
@@ -261,7 +280,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return (
     <input
       className={cx(
-        'w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal/40',
+        'w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
         className,
       )}
       {...props}

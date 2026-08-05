@@ -14,7 +14,7 @@
   body {
     @apply bg-onyx text-offwhite font-sans antialiased;
     /* Subtle film-grain / nostalgia is handled per-surface; keep body clean */
-    background-color: #050505;
+    background-color: oklch(0.13 0.015 175); /* Oneness Black — teal-tinted, ~#030907 */
   }
 
   /* Never pure-black text on white; use near-black (Brand Kit §2) */
@@ -29,7 +29,7 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #08120f;
+    background: oklch(0.13 0.015 175); /* Oneness Black — teal-tinted, ~#030907 */
   }
   ::-webkit-scrollbar-thumb {
     background: #1f4f59;
@@ -37,6 +37,16 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #3fd4b6;
+  }
+
+  /* Respect the user's motion preference app-wide (Design System §Motion) */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 

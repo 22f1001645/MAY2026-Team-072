@@ -4,7 +4,7 @@ Conventions (per the design): UUID string PKs, created_at/updated_at on every
 table, FKs indexed, the audit_log append-only. UUID-as-string keeps the schema
 portable across SQLite (dev) and PostgreSQL 15 (prod)."""
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 
 from ..extensions import db
 
@@ -14,7 +14,7 @@ def _uuid() -> str:
 
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _iso(dt):

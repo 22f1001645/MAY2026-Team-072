@@ -32,6 +32,44 @@ MIGRATIONS_DIR = str(Path(__file__).resolve().parents[1] / "migrations")
 # reports cosmetic server-default and type differences that are not.
 STRUCTURAL_OPS = {"add_table", "remove_table", "add_column", "remove_column"}
 
+# --------------------------------------------------------------------------- #
+# The Phase 1 batch window (SCHEMA-02)
+# --------------------------------------------------------------------------- #
+# SCHEMA-02 requires every table this milestone needs to be declared in ONE
+# batch, so no later phase forces a second destructive reset. Plans 01-02 and
+# 01-03 therefore declare models with no migration, and plan 01-04 emits a
+# single revision covering all of them at once.
+#
+# For that window only, these tables are allowed to exist in the models while
+# being absent from the migration chain. The gate stays fully live for every
+# other table: anything drifting outside this list still fails.
+#
+# Plan 01-03 appends its own tables here. Plan 01-04 empties this set in the
+# same commit as the batch revision — and `test_pending_batch_list_is_accurate`
+# below forces that, because it fails once a listed table is actually migrated.
+PENDING_BATCH_TABLES = frozenset(
+    {
+        # declared by plan 01-02 (proposal → campaign spine)
+        "activity_collaborators",
+        "activity_team_members",
+        "activity_tasks",
+        "event_schedule_items",
+        "registration_form_fields",
+        "registration_field_responses",
+        "campaign_packages",
+    }
+)
+
+
+def _entry_table(entry):
+    """The table name an autogenerate diff tuple refers to."""
+    op = entry[0]
+    if op in {"add_table", "remove_table"}:
+        return entry[1].name
+    if op in {"add_column", "remove_column"}:
+        return entry[2]
+    return None
+
 
 @pytest.fixture
 def migrated_app(tmp_path):
@@ -99,7 +137,7 @@ def test_upgrade_from_empty_creates_full_schema(migrated_app):
     produce the whole schema, not a partial one."""
     tables = set(sa.inspect(db.engine).get_table_names())
 
-    missing = set(db.metadata.tables) - tables
+    missing = set(db.metadata.tables) - tables - PENDING_BATCH_TABLES
     assert not missing, f"migration chain did not create: {sorted(missing)}"
     assert "alembic_version" in tables
 
@@ -175,10 +213,34 @@ def test_models_match_migrations_no_drift(migrated_app):
     structural = [
         entry
         for entry in _flatten(diff)
-        if isinstance(entry, tuple) and entry and entry[0] in STRUCTURAL_OPS
+        if isinstance(entry, tuple)
+        and entry
+        and entry[0] in STRUCTURAL_OPS
+        and _entry_table(entry) not in PENDING_BATCH_TABLES
     ]
 
     assert not structural, (
         "models and migrations have drifted — run `flask db migrate`:\n"
         + "\n".join(repr(entry) for entry in structural)
+    )
+
+
+def test_pending_batch_list_is_accurate(migrated_app):
+    """The SCHEMA-02 batch window must not outlive its purpose.
+
+    Two ways the allowlist above could rot into a permanent hole in the drift
+    gate, both closed here: naming a table that no model declares, and keeping a
+    table listed after plan 01-04's revision has actually created it.
+    """
+    undeclared = PENDING_BATCH_TABLES - set(db.metadata.tables)
+    assert not undeclared, (
+        "PENDING_BATCH_TABLES names tables no model declares: "
+        f"{sorted(undeclared)}"
+    )
+
+    migrated = set(sa.inspect(db.engine).get_table_names())
+    already_done = PENDING_BATCH_TABLES & migrated
+    assert not already_done, (
+        "these tables are in the migration chain now — remove them from "
+        f"PENDING_BATCH_TABLES: {sorted(already_done)}"
     )

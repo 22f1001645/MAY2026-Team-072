@@ -6,6 +6,12 @@ portable across SQLite (dev) and PostgreSQL 15 (prod)."""
 import uuid
 from datetime import datetime, UTC, timezone
 
+from ..constants import (
+    CAMPAIGN_DRAFT,
+    COLLAB_PENDING,
+    TASK_TODO,
+    TEAM_ROLE_MEETUP_HEAD,
+)
 from ..extensions import db
 
 
@@ -258,6 +264,304 @@ class BudgetLine(Base):
 
     def to_dict(self):
         return {"id": self.id, "label": self.label, "planned": self.planned, "actual": self.actual()}
+
+
+# --------------------------------------------------------------------------- #
+# Module B/C — Collaboration, team, design & campaign (v1.1 milestone)
+# --------------------------------------------------------------------------- #
+class ActivityCollaborator(Base):
+    """An Organisation running an Activity, with its own consent state.
+
+    This table — not `activities.org_id` — is the source of truth for "which
+    organisations are running this activity". `activities.org_id` survives as a
+    denormalised pointer that must always equal the org_id of the row where
+    is_primary is true; Phase 3 (PROPOSAL-01) writes both sides.
+
+    Only rows with status `accepted` count toward the Mega Meetup label
+    (PROPOSAL-03) or the regional-fest collaborator minimum (PROG-02); those
+    thresholds are Phase 3 / Phase 7 rules, not schema constraints."""
+
+    __tablename__ = "activity_collaborators"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "org_id", name="uq_activity_collaborator"),
+        # Exactly one primary organisation per activity, enforced by the database
+        # so `can_manage_activity` can never face two owners (threat T-01-07).
+        db.Index(
+            "uq_activity_primary_org",
+            "activity_id",
+            unique=True,
+            sqlite_where=db.text("is_primary = 1"),
+            postgresql_where=db.text("is_primary"),
+        ),
+    )
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
+    is_primary = db.Column(db.Boolean, nullable=False, default=False)
+    status = db.Column(db.String(20), nullable=False, default=COLLAB_PENDING)
+    invited_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    responded_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    responded_at = db.Column(db.DateTime)
+
+    activity = db.relationship(
+        "Activity", backref=db.backref("collaborators", cascade="all, delete-orphan")
+    )
+    org = db.relationship("Organisation")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "org_id": self.org_id,
+            "org": self.org.name if self.org else None,
+            "is_primary": self.is_primary,
+            "status": self.status,
+            "responded_at": _iso(self.responded_at),
+        }
+
+
+class ActivityTeamMember(Base):
+    """A person holding one team role on ONE Activity.
+
+    Team membership is Activity-scoped and grants zero org-wide permission —
+    org-wide authority stays with PORAssignment (TEAM-03). The single exception
+    is TEAM_ROLE_MEETUP_HEAD, which carries sole campaign-approval authority
+    (RBAC-03) for its own Activity and nothing beyond it.
+
+    The Meetup Head singleton is a database constraint, not a service check: two
+    concurrent Meetup Heads would make campaign-approval authority ambiguous
+    (threat T-01-06)."""
+
+    __tablename__ = "activity_team_members"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "user_id", "role", name="uq_team_member_role"),
+        # A partial-index predicate must be static SQL, so the role literal is
+        # written out here rather than bound from TEAM_ROLE_MEETUP_HEAD.
+        db.Index(
+            "uq_team_meetup_head",
+            "activity_id",
+            unique=True,
+            sqlite_where=db.text("role = 'Meetup Head'"),
+            postgresql_where=db.text("role = 'Meetup Head'"),
+        ),
+    )
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    role = db.Column(db.String(40), nullable=False)  # a value from TEAM_ROLES
+    added_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+
+    activity = db.relationship(
+        "Activity", backref=db.backref("team_members", cascade="all, delete-orphan")
+    )
+    user = db.relationship("User", foreign_keys=[user_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "user_id": self.user_id,
+            "member": self.user.name if self.user else None,
+            "role": self.role,
+            "added_by": self.added_by,
+        }
+
+
+# uq_team_meetup_head hard-codes the role as static SQL because a partial-index
+# predicate cannot take a bound parameter. This guard fails loudly at import time
+# if the constant is ever edited without updating that literal — otherwise the
+# index would silently stop enforcing the RBAC-03 singleton (threat T-01-06).
+assert TEAM_ROLE_MEETUP_HEAD == "Meetup Head", (
+    "TEAM_ROLE_MEETUP_HEAD changed — update the uq_team_meetup_head predicate in "
+    "ActivityTeamMember.__table_args__ to match, and emit a migration for it."
+)
+
+
+class ActivityTask(Base):
+    """A card on the activity's Kanban board (TEAM-02).
+
+    Replaces the client-side mock array in frontend/src/lib/mock.ts, which was
+    never persisted."""
+
+    __tablename__ = "activity_tasks"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    assignee_id = db.Column(db.String(32), db.ForeignKey("users.id"), index=True)
+    deadline = db.Column(db.DateTime)
+    status = db.Column(db.String(20), nullable=False, default=TASK_TODO)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    created_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+
+    activity = db.relationship(
+        "Activity",
+        backref=db.backref(
+            "tasks",
+            cascade="all, delete-orphan",
+            order_by="(ActivityTask.position, ActivityTask.created_at, ActivityTask.id)",
+        ),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "title": self.title,
+            "description": self.description,
+            "assignee_id": self.assignee_id,
+            "deadline": _iso(self.deadline),
+            "status": self.status,
+            "position": self.position,
+        }
+
+
+class EventScheduleItem(Base):
+    """One ordered row of the event-design agenda (DESIGN-01)."""
+
+    __tablename__ = "event_schedule_items"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    time_block = db.Column(db.String(60))       # human label, e.g. "10:00 - 10:30"
+    title = db.Column(db.String(200), nullable=False)
+    owner_id = db.Column(db.String(32), db.ForeignKey("users.id"))
+    owner_label = db.Column(db.String(120))     # for an owner who is not a platform user
+    notes = db.Column(db.Text)
+
+    activity = db.relationship(
+        "Activity",
+        backref=db.backref(
+            "schedule_items",
+            cascade="all, delete-orphan",
+            order_by="(EventScheduleItem.position, EventScheduleItem.created_at, EventScheduleItem.id)",
+        ),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "position": self.position,
+            "time_block": self.time_block,
+            "title": self.title,
+            "owner_id": self.owner_id,
+            "owner_label": self.owner_label,
+            "notes": self.notes,
+        }
+
+
+class RegistrationFormField(Base):
+    """One organiser-defined custom field on an activity's registration form.
+
+    How many custom fields an organiser may add is a Phase 5 service rule, not a
+    schema constraint — the cap is deliberately absent here (CAMPAIGN-05)."""
+
+    __tablename__ = "registration_form_fields"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "label", name="uq_form_field_label"),
+    )
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    label = db.Column(db.String(120), nullable=False)
+    field_type = db.Column(db.String(20), nullable=False)  # a value from FORM_FIELD_TYPES
+    options = db.Column(db.JSON, default=list)             # used only when field_type is dropdown
+    required = db.Column(db.Boolean, nullable=False, default=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+
+    activity = db.relationship(
+        "Activity",
+        backref=db.backref(
+            "form_fields",
+            cascade="all, delete-orphan",
+            order_by="(RegistrationFormField.position, RegistrationFormField.created_at, RegistrationFormField.id)",
+        ),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "label": self.label,
+            "field_type": self.field_type,
+            "options": self.options,
+            "required": self.required,
+            "position": self.position,
+        }
+
+
+class RegistrationFieldResponse(Base):
+    """One student's answer to one custom registration field (CAMPAIGN-05).
+
+    Without this table the form would collect answers with nowhere to store
+    them, forcing a second destructive reset in Phase 5 — which ROADMAP Phase 1
+    success criterion 3 forbids."""
+
+    __tablename__ = "registration_field_responses"
+    __table_args__ = (
+        db.UniqueConstraint("registration_id", "field_id", name="uq_field_response"),
+    )
+
+    registration_id = db.Column(db.String(32), db.ForeignKey("registrations.id"), nullable=False, index=True)
+    field_id = db.Column(db.String(32), db.ForeignKey("registration_form_fields.id"), nullable=False, index=True)
+    value = db.Column(db.Text)
+
+    registration = db.relationship(
+        "Registration", backref=db.backref("field_responses", cascade="all, delete-orphan")
+    )
+    field = db.relationship("RegistrationFormField")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "registration_id": self.registration_id,
+            "field_id": self.field_id,
+            "label": self.field.label if self.field else None,
+            "value": self.value,
+        }
+
+
+class CampaignPackage(Base):
+    """The one campaign package per Activity (CAMPAIGN-01/02/03/04/06).
+
+    `poster_name` stores a filename, following the existing Expense.bill_name
+    precedent — no blob storage exists in this architecture yet and choosing one
+    is a Phase 5 decision, so the column deliberately holds a name, not bytes.
+
+    `approved_by`/`approved_at` are kept separate from `pushed_live_at` so
+    CAMPAIGN-06's Meetup Head gate stays auditable after the fact; the runtime
+    gate itself is meetup_head_required from plan 01-05 (threat T-01-09)."""
+
+    __tablename__ = "campaign_packages"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), unique=True, nullable=False)
+    mail_subject = db.Column(db.String(200))
+    mail_body = db.Column(db.Text)
+    poster_name = db.Column(db.String(200))
+    registration_slug = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    status = db.Column(db.String(30), nullable=False, default=CAMPAIGN_DRAFT)
+    approved_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    approved_at = db.Column(db.DateTime)
+    pushed_live_at = db.Column(db.DateTime)
+
+    activity = db.relationship(
+        "Activity",
+        backref=db.backref("campaign", uselist=False, cascade="all, delete-orphan"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "mail_subject": self.mail_subject,
+            "mail_body": self.mail_body,
+            "poster_name": self.poster_name,
+            "registration_slug": self.registration_slug,
+            "status": self.status,
+            "approved_by": self.approved_by,
+            "approved_at": _iso(self.approved_at),
+            "pushed_live_at": _iso(self.pushed_live_at),
+        }
 
 
 # --------------------------------------------------------------------------- #

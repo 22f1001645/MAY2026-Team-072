@@ -64,6 +64,51 @@ POR_WEB_ADMIN = "Web Admin"
 # --- Activity scale spectrum ---
 ACTIVITY_SCALES = ("local_meetup", "regional_meetup", "regional_fest")
 
+# --- Event team role catalog (PROPOSAL-02) ---
+# A fixed catalog, assigned at proposal time and reviewed by the admin alongside
+# the proposal. Activity-scoped: holding one of these grants zero org-wide
+# permission (that stays with PORAssignment). Meetup Head is the one exception —
+# it carries sole campaign-approval authority (RBAC-03) for its own Activity.
+TEAM_ROLE_MEETUP_HEAD = "Meetup Head"
+TEAM_ROLES = (
+    TEAM_ROLE_MEETUP_HEAD,
+    "Co-Head",
+    "Designer",
+    "Video/Content",
+    "PR & Outreach",
+    "Logistics",
+    "Volunteer Coordinator",
+    "Finance",
+)
+
+# --- Collaboration invite states (PROPOSAL-01/06) ---
+# Only `accepted` counts toward PROPOSAL-03's Mega Meetup label and PROG-02's
+# regional-fest threshold; the threshold numbers themselves are Phase 3 / Phase 7
+# business rules and are deliberately not defined here.
+COLLAB_PENDING = "pending"
+COLLAB_ACCEPTED = "accepted"
+COLLAB_DECLINED = "declined"
+COLLAB_STATES = (COLLAB_PENDING, COLLAB_ACCEPTED, COLLAB_DECLINED)
+
+# --- Task board columns (TEAM-02) ---
+TASK_TODO = "todo"
+TASK_IN_PROGRESS = "in_progress"
+TASK_DONE = "done"
+TASK_STATUSES = (TASK_TODO, TASK_IN_PROGRESS, TASK_DONE)
+
+# --- Campaign package states (CAMPAIGN-06) ---
+# The transition to `live` is gated on is_meetup_head (RBAC-03), supplied by the
+# authorization predicates in plan 01-05.
+CAMPAIGN_DRAFT = "draft"
+CAMPAIGN_PENDING_APPROVAL = "pending_approval"
+CAMPAIGN_LIVE = "live"
+CAMPAIGN_STATES = (CAMPAIGN_DRAFT, CAMPAIGN_PENDING_APPROVAL, CAMPAIGN_LIVE)
+
+# --- Registration custom-field types (CAMPAIGN-05) ---
+FORM_FIELD_TEXT = "text"
+FORM_FIELD_DROPDOWN = "dropdown"
+FORM_FIELD_TYPES = (FORM_FIELD_TEXT, FORM_FIELD_DROPDOWN)
+
 # --- Proposal state machine (FR-B3) ---
 PROPOSAL_DRAFT = "draft"
 PROPOSAL_SUBMITTED = "submitted"

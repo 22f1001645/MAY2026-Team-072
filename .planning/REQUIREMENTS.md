@@ -155,7 +155,7 @@ Populated during roadmap creation — see ROADMAP.md.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Pending |
+| SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Complete |
 | RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Complete |
 | AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Pending |
 | DASH-01 | Phase 2 | Pending |

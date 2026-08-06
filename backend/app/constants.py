@@ -19,6 +19,29 @@ ORGANISER_PORS = {
     "Web Admin",
 }
 
+# --- POR types that grant authority over an Organisation itself (RBAC-01) ---
+# Deliberately narrower than ORGANISER_PORS: `Event Lead` is excluded because an
+# Event Lead's authority is per-activity and flows through can_manage_activity.
+# It does not extend to editing an organisation's public identity (ORG-01) or to
+# accepting a collaboration invite on the organisation's behalf (PROPOSAL-06).
+#
+# Division of labour: ORG_MANAGER_PORS is the POR set read by can_manage_org,
+# while ORGANISER_PORS stays the POR set read by can_manage_activity.
+#
+# Forward note for AUTH-03 (Phase 2): that requirement adds `Society Deputy
+# Secretary` and `Coordinator` to the POR taxonomy. Both belong in this set when
+# they land — a Society Deputy Secretary edits the society's profile, and a
+# Coordinator is a House/Society/Council-scoped Core Committee role. Add them
+# here at the same time as ORGANISER_PORS, not afterwards.
+ORG_MANAGER_PORS = {
+    "Regional Coordinator",
+    "House Secretary",
+    "Deputy House Secretary",
+    "Society Secretary",
+    "Technical Secretary",
+    "Web Admin",
+}
+
 # --- Organisation types ---
 ORG_TYPES = ("house", "society", "region", "council")
 

@@ -15,9 +15,9 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Authorization
 
-- [ ] **RBAC-01**: Backend exposes `can_manage_activity(user, activity)`, `can_participate_in_activity(user, activity)`, and `can_manage_org(user, org)` predicates in `rbac.py`
-- [ ] **RBAC-02**: All new Activity/Org-scoped endpoints (team, tasks, campaign, chat, polls, QR check-in, org profile) are guarded by these predicates, not the coarse existing `organiser_required`
-- [ ] **RBAC-03**: A distinct `is_meetup_head(user, activity)` check gates campaign-approval actions specifically — Meetup Head is a per-activity authority, separate from general `can_manage_activity`
+- [x] **RBAC-01**: Backend exposes `can_manage_activity(user, activity)`, `can_participate_in_activity(user, activity)`, and `can_manage_org(user, org)` predicates in `rbac.py`
+- [x] **RBAC-02**: All new Activity/Org-scoped endpoints (team, tasks, campaign, chat, polls, QR check-in, org profile) are guarded by these predicates, not the coarse existing `organiser_required`
+- [x] **RBAC-03**: A distinct `is_meetup_head(user, activity)` check gates campaign-approval actions specifically — Meetup Head is a per-activity authority, separate from general `can_manage_activity`
 
 ### Auth & Session
 
@@ -156,7 +156,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Pending |
-| RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Pending |
+| RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Complete |
 | AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Pending |
 | DASH-01 | Phase 2 | Pending |
 | PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | Phase 3 | Pending |

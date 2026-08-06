@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: milestone
 current_phase: 01
 current_phase_name: migration-authorization-foundation
-status: executing
-stopped_at: Completed 01-04-PLAN.md (batch revision 213804635519 applied to the live dev database; seed.py split into a guarded reset + idempotent reference seeder)
-last_updated: "2026-08-05T19:37:58.129Z"
+status: verifying
+stopped_at: Completed 01-05-PLAN.md (four resource-scoped predicates, four route guards, and a url_map gate that fails the build on any scoped endpoint behind the coarse organiser_required)
+last_updated: "2026-08-06T05:08:58.091Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 0
+  completed_plans: 5
+  percent: 13
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 01 (migration-authorization-foundation) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-05 — Phase 01 execution started
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [████████░░] 80%
 | Phase 01 P02 | 35min | 3 tasks | 4 files |
 | Phase 01 P03 | 22min | 3 tasks | 4 files |
 | Phase 01 P04 | 30min | 3 tasks | 7 files |
+| Phase 01 P05 | 40min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,10 @@ Recent decisions affecting current work:
 - [Phase ?]: seed.py's destructive path is gated on the resolved database URI alone — no override variable, no flag, and a test naming an invented bypass variable so nobody adds one later.
 - [Phase ?]: reset_destructive drops alembic_version explicitly and rebuilds via the migration chain, never create_all, so the version marker and schema stay in agreement.
 - [Phase ?]: Path containment in the dev guard is checked in both POSIX and Windows form — Path.is_absolute() reports False for '/var/lib/x.db' on Windows, which had silently disabled the check.
+- [Phase ?]: [Phase 1] is_meetup_head ships with no admin short-circuit and no manage fallback, protected by a docstring, a source assertion that ROLE_ADMIN never appears in it, and a mutation-verified test — reassigning the Meetup Head is a different power from acting as one.
+- [Phase ?]: [Phase 1] RBAC-02 is enforced by a test that walks app.url_map every run, with a six-entry frozen LEGACY_COARSE_ROUTES allowlist that never grows and a companion dead-entry test so the allowlist cannot rot into a blanket exemption.
+- [Phase ?]: [Phase 1] can_manage_activity reads BOTH activities.org_id and the activity_collaborators rows, because 01-02 made the collaborator table the source of truth while keeping org_id as a cache of the primary.
+- [Phase ?]: [Phase 1] The six pre-existing coarse routes were deliberately not retrofitted — a behaviour change with no Phase 1 requirement behind it; RBAC-02 governs endpoints added from this point onward.
 
 ### Pending Todos
 
@@ -103,8 +108,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-05T19:37:58.110Z
-Stopped at: Completed 01-04-PLAN.md (batch revision 213804635519 applied to the live dev database; seed.py split into a guarded reset + idempotent reference seeder)
+Last session: 2026-08-06T05:08:58.074Z
+Stopped at: Completed 01-05-PLAN.md (four resource-scoped predicates, four route guards, and a url_map gate that fails the build on any scoped endpoint behind the coarse organiser_required)
 Resume file: None
 
 Next: `/gsd:plan-phase 1`

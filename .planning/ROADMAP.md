@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A plain student with no organiser POR is granted `can_participate_in_activity` for an event they registered for, and denied `can_manage_activity` for an event they are not crew on; a Secretary of org A is denied `can_manage_org` for org B.
   5. `is_meetup_head` exists as a distinct per-activity check and rejects a team member who manages the activity but is not the assigned Meetup Head; no activity/org-scoped endpoint added from this point uses the coarse `organiser_required`.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -58,7 +58,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 01-05-PLAN.md — Resource-scoped authorization: 4 predicates, scoped decorators, and a route-guard enforcement test (RBAC-01/02/03)
+- [x] 01-05-PLAN.md — Resource-scoped authorization: 4 predicates, scoped decorators, and a route-guard enforcement test (RBAC-01/02/03)
 
 **Wave structure**: strictly sequential (1 → 2 → 3 → 4 → 5). Plans 02/03 share `models/__init__.py` and `constants.py`; plan 04's autogenerate imports the whole app, so a concurrent edit to models, constants or rbac would corrupt the generated revision. Foundation work here is a chain, not a fan-out.
 
@@ -180,7 +180,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Migration & Authorization Foundation | 4/5 | In Progress|  |
+| 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
 | 2. Identity, Session & Dashboard Shell | 0/TBD | Not started | - |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
 | 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |

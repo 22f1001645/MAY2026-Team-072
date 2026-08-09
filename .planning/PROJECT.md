@@ -25,7 +25,7 @@ A Regional Coordinator can propose, get approved, publish, fill, run, and reimbu
 - ✓ Line-item budget on a proposal → expense/bill submission → admin verification → reimbursement status tracking (Submitted→Verified→Approved→Paid, no real money movement) — v1
 - ✓ Attendance capture (organiser check-in), the basis for points and fee utilisation — v1
 - ✓ Recognition: points ledger (attend/organise/volunteer) + per-city leaderboard, computed over attendance data — v1 (point values are hardcoded in `constants.py`, NOT admin-configurable — PRD FR-G6 is SH-priority and not actually shipped, see Context)
-- ✓ Admin community analytics + ₹100 activity-fee utilisation tracking, computed over the same data — v1 (city heatmap/ranking and organiser-activity view are NOT implemented — PRD FR-H6/H7 are SH-priority and not actually shipped, see Context)
+- ✓ Admin community analytics + ₹200 activity-fee utilisation tracking, computed over the same data — v1 (city heatmap/ranking and organiser-activity view are NOT implemented — PRD FR-H6/H7 are SH-priority and not actually shipped, see Context)
 - ✓ Organiser workspace (registration list) and activity auto-archive — v1, THIN (explicitly flagged in PRD as "deepen in Phase 2")
 - ✓ Task assignment on an activity — v1, THIN/mocked only (client-side mock array, never persisted — the gap this milestone closes)
 
@@ -112,6 +112,8 @@ Full detail + REQ-IDs live in `REQUIREMENTS.md` (43 v1 requirements across 13 ca
 | Brand kit: manual entry with an optional AI-assist button, never auto-applied without review | Matches the campaign creator's own "never auto-send" principle — AI drafts, humans confirm | — Pending |
 | Sponsorship/outreach CRM stays a flag/stub this milestone even once fest-tier is reached; real CRM tooling is a future milestone | Keeps this milestone's scope bounded; building a real CRM is a significant separate undertaking | — Pending |
 | Student home-city profile editing deferred to a future student-dashboard milestone | User confirmed this milestone is organiser-dashboard scoped; existing discovery city-filter behavior is untouched | — Pending |
+| No live deployment target — `.vercel/project.json` is unused leftover; drop deployment design work entirely | Course deliverable graded via code + local run, not a hosted URL; no Procfile/gunicorn/vercel.json exists for the Flask backend, confirming nothing was ever wired up | ✓ Good |
+| Poster/file uploads (Expense receipts, campaign posters) land on local filesystem (`backend/instance/uploads`), served via Flask, not a cloud blob provider | Matches the project's SQLite-dev nature and no-deploy decision above; zero new dependencies or credentials for a course project. Revisit if a real deploy target ever appears | ✓ Good |
 | Proposer eligibility: any organiser-POR holder of the primary entity (RC, Secretary, Deputy, Event Lead, Coordinator), not restricted to one role | Already matches existing `organiser_required`; region+month quota guardrail is what bounds it, not a role restriction | ✓ Good |
 | Collaborating orgs must accept before counting toward Mega-Meetup/fest thresholds | Prevents one org unilaterally roping others into a collaboration count without their Secretary/Deputy/RC's consent | — Pending |
 | One consistent "any team member drafts, only Meetup Head submits" rule across campaign push-live, reimbursement, and post-event report | Single accountable submitter per gated action beats three different ad-hoc rules; reassignable if Meetup Head is unavailable | — Pending |

@@ -36,7 +36,7 @@ export default function CheckIn() {
       <SectionTitle
         eyebrow={e.city + ' · Live check-in'}
         title="Attendance"
-        sub="Tap a name as people arrive. Each check-in awards points and marks their ₹100 fee as used."
+        sub="Tap a name as people arrive. Each check-in awards points and marks their ₹200 fee as used."
       />
 
       {/* Live counter */}

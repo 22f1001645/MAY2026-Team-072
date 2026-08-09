@@ -446,7 +446,7 @@ const FEATURES = [
   },
   {
     title: 'Recognition & analytics',
-    body: 'Points, a contribution ledger and a city leaderboard — plus admin analytics and the ₹100 activity-fee utilisation wedge.',
+    body: 'Points, a contribution ledger and a city leaderboard — plus admin analytics and the ₹200 activity-fee utilisation wedge.',
     icon: 'M6 21V10M12 21V4M18 21v-7',
   },
 ]

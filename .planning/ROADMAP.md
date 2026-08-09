@@ -211,14 +211,14 @@ All 52 v1 requirements map to exactly one phase. No orphans, no duplicates.
 
 Phases where `/gsd:research-phase` is recommended before planning:
 
-- **Phase 5** — LLM provider/billing decision (Gemini text is free-tier, image generation is not), and there is no blob storage anywhere in the architecture, so poster *upload* currently has nowhere to land.
-- **Phase 6** — STACK.md and ARCHITECTURE.md disagree on QR scan/render libraries, and the scanner ecosystem is in flux (both prior incumbents unmaintained). Make one current decision before implementation.
-- **Phase 8** — The Flask backend's deployment target is unconfirmed (`.vercel/project.json` with no matching WSGI/Procfile config). This materially changes rate-limiter storage, refresh-token blocklist storage, and whether polling is viable at all.
+- **Phase 5** — LLM provider/billing decision (Gemini text is free-tier, image generation is not). Blob storage resolved 2026-08-06: local filesystem (`backend/instance/uploads`), no cloud provider needed.
+- ~~**Phase 6**~~ RESOLVED 2026-08-06: QR libraries settled — `@yudiel/react-qr-scanner` 2.6.0 (scan) + `qrcode.react` 4.2.0 (render), both live-verified maintained. ARCHITECTURE.md updated to match STACK.md.
+- ~~**Phase 8**~~ RESOLVED 2026-08-06: no live deployment target — `.vercel/project.json` is unused leftover. Course deliverable graded via code + local run; drop rate-limiter/blocklist-storage/polling-viability design work tied to a hosted deploy.
 
 Phases with well-documented patterns (skip research-phase): 1, 2, 3, 4, 7.
 
 ## Open Decisions Carried Into Phase 1
 
 - **Flask-Migrate adoption vs. one-batch schema declaration.** PROJECT.md's "no new frameworks" constraint makes this an explicit team decision, not a quiet commit. Both research files present the batch-only alternative as viable. Decide at the top of Phase 1 — the naming convention must land before any migration is generated either way.
-- **Doc drift to reconcile:** PROJECT.md says a ₹100 activity fee; `constants.ACTIVITY_FEE_INR = 200`. Phase 6/7 analytics will surface this. Reconcile before demo day.
+- ~~**Doc drift to reconcile**~~ RESOLVED 2026-08-06: `constants.ACTIVITY_FEE_INR = 200` confirmed correct (git history shows it was never 100); docs/UI updated to match.
 - **Progression-gating is the milestone's one unvalidated mechanic** (no market analogue). Validate with real Regional Coordinators in parallel with Phases 1-6, not after Phase 7 ships.

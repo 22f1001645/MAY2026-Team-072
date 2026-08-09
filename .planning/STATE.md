@@ -99,12 +99,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Deployment target unconfirmed** — `.vercel/project.json` exists with no matching WSGI/Procfile config. Blocks Phase 8 design (polling viability, rate-limiter and blocklist storage) and touches Phase 2. Highest-impact open question.
-- **No blob storage anywhere** — `Expense.bill_name` stores a filename, not a file. Poster upload (Phase 5, CAMPAIGN-03) has nowhere to land without adding one.
-- **QR library conflict** — STACK.md and ARCHITECTURE.md pick different scan/render libraries; both prior incumbents are unmaintained. Resolve before Phase 6.
-- **Progression gating is unvalidated** — the milestone's only feature with no market analogue. Validate with real Regional Coordinators in parallel with Phases 1-6.
-- **Doc drift** — PROJECT.md says ₹100 activity fee; `constants.ACTIVITY_FEE_INR = 200`. Surfaces in Phase 6/7 analytics.
-- **Requirement count drift** — REQUIREMENTS.md's summary said 51 v1 requirements; the enumerated count is 52 (`PROPOSAL-00` was added after the total was written). Traceability now reflects 52.
+- ~~**Deployment target unconfirmed**~~ RESOLVED 2026-08-06: no live deploy — `.vercel/project.json` is unused leftover, dropped from scope. Course deliverable graded via code + local run. Phase 8 polling design no longer needs to account for a hosted rate-limiter/blocklist store; Phase 2 session design targets local/dev only.
+- ~~**No blob storage anywhere**~~ RESOLVED 2026-08-06: poster/receipt uploads (Phase 5 CAMPAIGN-03) land on local filesystem (`backend/instance/uploads`), served via Flask — no cloud provider, no new dependency.
+- ~~**QR library conflict**~~ RESOLVED 2026-08-06: research/ARCHITECTURE.md was stale, not a real conflict — research/STACK.md's live-verified picks (`@yudiel/react-qr-scanner` 2.6.0 scan + `qrcode.react` 4.2.0 render) adopted; ARCHITECTURE.md's QR sections updated to match.
+- **Progression gating is unvalidated** — the milestone's only feature with no market analogue. Not fixable by investigation; needs real Regional Coordinators. Keeping mitigation as-is: build now, validate in parallel with Phases 1-6. No action pending.
+- ~~**Doc drift**~~ RESOLVED 2026-08-06: git archaeology showed `constants.ACTIVITY_FEE_INR` has been 200 since introduction (never 100 in code history) — ₹200 confirmed correct, docs/UI (README, PROJECT.md, Analytics.tsx, CheckIn.tsx, Landing.tsx) updated to match.
+- ~~**Requirement count drift**~~ RESOLVED (already fixed at source): REQUIREMENTS.md already states 52 with a correction note; the "51" only survives elsewhere as historical explanation, not a live error.
 
 ## Session Continuity
 

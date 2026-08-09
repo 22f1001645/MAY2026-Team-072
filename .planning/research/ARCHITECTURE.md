@@ -450,9 +450,9 @@ A short, human-typeable code from an unambiguous alphabet (no `0/O`, `1/I/l`). *
 
 **Direction decision — who scans whom.** Recommend **student displays, organiser scans**. The inverse (organiser displays a code, students self-scan) is materially easier to build but silently changes the trust model: `Attendance.checked_in_by` currently means "an organiser attested this", and the entire points economy (`POINTS['attended']`) rests on that. Self-check-in lets someone forward the code on WhatsApp and claim points from home.
 
-**Frontend — two libraries, different risk profiles:**
-- **Generating** (`MyRegistrations.tsx`, `EventDetail.tsx`): `react-qr-code` — SVG output, actively maintained, tiny, accessible (`role="img"`). *MEDIUM confidence.* `qrcode.react` is the alternative but its last publish is ~2 years old.
-- **Scanning** (`CheckIn.tsx`): **this is the milestone's shakiest external dependency.** `html5-qrcode` is explicitly in maintenance mode (PRs not merged) and wraps ZXing-js, which its own maintainers say they no longer actively maintain. The current option is `react-zxing` v3, which replaced `@zxing/library` with `barcode-detector` (ZXing-C++ via WebAssembly). *LOW–MEDIUM confidence — flag this for phase-level research before committing.*
+**Frontend — resolved, see STACK.md's live-verified picks (2026-08-06):**
+- **Generating** (`MyRegistrations.tsx`, `EventDetail.tsx`): `qrcode.react` 4.2.0 — zero runtime dependencies, peer range `^16.8 || ^17 || ^18 || ^19`, currently maintained (this doc's earlier claim of a ~2-year-old last publish was itself stale — corrected by npm registry check in STACK.md). *HIGH confidence.*
+- **Scanning** (`CheckIn.tsx`): `@yudiel/react-qr-scanner` 2.6.0 — actively maintained (published 2026-05-13), exact `react ^18.0.0` peer match, uses the native `BarcodeDetector` API with a `@zxing/library` fallback. `html5-qrcode` (maintenance mode since 2023) and `react-zxing` were considered and rejected in favor of this. *HIGH confidence — no longer open for phase research.*
 - **Mandatory manual-code fallback.** `CheckIn.tsx` must ship a plain text input accepting the same `checkin_code`. Graders may run in a VM with no camera; `getUserMedia` requires HTTPS or localhost. The feature must be demonstrable without a working camera, and the fallback is ~10 lines.
 
 **Backfill note:** existing `Registration` rows will have `NULL` codes. Dev is covered by the destructive reseed; anywhere else needs a one-off backfill script. Consequence of no Alembic — call it out.
@@ -487,7 +487,7 @@ Ordering is driven by three dependency edges only: **shell-file collisions**, **
 
 **If the AI feature is graded heavily**, move P7 to run in parallel from P3 onward — but make "works correctly with `AI_API_KEY` unset" the acceptance criterion, not a nice-to-have. That protects the demo regardless of ordering.
 
-**Phases needing deeper research before implementation:** P5 (QR scanner library ecosystem is in flux — both incumbents unmaintained) and P7 (provider choice, cost, and the poster/blob-storage gap).
+**Phases needing deeper research before implementation:** P7 (provider choice, cost, and the poster/blob-storage gap — note: blob storage resolved 2026-08-06 to local filesystem, no live deploy). P5's QR library choice is resolved — see above.
 
 ---
 
@@ -627,7 +627,7 @@ Honest framing: PRD scope is 40,000 students, but the graded artefact runs on SQ
 | Service | Integration pattern | Notes / gotchas |
 |---|---|---|
 | LLM provider | Official Python SDK behind `integrations/llm_client.generate() -> str \| None`; key from env | Never expose the key client-side. Hard timeout. Deterministic template fallback is mandatory. No LangChain. *MEDIUM confidence on provider choice — decide in P7.* |
-| Camera (`getUserMedia`) | Browser API via a QR-scanner package in `CheckIn.tsx` | Requires HTTPS or localhost. Must have a manual-code fallback. Both incumbent JS scanner libs are unmaintained — *LOW–MEDIUM confidence, research in P5.* |
+| Camera (`getUserMedia`) | `@yudiel/react-qr-scanner` 2.6.0 in `CheckIn.tsx` | Requires HTTPS or localhost. Must have a manual-code fallback. *HIGH confidence — resolved 2026-08-06, see STACK.md.* |
 | Blob storage | **Does not exist** | `Expense.bill_name` stores a filename, not a file. Poster *upload* has no backend. Recommend client-rendered SVG posters for v1; escalate if real uploads are required. |
 
 ### Internal Boundaries

@@ -67,6 +67,8 @@ export interface EkatvaEvent {
   tags: string[]
   budget: BudgetLine[]
   expenses: Expense[]
+  teamRoster: any[]
+  collaboratingOrgs: string[]
 }
 
 export interface AuditEntry {

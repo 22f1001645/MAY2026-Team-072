@@ -1,0 +1,10 @@
+{
+  "projectId": "3670f24b-7e0a-4c3f-b0dd-d8a9fc335c31",
+  "type": "frontend",
+  "name": "Admin — can view approval queue",
+  "planSteps": [
+    { "type": "action", "description": "Navigate to /login and log in as 'admin@ekatva.os' with password 'admin123'" },
+    { "type": "action", "description": "Navigate to the Approval Queue from the sidebar" },
+    { "type": "assertion", "description": "The approval queue page is shown containing a list of pending proposals" }
+  ]
+}

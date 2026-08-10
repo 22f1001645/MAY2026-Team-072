@@ -40,6 +40,11 @@ def create_app(config_object=Config):
     # Blueprints (one per PRD module)
     for bp in ALL_BLUEPRINTS:
         app.register_blueprint(bp)
+        
+    from .controllers.config_controller import config_bp
+    app.register_blueprint(config_bp)
+    from .controllers.collaboration_controller import collaboration_bp
+    app.register_blueprint(collaboration_bp)
 
     register_error_handlers(app)
 

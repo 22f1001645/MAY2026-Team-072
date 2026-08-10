@@ -88,6 +88,8 @@ export interface ApiActivity {
   description?: string
   budget?: { id: string; label: string; planned: number; actual: number }[]
   tags?: string[]
+  team_roster?: any[]
+  collaborating_orgs?: string[]
 }
 
 export function adaptEvent(a: ApiActivity): EkatvaEvent {
@@ -115,6 +117,8 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
       actual: b.actual,
     })),
     expenses: [],
+    teamRoster: a.team_roster ?? [],
+    collaboratingOrgs: a.collaborating_orgs ?? [],
   }
 }
 
@@ -145,9 +149,20 @@ export const api = {
     ),
   houses: () => request<any[]>('/houses'),
   orgs: () => request<any[]>('/orgs'),
-  pors: () => request<any[]>('/pors'),
-  users: (q?: string) =>
-    request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  pors: () => request<{items: any[]}>('/pors?limit=200').then(r => r.items),
+  paginatedPors: (page = 1, limit = 10, active = '', orgType = '') =>
+    request<{ items: any[]; total: number; page: number; limit: number; pages: number }>(
+      `/pors?page=${page}&limit=${limit}${active ? `&active=${active}` : ''}${orgType ? `&org_type=${encodeURIComponent(orgType)}` : ''}`
+    ),
+  users: (q = '', filters?: { academic_level?: string; academic_status?: string; city?: string }) => {
+    const params = new URLSearchParams({ q })
+    if (filters?.academic_level) params.set('academic_level', filters.academic_level)
+    if (filters?.academic_status) params.set('academic_status', filters.academic_status)
+    if (filters?.city) params.set('city', filters.city)
+    return request<any[]>(`/users?${params.toString()}`)
+  },
+  updateAcademicStatus: (userId: string, payload: { academic_level?: string; academic_status?: string }) =>
+    request(`/auth/users/${userId}/academic-status`, { method: 'PATCH', body: JSON.stringify(payload) }),
   createOrg: (data: { name: string; type: string; city: string }) =>
     request('/orgs', { method: 'POST', body: JSON.stringify(data) }),
   assignPor: (orgId: string, data: { user_id: string; por_type: string; term?: string; region_id?: string }) =>
@@ -189,6 +204,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ decision, note }),
     }),
+  reassignHead: (id: string, new_head_user_id: string) =>
+    request(`/activities/${id}/reassign-head`, {
+      method: 'PATCH',
+      body: JSON.stringify({ new_head_user_id })
+    }),
   audit: (id: string) =>
     request<{ action: string; actor: string; note?: string; at: string }[]>(`/activities/${id}/audit`),
 
@@ -206,7 +226,29 @@ export const api = {
 
   // Analytics (H)
   analytics: () => request<any>('/analytics'),
+  analyticsHeatmap: () => request<any[]>('/analytics/heatmap'),
+  analyticsOrganisers: () => request<any[]>('/analytics/organisers'),
 
   // Dashboard (F)
   dashboard: () => request<any>('/dashboard'),
+
+  // Config (Phase 2)
+  getPointsConfig: () => request<{ attended: number; organised: number; volunteered: number }>('/config/points'),
+  updatePointsConfig: (payload: Partial<{ attended: number; organised: number; volunteered: number }>) =>
+    request('/config/points', { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  // Collaborators (Phase 4)
+  getCollaborators: (activityId: string) => request<any[]>(`/activities/${activityId}/collaborators`),
+  respondToCollaboration: (activityId: string, orgId: string, action: 'accept' | 'decline') =>
+    request(`/activities/${activityId}/collaborators/${orgId}/respond`, {
+      method: 'POST', body: JSON.stringify({ action })
+    }),
+
+  // Progression (Phase 5)
+  getOrgProgression: (orgId: string, city: string) =>
+    request<{ org_id: string; city: string; local_meetup_count: number; regional_meetup_count: number; fest_eligible: boolean; fest_unlocked: boolean; missing: string[] }>(
+      `/orgs/${orgId}/progression?city=${encodeURIComponent(city)}`
+    ),
+
+  constants: () => request<{ POR_TYPES: string[], REGIONS: string[], HOUSE_META: any }>('/config/constants'),
 }

@@ -24,6 +24,8 @@ import ApprovalQueue from './pages/ApprovalQueue'
 import Reimbursements from './pages/Reimbursements'
 import Analytics from './pages/Analytics'
 import Orgs from './pages/Orgs'
+import Users from './pages/Users'
+import PorDirectory from './pages/PorDirectory'
 
 // Everything except public pages lives inside the app shell, behind auth.
 function AppShell() {
@@ -66,6 +68,8 @@ function AppShell() {
         <Route path="/admin/reimbursements" element={<Reimbursements />} />
         <Route path="/admin/analytics" element={<Analytics />} />
         <Route path="/admin/orgs" element={<Orgs />} />
+        <Route path="/admin/users" element={<Users />} />
+        <Route path="/admin/pors" element={<PorDirectory />} />
 
         <Route path="*" element={<Navigate to="/discover" replace />} />
       </Routes>

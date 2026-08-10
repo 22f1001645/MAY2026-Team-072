@@ -68,3 +68,48 @@ def community_analytics() -> dict:
         "totals": {**tot, "fee_util_pct": fee_util_pct, "repeat_rate_pct": repeat_rate},
         "by_city": per_city,
     }
+
+
+def city_heatmap() -> list:
+    """ANLY-01 — City participation heatmap ranked by total attendance."""
+    data = community_analytics()
+    ranked = sorted(data["by_city"], key=lambda r: r["attendance"], reverse=True)
+    return [
+        {
+            "city": row["city"],
+            "meetups": row["meetups"],
+            "attendance": row["attendance"],
+            "unique": row["unique"],
+            "fee_util_pct": row["fee_util_pct"],
+            "rank": idx + 1,
+        }
+        for idx, row in enumerate(ranked)
+    ]
+
+
+def top_organisers() -> list:
+    """ANLY-02 — Organiser-activity view: who is actively organising."""
+    # Group approved activities by organiser
+    activities = (
+        Activity.query.join(Proposal)
+        .filter(Proposal.status == "approved")
+        .all()
+    )
+    organiser_map = {}
+    for act in activities:
+        if not act.organiser_id:
+            continue
+        entry = organiser_map.setdefault(act.organiser_id, {
+            "organiser_id": act.organiser_id,
+            "organiser": act.organiser.name if act.organiser else "Unknown",
+            "org": act.org.name if act.org else "Unknown",
+            "activities_run": 0,
+            "total_attendance": 0,
+        })
+        entry["activities_run"] += 1
+        entry["total_attendance"] += act.attended_count()
+
+    ranked = sorted(organiser_map.values(), key=lambda r: r["activities_run"], reverse=True)
+    for idx, row in enumerate(ranked):
+        row["rank"] = idx + 1
+    return ranked

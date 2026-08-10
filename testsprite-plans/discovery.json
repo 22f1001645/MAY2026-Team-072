@@ -1,0 +1,10 @@
+{
+  "projectId": "3670f24b-7e0a-4c3f-b0dd-d8a9fc335c31",
+  "type": "frontend",
+  "name": "Discovery — user can view event details",
+  "planSteps": [
+    { "type": "action", "description": "Navigate to /login and log in as 'arav@ekatva.os' with password 'student123'" },
+    { "type": "action", "description": "On the discovery feed, click on the first event to view its details" },
+    { "type": "assertion", "description": "The event details page is shown with an 'Register' or 'Already Registered' button" }
+  ]
+}

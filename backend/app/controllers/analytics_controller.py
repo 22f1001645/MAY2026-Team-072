@@ -25,3 +25,18 @@ def fee_utilisation():
             for c in data["by_city"]
         ]}
     ), 200
+
+
+@analytics_bp.get("/analytics/heatmap")
+@admin_required
+def heatmap():
+    """ANLY-01 — City participation heatmap ranked by total attendance."""
+    return jsonify(analytics_service.city_heatmap()), 200
+
+
+@analytics_bp.get("/analytics/organisers")
+@admin_required
+def top_organisers():
+    """ANLY-02 — Organiser-activity view: who is actively running events."""
+    return jsonify(analytics_service.top_organisers()), 200
+

@@ -1,11 +1,14 @@
-import { useAnalytics } from '../lib/queries'
-import { Card, SectionTitle, StatCard } from '../components/ui'
+import { useState, useEffect } from 'react'
+import { useAnalytics, useHeatmap, useTopOrganisers, usePointsConfig, useUpdatePointsConfig } from '../lib/queries'
+import { Card, SectionTitle, StatCard, Button, Input, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
 
 // FR-H: descriptive community analytics + the ₹100 activity-fee utilisation wedge
 export default function Analytics() {
   const { data, isLoading, isError, error } = useAnalytics()
+  const { data: heatmap = [] } = useHeatmap()
+  const { data: topOrganisers = [] } = useTopOrganisers()
 
   if (isLoading) return <Loading label="Crunching community analytics…" />
   if (isError) return <ErrorState error={error} />
@@ -15,6 +18,7 @@ export default function Analytics() {
   const maxAtt = Math.max(1, ...byCity.map((c) => c.attendance))
   const feeUtil = totals.fee_util_pct ?? 0
   const repeatRate = totals.repeat_rate_pct ?? 0
+  const maxHeatAtt = Math.max(1, ...(heatmap as any[]).map((h: any) => h.attendance))
 
   return (
     <div>
@@ -154,6 +158,72 @@ export default function Analytics() {
           </Card>
         </div>
       )}
+
+      {/* ANLY-01: City Participation Heatmap */}
+      {(heatmap as any[]).length > 0 && (
+        <Card className="mt-6 p-6">
+          <h3 className="mb-1 text-h3 font-semibold text-gold">City Participation Heatmap</h3>
+          <p className="mb-5 text-caption text-graytext-mid">Ranked by total attendance — higher bars = more active city</p>
+          <div className="space-y-3">
+            {(heatmap as any[]).map((h: any) => (
+              <div key={h.city} className="flex items-center gap-3">
+                <span className="w-6 text-right text-caption text-graytext-mid">#{h.rank}</span>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-baseline justify-between">
+                    <span className="text-sm font-medium text-offwhite">{h.city}</span>
+                    <span className="text-caption text-graytext-mid">
+                      {h.attendance} attended · {h.meetups} meetup{h.meetups !== 1 ? 's' : ''} · {h.fee_util_pct}% fee util
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-teal transition-all"
+                      style={{ width: `${Math.round((h.attendance / maxHeatAtt) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ANLY-02: Top Organisers */}
+      {(topOrganisers as any[]).length > 0 && (
+        <Card className="mt-6 overflow-hidden">
+          <div className="border-b border-white/5 px-6 py-4">
+            <h3 className="text-h3 font-semibold text-gold">Top Organisers</h3>
+            <p className="text-caption text-graytext-mid">Ranked by number of approved activities run</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[14px]">
+              <thead>
+                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
+                  <th className="px-5 py-3 text-left">Rank</th>
+                  <th className="px-5 py-3 text-left">Organiser</th>
+                  <th className="px-5 py-3 text-left">Organisation</th>
+                  <th className="px-5 py-3 text-center">Events Run</th>
+                  <th className="px-5 py-3 text-center">Total Attendance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(topOrganisers as any[]).map((o: any) => (
+                  <tr key={o.organiser_id} className="border-b border-white/5 last:border-0">
+                    <td className="px-5 py-3 font-mono text-graytext-mid">#{o.rank}</td>
+                    <td className="px-5 py-3 font-medium text-offwhite">{o.organiser}</td>
+                    <td className="px-5 py-3 text-graytext-light">{o.org}</td>
+                    <td className="px-5 py-3 text-center font-semibold text-teal">{o.activities_run}</td>
+                    <td className="px-5 py-3 text-center text-graytext-light">{o.total_attendance}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Points Configuration (Admin Only) */}
+      <PointsConfigCard />
     </div>
   )
 }
@@ -187,3 +257,63 @@ function Donut({ pct }: { pct: number }) {
     </div>
   )
 }
+
+function PointsConfigCard() {
+  const { data: config, isLoading } = usePointsConfig()
+  const updateConfig = useUpdatePointsConfig()
+  const { addToast } = useToast()
+
+  const [attended, setAttended] = useState('')
+  const [organised, setOrganised] = useState('')
+  const [volunteered, setVolunteered] = useState('')
+
+  useEffect(() => {
+    if (config) {
+      setAttended(String(config.attended ?? ''))
+      setOrganised(String(config.organised ?? ''))
+      setVolunteered(String(config.volunteered ?? ''))
+    }
+  }, [config])
+
+  const handleSave = () => {
+    updateConfig.mutate({
+      attended: Number(attended),
+      organised: Number(organised),
+      volunteered: Number(volunteered)
+    }, {
+      onSuccess: () => addToast('Points configuration saved', 'success'),
+      onError: (err: any) => addToast(err.message || 'Save failed', 'error')
+    })
+  }
+
+  if (isLoading) return null
+
+  return (
+    <Card className="mt-6 p-6">
+      <h3 className="mb-1 text-h3 font-semibold text-gold">Point Configuration</h3>
+      <p className="mb-5 text-caption text-graytext-mid">Configure points awarded for various activities.</p>
+      
+      <div className="grid gap-4 sm:grid-cols-3 mb-5">
+        <div>
+          <label className="block text-caption text-graytext-mid mb-1">Points for Attending</label>
+          <Input type="number" value={attended} onChange={e => setAttended(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-caption text-graytext-mid mb-1">Points for Organising</label>
+          <Input type="number" value={organised} onChange={e => setOrganised(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-caption text-graytext-mid mb-1">Points for Volunteering</label>
+          <Input type="number" value={volunteered} onChange={e => setVolunteered(e.target.value)} />
+        </div>
+      </div>
+      
+      <div className="flex justify-end">
+        <Button variant="primary" onClick={handleSave} disabled={updateConfig.isPending}>
+          {updateConfig.isPending ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+

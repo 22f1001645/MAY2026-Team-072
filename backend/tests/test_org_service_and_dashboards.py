@@ -60,7 +60,13 @@ def test_assign_por_invalid_org_or_user(client, admin_headers):
 def test_list_pors(client, admin_headers):
     res = client.get("/api/v1/pors", headers=admin_headers)
     assert res.status_code == 200
-    assert isinstance(res.get_json(), list)
+    data = res.get_json()
+    # Paginated response: expects { items, total, page, pages, limit }
+    assert isinstance(data, dict)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert isinstance(data["items"], list)
 
 
 def test_dashboard_surfaces(client, student_headers, rc_headers, admin_headers):
@@ -272,6 +278,28 @@ def test_duplicate_secretary_assignment_blocked(client, admin_headers):
     )
     assert res2.status_code == 409
     assert res2.get_json()["code"] == "slot_already_filled"
+
+
+def test_analytics_heatmap(client, admin_headers):
+    res = client.get("/api/v1/analytics/heatmap", headers=admin_headers)
+    assert res.status_code == 200
+    data = res.get_json()
+    assert isinstance(data, list)
+    if len(data) > 0:
+        assert "city" in data[0]
+        assert "attendance" in data[0]
+        assert "rank" in data[0]
+
+
+def test_analytics_top_organisers(client, admin_headers):
+    res = client.get("/api/v1/analytics/organisers", headers=admin_headers)
+    assert res.status_code == 200
+    data = res.get_json()
+    assert isinstance(data, list)
+    if len(data) > 0:
+        assert "organiser" in data[0]
+        assert "activities_run" in data[0]
+        assert "rank" in data[0]
 
 
 def test_duplicate_rc_assignment_blocked(client, admin_headers):

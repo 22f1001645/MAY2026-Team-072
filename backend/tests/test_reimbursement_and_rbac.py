@@ -81,3 +81,17 @@ def test_leaderboard_is_accessible_to_students(client, student_headers):
     res = client.get("/api/v1/leaderboard?city=Hyderabad", headers=student_headers)
     assert res.status_code == 200
     assert isinstance(res.get_json(), list)
+
+
+def test_expense_with_social_post_link(client, rc_headers, admin_headers):
+    aid = _make_approved_activity(client, rc_headers, admin_headers)
+    payload = {
+        "activity_id": aid,
+        "label": "Marketing materials",
+        "amount": 500,
+        "social_post_link": "https://instagram.com/ekatva"
+    }
+    exp_res = client.post("/api/v1/expenses", json=payload, headers=rc_headers)
+    assert exp_res.status_code == 201
+    data = exp_res.get_json()
+    assert data["social_post_link"] == "https://instagram.com/ekatva"

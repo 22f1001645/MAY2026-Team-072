@@ -144,6 +144,19 @@ class ActivityRepository:
         )
         return q.count()
 
+    @staticmethod
+    def count_completed_by_scale(org_id, city, scale):
+        from datetime import datetime, UTC
+        from ..constants import PROPOSAL_APPROVED
+        return Activity.query.filter(
+            Activity.org_id == org_id,
+            Activity.city == city,
+            Activity.scale == scale,
+            Activity.starts_at < datetime.now(UTC)
+        ).join(Proposal).filter(
+            Proposal.status == PROPOSAL_APPROVED
+        ).count()
+
 
 class RegistrationRepository:
     @staticmethod

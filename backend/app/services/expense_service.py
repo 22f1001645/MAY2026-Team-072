@@ -18,6 +18,8 @@ def submit_expense(data: dict, organiser) -> Expense:
         status=EXPENSE_SUBMITTED,
         bill_name=data.get("bill_name", "bill.pdf"),
         submitted_by=organiser.id,
+        # REIMB-02: supplementary social post link, stored for admin review
+        social_post_link=data.get("social_post_link"),
     )
     db.session.add(expense)
     AuditRepository.record("expense", expense.id, "Expense submitted", organiser, data["label"])

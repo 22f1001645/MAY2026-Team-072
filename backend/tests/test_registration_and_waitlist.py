@@ -12,7 +12,7 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id):
         "venue": "Test Venue",
         "capacity": 1,
         "description": "Testing waitlist logic",
-        "budget": [{"label": "Snacks", "planned": 500}],
+        "budget": [{"label": "Snacks", "planned": 200}],
     }
     res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
     assert res.status_code == 201

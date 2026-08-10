@@ -50,6 +50,19 @@ def audit(activity_id):
     return jsonify([a.to_dict() for a in proposal_service.audit_trail(activity_id)]), 200
 
 
+@proposal_bp.patch("/activities/<activity_id>/reassign-head")
+@admin_required
+def reassign_head(activity_id):
+    """PROPOSAL-05 — Admin reassigns the Meetup Head on an activity's team roster."""
+    data = request.get_json() or {}
+    new_head_user_id = data.get("new_head_user_id", "").strip()
+    if not new_head_user_id:
+        from ..errors import ApiError
+        raise ApiError("new_head_user_id is required", "missing_field", 400)
+    activity = proposal_service.reassign_head(activity_id, new_head_user_id, g.current_user)
+    return jsonify(activity.to_dict(detail=True)), 200
+
+
 @proposal_bp.get("/audit-log")
 @admin_required
 def global_audit_log():

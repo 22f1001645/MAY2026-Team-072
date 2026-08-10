@@ -41,6 +41,12 @@ export const useReimbursements = () =>
 export const useAnalytics = () =>
   useQuery({ queryKey: ['analytics'], queryFn: api.analytics })
 
+export const useHeatmap = () =>
+  useQuery({ queryKey: ['analytics-heatmap'], queryFn: api.analyticsHeatmap })
+
+export const useTopOrganisers = () =>
+  useQuery({ queryKey: ['analytics-organisers'], queryFn: api.analyticsOrganisers })
+
 export const useDashboard = () =>
   useQuery({ queryKey: ['dashboard'], queryFn: api.dashboard })
 
@@ -66,8 +72,45 @@ export const useHouses = () =>
 export const usePors = () =>
   useQuery({ queryKey: ['pors'], queryFn: api.pors })
 
+export const usePaginatedPors = (page: number, limit: number, active: string, orgType: string) =>
+  useQuery({
+    queryKey: ['pors-paginated', page, limit, active, orgType],
+    queryFn: () => api.paginatedPors(page, limit, active, orgType),
+  })
+
 export const useUsers = (q?: string) =>
   useQuery({ queryKey: ['users', q], queryFn: () => api.users(q) })
+
+export const useFilteredUsers = (q: string, filters?: { academic_level?: string; academic_status?: string; city?: string }) => {
+  return useQuery({
+    queryKey: ['users', q, filters],
+    queryFn: () => api.users(q, filters),
+    enabled: true,
+  })
+}
+
+export const usePointsConfig = () => useQuery({
+  queryKey: ['pointsConfig'],
+  queryFn: () => api.getPointsConfig(),
+})
+
+export const useConstants = () => useQuery({
+  queryKey: ['constants'],
+  queryFn: api.constants,
+  staleTime: Infinity, // config doesn't change often
+})
+
+export const useCollaborators = (activityId?: string) => useQuery({
+  queryKey: ['collaborators', activityId],
+  queryFn: () => api.getCollaborators(activityId!),
+  enabled: !!activityId,
+})
+
+export const useOrgProgression = (orgId?: string, city?: string) => useQuery({
+  queryKey: ['progression', orgId, city],
+  queryFn: () => api.getOrgProgression(orgId!, city!),
+  enabled: !!orgId && !!city,
+})
 
 // ---- Mutations ----
 export const useRegister = () => {
@@ -104,12 +147,24 @@ export const useSubmitProposal = () => {
 export const useDecision = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { id: string; decision: string; note: string }) =>
-      api.decision(v.id, v.decision, v.note),
-    onSuccess: () => {
+    mutationFn: ({ id, decision, note }: { id: string; decision: string; note: string }) =>
+      api.decision(id, decision, note),
+    onSuccess: (_d, { id }) => {
       qc.invalidateQueries({ queryKey: ['proposals'] })
-      qc.invalidateQueries({ queryKey: ['events'] })
+      qc.invalidateQueries({ queryKey: ['audit', id] })
     },
+  })
+}
+
+export const useReassignHead = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, new_head_user_id }: { id: string; new_head_user_id: string }) =>
+      api.reassignHead(id, new_head_user_id),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ['proposals'] })
+      qc.invalidateQueries({ queryKey: ['audit', id] })
+    }
   })
 }
 
@@ -187,5 +242,27 @@ export const useDeactivatePor = () => {
   return useMutation({
     mutationFn: (porId: string) => api.deactivatePor(porId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pors'] }),
+  })
+}
+
+export const useUpdateAcademicStatus = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, payload }: { userId: string; payload: { academic_level?: string; academic_status?: string } }) =>
+      api.updateAcademicStatus(userId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+}
+
+export const useUpdatePointsConfig = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: Partial<{ attended: number; organised: number; volunteered: number }>) =>
+      api.updatePointsConfig(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pointsConfig'] })
+    }
   })
 }

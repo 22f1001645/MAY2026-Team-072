@@ -51,6 +51,9 @@ class User(Base):
     city = db.Column(db.String(80))          # free-text specific city (e.g. Warangal)
     region_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=True)  # official Region
     interests = db.Column(db.JSON, default=list)
+    # AUTH-04: academic status — self-declared, admin-overridable, decoupled from login
+    academic_level = db.Column(db.String(30), nullable=True)   # foundation|diploma|degree
+    academic_status = db.Column(db.String(30), nullable=True)  # active|on-break|withdrawn
 
     memberships = db.relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     registrations = db.relationship("Registration", back_populates="student")
@@ -65,6 +68,8 @@ class User(Base):
             "city": self.city,
             "region": self.region.name if self.region else None,
             "region_id": self.region_id,
+            "academic_level": self.academic_level,
+            "academic_status": self.academic_status,
             "pors": [p.to_dict() for m in self.memberships for p in m.pors if p.active],
         }
 
@@ -168,6 +173,10 @@ class Activity(Base):
     status = db.Column(db.String(20), default="upcoming")  # upcoming|live|completed|archived
     organiser_id = db.Column(db.String(32), db.ForeignKey("users.id"))
     tags = db.Column(db.JSON, default=list)
+    # PROPOSAL-02: team assembled at proposal time [{role, user_id, name}]
+    team_roster = db.Column(db.JSON, default=list)
+    # PROPOSAL-01: collaborating orgs (many-to-many via JSON for v1 lightweight approach)
+    collaborating_orgs = db.Column(db.JSON, default=list)
 
     org = db.relationship("Organisation", back_populates="activities")
     organiser = db.relationship("User")
@@ -187,6 +196,7 @@ class Activity(Base):
             "id": self.id,
             "title": self.title,
             "org": self.org.name if self.org else None,
+            "org_id": self.org_id,
             "city": self.city,
             "scale": self.scale,
             "venue": self.venue,
@@ -197,7 +207,12 @@ class Activity(Base):
             "registered": self.registered_count(),
             "attended": self.attended_count(),
             "organiser": self.organiser.name if self.organiser else None,
+            "organiser_id": self.organiser_id,
             "proposal_status": self.proposal.status if self.proposal else None,
+            "team_roster": self.team_roster or [],
+            "collaborating_orgs": self.collaborating_orgs or [],
+            "collaborators": [c.to_dict() for c in self.collaborator_entries] if hasattr(self, 'collaborator_entries') and self.collaborator_entries else [],
+            "is_mega_meetup": len([c for c in (self.collaborator_entries if hasattr(self, 'collaborator_entries') and self.collaborator_entries else []) if c.status == 'accepted']) >= 3,
         }
         if detail:
             d["description"] = self.description
@@ -344,6 +359,8 @@ class Expense(Base):
     status = db.Column(db.String(20), default="submitted")
     bill_name = db.Column(db.String(200))
     submitted_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    # REIMB-02: supplementary social post link for admin review (not authoritative count)
+    social_post_link = db.Column(db.String(300), nullable=True)
 
     activity = db.relationship("Activity", back_populates="expenses")
     budget_line = db.relationship("BudgetLine", back_populates="expenses")
@@ -360,6 +377,7 @@ class Expense(Base):
             "status": self.status,
             "bill_name": self.bill_name,
             "submitted_by": self.submitted_by,
+            "social_post_link": self.social_post_link,
         }
 
 
@@ -447,4 +465,35 @@ class AuditLog(Base):
             "actor": self.actor_name,
             "note": self.note,
             "at": _iso(self.created_at),
+        }
+
+
+class SystemConfig(Base):
+    """Admin-configurable key-value settings (RECOG-01)."""
+    __tablename__ = "system_config"
+    key = db.Column(db.String(80), unique=True, nullable=False)
+    value = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self):
+        return {"key": self.key, "value": self.value}
+
+
+class ActivityCollaborator(Base):
+    """PROPOSAL-01/06: tracks per-org collaboration acceptance status."""
+    __tablename__ = "activity_collaborators"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False)
+    is_primary = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), nullable=False, default="pending")  # pending|accepted|declined
+
+    activity = db.relationship("Activity", backref=db.backref("collaborator_entries", cascade="all, delete-orphan"))
+    org = db.relationship("Organisation")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "org_id": self.org_id,
+            "org_name": self.org.name if self.org else None,
+            "is_primary": self.is_primary,
+            "status": self.status,
         }

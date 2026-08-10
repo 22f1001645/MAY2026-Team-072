@@ -17,6 +17,8 @@ ORGANISER_PORS = {
     "Event Lead",
     "Technical Secretary",
     "Web Admin",
+    "Society Deputy Secretary", # AUTH-03: closing taxonomy gap (IIT Madras BS Constitution)
+    "Coordinator",              # AUTH-03: Core Committee role, House/Society/Region/Council-scoped
 }
 
 # --- Organisation types ---
@@ -60,6 +62,8 @@ POR_HOUSE_SECRETARY = "House Secretary"
 POR_DEPUTY_SECRETARY = "Deputy House Secretary"
 POR_REGIONAL_COORDINATOR = "Regional Coordinator"
 POR_WEB_ADMIN = "Web Admin"
+POR_SOCIETY_DEPUTY_SECRETARY = "Society Deputy Secretary"  # AUTH-03
+POR_COORDINATOR = "Coordinator"                            # AUTH-03
 
 # --- Activity scale spectrum ---
 ACTIVITY_SCALES = ("local_meetup", "regional_meetup", "regional_fest")

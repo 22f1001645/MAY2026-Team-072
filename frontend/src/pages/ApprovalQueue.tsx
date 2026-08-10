@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { inr } from '../lib/mock'
-import { useAudit, useDecision, useProposals } from '../lib/queries'
-import { Badge, Button, Card, SectionTitle } from '../components/ui'
+import { createPortal } from 'react-dom'
+import { useAudit, useDecision, useProposals, useReassignHead, useUsers } from '../lib/queries'
+import { Badge, Button, Card, SectionTitle, Input, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
 
@@ -12,6 +13,13 @@ export default function ApprovalQueue() {
   const [selected, setSelected] = useState<string>('')
   const [note, setNote] = useState('')
   const decisionMut = useDecision()
+  const reassignMut = useReassignHead()
+  const { addToast } = useToast()
+
+  const [showReassignModal, setShowReassignModal] = useState(false)
+  const [reassignSearch, setReassignSearch] = useState('')
+  const [newHeadId, setNewHeadId] = useState('')
+  const { data: users = [] } = useUsers(reassignSearch.trim())
 
   // Keep a valid selection as the list changes
   useEffect(() => {
@@ -109,8 +117,70 @@ export default function ApprovalQueue() {
                   <Field label="Date" value={formatDate(current.startsAt)} />
                   <Field label="Venue" value={current.venue} />
                   <Field label="Capacity" value={String(current.capacity)} />
-                  <Field label="Organiser" value={current.organiser} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-caption uppercase tracking-wider text-graytext-mid">Organiser</div>
+                      {statusTab === 'pending' && (
+                        <button
+                          onClick={() => {
+                            setReassignSearch('')
+                            setNewHeadId('')
+                            setShowReassignModal(true)
+                          }}
+                          className="rounded border border-teal/30 bg-teal/10 px-1.5 py-0.5 text-[10px] font-semibold text-teal hover:bg-teal/20"
+                        >
+                          Reassign
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-offwhite">{current.organiser}</div>
+                  </div>
                 </div>
+
+                {/* Team Roster & Collaborating Orgs */}
+                {(current.teamRoster?.length > 0 || current.collaboratingOrgs?.length > 0) && (
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    {current.teamRoster?.length > 0 && (
+                      <div>
+                        <div className="mb-2 text-caption font-semibold uppercase tracking-wider text-graytext-light">Team Roster</div>
+                        <div className="space-y-1.5">
+                          {current.teamRoster.map((member: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-2 text-[13px]">
+                              <span className="text-offwhite">{member.name}</span>
+                              <Badge tone="neutral">{member.role}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {current.collaboratingOrgs?.length > 0 && (
+                      <div>
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="text-caption font-semibold uppercase tracking-wider text-graytext-light">Collaborating Orgs</span>
+                          {(current as any).is_mega_meetup && <Badge tone="gold">Mega Meetup 🤝</Badge>}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {current.collaboratingOrgs.map((org: any, i: number) => {
+                            // Support both string array and object array forms in case of partial transition
+                            const name = typeof org === 'string' ? org : org.org_name || org.name
+                            const status = typeof org === 'string' ? 'accepted' : org.status
+                            const tone = status === 'accepted' ? 'teal' : status === 'declined' ? 'danger' : 'warn'
+                            return (
+                              <Badge key={i} tone={tone}>
+                                {name} {status !== 'accepted' ? `(${status})` : ''}
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                        {current.collaboratingOrgs.some((o: any) => typeof o === 'object' && o.status === 'pending') && (
+                          <div className="mt-2 text-[12px] text-amber-400">
+                            Advisory: Some collaborations are still pending.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Budget */}
                 <div className="mt-6">
@@ -207,6 +277,89 @@ export default function ApprovalQueue() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ---- REASSIGN HEAD MODAL ---- */}
+      {showReassignModal && current && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md p-6">
+            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Reassign Meetup Head</h3>
+            <p className="mb-4 text-caption text-graytext-light">
+              Current Head: <strong className="text-offwhite">{current.organiser}</strong>. 
+              Search for a new user to transfer ownership.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                  Search Member by Email or Name
+                </label>
+                <Input
+                  placeholder="Type email or name..."
+                  value={reassignSearch}
+                  onChange={(e) => {
+                    setReassignSearch(e.target.value)
+                    setNewHeadId('')
+                  }}
+                />
+                
+                {reassignSearch.trim() !== '' && !newHeadId && (
+                  <div className="mt-2 max-h-[160px] overflow-y-auto rounded-xl border border-white/10 bg-onyx custom-scrollbar">
+                    {users.length === 0 ? (
+                      <div className="px-3.5 py-3 text-[13px] text-graytext-mid">No members found matching "{reassignSearch}"</div>
+                    ) : (
+                      users.map((u: any) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          className="w-full border-b border-white/5 px-3.5 py-2.5 text-left text-[13px] last:border-0 hover:bg-white/5 focus:bg-white/5 focus:outline-none"
+                          onClick={() => setNewHeadId(u.id)}
+                        >
+                          <div className="font-semibold text-offwhite">{u.name}</div>
+                          <div className="text-graytext-mid">{u.email} <span className="mx-1">•</span> {u.city}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {newHeadId && (
+                <div className="rounded-lg border border-teal/30 bg-teal/5 px-3.5 py-2 text-[12px] text-teal">
+                  ✓ Selected: <strong>{users.find((u: any) => u.id === newHeadId)?.name}</strong>
+                </div>
+              )}
+
+              {reassignMut.isError && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2 text-[12px] text-red-300">
+                  ⚠️ {(reassignMut.error as Error).message}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setShowReassignModal(false)}>Cancel</Button>
+                <Button 
+                  type="button" 
+                  disabled={!newHeadId || reassignMut.isPending}
+                  onClick={() => {
+                    reassignMut.mutate(
+                      { id: current.id, new_head_user_id: newHeadId },
+                      {
+                        onSuccess: () => {
+                          setShowReassignModal(false)
+                          addToast('Meetup Head reassigned successfully!')
+                        }
+                      }
+                    )
+                  }}
+                >
+                  {reassignMut.isPending ? 'Reassigning…' : 'Confirm Reassign'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>,
+        document.body
       )}
     </div>
   )

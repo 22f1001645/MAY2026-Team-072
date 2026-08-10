@@ -34,6 +34,8 @@ class ProposalSchema(Schema):
     capacity = fields.Int(required=True, validate=validate.Range(min=1))
     description = fields.Str(load_default="")
     budget = fields.List(fields.Nested(BudgetLineSchema), load_default=list)
+    team_roster = fields.List(fields.Dict(), load_default=list)
+    collaborating_orgs = fields.List(fields.Str(), load_default=list)
 
 
 class DecisionSchema(Schema):
@@ -47,6 +49,7 @@ class ExpenseSchema(Schema):
     label = fields.Str(required=True)
     amount = fields.Int(required=True, validate=validate.Range(min=1))
     bill_name = fields.Str(load_default="bill.pdf")
+    social_post_link = fields.Str(load_default=None, allow_none=True)
 
 
 class BroadcastSchema(Schema):

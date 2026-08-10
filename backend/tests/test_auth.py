@@ -60,3 +60,21 @@ def test_me_returns_identity(client, student_headers):
     res = client.get("/api/v1/auth/me", headers=student_headers)
     assert res.status_code == 200
     assert res.get_json()["email"] == "arav@ekatva.os"
+
+
+def test_admin_set_academic_status(client, admin_headers, student_headers):
+    # Fetch student to get their ID
+    res = client.get("/api/v1/auth/me", headers=student_headers)
+    student_id = res.get_json()["id"]
+
+    # Update status
+    payload = {"academic_level": "diploma", "academic_status": "on-break"}
+    patch_res = client.patch(
+        f"/api/v1/auth/users/{student_id}/academic-status",
+        json=payload,
+        headers=admin_headers
+    )
+    assert patch_res.status_code == 200
+    data = patch_res.get_json()
+    assert data["academic_level"] == "diploma"
+    assert data["academic_status"] == "on-break"

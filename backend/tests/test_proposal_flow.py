@@ -42,6 +42,7 @@ def test_quota_guardrail_blocks_second_meetup_same_month(client, rc_headers):
         json=_proposal_payload(title="Another one", starts_at="2026-09-20T17:30:00"),
         headers=rc_headers,
     )
+
     assert res.status_code == 409
     assert res.get_json()["code"] == "quota_exceeded"
 
@@ -100,3 +101,57 @@ def test_changes_requested_requires_note(client, rc_headers, admin_headers):
     res = client.post(f"/api/v1/proposals/{activity_id}/decision",
                       json={"decision": "changes", "note": ""}, headers=admin_headers)
     assert res.status_code == 400
+
+
+def test_proposal_with_team_roster_and_collaborating_orgs(client, rc_headers):
+    from app.models import Organisation
+    payload = {
+        "title": "Team Roster Test",
+        "org_id": Organisation.query.first().id,
+        "city": "Chennai",
+        "scale": "local_meetup",
+        "venue": "Test Venue",
+        "starts_at": "2026-09-10T10:00:00",
+        "capacity": 20,
+        "team_roster": [{"role": "Meetup Head", "user_id": "test_id", "name": "Test User"}],
+        "collaborating_orgs": ["Code Club"]
+    }
+    res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
+    if res.status_code == 409:
+        payload["starts_at"] = "2027-10-10T10:00:00"
+        res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
+    assert res.status_code == 201
+    data = res.get_json()
+    assert len(data["team_roster"]) == 1
+    assert data["collaborating_orgs"] == ["Code Club"]
+
+
+def test_reassign_meetup_head(client, rc_headers, admin_headers):
+    from app.models import Organisation, User
+    payload = {
+        "title": "Reassign Head Test",
+        "org_id": Organisation.query.first().id,
+        "city": "Chennai",
+        "scale": "local_meetup",
+        "venue": "Test Venue",
+        "starts_at": "2026-09-11T10:00:00",
+        "capacity": 20,
+        "team_roster": [{"role": "Meetup Head", "user_id": "old_id", "name": "Old User"}]
+    }
+    res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
+    if res.status_code == 409:
+        payload["starts_at"] = "2027-11-11T10:00:00"
+        res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
+    aid = res.get_json()["id"]
+
+    new_head = User.query.filter_by(role="student").first()
+    patch_res = client.patch(
+        f"/api/v1/activities/{aid}/reassign-head",
+        json={"new_head_user_id": new_head.id},
+        headers=admin_headers
+    )
+    assert patch_res.status_code == 200
+    roster = patch_res.get_json()["team_roster"]
+    assert len(roster) > 0
+    assert roster[0]["role"] == "Meetup Head"
+    assert roster[0]["user_id"] == new_head.id

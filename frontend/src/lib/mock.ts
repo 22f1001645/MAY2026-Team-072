@@ -46,6 +46,8 @@ export const EVENTS: EkatvaEvent[] = [
     description:
       'The one that started it all, back for its next edition. A full day of connection: games, performances, food, and 230+ students from across the city meeting the people they only ever knew as usernames. Buses arranged from three pickup points.',
     capacity: 250,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 198,
     cover: 'fest',
     organiser: 'Sai Teja',
@@ -71,6 +73,8 @@ export const EVENTS: EkatvaEvent[] = [
     description:
       'A relaxed evening of Catan, Codenames and chai. Perfect first meetup if you have never made it out before — small group, easy vibes.',
     capacity: 40,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 31,
     cover: 'evening',
     organiser: 'Ayush',
@@ -94,6 +98,8 @@ export const EVENTS: EkatvaEvent[] = [
     description:
       'No experience needed. Two hours of contemporary + folk fusion, taught by society members. Come for the moves, stay for the people.',
     capacity: 50,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 47,
     cover: 'studio',
     organiser: 'Madhavi',
@@ -117,6 +123,8 @@ export const EVENTS: EkatvaEvent[] = [
     description:
       'An early start, a good climb, and breakfast at the top with 80-odd people from the Delhi chapter. Transport arranged.',
     capacity: 90,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 62,
     cover: 'trek',
     organiser: 'Ayush',
@@ -140,6 +148,8 @@ export const EVENTS: EkatvaEvent[] = [
     description:
       'A morning of pair-programming, portfolio reviews and flat whites. Ran clean and closed on time.',
     capacity: 45,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 45,
     attended: 38,
     cover: 'coffee',
@@ -187,6 +197,8 @@ export const PENDING_PROPOSALS: (EkatvaEvent & { submittedAgo: string })[] = [
     description:
       'Poetry, music and stand-up from the Mumbai chapter. Sign-up sheet on the night; ~50 expected.',
     capacity: 60,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 0,
     cover: 'evening',
     organiser: 'Ritika',
@@ -211,6 +223,8 @@ export const PENDING_PROPOSALS: (EkatvaEvent & { submittedAgo: string })[] = [
     description:
       'A one-day build sprint with lightning demos at the end. Requesting meals for 75 and prizes.',
     capacity: 80,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 0,
     cover: 'studio',
     organiser: 'Karan',
@@ -236,6 +250,8 @@ export const PENDING_PROPOSALS: (EkatvaEvent & { submittedAgo: string })[] = [
     description:
       'Flagged by quota guardrail: one meetup per city per month. Venue also missing.',
     capacity: 40,
+    teamRoster: [],
+    collaboratingOrgs: [],
     registered: 0,
     cover: 'evening',
     organiser: 'Ayush',

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor } from '../lib/queries'
+import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useRegions, useConstants } from '../lib/queries'
 import { api } from '../lib/api'
 import { Badge, Button, Card, Input, SectionTitle, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
@@ -15,62 +15,22 @@ const ORG_TONE: Record<string, any> = {
   council: 'warn',
 }
 
-// 12 Forest Houses with national park metadata
-const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
-  'Bandipur House':    { park: 'Bandipur National Park',    state: 'Karnataka',    color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
-  'Corbett House':     { park: 'Jim Corbett National Park', state: 'Uttarakhand',  color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
-  'Gir House':         { park: 'Gir Forest National Park',  state: 'Gujarat',      color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
-  'Kanha House':       { park: 'Kanha National Park',       state: 'M.P.',         color: '#a78bfa', logo: '🦌', imageLogo: '/houses/kanha.png', website: 'https://kanha.iitmbs.org/' },
-  'Kaziranga House':   { park: 'Kaziranga National Park',   state: 'Assam',        color: '#34d399', logo: '🦏', imageLogo: '/houses/kaziranga.png', website: 'https://kaziranga.iitmbs.org/' },
-  'Nallamala House':   { park: 'Nagarjunasagar-Srisailam',  state: 'Telangana',    color: '#f97316', logo: '🐆', imageLogo: '/houses/nallamala.png', website: 'https://nallamala.iitmbs.org/' },
-  'Namdapha House':    { park: 'Namdapha National Park',    state: 'Arunachal P.', color: '#06b6d4', logo: '🦅', imageLogo: '/houses/namdapha.png', website: 'https://namdapha.iitmbs.org/' },
-  'Nilgiri House':     { park: 'Nilgiri Biosphere Reserve', state: 'Tamil Nadu',   color: '#5CE6C9', logo: '⛰️', imageLogo: '/houses/nilgiri.png', website: 'https://nilgiri.iitmbs.org/' },
-  'Pichavaram House':  { park: 'Pichavaram Mangrove Forest',state: 'Tamil Nadu',   color: '#e879f9', logo: '🛶', imageLogo: '/houses/pichavaram.png', website: 'https://pichavaram.iitmbs.org/' },
-  'Saranda House':     { park: 'Saranda Forest',            state: 'Jharkhand',    color: '#fb923c', logo: '🌳', imageLogo: '/houses/saranda.png', website: 'https://saranda.iitmbs.org/' },
-  'Sundarbans House':  { park: 'Sundarbans National Park',  state: 'West Bengal',  color: '#2dd4bf', logo: '🐊', imageLogo: '/houses/sundarbans.png', website: 'https://sundarbans.iitmbs.org/#/' },
-  'Wayanad House':     { park: 'Wayanad Wildlife Sanctuary',state: 'Kerala',       color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
-}
-
-const POR_TYPES = [
-  'House Secretary',
-  'Deputy House Secretary',
-  'Regional Coordinator',
-  'Web Admin',
-]
-
-const REGIONS = [
-  'Delhi (Delhi-NCR)',
-  'Chennai (Tamil Nadu)',
-  'Bengaluru (Karnataka, Kerala)',
-  'Hyderabad (AP & Telangana)',
-  'Mumbai (Maharashtra, Gujarat)',
-  'Kolkata (WB, NE, Odisha)',
-  'Patna (Bihar, Jharkhand, Chhattisgarh)',
-  'Chandigarh (Punjab, HP, RJ, J&K)',
-  'Lucknow (UP, Gwalior)',
-  'International',
-]
-
 export default function Orgs() {
-  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities'>('houses')
-  const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
+  const [tab, setTab] = useState<'houses' | 'orgs' | 'cities'>('houses')
 
-  const [userSearch, setUserSearch] = useState('')
+  const { data: constants } = useConstants()
+  const HOUSE_META = constants?.HOUSE_META ?? {}
 
   const { data: orgs = [], isLoading: lo, isError: eo, error: erro } = useOrgs()
   const { data: cities = [] } = useCities()
   const { data: pors = [] } = usePors()
-  const { data: users = [] } = useUsers(userSearch.trim())
   const { data: houses = [] } = useQuery({ queryKey: ['houses'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'house')) })
   const { data: regions = [] } = useQuery({ queryKey: ['regions'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'region')) })
 
   const createOrgMutation = useCreateOrg()
-  const assignPorMutation = useAssignPor()
-  const deactivatePorMutation = useDeactivatePor()
   const { addToast } = useToast()
 
   const [showSeedModal, setShowSeedModal] = useState(false)
-  const [showPorModal, setShowPorModal] = useState(false)
   const [viewingHouseId, setViewingHouseId] = useState<string | null>(null)
   const [selectedMapRegionId, setSelectedMapRegionId] = useState<string | null>(null)
 
@@ -79,17 +39,7 @@ export default function Orgs() {
   const [orgType, setOrgType] = useState('society')
   const [orgCity, setOrgCity] = useState('Hyderabad')
 
-  // Assign POR form state
-  const [userId, setUserId] = useState('')
-  const [selectedHouseId, setSelectedHouseId] = useState('')
-  const [selectedPorType, setSelectedPorType] = useState(POR_TYPES[0])
-  const [selectedRegion, setSelectedRegion] = useState('')
-  const [porTerm, setPorTerm] = useState('May 2026')
-  const [assignmentError, setAssignmentError] = useState<string | null>(null)
 
-  const isRC = selectedPorType === 'Regional Coordinator'
-  const upperCouncil = pors.filter((p: any) => p.council_tier === 'upper_house_council' && p.active)
-  const lowerCouncil = pors.filter((p: any) => p.council_tier === 'lower_house_council' && p.active)
 
   // Add City to Region state
   const [showAddCityModal, setShowAddCityModal] = useState(false)
@@ -98,14 +48,7 @@ export default function Orgs() {
   const [newCityName, setNewCityName] = useState('')
   const [addCityError, setAddCityError] = useState<string | null>(null)
 
-  // POR Directory search & deactivate state
-  const [porSearch, setPorSearch] = useState('')
-  const [porOrgFilter, setPorOrgFilter] = useState('')
-  const [porRoleFilter, setPorRoleFilter] = useState('')
-  const [porStatusFilter, setPorStatusFilter] = useState('')
-  const [porRegionFilter, setPorRegionFilter] = useState('')
-  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
-  const confirmPor = pors.find((p: any) => p.id === confirmDeactivateId)
+
 
   const qc = useQueryClient()
 
@@ -138,34 +81,7 @@ export default function Orgs() {
     )
   }
 
-  const handleAssignPor = (e: React.FormEvent) => {
-    e.preventDefault()
-    setAssignmentError(null)
-    if (!userId.trim() || !selectedHouseId) return
-    const regionOrg = regions.find((r: any) => r.name === selectedRegion)
 
-    assignPorMutation.mutate(
-      {
-        orgId: selectedHouseId,
-        user_id: userId.trim(),
-        por_type: selectedPorType,
-        term: porTerm,
-        region_id: isRC ? regionOrg?.id : undefined,
-      },
-      {
-        onSuccess: () => {
-          setShowPorModal(false)
-          setUserId('')
-          setUserSearch('')
-          setAssignmentError(null)
-          addToast('Role authorized successfully!')
-        },
-        onError: (err: any) => {
-          setAssignmentError(err.message || 'Failed to assign POR position.')
-        },
-      },
-    )
-  }
 
   if (lo) return <Loading label="Loading organisations…" />
   if (eo) return <ErrorState error={erro} />
@@ -176,21 +92,19 @@ export default function Orgs() {
     ['houses', `12 Forest Houses`],
     ['orgs', `Societies & Councils (${filteredOrgs.length})`],
     ['cities', `Regions & Cities`],
-    ['pors', `POR Directory (${pors.length})`],
   ] as const
 
-  const selectedUserObj = users.find((u: any) => u.id === userId || u.email === userId)
+
 
   return (
     <div>
       <SectionTitle
         eyebrow="Admin"
-        title="Orgs, PORs & Cities"
-        sub="Manage Forest Houses, Regions, Societies, and the POR Directory. Permissions follow PORs."
+        title="Orgs & Cities"
+        sub="Manage Forest Houses, Regions, Societies, and city assignments."
         right={
           <div className="flex gap-3">
             <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Seed Org</Button>
-            <Button size="sm" onClick={() => setShowPorModal(true)}>+ Authorize Role</Button>
           </div>
         }
       />
@@ -266,165 +180,6 @@ export default function Orgs() {
             })}
           </div>
         </div>
-      )}
-
-      {/* ---- POR DIRECTORY TAB ---- */}
-      {tab === 'pors' && (
-        <div>
-          {/* Search + Filter bar */}
-          <div className="mb-4 flex flex-wrap gap-3">
-            <Input
-              placeholder="Search by member name…"
-              value={porSearch}
-              onChange={e => setPorSearch(e.target.value)}
-              className="max-w-xs"
-            />
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porOrgFilter}
-              onChange={e => setPorOrgFilter(e.target.value)}
-            >
-              <option value="">All Houses / Orgs</option>
-              {Array.from(new Set(pors.map((p: any) => p.org))).sort().map((org: any) => (
-                <option key={org} value={org}>{org}</option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porRoleFilter}
-              onChange={e => setPorRoleFilter(e.target.value)}
-            >
-              <option value="">All Positions</option>
-              {Array.from(new Set(pors.map((p: any) => p.por_type))).sort().map((role: any) => (
-                <option key={role} value={role}>{role}</option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porRegionFilter}
-              onChange={e => setPorRegionFilter(e.target.value)}
-            >
-              <option value="">All Regions</option>
-              {Array.from(new Set(pors.map((p: any) => p.region).filter(Boolean))).sort().map((region: any) => (
-                <option key={region} value={region}>{region}</option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porStatusFilter}
-              onChange={e => setPorStatusFilter(e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              <option value="active">Active Only</option>
-              <option value="past">Past Only</option>
-            </select>
-          </div>
-          {pors.length === 0 ? (
-            <Card className="p-10 text-center text-graytext-light">No PORs assigned yet.</Card>
-          ) : (
-            <Card className="overflow-hidden">
-              <table className="w-full text-[14px]">
-                <thead>
-                  <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
-                    <th className="px-5 py-3 text-left">Member</th>
-                    <th className="px-5 py-3 text-left">House / Org</th>
-                    <th className="px-5 py-3 text-left">Position</th>
-                    <th className="px-5 py-3 text-left">Region</th>
-                    <th className="px-5 py-3 text-left">Council</th>
-                    <th className="px-5 py-3 text-left">Term</th>
-                    <th className="px-5 py-3 text-right">Status</th>
-                    <th className="px-5 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pors
-                    .filter((p: any) => {
-                      const matchName = !porSearch || (p.member ?? '').toLowerCase().includes(porSearch.toLowerCase())
-                      const matchOrg = !porOrgFilter || p.org === porOrgFilter
-                      const matchRole = !porRoleFilter || p.por_type === porRoleFilter
-                      const matchRegion = !porRegionFilter || p.region === porRegionFilter
-                      const matchStatus = !porStatusFilter || (porStatusFilter === 'active' ? p.active : !p.active)
-                      return matchName && matchOrg && matchRole && matchRegion && matchStatus
-                    })
-                    .map((p: any) => (
-                    <tr key={p.id} className="border-b border-white/5 last:border-0">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-8 w-8 place-items-center rounded-full bg-gold/12 text-[12px] font-bold text-gold">
-                            {(p.member ?? '?').split(' ').map((n: string) => n[0]).join('')}
-                          </div>
-                          <span className="text-offwhite">{p.member ?? '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-graytext-light">{p.org}</td>
-                      <td className="px-5 py-3.5"><Badge tone="teal">{p.por_type}</Badge></td>
-                      <td className="px-5 py-3.5 text-[12px] text-graytext-light">{p.region ?? '—'}</td>
-                      <td className="px-5 py-3.5">
-                        {p.council_tier === 'upper_house_council' && <Badge tone="gold">Upper HC</Badge>}
-                        {p.council_tier === 'lower_house_council' && <Badge tone="teal">Lower HC</Badge>}
-                        {!p.council_tier && <span className="text-caption text-graytext-mid">—</span>}
-                      </td>
-                      <td className="px-5 py-3.5 text-graytext-light">{p.term}</td>
-                      <td className="px-5 py-3.5 text-right">
-                        {p.active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Past</Badge>}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        {p.active && (
-                          <button
-                            onClick={() => setConfirmDeactivateId(p.id)}
-                            className="rounded-full border border-red-400/30 px-3 py-1 text-[12px] font-medium text-red-300 transition-colors hover:bg-red-500/10"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          )}
-          <p className="mt-3 text-caption text-graytext-mid">Past PORs preserved for historical record (P4).</p>
-        </div>
-      )}
-
-      {/* ---- DEACTIVATE CONFIRMATION MODAL ---- */}
-      {confirmDeactivateId && confirmPor && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-sm p-6">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-300">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </div>
-            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Deactivate POR?</h3>
-            <p className="mb-5 text-[14px] text-graytext-light">
-              This will remove <strong className="text-offwhite">{confirmPor.member}</strong>'s role as{' '}
-              <strong className="text-offwhite">{confirmPor.por_type}</strong> in{' '}
-              <strong className="text-offwhite">{confirmPor.org}</strong> and revoke their permissions immediately.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setConfirmDeactivateId(null)}>Cancel</Button>
-              <Button
-                variant="danger"
-                disabled={deactivatePorMutation.isPending}
-                onClick={() => {
-                  deactivatePorMutation.mutate(confirmDeactivateId, {
-                    onSuccess: () => {
-                      setConfirmDeactivateId(null)
-                      addToast(`${confirmPor.por_type} role for ${confirmPor.member} deactivated.`, 'info')
-                    },
-                    onError: (err: any) => addToast(err.message || 'Deactivation failed.', 'error'),
-                  })
-                }}
-              >
-                {deactivatePorMutation.isPending ? 'Deactivating…' : 'Yes, Deactivate'}
-              </Button>
-            </div>
-          </Card>
-        </div>,
-        document.body
       )}
 
       {/* ---- SOCIETIES & COUNCILS TAB ---- */}
@@ -616,138 +371,6 @@ export default function Orgs() {
         document.body
       )}
 
-      {/* ---- AUTHORIZE ROLE MODAL ---- */}
-      {showPorModal && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-lg p-6">
-            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Authorize Elected Representative</h3>
-            <p className="mb-4 text-caption text-graytext-light">
-              Assign an official council role to an elected member. Permissions are granted immediately via their POR.
-            </p>
-
-            {assignmentError && (
-              <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-[13px] text-red-300">
-                ⚠️ {assignmentError}
-              </div>
-            )}
-
-            <form onSubmit={handleAssignPor} className="space-y-4">
-              {/* Search Member by Email or Name */}
-              <div>
-                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
-                  Search Member by Email or Name
-                </label>
-                <Input
-                  placeholder="Type email (e.g. saiteja@ekatva.os) or name..."
-                  value={userSearch}
-                  onChange={(e) => {
-                    setUserSearch(e.target.value)
-                    setUserId('')
-                  }}
-                />
-                
-                {/* Search Results List */}
-                {userSearch.trim() !== '' && !userId && (
-                  <div className="mt-2 max-h-[160px] overflow-y-auto rounded-xl border border-white/10 bg-onyx custom-scrollbar">
-                    {users.length === 0 ? (
-                      <div className="px-3.5 py-3 text-[13px] text-graytext-mid">No members found matching "{userSearch}"</div>
-                    ) : (
-                      users.map((u: any) => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          className="w-full border-b border-white/5 px-3.5 py-2.5 text-left text-[13px] last:border-0 hover:bg-white/5 focus:bg-white/5 focus:outline-none"
-                          onClick={() => setUserId(u.id)}
-                        >
-                          <div className="font-semibold text-offwhite">{u.name}</div>
-                          <div className="text-graytext-mid">{u.email} <span className="mx-1">•</span> {u.city}</div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {selectedUserObj && (
-                <div className="rounded-lg border border-teal/30 bg-teal/5 px-3.5 py-2 text-[12px] text-teal">
-                  ✓ Selected: <strong>{selectedUserObj.name}</strong> ({selectedUserObj.email})
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">House</label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={selectedHouseId}
-                    onChange={(e) => setSelectedHouseId(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Select House --</option>
-                    {houses.map((h: any) => (
-                      <option key={h.id} value={h.id}>{h.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Position</label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={selectedPorType}
-                    onChange={(e) => { setSelectedPorType(e.target.value); setSelectedHouseId('') }}
-                  >
-                    {POR_TYPES.map((pt) => <option key={pt} value={pt}>{pt}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Council tier preview */}
-              <div className="rounded-lg border border-white/8 bg-white/[0.02] px-4 py-2.5 text-[13px]">
-                <span className="text-graytext-mid">Auto-assigned to: </span>
-                {selectedPorType === 'House Secretary' || selectedPorType === 'Deputy House Secretary' ? (
-                  <Badge tone="gold">Upper House Council</Badge>
-                ) : selectedPorType === 'Regional Coordinator' ? (
-                  <Badge tone="teal">Lower House Council</Badge>
-                ) : (
-                  <span className="text-graytext-mid">House Operations</span>
-                )}
-              </div>
-
-              {/* Region dropdown — only visible for RC */}
-              {isRC && (
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
-                    Region <span className="text-amber-400">(required for RC)</span>
-                  </label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={selectedRegion}
-                    onChange={(e) => setSelectedRegion(e.target.value)}
-                    required={isRC}
-                  >
-                    <option value="">-- Select Region --</option>
-                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Term</label>
-                <Input placeholder="e.g. May 2026" value={porTerm} onChange={(e) => setPorTerm(e.target.value)} required />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setShowPorModal(false)}>Cancel</Button>
-                <Button type="submit" disabled={assignPorMutation.isPending}>
-                  {assignPorMutation.isPending ? 'Authorizing…' : 'Authorize Role'}
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </div>,
-        document.body
-      )}
-
       {/* ---- ADD CITY MODAL ---- */}
       {showAddCityModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
@@ -786,7 +409,7 @@ export default function Orgs() {
       {/* ---- HOUSE DETAIL MODAL ---- */}
       {viewingHouseId && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setViewingHouseId(null) }}>
-          <Card className="relative w-full max-w-2xl p-8 overflow-hidden">
+          <Card className="relative w-full max-w-2xl p-8 overflow-hidden bg-onyx">
             {(() => {
               const h = orgs.find((o: any) => o.id === viewingHouseId)
               if (!h) return null

@@ -25,10 +25,18 @@ Not delivered here: notification surfaces, progression gating that reads academi
 ### Session & Refresh Tokens
 
 - **D-01:** The refresh token lives in a `Secure`, `httpOnly`, `SameSite` cookie. The access token is never persisted — it lives in memory only. — **Reversibility:** costly — moving the refresh token to `localStorage` later would mean re-doing the CORS credentials configuration, the CSRF guard, and every `api.ts` call site that sends credentials.
-- **D-02:** Refresh tokens rotate on every use with reuse detection. Each `/auth/refresh` issues a new token and blocklists the old `jti` in the existing `refresh_token_blocklist` table. Presenting an already-blocklisted token is treated as a replay: revoke the whole family and force re-login. — **Reversibility:** reversible — the blocklist table already exists; dropping to non-rotating is a server-side simplification.
+- **D-02:** Refresh tokens rotate on every use with reuse detection. Each `/auth/refresh` issues a new token and blocklists the old `jti` in the existing `refresh_token_blocklist` table. Presenting an already-blocklisted token is treated as a replay: revoke the whole family and force re-login. — **Reversibility:** reversible — dropping to non-rotating is a server-side simplification.
+
+  > **⚠ Corrected 2026-08-10 by `02-RESEARCH.md` (verified against `backend/app/models/__init__.py:1073-1078`).** This decision assumed the existing table was usable as-is. It is not. `refresh_token_blocklist` has exactly `jti`, `user_id`, `revoked_at`, `expires_at` (plus the three `Base` columns) — **there is no family column, and nothing can substitute for one**: `jti` is regenerated on every rotation, and revoking by `user_id` would be device-wide, contradicting D-04's this-device-only logout. A nullable `family_id` (plus `reason`) must be added, folded into the same Alembic revision as `terms`. At runtime the family id rides as a `fam` claim via `create_refresh_token(additional_claims=...)`.
+
+- **D-02a (added 2026-08-10):** Reuse detection carries a **~10 second grace window**. A rotated token remains valid for ~10s after rotation; a replay inside that window returns the already-issued successor rather than revoking the family. — *Why:* without it, two browser tabs refreshing simultaneously present the same token and the second is indistinguishable from a stolen-token replay, revoking the family and logging the user out — the exact failure ROADMAP success criterion 2 forbids. The single-flight interceptor (D-06) dedupes within one tab only, never across tabs. A real attacker replaying a stolen token almost never lands inside 10s of the legitimate rotation, so genuine detection is preserved.
 - **D-03:** Access token 15 minutes, refresh token 30 days. Replaces the hardcoded `JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=12)` in `backend/app/config.py`.
 - **D-04:** Logout revokes this device only — blocklist the presented token's family and clear the cookie. No cross-device revocation, no "sign out everywhere" surface in this phase.
 - **D-05:** `Flask-CORS` must move to `supports_credentials` with an exact origin allowlist (no wildcard), and `/auth/refresh` needs a CSRF guard. This is a direct consequence of D-01. — **Reversibility:** costly — the origin allowlist becomes a deployment-time contract with every frontend environment.
+
+- **D-05a (added 2026-08-10):** The app is **same-site** in every environment. Cookie is `SameSite=Lax`, not `None`. **Dev origins must be aligned** — the frontend and API must both use `localhost` (currently `localhost:5173` → `127.0.0.1:5000`, which a browser treats as cross-site and would silently drop the refresh cookie). If deployment later turns out to be genuinely cross-site, the switch to `SameSite=None; Secure` is a known follow-up requiring HTTPS everywhere including demos. — *CSRF protection is the built-in double-submit token (D-05); `Lax` is a second layer behind it, not the primary defence.*
+
+- **D-05b (added 2026-08-10, from `02-RESEARCH.md`):** Set `JWT_SESSION_COOKIE = False` explicitly. It defaults to `True` in Flask-JWT-Extended 4.6.0, which makes the refresh cookie a session cookie with `max_age=None` — it dies on browser close. Left unset, ROADMAP success criterion 1 fails *intermittently*: passing on tab-close, failing on browser-quit. That presents as flakiness rather than a bug, which is the expensive kind to diagnose.
 
 ### Client Session Handling
 
@@ -41,7 +49,11 @@ Not delivered here: notification surfaces, progression gating that reads academi
 
 - **D-10:** `/auth/me` returns `is_organiser` **plus scoped ID sets** — the organisation IDs and activity IDs this user may manage, computed server-side by the Phase 1 predicates `can_manage_org` and `can_manage_activity`. The frontend can disable the correct controls without ever learning what a POR is. — **Reversibility:** costly — this is a published response contract that Phase 5's live workspace pages will build against.
 - **D-11:** Capabilities are recomputed from live PORs on every `/auth/me` call, cached in React Query, invalidated on refresh and on login. **No capability data is embedded in the JWT** — worst-case staleness is one access-token window (15 min), and revocation is never blocked on token expiry.
-- **D-12:** Delete `ORGANISER_POR_TYPES` from `frontend/src/lib/auth.tsx` and add a **test that scans `frontend/src` for POR-type string literals and fails the build on any hit**. This is the frontend mirror of Phase 1's `url_map` gate — structural prevention, not review convention. The existing list has already drifted once (it is missing `Deputy House Secretary`), which is the evidence that convention alone does not hold.
+- **D-12:** Delete `ORGANISER_POR_TYPES` from `frontend/src/lib/auth.tsx` and add a **test that scans `frontend/src` for POR-type string literals and fails the build on any hit**. This is the frontend mirror of Phase 1's `url_map` gate — structural prevention, not review convention. The existing list has already drifted, which is the evidence that convention alone does not hold.
+
+  > **⚠ Corrected 2026-08-10 by `02-RESEARCH.md`.** The drift is **two** entries, not one: the frontend list is missing both `Deputy House Secretary` **and** `Web Admin`. Note that D-12 requires a frontend test framework — and the frontend currently has **no test dependency at all**, which blocks both D-12 and D-18 until it is added (see the Wave 0 note below).
+
+- **D-12a (added 2026-08-10, from `02-RESEARCH.md`):** The frontend has no test tooling, and both obvious current versions are incompatible with this repo — Vitest 4.1.10 peers on Vite `^6||^7||^8` while the lockfile resolves Vite 5.4.21, and jsdom 30 needs Node ≥22.22 against local v20.16.0. **Pin Vitest 3.2.7 and jsdom 26.1.0.** Standing up this tooling is Wave 0 work: D-12 and D-18 cannot be satisfied without it.
 
 ### POR Taxonomy (AUTH-03)
 
@@ -64,7 +76,13 @@ Not delivered here: notification surfaces, progression gating that reads academi
 
 ### Consequences the planner must absorb
 
-- **D-23:** **This phase owns a schema migration** — the first Alembic revision since Phase 1's `213804635519`. It creates the `terms` table (D-21) and adds `academic_level`, `academic_status`, and a last-confirmed timestamp to `User` (D-19/D-20). Phase 1's migration-safety rule applies without exception: every column landing on an already-populated table must be nullable or carry a `server_default`, and the permanent safety test from `01-03` must still pass.
+- **D-23:** **This phase owns a schema migration** — the first Alembic revision since Phase 1's `213804635519`. Phase 1's migration-safety rule applies without exception: every column landing on an already-populated table must be nullable or carry a `server_default`, and the permanent safety test from `01-03` must still pass.
+
+  > **⚠ Corrected 2026-08-10 by `02-RESEARCH.md` (verified against `backend/app/models/__init__.py:73-75`).** This decision overstated the work in one direction and understated it in another. `academic_level`, `academic_status` and `academic_confirmed_at` **already exist** on `User` — Phase 1's `213804635519` created them. They do not need adding. The revision's actual contents are:
+  > 1. the new `terms` table (D-21), and
+  > 2. a nullable `family_id` + `reason` on `refresh_token_blocklist` (see the D-02 correction) — which D-02 did not anticipate at all.
+  >
+  > Both land in **one** revision.
 - **D-24:** The `terms` table needs seed data for at least the current academic year, and `seed.py` is now constrained by Phase 1's guard — it can only destroy a local SQLite development file. Seeding terms must work through the normal migration/seed path, not a destructive reset.
 
 ### Claude's Discretion

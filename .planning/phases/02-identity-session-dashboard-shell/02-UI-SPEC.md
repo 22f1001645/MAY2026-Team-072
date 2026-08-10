@@ -1,10 +1,11 @@
 ---
 phase: 2
 slug: identity-session-dashboard-shell
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-10
+reviewed_at: 2026-08-10
 ---
 
 # Phase 2 — UI Design Contract
@@ -394,19 +395,93 @@ Submit controls stay **enabled** when the form is incomplete. Validation fires o
 
 ## UI Considerations
 
-Applicable state considerations resolved: **7 covered, 2 backstop, 0 unresolved**
+Engine-derived state coverage over the seven surface contracts (`ui-consideration-probe`, 2026-08-10).
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| loading | session resolution on cold load | ✅ covered | S2's three-tier disclosure: silent spinning `Mandala` 0–600ms, `Restoring your session…` after 600ms, full `ErrorState` with **Try again** after 8s. No flash of public routes at any point. |
-| error | refresh failure → session expiry | ✅ covered | S3: immediate redirect to `/login`, exactly one toast regardless of how many requests rejected, amber notice strip on the login page, attempted route preserved in `location.state.from`. Copy per `## Copywriting Contract`. |
-| error | academic status save failure | ✅ covered | S5: dialog stays open with values intact, inline red strip above the actions. Never toast-only. |
-| partial | `/auth/refresh` succeeds but `/auth/me` fails | ✅ covered | Treated as no session — clear auth, render public routes. There is no half-authenticated render state. |
-| empty | organiser view, `isOrganiser: true` with zero manageable activities | ✅ covered | Existing `EmptyState` primitive with the "Nothing to manage yet" copy from `## Copywriting Contract`. |
-| zero-one-many | view switcher across capability shapes | ✅ covered | Zero organiser capabilities → component returns `null`, no reserved space (S1). One or more → the same two-segment control; scoped-ID-set size never changes the switcher's shape. Mid-session lapse unmounts it and clears `localStorage['ekatva_view']`. |
-| long-text | user name in the sidebar identity block; enum labels | ✅ covered | The identity block already `truncate`s name and POR line. Level/status are fixed enums with a 10-character maximum ("On a break"), so no overflow path exists. |
-| overflow | switcher segments inside the 256px (`w-64`) sidebar rail | 🧪 backstop | "Organiser" at 14px/500 Poppins inside `px-3 py-1.5` fits `w-64` minus `px-3` rail padding with margin, but this is measured, not proven. Visual UI-state test at 320px, 768px and 1440px viewports asserting neither segment wraps or clips. |
-| populated | banner + switcher + nav + page title all present simultaneously | 🧪 backstop | Visual UI-state test asserting the banner does not displace the switcher (they are in different columns), the sidebar's `lg:overflow-y-auto` does not gain a scrollbar at 768px height with the switcher present, and the banner's `mb-6` keeps it visually separate from `SectionTitle`. |
+**47 applicable — 44 resolved (explicit), 3 backstop, 0 unresolved. 0 unclassified.**
+
+Copy for empty and error states lives in `## Copywriting Contract`; the rows below reference it rather than restating it.
+
+### S1 — View switcher
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ explicit | `isOrganiser === false` → component returns `null`. No disabled state, no ghost, no reserved space; `<nav>` starts 44px higher. |
+| loading | ✅ explicit | During capability refetch the previous snapshot is held (React Query `placeholderData`). The switcher never flickers to disabled or vanishes. |
+| error | ✅ explicit | `/auth/me` failure is treated as no session (S2) — the whole protected shell is unmounted, so no switcher error state exists. |
+| partial | ✅ explicit | Stale capabilities mid-refetch render from the held snapshot until the new one lands. |
+| zero-one-many | ✅ explicit | Zero → `null`. One or many manageable orgs/activities → the identical two-segment control; scoped-ID-set size never changes the switcher's shape. Mid-session lapse unmounts it and clears `localStorage['ekatva_view']`. |
+| long-text | ✅ explicit | Segment labels are the fixed literals **Student** and **Organiser**. No user data is interpolated. |
+| overflow | 🧪 backstop | *Statement:* neither segment wraps or clips inside the 256px (`w-64`) rail. "Organiser" at 14px/500 Poppins in `px-3 py-1.5` fits with margin by measurement, not proof. *Verification:* visual UI-state test at 320px, 768px and 1440px. |
+| populated | 🧪 backstop | *Statement:* banner + switcher + nav + page title coexist without displacement. *Verification:* shared visual test — see S4 populated. |
+
+### S2 — Cold-load / session resolution
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| loading | ✅ explicit | Three-tier disclosure: silent spinning `Mandala` 0–600ms, `Restoring your session…` (`role="status" aria-live="polite"`) after 600ms, full-viewport `ErrorState` after 8s. The fast path never flashes text. |
+| error | ✅ explicit | >8s → `ErrorState` with **Try again** (re-runs boot) and **Go to sign-in**. A 401 from refresh is not an error: public routes render immediately, no toast. |
+| partial | ✅ explicit | *(Raised at kind-confirmation — the classifier missed it.)* `/auth/refresh` succeeds but `/auth/me` fails → clear auth, render public routes. There is no half-authenticated render. |
+| overflow | ✅ explicit | A single centred mark plus at most one line of status text. No overflow path exists. |
+| long-text | ✅ explicit | Boot copy is fixed literals; no user data is available to render before the session resolves. |
+
+### S3 — Session-expiry redirect
+
+| Category | Status | Resolution |
+|----------|--------------|------------|
+| empty | ✅ explicit | No preserved route in `location.state.from` → land on `homeFor(role)` after login. |
+| loading | ✅ explicit | None by design — the redirect is immediate. No interstitial, no countdown, no "stay signed in?" prompt. |
+| error | ✅ explicit | This surface *is* the error path: redirect to `/login`, amber notice strip rendered from router state (never a query param). |
+| partial | ✅ explicit | All queued requests reject from the shared failure handler; ten simultaneous rejections produce exactly **one** toast. This is the visible face of success criterion 2. |
+| overflow | ✅ explicit | Notice strip carries a fixed string in a full-width container above the form. |
+| long-text | ✅ explicit | Fixed copy, no interpolation. In-flight form input is explicitly not preserved and the copy promises nothing about it. |
+
+### S4 — Academic-status banner
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ explicit | Not stale, or already dismissed this browser session → does not render. |
+| loading | ✅ explicit | Gated on `capabilities.academicStatusStale`; before capabilities resolve the protected shell is not rendered at all (S2). |
+| error | ✅ explicit | Confirmation failure is owned by S5's dialog (inline red strip); the banner stays mounted and unchanged. |
+| partial | ✅ explicit | Dismissed but still stale → hidden via `sessionStorage` until the next browser session. Never `localStorage`, which would make "Not now" mean "never". |
+| zero-one-many | ✅ explicit | Exactly one condition drives it; banners never stack. |
+| long-text | ✅ explicit | Title and body are fixed literals; the `flex items-start` strip wraps rather than clips. |
+| overflow | ✅ explicit | Fixed copy inside `<main>`'s `mx-auto max-w-6xl` wrapper — no constrained-width interpolation. |
+| populated | 🧪 backstop | *Statement:* the banner does not displace the switcher (different columns), the sidebar's `lg:overflow-y-auto` gains no scrollbar at 768px height with the switcher present, and `mb-6` keeps the banner visually separate from `SectionTitle`. *Verification:* visual UI-state test. |
+
+### S5 — Academic status dialog
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ explicit | Both selects unset → disabled placeholder options (`— Select level —` / `— Select status —`) selected. |
+| loading | ✅ explicit | Submit disabled with `aria-busy`, label → **Confirming…**, both selects disabled, minimum 300ms so a fast response does not flicker. |
+| error | ✅ explicit | Dialog stays open with values intact; inline red strip above the actions. Never toast-only — a toast that vanishes while data is lost is not an error report. |
+| partial | ✅ explicit | One field set, one unset → submit stays **enabled**; validation fires on submit and marks the offending select (`border-red-400/50` + **Choose an option**). Rule C: never pre-disable submit. |
+| overflow | ✅ explicit | `max-w-md` dialog; both fields are fixed enums. |
+| long-text | ✅ explicit | Longest enum label is "On a break" (10 chars). No user-supplied text renders. |
+
+### S6 — Admin override
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ explicit | Target has no status set → identical placeholder behaviour to S5. |
+| loading | ✅ explicit | Label → **Saving…**, same 300ms minimum and sibling-input disabling as S5. |
+| error | ✅ explicit | Inline red strip, dialog stays open, values intact. |
+| partial | ✅ explicit | **Reason (optional)** left blank → the audit row is still written with actor, target, old and new values (D-22 requires no reason). |
+| zero-one-many | ✅ explicit | Row-level action on exactly one user; no multi-select or bulk override in this phase. |
+| populated | ✅ explicit | Header badge + identity line + two selects + reason input + audit note all present within `max-w-md`; layout is fixed and vertical. |
+| overflow | ✅ explicit | **Resolved at probe time — this was the one uncontrolled-data gap.** `{Name}` and `{email}` each `truncate` on their own line within `max-w-md`, with the untruncated value in a `title` attribute. |
+| long-text | ✅ explicit | Same rule as overflow above. Consistent with the sidebar identity block, which already truncates name and POR line. |
+
+### S7 — Capability-driven affordances
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ explicit | Absent capability → the control is **not rendered**. Not greyed, not locked — absent. |
+| loading | ✅ explicit | Background capability refetch holds the previous snapshot; controls must not flicker to disabled or vanish. A control that blinks out and back is worse than a stale one for 200ms. |
+| error | ✅ explicit | `/auth/me` failure → treated as no session (S2); the protected shell unmounts rather than rendering degraded affordances. |
+| partial | ✅ explicit | Some ids present and others not → each control checks its own id against the scoped set. There is no global "partially authorised" mode. |
+| overflow | ✅ explicit | The render-locked explanation (**Only {the role} can do this.**) is a `text-caption` line beneath the control that wraps; role names are short fixed strings from the POR taxonomy. |
+| long-text | ✅ explicit | Same line as above. Labels never change under state A — only a padlock is added. |
 
 ---
 

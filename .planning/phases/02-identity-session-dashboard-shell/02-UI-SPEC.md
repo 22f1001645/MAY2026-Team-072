@@ -88,14 +88,16 @@ Base unit 4px. Declared values (all multiples of 4):
 - The banner carries `mb-6` (24px) and never `mb-4` — 24px is what separates it from the page title clearly enough to read as a separate object.
 - Dialog: `p-6` panel, `gap-4` between fields, `mt-6` before the action row.
 
-**Exceptions (documented, not to be "fixed"):**
+**Exceptions (documented, not to be "fixed") — NOT part of the declared scale above.**
 
-| Exception | Value | Reason |
-|-----------|-------|--------|
-| `Button` vertical padding | 6px (`py-1.5` sm), 10px (`py-2.5` md), 14px (`py-3.5` lg) | Hardcoded in the existing `Button` base. Changing it re-flows every page in the app. Inherited, not introduced. |
-| `Select` / `Input` vertical padding | 10–12px (`py-2.5`, `py-3`) | Same — inherited from existing form controls. |
-| Switcher segment vertical padding | 6px (`py-1.5`) | Must match `Button size="sm"` so the switcher and the banner's action buttons read as the same control family. |
-| Icon-only button box | 36px (`h-9 w-9`) | Matches the existing header notification button and identity block. 36px exceeds WCAG 2.5.8 AA (24px minimum target). No new icon-only controls smaller than this. |
+> ⚠️ The values in this table are **not tokens and not available for any new spacing decision in this phase.** Each is valid only on the one inherited primitive named in its row. Every new spacing decision — new component, new gap, new margin, new padding — must come from the declared scale table above (4 / 8 / 12 / 16 / 24 / 32 / 48). If a value below looks useful somewhere else, that is a misread: use the nearest declared token instead.
+
+| Exception | Value | Valid ONLY on | Reason |
+|-----------|-------|---------------|--------|
+| `Button` vertical padding | 6px (`py-1.5` sm), 10px (`py-2.5` md), 14px (`py-3.5` lg) | the existing `Button` primitive in `ui.tsx` — nothing else | Hardcoded in the existing `Button` base. Changing it re-flows every page in the app. Inherited, not introduced. |
+| `Select` / `Input` vertical padding | 10–12px (`py-2.5`, `py-3`) | the existing `Input` primitive and the lifted `selectCls` string — nothing else | Same — inherited from existing form controls. |
+| Switcher segment vertical padding | 6px (`py-1.5`) | the two `ViewSwitcher` segments — nothing else | Must match `Button size="sm"` so the switcher and the banner's action buttons read as the same control family. |
+| Icon-only button box | 36px (`h-9 w-9`) | the existing header notification button and sidebar identity block — nothing else | Matches the existing header notification button and identity block. 36px exceeds WCAG 2.5.8 AA (24px minimum target). No new icon-only controls smaller than this. |
 
 ---
 
@@ -158,6 +160,12 @@ Dark surface only. Percentages are share of painted pixels on a dashboard route.
 
 **Never encode state in color alone.** Every state distinction in this phase carries a second channel — the active switcher segment carries a ring plus `aria-checked`; the banner carries an icon plus a heading; a disabled-unauthorised control carries a padlock plus a sentence.
 
+### Primary visual anchor (composed dashboard route)
+
+**The `SectionTitle` is the primary anchor** — at 36px/700 gold it is the largest, warmest and highest-contrast element on the route, and it is what the eye lands on first even though the banner sits above it in document flow. Rank order is: **(1) `SectionTitle` → (2) academic-status banner → (3) view switcher.** The banner is deliberately second — 14px title on a 6%-alpha gold surface, read *on the way to* the title rather than instead of it, because it is a nudge the user did not ask for. The switcher is third by placement, not by styling: it lives in the sidebar rail and competes only with nav items, never with main-column content.
+
+**Enforceable consequence:** if the banner ever out-shouts the title in review, the fix is to quiet the banner (lower alpha, drop the icon), **never** to enlarge or re-weight `SectionTitle` — which is inherited and shared by 18 pages.
+
 ---
 
 ## Copywriting Contract
@@ -165,7 +173,7 @@ Dark surface only. Percentages are share of painted pixels on a dashboard route.
 | Element | Copy |
 |---------|------|
 | Primary CTA | **Confirm status** (academic banner + dialog) |
-| Secondary CTA | **Not now** (banner dismiss) · **Cancel** (dialog) · **Save override** (admin) · **Try again** (boot failure) |
+| Secondary CTA | **Not now** (banner dismiss) · **Cancel** (dialog dismiss — see the documented exception below) · **Save override** (admin) · **Try again** (boot failure) |
 | Switcher labels | **Student** · **Organiser** — exactly these two strings, sentence case, no suffix ("Student view", "My view" are forbidden) |
 | Empty state heading | **Nothing to manage yet** |
 | Empty state body | **Your organiser access is active. Once you propose an event or join a team, it appears here.** |
@@ -183,6 +191,31 @@ Dark surface only. Percentages are share of painted pixels on a dashboard route.
 | Admin override note (in the dialog, always visible) | **Recorded in the audit log as an override by you. {Name} can still update this themselves.** |
 | Unauthorised-control explanation pattern | **Only {the role} can do this.** — always names who *can*, never says "you can't" |
 | Destructive confirmation | **None. This phase ships zero destructive actions.** Sign out is deliberately one-click with no confirm dialog — the cost of an accidental sign-out is one sign-in, and a confirm on every logout is a friction tax paid on every correct use. The toast above replaces the confirmation. Selecting **Withdrawn** is self-declared, reversible, and changes zero access, so it gets no confirmation either. |
+
+### Reasoned exception: bare "Cancel" as the dialog dismiss (inherited, not introduced)
+
+Every *primary* CTA in the table above is scoped to its object — **Confirm status**, **Save override** (not "Save"), **Go to sign-in**. The dismiss action in S5 and S6 deliberately does **not** follow that rule, for the same reason the `Button` 6/10/14px paddings and the `font-bold` heading weight are left alone: **it is an existing app-wide convention, and this phase's job is not to fork it.**
+
+The convention already in the codebase, verified 2026-08-10:
+
+| Existing call site | Label | Role |
+|--------------------|-------|------|
+| `pages/Orgs.tsx:408` (deactivate confirm) | `Cancel` | dismiss |
+| `pages/Orgs.tsx:608` (seed modal) | `Cancel` | dismiss |
+| `pages/Orgs.tsx:740` (POR modal) | `Cancel` | dismiss |
+| `pages/Orgs.tsx:775` (add-city modal) | `Cancel` | dismiss |
+| `pages/Expenses.tsx:127` (inline add form) | `Cancel` | dismiss |
+| `pages/ProposalNew.tsx:236` | `Cancel` | dismiss |
+| `pages/EventDetail.tsx:155` | `Cancel registration` | **the action itself** |
+
+Six of seven render bare `Cancel` as `Button variant="ghost"` for "close this without writing anything". The seventh scopes the word precisely because there "cancel" is the *verb being performed*, not the escape hatch. That is the rule, and it is already consistent:
+
+> **Bare `Cancel` = abandon this dialog, nothing was written.**
+> **Scoped `Cancel {noun}` = cancelling the noun *is* the destructive action.**
+
+S6 lands on `/admin/orgs`, the very file carrying four of the six existing bare-`Cancel` buttons. Introducing **Cancel override** there would put two different dismiss vocabularies in one screen and — worse — would read as "cancel the existing override", i.e. as an action that writes something. **Cancel override** is therefore rejected as actively misleading, not merely inconsistent.
+
+**Locked:** S5 and S6 both use bare **Cancel**. Neither uses **Close** — equally generic, and unattested as a button label anywhere in `frontend/src` (the one existing drawer dismisses via a bare `✕` glyph at `EventAnnouncementsModal.tsx:53`, which is exactly the unlabelled pattern S4 already rejects). Neither uses a scoped variant. If a future phase adds a dialog whose dismiss genuinely discards user work, that dialog — not this convention — is what changes.
 
 ### Enum display labels (locked)
 
@@ -275,7 +308,7 @@ Seven surfaces. Each names its trigger, placement, form, states and the decision
 | Field 1 | Label `Academic level` (`text-caption uppercase tracking-wider text-graytext-light mb-1.5`), `Select` with `— Select level —` (disabled, selected when unset), Foundation, Diploma, Degree |
 | Field 2 | Label `Academic status`, `Select` with `— Select status —` (disabled, selected when unset), Active, On a break, Withdrawn |
 | Reassurance | Below both fields, always visible, never behind a disclosure: `mt-4 text-body text-graytext-light` — **This only affects how we describe you in the community. It never changes what you can access.** This is AUTH-04's decoupling promise made legible to the user, not just to the test suite. |
-| Actions | `mt-6 flex justify-end gap-2`: `Button variant="ghost"` **Cancel** + `Button` **Confirm status** |
+| Actions | `mt-6 flex justify-end gap-2`: `Button variant="ghost"` **Cancel** + `Button` **Confirm status**. Bare `Cancel` is intentional and matches the six existing dismiss buttons in this codebase — see `## Copywriting Contract → Reasoned exception`. Nothing is written on dismiss, so the label needs no object. |
 | Validation | **Confirm status** stays enabled when fields are empty. On submit with an unset field, mark it: `border-red-400/50` on the select and a `mt-1 text-caption text-red-300` line reading **Choose an option**. Never pre-disable the submit — see `## Interaction States` rule C. |
 | Busy | On submit: both selects `disabled`, submit `disabled aria-busy="true"` with the label swapped to **Confirming…**, held a minimum of 300ms so a fast response does not flicker. |
 | Success | Dialog closes, banner unmounts, `addToast('Academic status confirmed', 'success')`. |
@@ -293,7 +326,7 @@ Seven surfaces. Each names its trigger, placement, form, states and the decision
 | Header marker | `Badge tone="warn"` reading **Admin override**, pinned in the dialog header beside the title, so the admin can never mistake this for editing their own record. Below the title: `text-caption text-graytext-light` — **{Name} · {email}** |
 | Extra field | `Input` labelled **Reason (optional)**, single line. Optional by design — D-22 requires actor/target/old/new in the audit row; a mandatory reason field would be a gate the requirement does not ask for and would train admins to type "." |
 | Audit note | Always visible above the actions, `text-caption text-graytext-mid`: **Recorded in the audit log as an override by you. {Name} can still update this themselves.** This states the D-22 semantics — an override is a correction, not a lock. |
-| Actions | `Button variant="ghost"` **Cancel** + `Button` **Save override** — the verb names what gets written to the log. Not "Save". |
+| Actions | `Button variant="ghost"` **Cancel** + `Button` **Save override** — the verb names what gets written to the log. Not "Save". The dismiss stays bare **Cancel**: this dialog opens on `/admin/orgs`, which already renders four bare-`Cancel` dismiss buttons, and **Cancel override** would read as "revoke the existing override" — an action that writes. See `## Copywriting Contract → Reasoned exception`. |
 | Confirmation | Single step. No double confirm: nothing is destroyed, it is reversible by the user, and it is audited. |
 | After save | The user row gains `Badge tone="neutral"` reading **Overridden {formatDate(...)}**. Toast: **Academic status updated for {Name}**. |
 | Busy / failure | Identical to S5 (label → **Saving…**, inline red strip on failure, dialog stays open). |

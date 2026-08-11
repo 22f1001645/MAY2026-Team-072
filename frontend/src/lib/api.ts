@@ -1,20 +1,18 @@
 import type { EkatvaEvent } from './types'
 
 /* ---------------------------------------------------------------------------
- * API client — a thin fetch wrapper that adds the base URL + JWT, and parses
- * the backend's { error, code } envelope. Mirrors Milestone 2 §7 (src/lib).
+ * API client — Phase 2 (D-01, D-05, D-06, D-09).
+ *
+ * Access tokens live in memory only (never localStorage). The refresh token
+ * lives in an httpOnly cookie managed by the server. On every 401 response a
+ * single-flight refresh is attempted; if that also fails, the registered
+ * session-expiry callback fires (D-06).
  * ------------------------------------------------------------------------- */
 
-const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1'
-const TOKEN_KEY = 'ekatva_token'
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-export function setToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
-}
+// In-memory access token storage
+let _accessToken: string | null = null
 
 export class ApiError extends Error {
   code: string
@@ -28,17 +26,66 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// --------------------------------------------------------------------------- #
+// Single-flight refresh state (D-06)
+// --------------------------------------------------------------------------- #
+
+let _refreshPromise: Promise<void> | null = null
+let _onSessionExpired: (() => void) | null = null
+
+/** Register a callback invoked when a refresh attempt fails (e.g. redirect to /login). */
+export function setOnSessionExpired(cb: () => void) {
+  _onSessionExpired = cb
+}
+
+/** Obtain a new access token using the httpOnly refresh cookie. */
+async function _doRefresh() {
+  if (!_refreshPromise) {
+    _refreshPromise = (async () => {
+      try {
+        const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+        _accessToken = res.access_token
+      } finally {
+        _refreshPromise = null
+      }
+    })()
+  }
+  return _refreshPromise
+}
+
+// --------------------------------------------------------------------------- #
+// Core Request Pipeline
+// --------------------------------------------------------------------------- #
+
+async function _rawRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(
+    (options.method ?? 'GET').toUpperCase()
+  )
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(_accessToken ? { 'Authorization': `Bearer ${_accessToken}` } : {}),
     ...(options.headers as Record<string, string>),
   }
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
+  
+  // Double-submit CSRF for cookie-based auth (D-05)
+  if (isMutation) {
+    // Flask-JWT-Extended puts the CSRF token value in the access-token cookie's
+    // sibling csrf_refresh_token cookie — readable by JS since it is NOT httpOnly.
+    const csrfCookie = document.cookie
+      .split(';')
+      .find(c => c.trim().startsWith('csrf_refresh_token='))
+    if (csrfCookie) {
+      headers['X-CSRF-TOKEN'] = csrfCookie.split('=')[1]?.trim() ?? ''
+    }
+  }
 
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}`, { ...options, headers })
+    res = await fetch(`${BASE}${path}`, {
+      ...options,
+      headers,
+      credentials: 'include', // D-05: send cookies on every request
+    })
   } catch {
     throw new ApiError(
       'Cannot reach the Ekatva OS API. Is the backend running on :5000?',
@@ -57,10 +104,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T
 }
 
-/* -------------------------------- adapters ------------------------------- */
-// The backend returns snake_case; the pages render the camelCase shapes in
-// types.ts. Adapt once, here, so page code stays unchanged.
+/** Public fetch wrapper with single-flight 401 → refresh → retry (D-06). */
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  try {
+    return await _rawRequest<T>(path, options)
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401 && path !== '/auth/refresh') {
+      try {
+        await _doRefresh()
+        return await _rawRequest<T>(path, options) // retry once
+      } catch {
+        _onSessionExpired?.()
+        throw err // re-throw the original 401
+      }
+    }
+    throw err
+  }
+}
 
+/* -------------------------------- adapters ------------------------------- */
 const COVER_BY_SCALE: Record<string, string[]> = {
   regional_fest: ['fest'],
   regional_meetup: ['trek', 'studio'],
@@ -71,6 +133,12 @@ function coverFor(scale: string, seed: string): string {
   const h = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0)
   return opts[h % opts.length]
 }
+const TAGS_BY_SCALE: Record<string, string[]> = {
+  regional_fest: ['Fest'],
+  regional_meetup: ['Regional'],
+  local_meetup: ['Local'],
+}
+
 export interface ApiActivity {
   id: string
   title: string
@@ -87,7 +155,6 @@ export interface ApiActivity {
   organiser: string
   description?: string
   budget?: { id: string; label: string; planned: number; actual: number }[]
-  tags?: string[]
 }
 
 export function adaptEvent(a: ApiActivity): EkatvaEvent {
@@ -107,7 +174,7 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     attended: a.attended,
     cover: coverFor(a.scale, a.id),
     organiser: a.organiser,
-    tags: a.tags ?? [],
+    tags: TAGS_BY_SCALE[a.scale] ?? [],
     budget: (a.budget ?? []).map((b) => ({
       id: b.id,
       label: b.label,
@@ -120,18 +187,55 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
 
 /* -------------------------------- endpoints ------------------------------ */
 export const api = {
-  // Auth (module A)
-  login: (email: string, password: string) =>
-    request<{ access_token: string; user: any }>('/auth/login', {
+  // Auth (Phase 2 — cookie session)
+  login: async (email: string, password: string) => {
+    const res = await request<{ access_token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
-  register: (data: { name: string; email: string; password: string; region_id: string; city?: string }) =>
-    request<{ access_token: string; user: any }>('/auth/register', {
+    })
+    _accessToken = res.access_token
+    return res
+  },
+  register: async (data: { name: string; email: string; password: string; region_id: string; city?: string }) => {
+    const res = await request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    })
+    _accessToken = res.access_token
+    return res
+  },
   me: () => request<any>('/auth/me'),
+  /** Rotate the refresh cookie and obtain a new access token. */
+  refresh: async () => {
+    const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+    _accessToken = res.access_token
+    return res
+  },
+  /** Revoke this device's session and clear the cookie. */
+  logout: async () => {
+    const res = await request<{ message: string }>('/auth/logout', { method: 'POST' })
+    _accessToken = null
+    return res
+  },
+  /** User self-confirms their academic level + status (AUTH-04). */
+  confirmAcademicStatus: (academic_level: string, academic_status: string) =>
+    request<any>('/auth/academic-status', {
+      method: 'PATCH',
+      body: JSON.stringify({ academic_level, academic_status }),
+    }),
+  /** Admin override of a user's academic status (D-22). */
+  adminOverrideAcademicStatus: (
+    userId: string,
+    academic_level: string,
+    academic_status: string,
+    reason?: string,
+  ) =>
+    request<any>(`/admin/users/${userId}/academic-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ academic_level, academic_status, reason }),
+    }),
+    
+  porAudit: () => request<any[]>('/auth/por-audit'),
 
   // Community (A)
   cities: () => request<{ id: string; name: string; region_id: string | null; region: string | null }[]>('/cities'),
@@ -206,7 +310,12 @@ export const api = {
 
   // Analytics (H)
   analytics: () => request<any>('/analytics'),
+  organiserAnalytics: () => request<any>('/analytics/organisers'),
 
   // Dashboard (F)
   dashboard: () => request<any>('/dashboard'),
+  
+  // Settings (System)
+  adminSettingsPoints: () => request<any>('/admin/settings/points'),
+  adminUpdateSettingsPoints: (data: any) => request<any>('/admin/settings/points', { method: 'PUT', body: JSON.stringify(data) })
 }

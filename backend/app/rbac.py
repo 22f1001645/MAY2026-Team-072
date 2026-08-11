@@ -333,3 +333,54 @@ can_manage_activity_required = activity_scoped(can_manage_activity)
 can_participate_in_activity_required = activity_scoped(can_participate_in_activity)
 meetup_head_required = activity_scoped(is_meetup_head)
 can_manage_org_required = org_scoped(can_manage_org)
+
+
+def manageable_orgs(user: User) -> list:
+    if not user:
+        return []
+    if user.role == ROLE_ADMIN:
+        return Organisation.query.all()
+    org_ids = set()
+    for por in _active_pors(user):
+        if por.por_type in ORG_MANAGER_PORS:
+            org_ids.update(_por_org_ids(por))
+    if not org_ids:
+        return []
+    return Organisation.query.filter(Organisation.id.in_(org_ids)).all()
+
+
+def manageable_activities(user: User) -> list:
+    if not user:
+        return []
+    if user.role == ROLE_ADMIN:
+        return Activity.query.all()
+    
+    activity_ids = set()
+    
+    # 1. Activities where user is the organiser
+    for a in Activity.query.filter_by(organiser_id=user.id).all():
+        activity_ids.add(a.id)
+        
+    # 2. Activities where user is in the team
+    for c in ActivityTeamMember.query.filter_by(user_id=user.id).all():
+        activity_ids.add(c.activity_id)
+        
+    # 3. Activities through POR
+    org_ids = set()
+    for por in _active_pors(user):
+        if por.por_type in ORGANISER_PORS:
+            org_ids.update(_por_org_ids(por))
+            
+    if org_ids:
+        for a in Activity.query.filter(Activity.org_id.in_(org_ids)).all():
+            activity_ids.add(a.id)
+        for c in ActivityCollaborator.query.filter(
+            ActivityCollaborator.org_id.in_(org_ids),
+            (ActivityCollaborator.is_primary == True) | (ActivityCollaborator.status == COLLAB_ACCEPTED)
+        ).all():
+            activity_ids.add(c.activity_id)
+            
+    if not activity_ids:
+        return []
+    return Activity.query.filter(Activity.id.in_(activity_ids)).all()
+

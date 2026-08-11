@@ -15,6 +15,8 @@ from ..models import (
     PORAssignment,
     Proposal,
     Registration,
+    Term,
+    RefreshTokenBlocklist,
     User,
 )
 
@@ -230,6 +232,45 @@ class AuditRepository:
             actor_id=actor.id if actor else None,
             actor_name=actor.name if actor else "System",
             note=note,
+        )
+        db.session.add(entry)
+        return entry
+
+class TermRepository:
+    @staticmethod
+    def current_term():
+        return Term.query.filter_by(is_current=True).first()
+
+
+class BlocklistRepository:
+    @staticmethod
+    def family_revoked(family_id: str) -> bool:
+        if not family_id:
+            return False
+        # If any token in this family was revoked (e.g., reason="logout" or "reuse_detected" or "rotated"),
+        # Wait, the logic in auth_service is:
+        # If reuse is detected, we block the family. If logout, we block the family. 
+        # But normal rotation blocks with reason="rotated". So "rotated" does NOT revoke the family!
+        # Family is revoked if there's any block entry for this family with reason != "rotated".
+        token = RefreshTokenBlocklist.query.filter(
+            RefreshTokenBlocklist.family_id == family_id,
+            RefreshTokenBlocklist.reason != "rotated"
+        ).first()
+        return token is not None
+
+    @staticmethod
+    def by_jti(jti: str):
+        return RefreshTokenBlocklist.query.filter_by(jti=jti).first()
+
+    @staticmethod
+    def add_entry(jti: str, user_id: str, family_id: str, reason: str, expires_at: datetime):
+        entry = RefreshTokenBlocklist(
+            jti=jti,
+            user_id=user_id,
+            family_id=family_id,
+            reason=reason,
+            revoked_at=datetime.utcnow(),
+            expires_at=expires_at
         )
         db.session.add(entry)
         return entry

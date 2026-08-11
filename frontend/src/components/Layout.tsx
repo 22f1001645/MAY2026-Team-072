@@ -8,6 +8,8 @@ import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
 import { Mandala } from './ui'
 import NotificationsDropdown from './NotificationsDropdown'
+import ViewSwitcher from './ViewSwitcher'
+import AcademicStatusBanner from './AcademicStatusBanner'
 
 interface NavItem {
   to: string
@@ -35,7 +37,9 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/approvals', label: 'Approval Queue', icon: <Icon d="m9 11 3 3 8-8M4 12v6a2 2 0 0 0 2 2h12" /> },
     { to: '/admin/reimbursements', label: 'Reimbursements', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
     { to: '/admin/analytics', label: 'Community Analytics', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
+    { to: '/admin/organiser-analytics', label: 'Organiser Analytics', icon: <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" /> },
     { to: '/admin/orgs', label: 'Orgs, PORs & Cities', icon: <Icon d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" /> },
+    { to: '/admin/settings', label: 'System Settings', icon: <Icon d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /> },
   ],
 }
 
@@ -327,6 +331,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <ViewSwitcher />
             <span className="hidden text-caption text-graytext-mid sm:block">
               v1 · City-meetup lifecycle
             </span>
@@ -345,6 +350,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
+
+        <AcademicStatusBanner />
 
         <main className="relative flex-1 px-5 py-7 lg:px-8 lg:py-9">
           <div className="mx-auto max-w-6xl animate-fade-up">{children}</div>

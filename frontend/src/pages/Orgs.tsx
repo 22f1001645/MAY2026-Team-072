@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor } from '../lib/queries'
+import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor, useAdminOverrideAcademicStatus } from '../lib/queries'
 import { api } from '../lib/api'
-import { Badge, Button, Card, Input, SectionTitle, useToast } from '../components/ui'
+import { Badge, Button, Card, Input, SectionTitle, useToast, Dialog, Select } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
 import { IndiaMap } from '../components/IndiaMap'
@@ -52,7 +52,7 @@ const REGIONS = [
 ]
 
 export default function Orgs() {
-  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities'>('houses')
+  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities' | 'members'>('houses')
   const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
 
   const [userSearch, setUserSearch] = useState('')
@@ -61,6 +61,7 @@ export default function Orgs() {
   const { data: cities = [] } = useCities()
   const { data: pors = [] } = usePors()
   const { data: users = [] } = useUsers(userSearch.trim())
+  const { data: allUsers = [] } = useUsers() // for the members tab
   const { data: houses = [] } = useQuery({ queryKey: ['houses'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'house')) })
   const { data: regions = [] } = useQuery({ queryKey: ['regions'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'region')) })
 
@@ -106,6 +107,14 @@ export default function Orgs() {
   const [porRegionFilter, setPorRegionFilter] = useState('')
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
   const confirmPor = pors.find((p: any) => p.id === confirmDeactivateId)
+
+  // Members / Academic Status state
+  const [memberSearch, setMemberSearch] = useState('')
+  const [overrideUser, setOverrideUser] = useState<any>(null)
+  const [overrideLevel, setOverrideLevel] = useState('foundation')
+  const [overrideStatus, setOverrideStatus] = useState('active')
+  const [overrideReason, setOverrideReason] = useState('')
+  const overrideMutation = useAdminOverrideAcademicStatus()
 
   const qc = useQueryClient()
 
@@ -177,6 +186,7 @@ export default function Orgs() {
     ['orgs', `Societies & Councils (${filteredOrgs.length})`],
     ['cities', `Regions & Cities`],
     ['pors', `POR Directory (${pors.length})`],
+    ['members', `Members`],
   ] as const
 
   const selectedUserObj = users.find((u: any) => u.id === userId || u.email === userId)
@@ -460,6 +470,130 @@ export default function Orgs() {
           </div>
         </div>
       )}
+
+      {/* ---- MEMBERS TAB ---- */}
+      {tab === 'members' && (
+        <div>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <Input
+              placeholder="Search members by name or email…"
+              value={memberSearch}
+              onChange={e => setMemberSearch(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <Card className="overflow-hidden">
+            <table className="w-full text-[14px]">
+              <thead>
+                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
+                  <th className="px-5 py-3 text-left">Member</th>
+                  <th className="px-5 py-3 text-left">Email</th>
+                  <th className="px-5 py-3 text-left">Role</th>
+                  <th className="px-5 py-3 text-left">Academic Status</th>
+                  <th className="px-5 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allUsers
+                  .filter((u: any) => !memberSearch || u.name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
+                  .map((u: any) => (
+                    <tr key={u.id} className="border-b border-white/5 last:border-0">
+                      <td className="px-5 py-3.5 text-offwhite font-semibold">{u.name}</td>
+                      <td className="px-5 py-3.5 text-graytext-light">{u.email}</td>
+                      <td className="px-5 py-3.5 capitalize text-graytext-light">{u.role}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="text-offwhite capitalize">{u.academic_level || 'N/A'}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] text-graytext-mid capitalize">{u.academic_status || 'N/A'}</span>
+                          {u.academic_confirmed_at && (
+                            <Badge tone="neutral">
+                              Overridden {new Date(u.academic_confirmed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Button size="sm" variant="secondary" onClick={() => {
+                          setOverrideUser(u)
+                          setOverrideLevel(u.academic_level || 'foundation')
+                          setOverrideStatus(u.academic_status || 'active')
+                          setOverrideReason('')
+                        }}>
+                          Override Status
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {/* ---- ADMIN OVERRIDE MODAL ---- */}
+      <Dialog
+        open={!!overrideUser}
+        onClose={() => setOverrideUser(null)}
+        title="Override Academic Status"
+      >
+        {overrideUser && (
+          <>
+            <p className="mb-4 text-caption text-graytext-light">
+              Updating status for <strong className="text-offwhite">{overrideUser.name}</strong>. This action will be audited.
+            </p>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              overrideMutation.mutate({
+                userId: overrideUser.id,
+                academic_level: overrideLevel,
+                academic_status: overrideStatus,
+                reason: overrideReason
+              }, {
+                onSuccess: () => {
+                  setOverrideUser(null)
+                  addToast('Status overridden successfully.')
+                },
+                onError: (err: any) => addToast(err.message || 'Failed to override status', 'error')
+              })
+            }} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Level</label>
+                <Select
+                  value={overrideLevel}
+                  onChange={(e) => setOverrideLevel(e.target.value)}
+                  options={[
+                    { label: 'Foundation', value: 'foundation' },
+                    { label: 'Diploma', value: 'diploma' },
+                    { label: 'Degree', value: 'degree' }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Status</label>
+                <Select
+                  value={overrideStatus}
+                  onChange={(e) => setOverrideStatus(e.target.value)}
+                  options={[
+                    { label: 'Active', value: 'active' },
+                    { label: 'On Break', value: 'on_break' },
+                    { label: 'Withdrawn', value: 'withdrawn' }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Reason</label>
+                <Input placeholder="e.g. Student requested manual update" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} required />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setOverrideUser(null)}>Cancel</Button>
+                <Button type="submit" disabled={overrideMutation.isPending}>
+                  {overrideMutation.isPending ? 'Saving…' : 'Override Status'}
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
+      </Dialog>
 
       {/* ---- REGIONS & CITIES TAB ---- */}
       {tab === 'cities' && (

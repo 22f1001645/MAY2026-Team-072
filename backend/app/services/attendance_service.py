@@ -1,4 +1,4 @@
-from ..constants import POINTS
+from .settings_service import get_recognition_points
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Attendance, ContributionPoint, Notification
@@ -26,7 +26,7 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
                 user_id=reg.student_id,
                 activity_id=activity_id,
                 action="attended",
-                points=POINTS["attended"],
+                points=get_recognition_points()["attended"],
             )
         )
         db.session.add(
@@ -34,7 +34,7 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
                 user_id=reg.student_id,
                 activity_id=activity_id,
                 type="points",
-                title=f"You earned {POINTS['attended']} points",
+                title=f"You earned {get_recognition_points()['attended']} points",
                 body=f"For attending '{activity.title}'.",
             )
         )
@@ -50,21 +50,22 @@ def award_volunteer_points(activity_id: str, user_id: str, role_name: str, organ
     if not activity:
         raise ApiError("Event not found", "event_not_found", 404)
 
-    point_entry = ContributionPoint(
-        user_id=user_id,
-        activity_id=activity_id,
-        action="volunteered",
-        points=POINTS["volunteered"],
+    db.session.add(
+        ContributionPoint(
+            user_id=user_id,
+            activity_id=activity_id,
+            action="volunteered",
+            points=get_recognition_points()["volunteered"],
+        )
     )
-    db.session.add(point_entry)
     db.session.add(
         Notification(
             user_id=user_id,
             activity_id=activity_id,
             type="points",
-            title=f"You earned {POINTS['volunteered']} volunteer points",
+            title=f"You earned {get_recognition_points()['volunteered']} volunteer points",
             body=f"For volunteering as {role_name} at '{activity.title}'.",
         )
     )
     db.session.commit()
-    return {"user_id": user_id, "action": "volunteered", "points": POINTS["volunteered"]}
+    return {"user_id": user_id, "action": "volunteered", "points": get_recognition_points()["volunteered"]}

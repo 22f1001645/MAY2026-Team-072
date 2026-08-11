@@ -25,3 +25,10 @@ def fee_utilisation():
             for c in data["by_city"]
         ]}
     ), 200
+
+
+@analytics_bp.get("/analytics/organisers")
+@admin_required
+def organisers_analytics():
+    return jsonify(analytics_service.organiser_analytics()), 200
+

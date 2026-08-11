@@ -4,13 +4,13 @@ from ..constants import (
     EVENT_UPCOMING,
     EVENT_CANCELLED,
     MEETUPS_PER_CITY_PER_MONTH,
-    POINTS,
     PROPOSAL_APPROVED,
     PROPOSAL_CHANGES,
     PROPOSAL_REJECTED,
     PROPOSAL_REVOKED,
     PROPOSAL_SUBMITTED,
 )
+from .settings_service import get_recognition_points
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Activity, BudgetLine, ContributionPoint, Notification, Proposal, Report
@@ -92,7 +92,7 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
                 user_id=activity.organiser_id,
                 activity_id=activity.id,
                 action="organised",
-                points=POINTS["organised"],
+                points=get_recognition_points()["organised"],
             )
         )
         _notify(activity.organiser_id, activity.id, "approval",

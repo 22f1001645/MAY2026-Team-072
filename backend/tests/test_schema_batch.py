@@ -25,12 +25,12 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-
+HEAD_REVISION = "6c8abb840122" # Phase 9 revision
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 2
+EXPECTED_REVISION_COUNT = 5
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {
@@ -88,7 +88,7 @@ def test_exactly_one_migration_head():
     heads = _script_directory().get_heads()
 
     assert len(heads) == 1, f"expected a single head, found: {heads}"
-    assert heads[0] == BATCH_REVISION
+    assert heads[0] == HEAD_REVISION
 
 
 def test_exactly_two_revisions():

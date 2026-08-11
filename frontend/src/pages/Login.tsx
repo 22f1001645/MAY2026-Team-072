@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { DEMO_ACCOUNTS, homeFor, useAuth } from '../lib/auth'
 import { Button } from '../components/ui'
 import { cx } from '../lib/format'
@@ -8,6 +8,11 @@ import AuthShell from './AuthShell'
 export default function Login() {
   const { login } = useAuth()
   const nav = useNavigate()
+  const location = useLocation()
+  
+  const searchParams = new URLSearchParams(location.search)
+  const isExpired = searchParams.get('expired') === '1'
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
@@ -49,6 +54,17 @@ export default function Login() {
       <p className="mt-1 text-body text-graytext-light">
         Sign in to your Ekatva OS dashboard.
       </p>
+
+      {isExpired && (
+        <div className="mt-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-200">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Your session expired. Please sign in again.
+        </div>
+      )}
 
       <form onSubmit={submit} className="mt-8 space-y-4">
         <Field label="Email">

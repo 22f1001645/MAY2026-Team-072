@@ -310,3 +310,78 @@ export function Mandala({ size = 28, className }: { size?: number; className?: s
     </svg>
   )
 }
+
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+  className
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  children: ReactNode
+  className?: string
+}) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-up">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className={cx("relative w-full max-w-md rounded-2xl border border-white/10 bg-onyx shadow-2xl overflow-hidden", className)}>
+        <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
+          <h2 className="text-[18px] font-bold text-offwhite">{title}</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 text-graytext-mid hover:bg-white/5 hover:text-offwhite transition">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 py-5">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+export function Select({
+  value,
+  onChange,
+  options,
+  className
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  options: { label: string; value: string }[]
+  className?: string
+}) {
+  return (
+    <div className={cx("relative", className)}>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full appearance-none rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 pr-10 text-[14px] text-offwhite focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-graytext-mid">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
+  )
+}

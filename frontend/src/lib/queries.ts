@@ -1,12 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './api'
 
 /* TanStack Query hooks — server cache, retries, and invalidation on mutation
  * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
 
 // ---- Queries ----
+export const useCapabilities = () =>
+  useQuery({ queryKey: ['me'], queryFn: () => api.me(), staleTime: 5 * 60 * 1000, select: (data) => data.capabilities })
+
 export const useEvents = (city?: string) =>
-  useQuery({ queryKey: ['events', city], queryFn: () => api.events(city) })
+  useQuery({ queryKey: ['events', city], queryFn: () => api.events(city), placeholderData: keepPreviousData })
 
 export const useEvent = (id?: string) =>
   useQuery({ queryKey: ['event', id], queryFn: () => api.event(id!), enabled: !!id })
@@ -27,7 +30,7 @@ export const useNotifications = () =>
   useQuery({ queryKey: ['notifications'], queryFn: api.notifications })
 
 export const useProposals = (status = 'pending') =>
-  useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status) })
+  useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
 
 export const useAudit = (id?: string) =>
   useQuery({ queryKey: ['audit', id], queryFn: () => api.audit(id!), enabled: !!id })
@@ -187,5 +190,26 @@ export const useDeactivatePor = () => {
   return useMutation({
     mutationFn: (porId: string) => api.deactivatePor(porId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pors'] }),
+  })
+}
+
+export const useConfirmAcademicStatus = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { academic_level: string; academic_status: string }) =>
+      api.confirmAcademicStatus(v.academic_level, v.academic_status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] })
+  })
+}
+
+export const useAdminOverrideAcademicStatus = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { userId: string; academic_level: string; academic_status: string; reason?: string }) =>
+      api.adminOverrideAcademicStatus(v.userId, v.academic_level, v.academic_status, v.reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['me'] })
+    }
   })
 }

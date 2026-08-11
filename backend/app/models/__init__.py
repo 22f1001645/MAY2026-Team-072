@@ -258,6 +258,27 @@ class PORAssignment(Base):
         }
 
 
+class Term(Base):
+    """An academic term (e.g. 'Jan 2026', 'May 2026').
+
+    Used for scoping PORs and triggering academic status re-confirmation."""
+    __tablename__ = "terms"
+
+    name = db.Column(db.String(40), nullable=False, unique=True)
+    start_date = db.Column(db.DateTime, nullable=False, index=True)
+    end_date = db.Column(db.DateTime, nullable=False, index=True)
+    is_current = db.Column(db.Boolean, nullable=False, default=False, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "start_date": _iso(self.start_date),
+            "end_date": _iso(self.end_date),
+            "is_current": self.is_current,
+        }
+
+
 # --------------------------------------------------------------------------- #
 # Module B/C — Events: activity, proposal, budget
 # --------------------------------------------------------------------------- #
@@ -1074,6 +1095,8 @@ class RefreshTokenBlocklist(Base):
 
     jti = db.Column(db.String(64), unique=True, nullable=False, index=True)
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True, index=True)
+    family_id = db.Column(db.String(32), nullable=True, index=True)
+    reason = db.Column(db.String(32), nullable=True)
     revoked_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
 
@@ -1149,4 +1172,24 @@ class ReimbursementRequest(Base):
             "submitted_by": self.submitted_by,
             "submitted_at": _iso(self.submitted_at),
             "note": self.note,
+        }
+
+
+# --------------------------------------------------------------------------- #
+# System Configuration (Phase 9)
+# --------------------------------------------------------------------------- #
+class SystemSetting(Base):
+    """Dynamic configuration (RECOG-01)."""
+
+    __tablename__ = "system_settings"
+
+    key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    value_json = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "key": self.key,
+            "value": self.value_json,
+            "updated_at": _iso(self.updated_at),
         }

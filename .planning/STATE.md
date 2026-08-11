@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 01
-current_phase_name: migration-authorization-foundation
-status: verifying
-stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-08-10T10:13:26.763Z"
-last_activity: 2026-08-05
-last_activity_desc: Phase 01 execution started
+current_phase: 02
+current_phase_name: identity-session-dashboard-shell
+status: completed
+stopped_at: Phase 2 implementation complete
+last_updated: "2026-08-11T22:30:00.000Z"
+last_activity: 2026-08-12
+last_activity_desc: Phase 02 implementation complete
 progress:
   total_phases: 8
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
-  percent: 13
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
+  percent: 25
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 01 — migration-authorization-foundation
+**Current focus:** Phase 02 — identity-session-dashboard-shell
 
 ## Current Position
 
-Phase: 01 (migration-authorization-foundation) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-08-05 — Phase 01 execution started
+Phase: 02 (identity-session-dashboard-shell) — COMPLETED
+Plan: 1 of 1
+Status: Phase complete — verified
+Last activity: 2026-08-12 — Phase 02 implementation complete
 
 Progress: [██████████] 100%
 
@@ -92,6 +92,10 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1] RBAC-02 is enforced by a test that walks app.url_map every run, with a six-entry frozen LEGACY_COARSE_ROUTES allowlist that never grows and a companion dead-entry test so the allowlist cannot rot into a blanket exemption.
 - [Phase ?]: [Phase 1] can_manage_activity reads BOTH activities.org_id and the activity_collaborators rows, because 01-02 made the collaborator table the source of truth while keeping org_id as a cache of the primary.
 - [Phase ?]: [Phase 1] The six pre-existing coarse routes were deliberately not retrofitted — a behaviour change with no Phase 1 requirement behind it; RBAC-02 governs endpoints added from this point onward.
+- [Phase 2]: Decoupled Auth tokens from database reads by extracting `TermRepository` and `BlocklistRepository`.
+- [Phase 2]: Added `is_current` to `Term` model and generated migration `17240eb59839` to track the current term.
+- [Phase 2]: Introduced dynamic RBAC predicates (`manageable_orgs`, `manageable_activities`) avoiding token bloat.
+- [Phase 2]: Handled role-based capability switching entirely in the frontend using `SessionProvider` and a UI `ViewSwitcher` without server-side token modification.
 
 ### Pending Todos
 
@@ -108,8 +112,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-10T10:13:26.662Z
-Stopped at: Phase 2 UI-SPEC approved
-Resume file: .planning/phases/02-identity-session-dashboard-shell/02-UI-SPEC.md
+Last session: 2026-08-12T04:02:00.000Z
+Stopped at: Phase 2 implementation complete
+Resume file: .planning/phases/03-core-activity-loop/03-UI-SPEC.md
 
-Next: `/gsd:plan-phase 1`
+Next: `/gsd:next`

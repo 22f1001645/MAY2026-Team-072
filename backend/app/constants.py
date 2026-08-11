@@ -17,6 +17,8 @@ ORGANISER_PORS = {
     "Event Lead",
     "Technical Secretary",
     "Web Admin",
+    "Society Deputy Secretary",
+    "Coordinator",
 }
 
 # --- POR types that grant authority over an Organisation itself (RBAC-01) ---
@@ -40,6 +42,8 @@ ORG_MANAGER_PORS = {
     "Society Secretary",
     "Technical Secretary",
     "Web Admin",
+    "Society Deputy Secretary",
+    "Coordinator",
 }
 
 # --- Organisation types ---

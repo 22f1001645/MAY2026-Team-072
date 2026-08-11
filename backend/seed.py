@@ -54,7 +54,9 @@ from app.models import (
     PORAssignment,
     Proposal,
     Registration,
+    Term,
     User,
+    SystemSetting,
 )
 
 TERM = "May 2026"
@@ -205,8 +207,16 @@ def seed_reference_data():
 
     Must be called inside an application context.
     """
-    created = {"houses": 0, "regions": 0, "cities": 0}
-    existing = {"houses": 0, "regions": 0, "cities": 0}
+    created = {"houses": 0, "regions": 0, "cities": 0, "terms": 0}
+    existing = {"houses": 0, "regions": 0, "cities": 0, "terms": 0}
+
+    # --- Terms ---
+    found_term = Term.query.filter_by(name=TERM).first()
+    if found_term is None:
+        db.session.add(Term(name=TERM, start_date=datetime(2026, 5, 1).date(), end_date=datetime(2026, 8, 31).date(), is_current=True))
+        created["terms"] += 1
+    else:
+        existing["terms"] += 1
 
     # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
     for name in HOUSES:
@@ -234,13 +244,19 @@ def seed_reference_data():
             else:
                 existing["cities"] += 1
 
+    # --- System Settings (Phase 9) ---
+    setting = SystemSetting.query.filter_by(key="recognition_points").first()
+    if setting is None:
+        db.session.add(SystemSetting(key="recognition_points", value_json={"attended": 30, "organised": 50, "volunteered": 20}))
+    
     db.session.commit()
 
     print(
         "Reference data: "
         f"houses +{created['houses']} ({existing['houses']} already present), "
         f"regions +{created['regions']} ({existing['regions']} already present), "
-        f"cities +{created['cities']} ({existing['cities']} already present)"
+        f"cities +{created['cities']} ({existing['cities']} already present), "
+        f"terms +{created['terms']} ({existing['terms']} already present)"
     )
     return {"created": created, "existing": existing}
 

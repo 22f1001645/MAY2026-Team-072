@@ -44,9 +44,11 @@ export function formatTime(iso: string) {
 }
 
 export function daysUntil(iso: string) {
-  const now = new Date('2026-07-23')
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
   const d = new Date(iso)
-  const diff = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  d.setHours(0, 0, 0, 0)
+  const diff = Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   if (diff < 0) return 'Past'
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Tomorrow'
@@ -55,4 +57,29 @@ export function daysUntil(iso: string) {
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
+}
+
+export function googleCalendarLink(event: { title: string; startsAt: string; venue: string; description?: string }) {
+  const start = new Date(event.startsAt)
+  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000)
+
+  const formatGCalDate = (d: Date) => d.toISOString().replace(/-|:|\.\d+/g, '')
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${formatGCalDate(start)}/${formatGCalDate(end)}`,
+    details: event.description || '',
+    location: event.venue,
+  })
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+export function googleCalendarDayLink(startsAt: string) {
+  const date = new Date(startsAt)
+  const yyyy = date.getFullYear()
+  const mm = date.getMonth() + 1
+  const dd = date.getDate()
+  return `https://calendar.google.com/calendar/u/0/r/day/${yyyy}/${mm}/${dd}`
 }

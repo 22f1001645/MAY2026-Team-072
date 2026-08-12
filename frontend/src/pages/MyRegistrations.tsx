@@ -2,22 +2,44 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeCanvas } from 'qrcode.react'
 import { useMyPoints, useMyRegistrations } from '../lib/queries'
-import { Badge, Button, Card, SectionTitle, StatCard, Input } from '../components/ui'
+import { Badge, Button, Card, SectionTitle, StatCard, Input, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
-import { coverForScale, daysUntil, formatDate, formatTime, cx } from '../lib/format'
+import { coverForScale, daysUntil, formatDate, formatTime, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import { useSession } from '../lib/session'
+import { useAuth } from '../lib/auth'
 import EventAnnouncementsModal from '../components/EventAnnouncementsModal'
 
 export default function MyRegistrations() {
   const { data: regs = [], isLoading, isError, error } = useMyRegistrations()
   const { data: points } = useMyPoints()
   const { name: userName } = useSession()
+  const { currentUser } = useAuth()
+  const { addToast } = useToast()
 
   const [q, setQ] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'waitlisted'>('all')
   const [timelineFilter, setTimelineFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
   const [activeChatEventId, setActiveChatEventId] = useState<string | null>(null)
+  const [, forceCalendarRerender] = useState(0)
+
+  const addToCalendar = (a: { id: string; title: string; starts_at: string; venue: string }) => {
+    const isAdded = localStorage.getItem('cal_' + a.id) === '1'
+    const url = isAdded
+      ? googleCalendarDayLink(a.starts_at)
+      : googleCalendarLink({ title: a.title, startsAt: a.starts_at, venue: a.venue })
+    window.open(url, '_blank', 'noopener,noreferrer')
+    if (!isAdded) {
+      localStorage.setItem('cal_' + a.id, '1')
+      forceCalendarRerender((t) => t + 1)
+    }
+  }
+
+  const copyInviteLink = (activityId: string) => {
+    const inviteUrl = `${window.location.origin}/events/${activityId}?ref=${currentUser?.id ?? ''}`
+    navigator.clipboard.writeText(inviteUrl)
+    addToast('Invite link copied! Earn points for every friend who registers.')
+  }
 
   const upcoming = regs.filter((r: any) => r.activity?.status === 'upcoming')
   const attended = regs.filter((r: any) => r.attended).length
@@ -185,6 +207,19 @@ export default function MyRegistrations() {
                     </div>
                     {a.status === 'upcoming' && !isWaitlisted && (
                       <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={localStorage.getItem('cal_' + a.id) === '1' ? 'Added to calendar' : 'Add to calendar'}
+                          onClick={() => addToCalendar(a)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                          </svg>
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => setActiveChatEventId(a.id)}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -236,6 +271,17 @@ export default function MyRegistrations() {
               <p className="mt-4 text-[11px] uppercase tracking-widest text-teal">
                 Scan at entry
               </p>
+
+              {selectedTicket.activity?.status === 'upcoming' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-4 w-full text-gold hover:text-gold border border-gold/20 hover:bg-gold/10"
+                  onClick={() => copyInviteLink(selectedTicket.activity.id)}
+                >
+                  Share invite link
+                </Button>
+              )}
 
               <div className="mt-6 flex flex-col gap-2 rounded-xl bg-white/[0.03] p-4 text-[13px] text-graytext-light border border-white/5">
                 <div className="flex justify-between">

@@ -1,20 +1,25 @@
+import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useEvent, useMyRegistrations, useRegister, useUnregister } from '../lib/queries'
 import { useSession } from '../lib/session'
-import { Badge, Button, Card, Progress } from '../components/ui'
+import { useAuth } from '../lib/auth'
+import { Badge, Button, Card, Progress, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
-import { cover, daysUntil, formatDate, formatTime, scaleLabel } from '../lib/format'
+import { cover, daysUntil, formatDate, formatTime, scaleLabel, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 
 export default function EventDetail() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const refId = searchParams.get('ref') ?? undefined
   const { role } = useSession()
+  const { currentUser } = useAuth()
+  const { addToast } = useToast()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: myRegs = [] } = useMyRegistrations()
   const registerMut = useRegister()
   const unregisterMut = useUnregister()
+  const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
@@ -154,14 +159,49 @@ export default function EventDetail() {
                         : 'A confirmation and reminders will reach you. See you there.'}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    className="mt-3 w-full"
-                    disabled={unregisterMut.isPending}
-                    onClick={() => unregisterMut.mutate(e.id)}
-                  >
-                    {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
-                  </Button>
+                  {!isWaitlisted && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-4 w-full text-gold hover:text-gold border border-gold/20 hover:bg-gold/10"
+                      onClick={() => {
+                        const inviteUrl = `${window.location.origin}/events/${e.id}?ref=${currentUser?.id ?? ''}`
+                        navigator.clipboard.writeText(inviteUrl)
+                        addToast('Invite link copied! Earn points for every friend who registers.')
+                      }}
+                    >
+                      Share invite link
+                    </Button>
+                  )}
+
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      disabled={unregisterMut.isPending}
+                      onClick={() => unregisterMut.mutate(e.id)}
+                    >
+                      {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
+                    </Button>
+                    {!isWaitlisted && (
+                      <a
+                        href={addedToCalendar ? googleCalendarDayLink(e.startsAt) : googleCalendarLink({ title: e.title, startsAt: e.startsAt, venue: e.venue, description: e.description })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                        onClick={() => {
+                          if (!addedToCalendar) {
+                            localStorage.setItem('cal_' + e.id, '1')
+                            setAddedToCalendar(true)
+                          }
+                        }}
+                      >
+                        <Button variant="ghost" className="w-full">
+                          {addedToCalendar ? 'View in calendar' : 'Add to calendar'}
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="mt-5">

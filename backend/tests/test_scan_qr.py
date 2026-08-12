@@ -1,5 +1,9 @@
 from app.extensions import db
-from app.models import Attendance, ContributionPoint, Registration
+from app.models import Attendance, ContributionPoint, Registration, User
+
+
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
 
 
 def _setup_approved_event(client, rc_headers, admin_headers, org_id, starts_at="2026-08-15T10:00:00"):
@@ -13,6 +17,8 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id, starts_at="
         "capacity": 50,
         "description": "Testing QR scan check-in",
         "budget": [{"label": "Snacks", "planned": 500}],
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
     res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
     assert res.status_code == 201

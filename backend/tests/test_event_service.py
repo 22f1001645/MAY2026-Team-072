@@ -1,4 +1,8 @@
-from app.models import Activity, AuditLog, Notification
+from app.models import Activity, AuditLog, Notification, User
+
+
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
 
 
 def _setup_approved_event(client, rc_headers, admin_headers, org_id):
@@ -12,6 +16,8 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id):
         "capacity": 50,
         "description": "Testing event edit/cancel",
         "budget": [{"label": "Snacks", "planned": 500}],
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
     res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
     assert res.status_code == 201

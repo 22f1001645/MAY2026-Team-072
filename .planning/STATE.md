@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 4
 current_phase_name: Organisation Profile & Brand Kit
 status: complete
-stopped_at: Phase 3 complete (03-01 through 03-04 implemented, summaries written)
-last_updated: "2026-08-12T17:06:00.000Z"
-last_activity: 2026-08-12
-last_activity_desc: Phase 03 complete — 4 plans executed, all tests passing, Phase 4 is next
+stopped_at: Phase 3 code-complete (34/34 automated tests green, all 8 requirements validated) and UI-SPEC retro-documented + approved; manual UAT 3/12 done, 9/12 pending — Phase 4 next
+last_updated: "2026-08-13T00:00:00.000Z"
+last_activity: 2026-08-13
+last_activity_desc: Phase 03 merged from phase3-uat (4 plans executed, all tests passing) and UI-SPEC written+approved; manual UAT still open
 progress:
   total_phases: 8
   completed_phases: 3
@@ -17,7 +17,6 @@ progress:
   percent: 37
 ---
 
-
 # Project State
 
 ## Project Reference
@@ -25,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 02 — identity-session-dashboard-shell
+**Current focus:** Phase 04 — Organisation Profile & Brand Kit (Phase 3 code-complete on `phase3-uat`, merged to `main`; manual UAT 3/12 done, 9/12 pending)
 
 ## Current Position
 
-Phase: 3 — Proposal Collaboration, Team Roster & Budget Guardrails
+Phase: 4 — Organisation Profile & Brand Kit
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-12 — Phase 02 complete, transitioned to Phase 3
+Last activity: 2026-08-13 — Phase 3 merged from `phase3-uat` (Kavya Jain): 4 plans executed, 34/34 automated tests green, all 8 requirements validated, UI-SPEC written and approved. Manual UAT still open (9/12 pending) — see Pending Todos.
 
 Progress: [██████████] 100%
 
@@ -49,6 +48,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 02 | 7 | - | - |
+| 03 | 4 | - | - |
 
 **Recent Trend:**
 
@@ -72,6 +72,10 @@ Progress: [██████████] 100%
 | Phase 02 P04 | 30min | 3 tasks | 6 files |
 | Phase 02 P07 | 47min | 4 tasks | 7 files |
 | Phase 02 P05 | 52min | 3 tasks | 6 files |
+| Phase 03 P01 | — | — | — |
+| Phase 03 P02 | — | — | — |
+| Phase 03 P03 | — | — | — |
+| Phase 03 P04 | — | — | — |
 
 ## Accumulated Context
 
@@ -125,7 +129,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+- **Phase 3 manual UAT incomplete** — `03-UAT.md` frontmatter still `status: in-progress`, sign-off checkboxes unchecked. 3/12 manual cases done (M-01, M-02, M-05); 9 pending (M-03, M-04, M-06 through M-12) — mostly EventDetail collaborator respond UI, ApprovalQueue admin roster/collab display, and Meetup Head reassignment, none of which have been clicked through in a browser yet. Automated coverage (34/34 tests, all 8 requirements) is green regardless.
+- **No `03-VERIFICATION.md`** — Phase 1 and Phase 2 both have one; Phase 3 does not. Worth writing once manual UAT closes out, for parity with the other phases.
 
 ### Blockers/Concerns
 
@@ -139,8 +144,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-12T13:43:58.545Z
-Stopped at: Completed 02-05-PLAN.md
-Resume file: None
+Last session: 2026-08-13T00:00:00.000Z
+Stopped at: Reconciled STATE.md/ROADMAP.md against the `phase3-uat` merge (Kavya Jain) — Phase 3 is code-complete and UI-SPEC-approved; manual UAT is the one open item (9/12 pending, see Pending Todos)
+Resume file: .planning/phases/03-proposal-collaboration-team-roster-budget-guardrails/03-UAT.md
 
-Next: `/gsd:next`
+Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

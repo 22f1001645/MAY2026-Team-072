@@ -14,7 +14,7 @@ Ekatva OS already ships the city-meetup spine: propose → admin approval → au
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Migration & Authorization Foundation** - Schema becomes changeable without data loss, and authorization becomes activity/org-scoped
-- [ ] **Phase 2: Identity, Session & Dashboard Shell** - Sessions persist, organiser status comes from the server, and POR holders can switch views (code review 2026-08-12: view-switcher fails success criterion 4, zero test coverage, scope creep — not done)
+- [x] **Phase 2: Identity, Session & Dashboard Shell** - Sessions persist, organiser status comes from the server, and POR holders can switch views (completed 2026-08-12, see 02-VERIFICATION.md)
 - [ ] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget
 - [ ] **Phase 4: Organisation Profile & Brand Kit** - Every org type gets an editable identity and a brand kit that drives campaigns
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
@@ -208,7 +208,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
-| 2. Identity, Session & Dashboard Shell | 7/7 | In Progress|  |
+| 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
 | 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |

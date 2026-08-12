@@ -75,7 +75,7 @@ Plans:
   4. A POR holder can switch between Student and Organiser views from the nav, the choice survives a reload and lands on that view's home route; a single-role student sees no switcher at all, and the choice changes zero authorization outcomes.
   5. A user can declare and later re-confirm their academic level and status (and an admin can override it) with no effect on login or session behaviour.
 
-**Plans**: 2/7 plans executed
+**Plans**: 3/7 plans executed
 
 > **Gap-closure phase.** Phase 2 code was written and merged (commits `54ea81a`, `f2c127e`) without ever going through plan/execute, so no PLAN, VERIFICATION or UAT existed. A source and runtime audit on 2026-08-12 found `/auth/refresh` and `/auth/logout` returning **HTTP 500 on every call** (`BlocklistRepository.is_jti_blocked` is referenced but never defined), the admin academic-status endpoint unroutable (its blueprint was never registered) and crashing on a nonexistent `AuditLog` column, the view switcher failing every clause of success criterion 4, and zero automated tests for all five requirements. These plans close those gaps. Work already verified correct — the Phase 2 migration, the JWT cookie config, and the AUTH-03 POR constants — is covered by tests, not rebuilt.
 >
@@ -89,7 +89,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 02-03-PLAN.md — AUTH-01 hardening: reuse detection, the 10s multi-tab grace window, CSRF, loader efficiency, session fixation (AUTH-01)
+- [x] 02-03-PLAN.md — AUTH-01 hardening: reuse detection, the 10s multi-tab grace window, CSRF, loader efficiency, session fixation (AUTH-01)
 - [ ] 02-06-PLAN.md — Frontend contract: snake_case→camelCase adapted once in api.ts, session expiry via router state, single-flight tests (AUTH-01, AUTH-02)
 
 **Wave 3** *(blocked on Wave 2)*
@@ -208,7 +208,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
-| 2. Identity, Session & Dashboard Shell | 2/7 | In Progress|  |
+| 2. Identity, Session & Dashboard Shell | 3/7 | In Progress|  |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
 | 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |

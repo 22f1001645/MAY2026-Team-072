@@ -5,7 +5,7 @@ from ..models import Notification, Registration, Announcement
 from ..repositories.repos import ActivityRepository, RegistrationRepository
 
 
-def register(activity_id: str, student) -> Registration:
+def register(activity_id: str, student, referred_by_id: str = None) -> Registration:
     activity = ActivityRepository.by_id(activity_id)
     if not activity or not activity.proposal or activity.proposal.status != PROPOSAL_APPROVED:
         raise ApiError("Event not found or not published", "event_not_found", 404)
@@ -18,7 +18,7 @@ def register(activity_id: str, student) -> Registration:
     is_waitlisted = activity.registered_count() >= activity.capacity
     reg_status = "waitlisted" if is_waitlisted else "confirmed"
 
-    reg = Registration(activity_id=activity_id, student_id=student.id, status=reg_status)
+    reg = Registration(activity_id=activity_id, student_id=student.id, status=reg_status, referred_by_id=referred_by_id)
     db.session.add(reg)
 
     if is_waitlisted:

@@ -320,7 +320,11 @@ export const api = {
   event: (id: string) => request<ApiActivity>(`/events/${id}`).then(adaptEvent),
 
   // Registration / attendance (D)
-  joinEvent: (id: string) => request(`/events/${id}/register`, { method: 'POST' }),
+  joinEvent: (id: string, referredBy?: string) =>
+    request(`/events/${id}/register`, {
+      method: 'POST',
+      body: JSON.stringify({ referred_by: referredBy }),
+    }),
   leaveEvent: (id: string) => request(`/events/${id}/register`, { method: 'DELETE' }),
   myRegistrations: () => request<any[]>('/me/registrations'),
   roster: (id: string) => request<any[]>(`/events/${id}/registrations`),

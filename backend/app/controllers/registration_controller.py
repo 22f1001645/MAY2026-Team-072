@@ -11,7 +11,8 @@ registration_bp = Blueprint("registration", __name__, url_prefix="/api/v1")
 @auth_required
 def register(activity_id):
     """FR-D1 — student registers; headcount recorded."""
-    reg = registration_service.register(activity_id, g.current_user)
+    data = request.get_json(silent=True) or {}
+    reg = registration_service.register(activity_id, g.current_user, data.get("referred_by"))
     return jsonify(reg.to_dict()), 201
 
 

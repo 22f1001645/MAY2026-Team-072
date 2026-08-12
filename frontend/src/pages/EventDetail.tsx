@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useEvent, useMyRegistrations, useRegister, useUnregister } from '../lib/queries'
 import { useSession } from '../lib/session'
@@ -8,6 +8,8 @@ import { cover, daysUntil, formatDate, formatTime, scaleLabel } from '../lib/for
 
 export default function EventDetail() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
+  const refId = searchParams.get('ref') ?? undefined
   const { role } = useSession()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: myRegs = [] } = useMyRegistrations()
@@ -41,6 +43,12 @@ export default function EventDetail() {
       >
         ← Discovery feed
       </Link>
+
+      {refId && !registered && (
+        <div className="mb-5 rounded-xl2 border border-teal/30 bg-teal/10 px-4 py-3 text-[13px] text-teal">
+          You were invited by a friend — register to join them.
+        </div>
+      )}
 
       {/* Cover */}
       <div
@@ -161,7 +169,7 @@ export default function EventDetail() {
                     className="w-full"
                     size="lg"
                     disabled={registerMut.isPending}
-                    onClick={() => registerMut.mutate(e.id)}
+                    onClick={() => registerMut.mutate({ id: e.id, referredBy: refId })}
                   >
                     {registerMut.isPending
                       ? 'Processing…'

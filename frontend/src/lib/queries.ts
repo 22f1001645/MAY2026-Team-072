@@ -76,8 +76,8 @@ export const useUsers = (q?: string) =>
 export const useRegister = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.joinEvent(id),
-    onSuccess: (_d, id) => {
+    mutationFn: (v: { id: string; referredBy?: string }) => api.joinEvent(v.id, v.referredBy),
+    onSuccess: (_d, { id }) => {
       qc.invalidateQueries({ queryKey: ['event', id] })
       qc.invalidateQueries({ queryKey: ['events'] })
       qc.invalidateQueries({ queryKey: ['my-registrations'] })

@@ -13,7 +13,7 @@ export default function ManageEvent() {
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: roster = [] } = useRoster(id)
   const [tasks, setTasks] = useState(TASKS) // v1 tasks are thin — local, not persisted
-  const [tab, setTab] = useState<'roster' | 'tasks'>('roster')
+  const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks'>('roster')
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
 
   if (isLoading) return <Loading label="Loading event…" />
@@ -22,6 +22,12 @@ export default function ManageEvent() {
 
   const toggle = (tid: string) =>
     setTasks(tasks.map((t) => (t.id === tid ? { ...t, done: !t.done } : t)))
+
+  const referrersMap = roster.reduce((acc: Record<string, number>, r: any) => {
+    if (r.referrer) acc[r.referrer] = (acc[r.referrer] || 0) + 1
+    return acc
+  }, {})
+  const topReferrers = Object.entries(referrersMap).sort((a: any, b: any) => b[1] - a[1])
 
   return (
     <div>
@@ -75,7 +81,7 @@ export default function ManageEvent() {
 
       {/* Tabs */}
       <div className="mb-5 flex gap-2 border-b border-white/8">
-        {(['roster', 'tasks'] as const).map((t) => (
+        {(['roster', 'referrers', 'tasks'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -84,7 +90,11 @@ export default function ManageEvent() {
               tab === t ? 'text-teal' : 'text-graytext-mid hover:text-offwhite',
             )}
           >
-            {t === 'roster' ? `Registration list (${roster.length})` : 'Team tasks'}
+            {t === 'roster'
+              ? `Registration list (${roster.length})`
+              : t === 'referrers'
+                ? 'Top Referrers'
+                : 'Team tasks'}
             {tab === t && (
               <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-teal" />
             )}
@@ -125,6 +135,33 @@ export default function ManageEvent() {
                       ) : (
                         <Badge tone="neutral">Registered</Badge>
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      ) : tab === 'referrers' ? (
+        <Card className="overflow-hidden">
+          {topReferrers.length === 0 ? (
+            <div className="p-10 text-center text-graytext-light">
+              No referrals yet. Share invite links to get started!
+            </div>
+          ) : (
+            <table className="w-full text-[14px]">
+              <thead>
+                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
+                  <th className="px-5 py-3 text-left">Referrer</th>
+                  <th className="px-5 py-3 text-right">Referrals</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topReferrers.map(([name, count]: any) => (
+                  <tr key={name} className="border-b border-white/5 last:border-0">
+                    <td className="px-5 py-3 text-offwhite">{name}</td>
+                    <td className="px-5 py-3 text-right">
+                      <Badge tone="teal">{count} Referred</Badge>
                     </td>
                   </tr>
                 ))}

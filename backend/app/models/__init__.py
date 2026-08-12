@@ -75,7 +75,7 @@ class User(Base):
     academic_confirmed_at = db.Column(db.DateTime, nullable=True)
 
     memberships = db.relationship("Membership", back_populates="user", cascade="all, delete-orphan")
-    registrations = db.relationship("Registration", back_populates="student")
+    registrations = db.relationship("Registration", back_populates="student", foreign_keys="Registration.student_id")
     region = db.relationship("Organisation", foreign_keys=[region_id])
 
     def to_dict(self):
@@ -718,9 +718,11 @@ class Registration(Base):
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     status = db.Column(db.String(20), default="confirmed")  # confirmed|waitlisted
+    referred_by_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
 
     activity = db.relationship("Activity", back_populates="registrations")
-    student = db.relationship("User", back_populates="registrations")
+    student = db.relationship("User", back_populates="registrations", foreign_keys=[student_id])
+    referred_by = db.relationship("User", foreign_keys=[referred_by_id])
     attendance = db.relationship("Attendance", back_populates="registration", uselist=False, cascade="all, delete-orphan")
 
     def to_dict(self):
@@ -731,6 +733,8 @@ class Registration(Base):
             "student_id": self.student_id,
             "student": self.student.name if self.student else None,
             "status": self.status,
+            "referred_by_id": self.referred_by_id,
+            "referrer": self.referred_by.name if self.referred_by else None,
             "attended": self.attendance is not None,
             # Embedded activity summary so the student's list renders without a join
             "activity": {

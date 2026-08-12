@@ -5,10 +5,13 @@ Every assertion here rides the cookie-borne refresh flow, so these tests use the
 refresh token never travels in a header by design (D-05)."""
 from datetime import timedelta
 
+import pytest
 from flask_jwt_extended import create_access_token, decode_token
 
 from app.extensions import db
 from app.models import RefreshTokenBlocklist
+
+from .conftest import CookieClient
 
 STUDENT = ("arav@ekatva.os", "student123")
 
@@ -117,4 +120,66 @@ def test_refresh_rotation_blocklists_old_jti_and_returns_a_different_token(
     assert new_claims["fam"] == old_claims["fam"], (
         "rotation minted a new family id — reuse detection in 02-03 depends on "
         "the family being carried forward unchanged"
+    )
+
+
+def test_logout_clears_cookies_and_revokes_only_this_family(cookie_client, app):
+    """D-04: logout ends the session on this device and no other. The second
+    client is a second device — separate clients have separate cookie jars."""
+    assert cookie_client.login_as(*STUDENT).status_code == 200
+    device_cookie = cookie_client.refresh_cookie
+
+    other_device = CookieClient(app.test_client())
+    assert other_device.login_as(*STUDENT).status_code == 200
+
+    res = cookie_client.post_logout()
+
+    assert res.status_code == 200, res.get_data(as_text=True)
+    for name in ("refresh_token_cookie", "csrf_refresh_token"):
+        header = _set_cookie_header(res, name)
+        assert header is not None, f"logout did not clear {name}"
+        assert header.startswith(f"{name}=;"), f"{name} was not cleared: {header}"
+
+    with app.app_context():
+        family_id = decode_token(device_cookie)["fam"]
+        row = (
+            db.session.query(RefreshTokenBlocklist)
+            .filter_by(family_id=family_id, reason="logout")
+            .first()
+        )
+    assert row is not None, "logout wrote no revocation row for this family"
+
+    # The other device was never told to log out, so its session survives.
+    assert other_device.post_refresh().status_code == 200, (
+        "logging out on one device revoked another device's session — D-04 says "
+        "logout is device scoped"
+    )
+
+
+@pytest.mark.parametrize("endpoint", ["/api/v1/auth/refresh", "/api/v1/auth/logout"])
+@pytest.mark.parametrize("cookie_state", ["absent", "valid", "garbage"])
+def test_auth_cookie_endpoints_never_return_500(app, endpoint, cookie_state):
+    """The permanent guard against the class of defect this plan fixed: a missing
+    repository method turned every call to both endpoints into an unhandled 500,
+    denying all sessions (T-02-15).
+
+    Exact per-state codes are deliberately not pinned — the point is the absence
+    of an unhandled exception, and pinning codes would make this brittle against
+    the CSRF and reuse work landing in 02-03."""
+    client = CookieClient(app.test_client())
+
+    if cookie_state != "absent":
+        assert client.login_as(*STUDENT).status_code == 200
+    if cookie_state == "garbage":
+        client.set_cookie("refresh_token_cookie", "not-a-jwt-at-all")
+
+    res = client.post(endpoint, headers=client.csrf_headers())
+
+    assert res.status_code != 500, (
+        f"{endpoint} raised an unhandled exception with a {cookie_state} cookie: "
+        f"{res.get_data(as_text=True)}"
+    )
+    assert res.status_code in {200, 401, 422}, (
+        f"{endpoint} with a {cookie_state} cookie returned an undocumented "
+        f"{res.status_code}: {res.get_data(as_text=True)}"
     )

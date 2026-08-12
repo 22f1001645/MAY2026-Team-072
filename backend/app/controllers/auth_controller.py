@@ -46,8 +46,10 @@ def refresh():
 
 
 @auth_bp.post("/logout")
-@jwt_required(refresh=True, verify_type=False)
+@jwt_required(refresh=True, locations=["cookies"])
 def logout():
+    # No skip_revocation_check here: revoking an already revoked token is
+    # correctly a 401, so letting the loader deny it is the wanted behaviour.
     jwt_payload = get_jwt()
     auth_service.logout(jwt_payload)
     resp = jsonify({"message": "Successfully logged out"})

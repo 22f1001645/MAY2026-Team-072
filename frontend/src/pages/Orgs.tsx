@@ -545,8 +545,8 @@ export default function Orgs() {
               e.preventDefault()
               overrideMutation.mutate({
                 userId: overrideUser.id,
-                academic_level: overrideLevel,
-                academic_status: overrideStatus,
+                academicLevel: overrideLevel,
+                academicStatus: overrideStatus,
                 reason: overrideReason
               }, {
                 onSuccess: () => {

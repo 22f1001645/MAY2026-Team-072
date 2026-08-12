@@ -196,8 +196,8 @@ export const useDeactivatePor = () => {
 export const useConfirmAcademicStatus = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { academic_level: string; academic_status: string }) =>
-      api.confirmAcademicStatus(v.academic_level, v.academic_status),
+    mutationFn: (v: { academicLevel: string; academicStatus: string }) =>
+      api.confirmAcademicStatus(v.academicLevel, v.academicStatus),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] })
   })
 }
@@ -205,8 +205,8 @@ export const useConfirmAcademicStatus = () => {
 export const useAdminOverrideAcademicStatus = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { userId: string; academic_level: string; academic_status: string; reason?: string }) =>
-      api.adminOverrideAcademicStatus(v.userId, v.academic_level, v.academic_status, v.reason),
+    mutationFn: (v: { userId: string; academicLevel: string; academicStatus: string; reason?: string }) =>
+      api.adminOverrideAcademicStatus(v.userId, v.academicLevel, v.academicStatus, v.reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] })
       qc.invalidateQueries({ queryKey: ['me'] })

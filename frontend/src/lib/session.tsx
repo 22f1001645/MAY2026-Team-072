@@ -11,7 +11,7 @@ const Ctx = createContext<SessionCtx | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const { currentUser, capabilities } = useAuth()
-  const defaultRole: Role = currentUser?.role === 'admin' ? 'admin' : (capabilities?.is_organiser ? 'organiser' : 'student')
+  const defaultRole: Role = currentUser?.role === 'admin' ? 'admin' : (capabilities?.isOrganiser ? 'organiser' : 'student')
   const [viewRole, setViewRole] = useState<Role | null>(null)
 
   // Reset view role if user changes

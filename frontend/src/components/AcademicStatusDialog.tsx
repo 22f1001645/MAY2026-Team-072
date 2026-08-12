@@ -17,7 +17,7 @@ export default function AcademicStatusDialog({
 
   const handleConfirm = async () => {
     try {
-      await confirmMutation.mutateAsync({ academic_level: level, academic_status: status })
+      await confirmMutation.mutateAsync({ academicLevel: level, academicStatus: status })
       addToast('Academic status confirmed successfully.')
       onClose()
     } catch (e: any) {

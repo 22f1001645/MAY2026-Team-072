@@ -19,7 +19,7 @@ export default function AcademicStatusBanner() {
     setDismissed(true)
   }
 
-  if (!currentUser || !currentUser?.academic_status_stale || dismissed) {
+  if (!currentUser || !currentUser?.academicStatusStale || dismissed) {
     return null
   }
 

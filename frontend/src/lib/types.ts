@@ -3,6 +3,36 @@
 
 export type Role = 'student' | 'organiser' | 'admin'
 
+/* Session identity (D-10, D-11). The backend is the single source of truth for
+ * capabilities; these are the camelCase shapes components render, adapted once
+ * in lib/api.ts (`adaptMe`). Capabilities are render-only — nothing here grants
+ * a client any authority, every mutating call is still authorised server-side. */
+
+export interface Capabilities {
+  isOrganiser: boolean
+  manageableOrgIds: string[]
+  manageableActivityIds: string[]
+}
+
+export interface PorSummary {
+  porType: string
+  org?: string
+}
+
+export interface Account {
+  id: string
+  name: string
+  email: string
+  role: Role
+  city: string
+  por?: string
+  pors?: PorSummary[]
+  academicLevel?: string
+  academicStatus?: string
+  academicStatusStale?: boolean
+  capabilities: Capabilities
+}
+
 export type ActivityScale = 'local_meetup' | 'regional_meetup' | 'regional_fest'
 
 export type ProposalStatus =

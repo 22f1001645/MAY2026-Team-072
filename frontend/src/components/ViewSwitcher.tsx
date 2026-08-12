@@ -17,7 +17,7 @@ export default function ViewSwitcher() {
   }
 
   // Admin or Organiser can view Organiser UI
-  if (currentUser.role === 'admin' || capabilities?.is_organiser) {
+  if (currentUser.role === 'admin' || capabilities?.isOrganiser) {
     allowedRoles.push({ label: 'Organiser', role: 'organiser' })
   }
 

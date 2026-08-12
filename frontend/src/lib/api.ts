@@ -1,4 +1,4 @@
-import type { EkatvaEvent } from './types'
+import type { Account, EkatvaEvent, Role } from './types'
 
 /* ---------------------------------------------------------------------------
  * API client — Phase 2 (D-01, D-05, D-06, D-09).
@@ -185,6 +185,46 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
   }
 }
 
+/** Wire shape of GET /auth/me — User.to_dict() plus the two computed keys the
+ *  controller adds. This module is the only place the snake_case is allowed. */
+export interface ApiMe {
+  id: string
+  name: string
+  email: string
+  role: string
+  city: string
+  por?: string | null
+  pors?: { por_type: string; org?: string | null }[]
+  academic_level?: string | null
+  academic_status?: string | null
+  academic_status_stale?: boolean
+  capabilities?: {
+    is_organiser?: boolean
+    manageable_org_ids?: string[]
+    manageable_activity_ids?: string[]
+  }
+}
+
+export function adaptMe(u: ApiMe): Account {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role as Role,
+    city: u.city,
+    por: u.por ?? undefined,
+    pors: (u.pors ?? []).map((p) => ({ porType: p.por_type, org: p.org ?? undefined })),
+    academicLevel: u.academic_level ?? undefined,
+    academicStatus: u.academic_status ?? undefined,
+    academicStatusStale: u.academic_status_stale ?? false,
+    capabilities: {
+      isOrganiser: u.capabilities?.is_organiser ?? false,
+      manageableOrgIds: u.capabilities?.manageable_org_ids ?? [],
+      manageableActivityIds: u.capabilities?.manageable_activity_ids ?? [],
+    },
+  }
+}
+
 /* -------------------------------- endpoints ------------------------------ */
 export const api = {
   // Auth (Phase 2 — cookie session)
@@ -204,7 +244,7 @@ export const api = {
     _accessToken = res.access_token
     return res
   },
-  me: () => request<any>('/auth/me'),
+  me: (): Promise<Account> => request<ApiMe>('/auth/me').then(adaptMe),
   /** Rotate the refresh cookie and obtain a new access token. */
   refresh: async () => {
     const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
@@ -217,22 +257,28 @@ export const api = {
     _accessToken = null
     return res
   },
-  /** User self-confirms their academic level + status (AUTH-04). */
-  confirmAcademicStatus: (academic_level: string, academic_status: string) =>
+  /** User self-confirms their academic level + status (AUTH-04).
+   *  Callers pass camelCase; this wrapper is the only module that knows the
+   *  wire format, in the request direction as well as the response one. */
+  confirmAcademicStatus: (academicLevel: string, academicStatus: string) =>
     request<any>('/auth/academic-status', {
       method: 'PATCH',
-      body: JSON.stringify({ academic_level, academic_status }),
+      body: JSON.stringify({ academic_level: academicLevel, academic_status: academicStatus }),
     }),
   /** Admin override of a user's academic status (D-22). */
   adminOverrideAcademicStatus: (
     userId: string,
-    academic_level: string,
-    academic_status: string,
+    academicLevel: string,
+    academicStatus: string,
     reason?: string,
   ) =>
     request<any>(`/admin/users/${userId}/academic-status`, {
       method: 'PATCH',
-      body: JSON.stringify({ academic_level, academic_status, reason }),
+      body: JSON.stringify({
+        academic_level: academicLevel,
+        academic_status: academicStatus,
+        reason,
+      }),
     }),
     
   porAudit: () => request<any[]>('/auth/por-audit'),

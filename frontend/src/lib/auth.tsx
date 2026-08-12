@@ -1,28 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { api, setOnSessionExpired } from './api'
-import type { Role } from './types'
+import type { Account, Capabilities, Role } from './types'
 
 /* Auth backed by the Flask JWT API Phase 2. The access token lives in memory;
  * the refresh token lives in an httpOnly cookie. The backend is the single
  * source of truth for capabilities (D-12). */
 
-export interface Capabilities {
-  is_organiser: boolean
-  manageable_org_ids: string[]
-  manageable_activity_ids: string[]
-}
-
-export interface Account {
-  id: string
-  name: string
-  email: string
-  role: Role
-  city: string
-  por?: string
-  pors?: { por_type: string; org?: string }[]
-  academic_status_stale?: boolean
-}
+// `Account` and `Capabilities` now live with the other domain types; re-exported
+// here so existing `from './auth'` imports keep working.
+export type { Account, Capabilities }
 
 interface AuthCtx {
   currentUser: Account | null
@@ -95,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Determine UI role for routing
       let role: Role = user.role
-      if (user.role !== 'admin' && user.capabilities?.is_organiser) {
+      if (user.role !== 'admin' && user.capabilities?.isOrganiser) {
         role = 'organiser'
       }
       return { ok: true, role }

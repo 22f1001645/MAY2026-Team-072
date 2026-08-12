@@ -9,6 +9,8 @@ absent inputs, empty relations, adjacent-but-different resources, and ordering.
 from datetime import datetime, timedelta
 
 from app.constants import (
+    ORG_MANAGER_PORS,
+    ORGANISER_PORS,
     REGISTRATION_CANCELLED,
     REGISTRATION_CONFIRMED,
     TEAM_ROLE_MEETUP_HEAD,
@@ -99,6 +101,21 @@ def _nobody():
     db.session.add(user)
     db.session.flush()
     return user
+
+
+# --- AUTH-03: the POR taxonomy ----------------------------------------------
+
+
+def test_new_por_types_are_in_both_por_sets():
+    """AUTH-03's two additions belong in BOTH sets, and the sets are read by
+    different predicates: ORGANISER_PORS by can_manage_activity, ORG_MANAGER_PORS
+    by can_manage_org. Adding a type to one only is the exact half-landing the
+    standing note in constants.py warns against — it produces someone who can run
+    an event but cannot edit the organisation they hold the position in — so each
+    membership is asserted separately and names the set it is missing from."""
+    for por_type in ("Society Deputy Secretary", "Coordinator"):
+        assert por_type in ORGANISER_PORS, f"{por_type} is missing from ORGANISER_PORS"
+        assert por_type in ORG_MANAGER_PORS, f"{por_type} is missing from ORG_MANAGER_PORS"
 
 
 # --- can_manage_org: the boundary is org id identity -------------------------

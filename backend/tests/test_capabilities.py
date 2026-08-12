@@ -15,6 +15,7 @@ is the gate that enforces it.
 import pytest
 from flask_jwt_extended import decode_token
 from sqlalchemy import event
+from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import PORAssignment, User
@@ -53,12 +54,22 @@ class _SelectCounter:
         return False
 
 
+MATRIX_PASSWORD = "matrix12345"
+
+
 def _user(email, name="Someone"):
-    user = User(name=name, email=email, password_hash="x",
+    user = User(name=name, email=email,
+                password_hash=generate_password_hash(MATRIX_PASSWORD),
                 role="student", city="Hyderabad")
     db.session.add(user)
     db.session.flush()
     return user
+
+
+def _headers_for(client, email):
+    res = client.post("/api/v1/auth/login", json={"email": email, "password": MATRIX_PASSWORD})
+    assert res.status_code == 200
+    return {"Authorization": f"Bearer {res.get_json()['access_token']}"}
 
 
 def test_me_returns_the_three_capability_keys(client, rc_headers, student_headers):
@@ -116,3 +127,39 @@ def test_access_token_carries_no_claims_about_capabilities(app, rc_headers):
     # nothing at all, so pin what the token IS expected to carry.
     assert claims["role"] == "student"
     assert claims["sub"] == rc_user().id
+
+
+# --- AUTH-03: the organiser surface, one POR type at a time ------------------
+# ROADMAP criterion 3 stated as a test. Asserted through /auth/me rather than by
+# calling rbac.is_organiser directly, because the claim being made is that
+# organiser status *arrives from the endpoint* — a direct predicate call would
+# still pass if the endpoint stopped surfacing it.
+
+
+@pytest.mark.parametrize(
+    "por_type, expected",
+    [
+        ("Deputy House Secretary", True),
+        ("Web Admin", True),
+        ("Society Deputy Secretary", True),
+        ("Coordinator", True),
+        # Negative controls, in the same table so the matrix cannot pass by
+        # returning True unconditionally.
+        (None, False),
+        ("Regional Coordinatr", False),
+    ],
+)
+def test_por_matrix_all_four_por_types_get_the_organiser_surface(client, por_type, expected):
+    email = f"matrix-{(por_type or 'none').lower().replace(' ', '-')}@ekatva.os"
+    user = _user(email, name=por_type or "No POR")
+    # Exactly one POR, so a pass can only be attributed to the type under test.
+    if por_type:
+        _give_por(user, region_org(), por_type)
+    db.session.commit()
+
+    res = client.get(ME_URL, headers=_headers_for(client, email))
+
+    assert res.status_code == 200
+    assert res.get_json()["capabilities"]["is_organiser"] is expected, (
+        f"POR type {por_type!r} should {'' if expected else 'not '}confer the organiser surface"
+    )

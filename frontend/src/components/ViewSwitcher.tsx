@@ -35,14 +35,20 @@ const SEGMENTS: { view: View; label: string }[] = [
 export default function ViewSwitcher() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { capabilities } = useAuth()
+  const { capabilities, loading } = useAuth()
   const isOrganiser = capabilities?.isOrganiser ?? false
 
   // D-17: PORs lapsing mid-session takes the stored view with the switcher.
   // This is the same branch a single-role student takes — one rule, not two.
+  //
+  // The `loading` guard is load-bearing, not defensive. Capabilities are null
+  // until the cold-load /auth/refresh → /auth/me sequence resolves (D-08), so
+  // without it this effect reads "not an organiser" on the very first render of
+  // every page load and deletes the stored view before anything can read it —
+  // which would silently undo D-15 persistence altogether.
   useEffect(() => {
-    if (!isOrganiser) localStorage.removeItem('ekatva_view')
-  }, [isOrganiser])
+    if (!loading && !isOrganiser) localStorage.removeItem('ekatva_view')
+  }, [loading, isOrganiser])
 
   // No disabled state, no ghost, no lock, no reserved space: a single-role
   // student never learns the switcher exists, the nav simply starts higher.

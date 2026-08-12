@@ -97,13 +97,14 @@ def admin_update_academic_status(user_id):
 @auth_bp.get("/por-audit")
 @admin_required
 def por_audit():
-    # D-14 audit
-    from ..repositories.repos import PORAssignment
-    from ..extensions import db
-    from sqlalchemy.orm import joinedload
-    
-    pors = PORAssignment.query.options(
-        joinedload(PORAssignment.membership)
-    ).all()
-    
-    return jsonify([p.to_dict() for p in pors]), 200
+    """Report the POR assignments whose `por_type` no permission check matches (D-14).
+
+    The column is free text by decision, and every authorization predicate
+    compares it against the POR sets by exact string. A value in neither set is
+    therefore invisible to all of them: it grants nothing, silently, and reaches
+    an admin as "this organiser lost their access" rather than as an error.
+    Listing only those rows is what makes the defect legible — reporting every
+    assignment would bury it, and would turn a diagnostic into a bulk export of
+    the whole table.
+    """
+    return jsonify(auth_service.unrecognised_por_assignments()), 200

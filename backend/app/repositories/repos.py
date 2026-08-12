@@ -3,6 +3,8 @@ owns queries for one aggregate (Milestone 2 §3 — Repository layer)."""
 import uuid
 from datetime import datetime, UTC
 
+from sqlalchemy.orm import joinedload
+
 from ..extensions import db
 from ..models import (
     Activity,
@@ -84,6 +86,27 @@ class OrgRepository:
     @staticmethod
     def membership_for(user_id, org_id):
         return Membership.query.filter_by(user_id=user_id, org_id=org_id).first()
+
+
+class PORRepository:
+    @staticmethod
+    def unrecognised_por_types(recognised):
+        """POR assignments whose `por_type` is in none of the recognised sets.
+
+        Which types count as recognised is a business rule and is decided by the
+        service; this only asks the database. Filtered with `notin_` rather than
+        fetched-and-sifted in Python so the audit stays cheap as the table grows,
+        and eager-loads the membership chain `to_dict()` walks (member name and
+        organisation name) so the result does not fan out into a query per row."""
+        return (
+            PORAssignment.query.filter(PORAssignment.por_type.notin_(list(recognised)))
+            .options(
+                joinedload(PORAssignment.membership).joinedload(Membership.user),
+                joinedload(PORAssignment.membership).joinedload(Membership.org),
+                joinedload(PORAssignment.region),
+            )
+            .all()
+        )
 
 
 class ActivityRepository:

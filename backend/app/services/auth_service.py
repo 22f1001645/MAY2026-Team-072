@@ -4,11 +4,11 @@ from datetime import datetime, UTC, timezone, timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, set_refresh_cookies, unset_jwt_cookies
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ..constants import REFRESH_ROTATION_GRACE_SECONDS, ROLE_STUDENT
+from ..constants import ORG_MANAGER_PORS, ORGANISER_PORS, REFRESH_ROTATION_GRACE_SECONDS, ROLE_STUDENT
 from ..errors import ApiError
 from ..extensions import db
 from ..models import ActivityFeeRecord, User, AuditLog
-from ..repositories.repos import UserRepository, TermRepository, BlocklistRepository
+from ..repositories.repos import UserRepository, TermRepository, BlocklistRepository, PORRepository
 from ..rbac import is_organiser, manageable_orgs, manageable_activities
 
 CURRENT_TERM = "May 2026"
@@ -132,6 +132,17 @@ def get_capabilities(user: User) -> dict:
         "manageable_org_ids": [org.id for org in manageable_orgs(user)],
         "manageable_activity_ids": [act.id for act in manageable_activities(user)]
     }
+
+
+def unrecognised_por_assignments() -> list:
+    """The POR assignments no authorization predicate can read (D-14).
+
+    The recognised set is the union of the two POR sets the predicates match
+    against, and that union is decided here rather than in the repository:
+    which positions confer authority is a business rule, and business rules
+    live above the persistence layer."""
+    recognised = ORGANISER_PORS | ORG_MANAGER_PORS
+    return [row.to_dict() for row in PORRepository.unrecognised_por_types(recognised)]
 
 
 def is_academic_status_stale(user: User) -> bool:

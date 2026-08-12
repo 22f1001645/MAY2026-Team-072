@@ -244,14 +244,20 @@ class TermRepository:
 
 class BlocklistRepository:
     @staticmethod
+    def is_jti_blocked(jti: str) -> bool:
+        """True when this exact token has been revoked. Runs on every refresh
+        token decode via the JWT blocklist loader, so it stays a boolean probe."""
+        if not jti:
+            return False
+        return RefreshTokenBlocklist.query.filter_by(jti=jti).first() is not None
+
+    @staticmethod
     def family_revoked(family_id: str) -> bool:
         if not family_id:
             return False
-        # If any token in this family was revoked (e.g., reason="logout" or "reuse_detected" or "rotated"),
-        # Wait, the logic in auth_service is:
-        # If reuse is detected, we block the family. If logout, we block the family. 
-        # But normal rotation blocks with reason="rotated". So "rotated" does NOT revoke the family!
-        # Family is revoked if there's any block entry for this family with reason != "rotated".
+        # A family is revoked when it has a row whose reason is anything other
+        # than "rotated" — rotation blocklists the spent token without ending
+        # the session, while "logout" and "reuse_detected" end the whole family.
         token = RefreshTokenBlocklist.query.filter(
             RefreshTokenBlocklist.family_id == family_id,
             RefreshTokenBlocklist.reason != "rotated"

@@ -29,10 +29,15 @@ def login():
 
 
 @auth_bp.post("/refresh")
-@jwt_required(refresh=True, verify_type=False)
+@jwt_required(refresh=True, skip_revocation_check=True, locations=["cookies"])
 def refresh():
-    # Verify CSRF is handled automatically by flask_jwt_extended if JWT_CSRF_IN_COOKIES=True
-    # Skip revocation check implicitly since we handle family logic inside auth_service
+    # CSRF is enforced by flask_jwt_extended because JWT_CSRF_IN_COOKIES=True.
+    # Revocation is skipped explicitly by the decorator and performed inside
+    # auth_service.refresh, which needs to *act* on a replayed token (revoke the
+    # family) rather than merely deny it — the loader is a predicate and raises
+    # during decode, before this view body could run.
+    # Pinning locations to cookies keeps the client's stale Authorization header
+    # from shadowing the valid refresh cookie.
     jwt_payload = get_jwt()
     res, new_refresh = auth_service.refresh(jwt_payload)
     resp = jsonify(res)

@@ -74,6 +74,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
   const nav = NAV[role]
 
+  // The two home routes, and only those. 02-UI-SPEC S4 keeps the academic
+  // status nudge off deep pages entirely; it is not a header strip.
+  const isHomeRoute = location.pathname === '/discover' || location.pathname === '/organiser'
+
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -149,6 +153,14 @@ export default function Layout({ children }: { children: ReactNode }) {
               Unite · Inspire · Celebrate
             </div>
           </div>
+        </div>
+
+        {/* Cause sits directly above effect: flipping the switcher visibly
+            rewrites the list beneath it (02-UI-SPEC S1). `empty:hidden` is what
+            keeps the absent case reserving no space — when the switcher renders
+            nothing, the wrapper's margins go with it. */}
+        <div className="px-3 my-3 empty:hidden">
+          <ViewSwitcher />
         </div>
 
         <nav className="mt-2 flex-1 space-y-1 px-3">
@@ -331,7 +343,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <ViewSwitcher />
             <span className="hidden text-caption text-graytext-mid sm:block">
               v1 · City-meetup lifecycle
             </span>
@@ -351,10 +362,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <AcademicStatusBanner />
-
         <main className="relative flex-1 px-5 py-7 lg:px-8 lg:py-9">
-          <div className="mx-auto max-w-6xl animate-fade-up">{children}</div>
+          <div className="mx-auto max-w-6xl animate-fade-up">
+            {isHomeRoute && <AcademicStatusBanner />}
+            {children}
+          </div>
         </main>
 
         <footer className="border-t border-white/5 px-5 py-5 text-center text-caption text-graytext-mid lg:px-8">

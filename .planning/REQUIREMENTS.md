@@ -28,7 +28,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Dashboard
 
-- [ ] **DASH-01**: A user holding an organiser POR can switch between their Student view and Organiser view from the nav, without it affecting any authorization decision (view state only, never sent to the API as an auth input)
+- [x] **DASH-01**: A user holding an organiser POR can switch between their Student view and Organiser view from the nav, without it affecting any authorization decision (view state only, never sent to the API as an auth input)
 
 ### Proposal & Collaboration
 
@@ -158,7 +158,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Complete |
 | RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Complete |
 | AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Pending |
-| DASH-01 | Phase 2 | Pending |
+| DASH-01 | Phase 2 | Complete |
 | PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | Phase 3 | Pending |
 | BUDGET-01 | Phase 3 | Pending |
 | ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Pending |

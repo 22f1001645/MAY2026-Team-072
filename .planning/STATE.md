@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: identity-session-dashboard-shell
 status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-08-12T10:06:48.324Z"
+stopped_at: Completed 02-07-PLAN.md
+last_updated: "2026-08-12T12:42:27.667Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 02 execution started
+last_activity_desc: Completed 02-07 (view switcher, DASH-01)
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 13
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 02 (identity-session-dashboard-shell) — EXECUTING
-Plan: 6 of 7
-Status: Ready to execute
-Last activity: 2026-08-12 — Phase 02 execution started
+Plan: 7 of 7 (02-05 still outstanding — see Blockers)
+Status: 02-07 complete; phase not closeable until 02-05 executes
+Last activity: 2026-08-12 — Completed 02-07 (view switcher, DASH-01)
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [████████░░] 83%
 | Phase 02 P03 | 45min | 3 tasks | 4 files |
 | Phase 02 P06 | 25min | 3 tasks | 11 files |
 | Phase 02 P04 | 30min | 3 tasks | 6 files |
+| Phase 02 P07 | 47min | 4 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Account and Capabilities live in types.ts as camelCase, adapted once by adaptMe in api.ts
 - [Phase ?]: AUTH-03 POR constants were already correct from Phase 1 — plan 02-04 added proof only, constants.py unchanged
 - [Phase ?]: The recognised-POR union lives in auth_service, not the repository: which positions confer authority is a business rule
+- [Phase ?]: View state is derived from location.pathname, never React state — the URL is the single source of truth (D-15/D-16)
+- [Phase ?]: localStorage['ekatva_view'] is read only by homeFor() to pick a landing route, never to decide what renders
+- [Phase ?]: Admin stays a login role, not a view — only the Student/Organiser distinction comes from the URL
 
 ### Pending Todos
 
@@ -127,11 +131,12 @@ None yet.
 - **Progression gating is unvalidated** — the milestone's only feature with no market analogue. Not fixable by investigation; needs real Regional Coordinators. Keeping mitigation as-is: build now, validate in parallel with Phases 1-6. No action pending.
 - ~~**Doc drift**~~ RESOLVED 2026-08-06: git archaeology showed `constants.ACTIVITY_FEE_INR` has been 200 since introduction (never 100 in code history) — ₹200 confirmed correct, docs/UI (README, PROJECT.md, Analytics.tsx, CheckIn.tsx, Landing.tsx) updated to match.
 - ~~**Requirement count drift**~~ RESOLVED (already fixed at source): REQUIREMENTS.md already states 52 with a correction note; the "51" only survives elsewhere as historical explanation, not a live error.
+- 02-05 (academic status / terms seed) is unexecuted: 02-05-PLAN.md has no SUMMARY, the dev terms table is empty, so the academic-status banner has no data path
 
 ## Session Continuity
 
-Last session: 2026-08-12T10:06:48.258Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-08-12T12:41:16.796Z
+Stopped at: Completed 02-07-PLAN.md
 Resume file: None
 
 Next: `/gsd:next`

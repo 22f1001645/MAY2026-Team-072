@@ -95,6 +95,22 @@ def test_me_returns_the_three_capability_keys(client, rc_headers, student_header
     )
 
 
+def test_admin_with_no_por_is_not_organiser(client, admin_headers):
+    """An admin holding zero organiser PORs is not an organiser (PRD P3).
+
+    `rbac.is_organiser()` short-circuits True for ROLE_ADMIN, but that shortcut
+    exists only to back the frozen legacy `organiser_required` route guard
+    (six routes, Phase 1). `/auth/me`'s capability contract is a different
+    consumer — capability-driven rendering, e.g. the DASH-01 view switcher —
+    and must stay POR-only, or every admin account sees an Organiser toggle
+    it has no POR-backed reason to see."""
+    res = client.get(ME_URL, headers=admin_headers)
+
+    assert res.status_code == 200
+    caps = res.get_json()["capabilities"]
+    assert caps["is_organiser"] is False
+
+
 def test_capabilities_are_recomputed_live_when_a_por_is_deactivated(client, rc_headers):
     """Deactivating a POR flips is_organiser on the very next call (D-11).
 

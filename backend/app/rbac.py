@@ -111,8 +111,22 @@ def _activity_org_ids(activity):
 
 
 def is_organiser(user: User) -> bool:
+    """Legacy coarse guard only — backs `organiser_required` on the six frozen
+    routes that already depended on the admin bypass. Not a general "does this
+    user hold an organiser POR" check: use `has_organiser_por` for that (e.g.
+    the `/auth/me` capability contract), or the admin shortcut here leaks into
+    every new consumer, including ones PRD P3 says must stay POR-only."""
     if user.role == ROLE_ADMIN:
         return True
+    return has_organiser_por(user)
+
+
+def has_organiser_por(user: User) -> bool:
+    """Whether this user personally holds an active organiser-capable POR —
+    POR only, no admin shortcut (PRD P3). This is the identity check behind
+    capability-driven rendering (e.g. the Student/Organiser view switcher,
+    DASH-01): an admin with no POR is not an organiser, even though
+    `is_organiser` treats them as one for the legacy coarse guard's purposes."""
     for m in user.memberships:
         for p in m.pors:
             if p.active and p.por_type in ORGANISER_PORS:

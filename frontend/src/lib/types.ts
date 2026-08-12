@@ -97,7 +97,13 @@ export interface EkatvaEvent {
   tags: string[]
   budget: BudgetLine[]
   expenses: Expense[]
+  // Phase 3 (PROPOSAL-03, PROPOSAL-04)
+  isMegaMeetup?: boolean
+  collaborators?: Collaborator[]
+  teamMembers?: TeamMember[]
 }
+
+
 
 export interface AuditEntry {
   at: string
@@ -163,3 +169,27 @@ export interface AnnouncementMessage {
   createdAt: string
   isImportant?: boolean
 }
+
+// ── Phase 3: Collaboration & Team Roster ─────────────────────────────────────
+
+export type CollabStatus = 'pending' | 'accepted' | 'declined'
+
+export interface Collaborator {
+  id: string
+  activity_id: string
+  org_id: string
+  org: string | null
+  is_primary: boolean
+  status: CollabStatus
+  responded_at: string | null
+}
+
+export interface TeamMember {
+  id: string
+  activity_id: string
+  user_id: string
+  member: string | null
+  role: string
+  added_by: string | null
+}
+

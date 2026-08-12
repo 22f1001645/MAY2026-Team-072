@@ -5,12 +5,31 @@ import { useCities, useOrgs, useSubmitProposal } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
+import { api } from '../lib/api'
 
 interface Line {
   id: number
   label: string
   amount: string
 }
+
+interface TeamRow {
+  id: number
+  user_id: string
+  userName: string
+  role: string
+}
+
+const TEAM_ROLES = [
+  'Meetup Head',
+  'Co-Head',
+  'Designer',
+  'Video/Content',
+  'PR & Outreach',
+  'Logistics',
+  'Volunteer Coordinator',
+  'Finance',
+]
 
 // FR-B1: submit a proposal with scale, date, venue, description, capacity + budget
 export default function ProposalNew() {
@@ -33,10 +52,35 @@ export default function ProposalNew() {
     { id: 1, label: 'Venue booking', amount: '' },
     { id: 2, label: 'Refreshments', amount: '' },
   ])
+  // Phase 3: Team Roster (PROPOSAL-02)
+  const [teamRows, setTeamRows] = useState<TeamRow[]>([])
+  const [teamSearch, setTeamSearch] = useState('')
+  const [teamSearchResults, setTeamSearchResults] = useState<any[]>([])
+  const [searchingTeam, setSearchingTeam] = useState(false)
+  // Phase 3: Collaborating Orgs (PROPOSAL-01)
+  const [collabOrgIds, setCollabOrgIds] = useState<string[]>([])
   const [done, setDone] = useState(false)
 
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
+
+  const searchUsers = async (q: string) => {
+    setTeamSearch(q)
+    if (q.length < 2) { setTeamSearchResults([]); return }
+    setSearchingTeam(true)
+    try {
+      const results = await api.users(q)
+      setTeamSearchResults(results.slice(0, 8))
+    } catch { setTeamSearchResults([]) } finally { setSearchingTeam(false) }
+  }
+
+  const addTeamMember = (user: any) => {
+    if (teamRows.some(r => r.user_id === user.id)) return
+    const role = teamRows.length === 0 ? 'Meetup Head' : 'Co-Head'
+    setTeamRows([...teamRows, { id: Date.now(), user_id: user.id, userName: user.name, role }])
+    setTeamSearch('')
+    setTeamSearchResults([])
+  }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,9 +96,13 @@ export default function ProposalNew() {
       budget: lines
         .filter((l) => l.label && l.amount)
         .map((l) => ({ label: l.label, planned: parseInt(l.amount) || 0 })),
+      // Phase 3
+      team: teamRows.map(r => ({ user_id: r.user_id, role: r.role })),
+      collaborating_org_ids: collabOrgIds,
     }
     submitMut.mutate(payload, { onSuccess: () => setDone(true) })
   }
+
 
   if (done)
     return (
@@ -213,6 +261,145 @@ export default function ProposalNew() {
           >
             + Add budget line
           </button>
+
+          {/* BUDGET-01: live cap indicator for meetup scales */}
+          {(scale === 'local_meetup' || scale === 'regional_meetup') && (() => {
+            const cap = Math.min((parseInt(form.capacity) || 0) * 200, 20_000)
+            const over = total > cap
+            return (
+              <div className={`mt-4 rounded-xl px-4 py-2.5 text-[13px] font-medium ${
+                over
+                  ? 'border border-red-400/30 bg-red-500/10 text-red-300'
+                  : cap > 0
+                    ? 'border border-teal/20 bg-teal/[0.05] text-teal'
+                    : 'border border-white/10 bg-white/[0.02] text-graytext-mid'
+              }`}>
+                {cap === 0 ? (
+                  <>Set capacity above to see budget limit</>
+                ) : over ? (
+                  <>⚠ Over cap: ₹{total.toLocaleString('en-IN')} exceeds limit of ₹{cap.toLocaleString('en-IN')} (₹200/person, max ₹20,000)</>
+                ) : (
+                  <>✓ ₹{total.toLocaleString('en-IN')} / ₹{cap.toLocaleString('en-IN')} allowed</>
+                )}
+              </div>
+            )
+          })()}
+        </Card>
+
+        {/* Team Roster (PROPOSAL-02) */}
+        <Card className="p-6">
+          <Label>Team roster</Label>
+          <p className="mb-3 text-[12px] text-graytext-mid">
+            Name the people running this event. The <span className="text-gold font-semibold">first person added</span> becomes the Meetup Head — required.
+          </p>
+
+          {/* Search */}
+          <div className="relative mb-3">
+            <input
+              value={teamSearch}
+              onChange={(e) => searchUsers(e.target.value)}
+              placeholder="Search by name or email…"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-[13px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
+            />
+            {searchingTeam && (
+              <span className="absolute right-3 top-2.5 text-[12px] text-graytext-mid">Searching…</span>
+            )}
+            {teamSearchResults.length > 0 && (
+              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-onyx shadow-xl">
+                {teamSearchResults.map((u: any) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => addTeamMember(u)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] hover:bg-white/5"
+                  >
+                    <span className="font-medium text-offwhite">{u.name}</span>
+                    <span className="ml-auto text-graytext-mid">{u.email}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Roster list */}
+          {teamRows.length === 0 ? (
+            <p className="text-[12px] text-red-300/70">⚠ At least one Meetup Head is required</p>
+          ) : (
+            <div className="space-y-2">
+              {teamRows.map((row, idx) => (
+                <div key={row.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5">
+                  {idx === 0 && (
+                    <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[11px] font-semibold text-gold">Head</span>
+                  )}
+                  <span className="flex-1 text-[13px] font-medium text-offwhite">{row.userName}</span>
+                  <select
+                    value={row.role}
+                    onChange={(e) => setTeamRows(teamRows.map(r => r.id === row.id ? { ...r, role: e.target.value } : r))}
+                    className="rounded-lg border border-white/10 bg-onyx px-2 py-1 text-[12px] text-offwhite"
+                  >
+                    {TEAM_ROLES.map(role => (
+                      <option key={role} value={role} className="bg-onyx">{role}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const filtered = teamRows.filter(r => r.id !== row.id)
+                      // If removing the head (idx 0), promote next to Head
+                      if (idx === 0 && filtered.length > 0) {
+                        filtered[0] = { ...filtered[0], role: 'Meetup Head' }
+                      }
+                      setTeamRows(filtered)
+                    }}
+                    className="text-graytext-mid hover:text-red-300"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Collaborating Orgs (PROPOSAL-01) */}
+        <Card className="p-6">
+          <Label>Collaborating organisations</Label>
+          <p className="mb-3 text-[12px] text-graytext-mid">
+            Optional. Co-running orgs receive an invitation to accept. 3+ acceptances unlocks the{' '}
+            <span className="text-teal font-semibold">Mega Meetup</span> label.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(orgs as any[])
+              .filter((o: any) => o.id !== form.org_id)
+              .map((o: any) => {
+                const checked = collabOrgIds.includes(o.id)
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setCollabOrgIds(
+                      checked ? collabOrgIds.filter(id => id !== o.id) : [...collabOrgIds, o.id]
+                    )}
+                    className={
+                      'flex items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-[13px] transition-all ' +
+                      (checked
+                        ? 'border-teal bg-teal/10 text-offwhite'
+                        : 'border-white/10 bg-white/[0.02] text-graytext-light hover:border-teal/40')
+                    }
+                  >
+                    <span className={`h-4 w-4 shrink-0 rounded border ${checked ? 'border-teal bg-teal' : 'border-white/30'} flex items-center justify-center text-[10px] text-onyx`}>
+                      {checked ? '✓' : ''}
+                    </span>
+                    <span className="min-w-0 truncate">{o.name}</span>
+                    <span className="ml-auto shrink-0 text-[11px] text-graytext-mid">{o.type}</span>
+                  </button>
+                )
+              })}
+          </div>
+          {collabOrgIds.length > 0 && (
+            <p className="mt-2 text-[12px] text-teal">
+              {collabOrgIds.length} org{collabOrgIds.length > 1 ? 's' : ''} selected
+              {collabOrgIds.length >= 2 && ' · invite accepted by all → Mega Meetup!'}
+            </p>
+          )}
         </Card>
 
         {/* Quota guardrail notice (FR-B2) */}
@@ -235,7 +422,13 @@ export default function ProposalNew() {
           <Button variant="ghost" type="button" onClick={() => nav('/organiser')}>
             Cancel
           </Button>
-          <Button type="submit" size="lg" disabled={submitMut.isPending}>
+          <Button type="submit" size="lg" disabled={submitMut.isPending || teamRows.length === 0 || (() => {
+            if (scale === 'local_meetup' || scale === 'regional_meetup') {
+              const cap = Math.min((parseInt(form.capacity) || 0) * 200, 20_000)
+              return cap > 0 && total > cap
+            }
+            return false
+          })()}>
             {submitMut.isPending ? 'Submitting…' : 'Submit for approval'}
           </Button>
         </div>
@@ -261,3 +454,4 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 const selectCls =
   'w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite focus:border-teal/50 focus:outline-none'
+

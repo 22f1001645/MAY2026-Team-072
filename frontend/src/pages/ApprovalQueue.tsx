@@ -140,7 +140,52 @@ export default function ApprovalQueue() {
                 </div>
               </Card>
 
+              {/* Collaborating Orgs (PROPOSAL-04) */}
+              {current.collaborators && current.collaborators.length > 0 && (
+                <Card className="p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                      Collaborating organisations
+                    </div>
+                    {current.isMegaMeetup && (
+                      <Badge tone="teal">⚡ Mega Meetup</Badge>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {current.collaborators.map((c: any) => (
+                      <div key={c.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.02]">
+                        <span className="flex-1 text-[13px] text-offwhite">{c.org || c.org_id}</span>
+                        {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                        <Badge tone={c.status === 'accepted' ? 'teal' : c.status === 'declined' ? 'neutral' : 'warn'}>
+                          {c.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Team Roster (PROPOSAL-04) */}
+              {current.teamMembers && current.teamMembers.length > 0 && (
+                <Card className="p-5">
+                  <div className="mb-3 text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                    Event team
+                  </div>
+                  <div className="space-y-1.5">
+                    {current.teamMembers.map((t: any) => (
+                      <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.02]">
+                        <span className="flex-1 text-[13px] text-offwhite">{t.member || t.user_id}</span>
+                        <span className={`text-[12px] font-semibold ${t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid'}`}>
+                          {t.role}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
               {/* Decision panel */}
+
               <Card className="p-6">
                 <label className="mb-2 block text-caption font-semibold uppercase tracking-wider text-graytext-light">
                   Decision comment

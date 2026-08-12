@@ -124,12 +124,23 @@ class ActivityRepository:
 
     @staticmethod
     def proposals_by_status(status=None):
+        from ..models import ActivityCollaborator, ActivityTeamMember
         q = Activity.query.join(Proposal)
         if status == "pending":
             q = q.filter(Proposal.status.in_(["submitted", "changes_requested"]))
         elif status:
             q = q.filter(Proposal.status == status)
-        return q.order_by(Activity.created_at.desc()).all()
+        return (
+            q.options(
+                joinedload(Activity.proposal),
+                joinedload(Activity.collaborators),
+                joinedload(Activity.team_members),
+                joinedload(Activity.budget_lines),
+            )
+            .order_by(Activity.created_at.desc())
+            .all()
+        )
+
 
     @staticmethod
     def by_organiser(user_id):

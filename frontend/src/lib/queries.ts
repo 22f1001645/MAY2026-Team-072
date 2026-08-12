@@ -124,6 +124,24 @@ export const useCheckIn = () => {
   })
 }
 
+export const useRespondCollab = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { activityId: string; collabId: string; status: 'accepted' | 'declined' }) =>
+      api.respondCollab(data.activityId, data.collabId, data.status),
+    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['event', v.activityId] }),
+  })
+}
+
+export const useReassignMeetupHead = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { activityId: string; newUserId: string }) =>
+      api.reassignMeetupHead(data.activityId, data.newUserId),
+    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['event', v.activityId] }),
+  })
+}
+
 export const useSubmitExpense = () => {
   const qc = useQueryClient()
   return useMutation({

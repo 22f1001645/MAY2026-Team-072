@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useEvent, useMyRegistrations, useRegister, useUnregister } from '../lib/queries'
+import { useEvent, useMyRegistrations, useRegister, useUnregister, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { Badge, Button, Card, Progress } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
@@ -10,11 +11,18 @@ export default function EventDetail() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const refId = searchParams.get('ref') ?? undefined
-  const { role } = useSession()
+  const { role, capabilities } = useSession()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: myRegs = [] } = useMyRegistrations()
   const registerMut = useRegister()
   const unregisterMut = useUnregister()
+  const respondCollabMut = useRespondCollab()
+  const reassignMut = useReassignMeetupHead()
+  const [reassignUserId, setReassignUserId] = useState('')
+
+  const canManage = role !== 'student' || capabilities?.manageableActivityIds?.includes(id!)
+
+
 
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
@@ -87,8 +95,81 @@ export default function EventDetail() {
             </div>
           </Card>
 
+          {/* Collaborating Orgs (PROPOSAL-06 Respond UI) */}
+          {e.collaborators && e.collaborators.length > 0 && (
+            <Card className="p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-h3 font-semibold text-gold">Collaborating organisations</h2>
+                {e.isMegaMeetup && <Badge tone="teal">⚡ Mega Meetup</Badge>}
+              </div>
+              <div className="space-y-2">
+                {e.collaborators.map((c: any) => {
+                  const canRespond = c.status === 'pending' && capabilities?.manageableOrgIds?.includes(c.org_id)
+                  return (
+                    <div key={c.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-medium text-offwhite truncate">{c.org || c.org_id}</span>
+                          {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-[12px]">
+                          <span className={c.status === 'accepted' ? 'text-teal' : c.status === 'declined' ? 'text-graytext-mid' : 'text-warn'}>
+                            {c.status.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {canRespond && (
+                        <div className="flex items-center gap-2 sm:ml-auto">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={respondCollabMut.isPending}
+                            onClick={() => respondCollabMut.mutate({ activityId: e.id, collabId: c.id, status: 'declined' })}
+                          >
+                            Decline
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={respondCollabMut.isPending}
+                            onClick={() => respondCollabMut.mutate({ activityId: e.id, collabId: c.id, status: 'accepted' })}
+                          >
+                            Accept Invite
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* Team Roster (PROPOSAL-04) */}
+          {e.teamMembers && e.teamMembers.length > 0 && (
+            <Card className="p-6">
+              <h2 className="mb-3 text-h3 font-semibold text-gold">Event team</h2>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {e.teamMembers.map((t: any) => (
+                  <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[12px] font-medium text-graytext-light">
+                      {(t.member || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-offwhite truncate">{t.member || t.user_id}</div>
+                      <div className={`text-[11px] font-semibold ${t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid'}`}>
+                        {t.role}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* Organiser-only face of the same object (PRD §16 — one object, two faces) */}
-          {role !== 'student' && (
+
+          {canManage && (
             <Card className="border-teal/20 p-6">
               <div className="mb-3 flex items-center gap-2">
                 <Badge tone="teal">Organiser view</Badge>
@@ -121,6 +202,40 @@ export default function EventDetail() {
                     Check-in
                   </Button>
                 </Link>
+              </div>
+
+              {/* Reassign Meetup Head (PROPOSAL-05) */}
+              <div className="mt-6 border-t border-white/5 pt-4">
+                <h3 className="mb-2 text-[14px] font-semibold text-offwhite">Reassign Meetup Head</h3>
+                <p className="mb-3 text-[12px] text-graytext-light leading-relaxed">
+                  Transfer the Meetup Head role to someone else. They will immediately become the sole accountable person for this event's budget and execution.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={reassignUserId}
+                    onChange={(evt) => setReassignUserId(evt.target.value)}
+                    placeholder="User ID (e.g. fd4b...)"
+                    className="flex-1 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-offwhite outline-none focus:border-teal/50"
+                  />
+                  <Button
+                    size="sm"
+                    disabled={!reassignUserId.trim() || reassignMut.isPending}
+                    onClick={() => {
+                      reassignMut.mutate(
+                        { activityId: e.id, newUserId: reassignUserId.trim() },
+                        { onSuccess: () => setReassignUserId('') }
+                      )
+                    }}
+                  >
+                    {reassignMut.isPending ? 'Reassigning…' : 'Reassign'}
+                  </Button>
+                </div>
+                {reassignMut.isError && (
+                  <p className="mt-2 text-[12px] text-warn">
+                    {(reassignMut.error as any).message || 'Failed to reassign'}
+                  </p>
+                )}
               </div>
             </Card>
           )}

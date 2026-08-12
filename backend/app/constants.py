@@ -252,3 +252,17 @@ QUERY_STATES = (QUERY_OPEN, QUERY_ANSWERED)
 BRAND_KIT_MANUAL = "manual"
 BRAND_KIT_AI_DRAFT = "ai_draft"
 BRAND_KIT_SOURCES = (BRAND_KIT_MANUAL, BRAND_KIT_AI_DRAFT)
+
+# --- Budget guardrail constants (BUDGET-01) ---
+# Applies to local_meetup and regional_meetup scale only. regional_fest is
+# sponsor-funded and is explicitly exempt. The cap is whichever is smaller:
+# the per-person allowance (capacity × rate) or the absolute ceiling.
+BUDGET_CAPACITY_RATE = ACTIVITY_FEE_INR  # ₹200 per expected attendee
+BUDGET_ABSOLUTE_CEILING = 20_000          # ₹20,000 hard upper bound
+
+# --- Mega Meetup threshold (PROPOSAL-03) ---
+# Minimum number of ACCEPTED collaborating orgs (including primary) before the
+# "Mega Meetup" label is applied. Computed dynamically on Activity as a property;
+# no stored flag, so it tracks real-time accept/decline state without drifting.
+MEGA_MEETUP_THRESHOLD = 3
+

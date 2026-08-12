@@ -60,6 +60,17 @@ def register(name: str, email: str, password: str, region_id: str, city: str = N
     return {"access_token": _token(user), "user": user.to_dict()}
 
 
+def update_profile(user_id: str, city: str = None) -> dict:
+    user = UserRepository.by_id(user_id)
+    if not user:
+        raise ApiError("User not found", "user_not_found", 404)
+
+    if city is not None:
+        user.city = city.strip()
+        db.session.commit()
+    return user.to_dict()
+
+
 def login(email: str, password: str) -> tuple[dict, list]:
     user = UserRepository.by_email(email)
     if not user or not check_password_hash(user.password_hash, password):

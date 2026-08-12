@@ -74,6 +74,22 @@ class CheckInSchema(Schema):
     registration_ids = fields.List(fields.Str(), required=True)
 
 
+class ScanSchema(Schema):
+    registration_id = fields.Str(required=True)
+
+
+class ProfileSchema(Schema):
+    city = fields.Str(load_default=None, allow_none=True)
+
+
+class EditEventSchema(Schema):
+    title = fields.Str(load_default=None, allow_none=True)
+    description = fields.Str(load_default=None, allow_none=True)
+    starts_at = fields.DateTime(load_default=None, allow_none=True)
+    venue = fields.Str(load_default=None, allow_none=True)
+    update_message = fields.Str(load_default="", allow_none=True)
+
+
 class AcademicStatusSchema(Schema):
     """AUTH-04 self-confirmation. The allowlists are imported, never restated —
     a third copy of these enums is how the UI, the schema and the service drift

@@ -1,8 +1,10 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from ..errors import ApiError
-from ..rbac import auth_required
+from ..rbac import auth_required, can_manage_activity_required
 from ..repositories.repos import ActivityRepository
+from ..schemas import EditEventSchema
+from ..services import event_service
 
 event_bp = Blueprint("events", __name__, url_prefix="/api/v1")
 
@@ -23,4 +25,21 @@ def detail(activity_id):
     activity = ActivityRepository.by_id(activity_id)
     if not activity:
         raise ApiError("Event not found", "not_found", 404)
+    return jsonify(activity.to_dict(detail=True)), 200
+
+
+@event_bp.put("/events/<activity_id>")
+@can_manage_activity_required
+def update(activity_id):
+    """Organiser edits an event's title/description/time/venue."""
+    data = EditEventSchema().load(request.get_json() or {})
+    activity = event_service.edit_event(activity_id, data, g.current_user)
+    return jsonify(activity.to_dict(detail=True)), 200
+
+
+@event_bp.delete("/events/<activity_id>")
+@can_manage_activity_required
+def cancel(activity_id):
+    """Organiser cancels an event; registrants are notified."""
+    activity = event_service.cancel_event(activity_id, g.current_user)
     return jsonify(activity.to_dict(detail=True)), 200

@@ -184,6 +184,10 @@ class ActivityRepository:
 
 class RegistrationRepository:
     @staticmethod
+    def by_id(reg_id):
+        return Registration.query.get(reg_id)
+
+    @staticmethod
     def find(activity_id, student_id):
         return Registration.query.filter_by(activity_id=activity_id, student_id=student_id).first()
 

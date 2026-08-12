@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useCheckIn, useEvent, useRoster } from '../lib/queries'
+import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
+import { useCheckIn, useEvent, useRoster, useScanQr } from '../lib/queries'
 import { Badge, Button, Card, Progress, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
@@ -12,7 +13,51 @@ export default function CheckIn() {
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: roster = [] } = useRoster(id)
   const checkInMut = useCheckIn()
+  const scanQrMut = useScanQr()
   const [q, setQ] = useState('')
+  const [scanResult, setScanResult] = useState<{ status: 'success' | 'duplicate' | 'error'; message: string } | null>(null)
+  const lastScannedId = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!id || !e) return
+
+    const scanner = new Html5QrcodeScanner(
+      'qr-reader',
+      { fps: 10, qrbox: 250, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] },
+      false,
+    )
+
+    scanner.render(
+      (decodedText) => {
+        if (decodedText === lastScannedId.current || scanQrMut.isPending) return
+        lastScannedId.current = decodedText
+
+        scanQrMut.mutate(
+          { id, registration_id: decodedText },
+          {
+            onSuccess: (res: any) => {
+              setScanResult({
+                status: res.status,
+                message: res.status === 'success' ? `Checked in ${res.student_name}` : res.message || `${res.student_name} already checked in`,
+              })
+              setTimeout(() => setScanResult(null), 3000)
+              setTimeout(() => { lastScannedId.current = null }, 3000)
+            },
+            onError: (err: any) => {
+              setScanResult({ status: 'error', message: err.message || 'Invalid QR code' })
+              setTimeout(() => setScanResult(null), 3000)
+              setTimeout(() => { lastScannedId.current = null }, 3000)
+            },
+          },
+        )
+      },
+      () => {}, // ignore continuous scan-frame errors — expected between reads
+    )
+
+    return () => {
+      scanner.clear().catch(() => {})
+    }
+  }, [id, e])
 
   if (isLoading) return <Loading label="Loading attendees…" />
   if (isError) return <ErrorState error={error} />
@@ -57,6 +102,31 @@ export default function CheckIn() {
           <Progress value={checkedIn} max={roster.length || 1} />
         </div>
       </Card>
+
+      <Card className="relative mb-8 overflow-hidden border-teal/20">
+        <div className="border-b border-white/5 bg-onyx p-4 text-center">
+          <h3 className="text-[14px] font-semibold text-offwhite">Scan QR ticket</h3>
+        </div>
+        <div id="qr-reader" className="min-h-[300px] w-full bg-black" />
+        {scanResult && (
+          <div
+            className={cx(
+              'absolute inset-x-0 bottom-0 p-4 text-center text-[14px] font-medium shadow-lg',
+              scanResult.status === 'success' && 'bg-teal text-onyx',
+              scanResult.status === 'duplicate' && 'bg-gold text-onyx',
+              scanResult.status === 'error' && 'bg-red-500 text-white',
+            )}
+          >
+            {scanResult.message}
+          </div>
+        )}
+      </Card>
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="h-px flex-1 bg-white/10" />
+        <div className="text-caption font-medium uppercase tracking-wider text-graytext-mid">Manual fallback</div>
+        <div className="h-px flex-1 bg-white/10" />
+      </div>
 
       <div className="relative mb-4">
         <input

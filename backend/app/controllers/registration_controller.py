@@ -1,7 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
-from ..rbac import auth_required, organiser_required
-from ..schemas import BroadcastSchema, CheckInSchema, VolunteerSchema
+from ..rbac import auth_required, can_manage_activity_required, organiser_required
+from ..schemas import BroadcastSchema, CheckInSchema, ScanSchema, VolunteerSchema
 from ..services import attendance_service, registration_service
 
 registration_bp = Blueprint("registration", __name__, url_prefix="/api/v1")
@@ -37,6 +37,15 @@ def check_in(activity_id):
     """FR-D6 — mark registered students attended."""
     data = CheckInSchema().load(request.get_json() or {})
     result = attendance_service.check_in(activity_id, data["registration_ids"], g.current_user)
+    return jsonify(result), 200
+
+
+@registration_bp.post("/events/<activity_id>/scan")
+@can_manage_activity_required
+def scan(activity_id):
+    """QR camera check-in — scans the registration id shown on a student's ticket."""
+    data = ScanSchema().load(request.get_json() or {})
+    result = attendance_service.scan_qr(activity_id, data["registration_id"], g.current_user)
     return jsonify(result), 200
 
 

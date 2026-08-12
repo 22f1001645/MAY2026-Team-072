@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
+import { useUpdateProfile } from '../lib/queries'
 import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
-import { Mandala } from './ui'
+import { Button, Card, Input, Mandala } from './ui'
 import NotificationsDropdown from './NotificationsDropdown'
 import ViewSwitcher from './ViewSwitcher'
 import AcademicStatusBanner from './AcademicStatusBanner'
@@ -68,9 +69,10 @@ const ROLE_LABEL: Record<Role, string> = {
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { role, name, city } = useSession()
-  const { currentUser, logout } = useAuth()
+  const { currentUser, logout, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [editCityOpen, setEditCityOpen] = useState(false)
   const location = useLocation()
   const nav = NAV[role]
 
@@ -198,7 +200,14 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-semibold text-offwhite">{name}</div>
               <div className="truncate text-[11px] text-graytext-light">
-                {currentUser?.por ?? ROLE_LABEL[role]} · {city}
+                {currentUser?.por ?? ROLE_LABEL[role]} ·{' '}
+                <button
+                  onClick={() => setEditCityOpen(true)}
+                  className="underline decoration-dotted underline-offset-2 hover:text-offwhite focus:outline-none"
+                  title="Edit city"
+                >
+                  {city}
+                </button>
               </div>
             </div>
             <button
@@ -374,6 +383,64 @@ export default function Layout({ children }: { children: ReactNode }) {
           IIT Madras BS ecosystem — <span className="text-gold">Unite. Inspire. Celebrate.</span>
         </footer>
       </div>
+
+      {editCityOpen && (
+        <EditCityModal
+          currentCity={city}
+          onClose={() => setEditCityOpen(false)}
+          onSaved={refreshUser}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditCityModal({
+  currentCity,
+  onClose,
+  onSaved,
+}: {
+  currentCity: string
+  onClose: () => void
+  onSaved: () => Promise<void>
+}) {
+  const [city, setCity] = useState(currentCity)
+  const updateMutation = useUpdateProfile()
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!city.trim()) return
+    updateMutation.mutate(
+      { city },
+      {
+        onSuccess: async () => {
+          await onSaved()
+          onClose()
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <Card className="relative w-full max-w-sm p-6 border-teal/20">
+        <h2 className="mb-4 text-h3 font-bold text-offwhite">Edit city</h2>
+        <form onSubmit={submit} className="space-y-4">
+          <Input value={city} onChange={(e: any) => setCity(e.target.value)} disabled={updateMutation.isPending} />
+          {updateMutation.isError && (
+            <p className="text-caption text-red-300">{(updateMutation.error as Error).message}</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" type="button" onClick={onClose} disabled={updateMutation.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }

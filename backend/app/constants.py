@@ -8,6 +8,21 @@ ROLE_ADMIN = "admin"
 ROLE_STUDENT = "student"
 LOGIN_ROLES = (ROLE_ADMIN, ROLE_STUDENT)
 
+# --- Refresh-token rotation grace window (AUTH-01, D-02a) ---
+# A refresh token is spent on first use, so presenting it twice normally means
+# replay and revokes the whole family. Two browser tabs waking together present
+# the *same* cookie within milliseconds of each other, and the second one is
+# otherwise indistinguishable from a stolen-token replay — so without a grace
+# window that ordinary case logs the user out, which is exactly the failure
+# ROADMAP criterion 2 forbids. Inside this window the replay re-issues instead
+# of revoking.
+#
+# 10 seconds, not longer: the window's width IS the replay window's width. A
+# real attacker replaying a stolen token essentially never lands within 10
+# seconds of the legitimate rotation that spent it, so genuine reuse detection
+# is preserved. Widening this is prohibited by D-02a.
+REFRESH_ROTATION_GRACE_SECONDS = 10
+
 # --- POR types that grant organiser capability ---
 ORGANISER_PORS = {
     "Regional Coordinator",

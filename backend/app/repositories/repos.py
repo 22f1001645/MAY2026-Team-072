@@ -1,6 +1,7 @@
 """Concrete repositories. Grouped in one module for a compact v1; each class
 owns queries for one aggregate (Milestone 2 §3 — Repository layer)."""
-from datetime import datetime
+import uuid
+from datetime import datetime, UTC
 
 from ..extensions import db
 from ..models import (
@@ -275,8 +276,30 @@ class BlocklistRepository:
             user_id=user_id,
             family_id=family_id,
             reason=reason,
-            revoked_at=datetime.utcnow(),
+            # Naive UTC, deliberately: auth_service compares this against
+            # datetime.now(UTC).replace(tzinfo=None). Both sides must stay in the
+            # same representation or the grace-window comparison raises.
+            revoked_at=datetime.now(UTC).replace(tzinfo=None),
             expires_at=expires_at
         )
         db.session.add(entry)
         return entry
+
+    @staticmethod
+    def revoke_family(user_id: str, family_id: str, reason: str, expires_at: datetime):
+        """Write a family-scoped tombstone that ends the whole session family.
+
+        The row is not a real token, but `jti` is unique and not nullable, so it
+        needs *some* value. That value is made collision-free by construction (a
+        fresh uuid suffix) rather than by catching IntegrityError: detecting reuse
+        twice on one family, or logging out twice, must not turn into a 500.
+        Extra rows are harmless — `family_revoked` only asks whether *any*
+        non-rotated row exists — and they leave a truthful audit trail of how many
+        times revocation was triggered."""
+        return BlocklistRepository.add_entry(
+            jti=f"{reason}_{family_id}_{uuid.uuid4().hex}",
+            user_id=user_id,
+            family_id=family_id,
+            reason=reason,
+            expires_at=expires_at,
+        )

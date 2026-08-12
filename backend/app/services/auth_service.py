@@ -4,7 +4,7 @@ from datetime import datetime, UTC, timezone, timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, set_refresh_cookies, unset_jwt_cookies
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ..constants import ROLE_STUDENT
+from ..constants import REFRESH_ROTATION_GRACE_SECONDS, ROLE_STUDENT
 from ..errors import ApiError
 from ..extensions import db
 from ..models import ActivityFeeRecord, User, AuditLog
@@ -72,6 +72,16 @@ def login(email: str, password: str) -> tuple[dict, list]:
 
 
 def refresh(jwt_payload: dict) -> tuple[dict, str]:
+    """Rotate a refresh token, detecting replay of an already-spent one (D-02).
+
+    Deviation from D-02a, recorded deliberately: D-02a describes a replay inside
+    the grace window as "returns the already-issued successor". This mints a
+    *new* token in the same family instead. Both tabs end up holding valid
+    tokens in one family, which satisfies D-02a's intent — nobody gets logged
+    out — without the server having to retain issued tokens so it can hand one
+    back. Family revocation still kills every token in the family at once, so
+    the security envelope is unchanged.
+    """
     jti = jwt_payload["jti"]
     family_id = jwt_payload.get("fam")
     user_id = jwt_payload["sub"]
@@ -86,10 +96,11 @@ def refresh(jwt_payload: dict) -> tuple[dict, str]:
     block_entry = BlocklistRepository.by_jti(jti)
     if block_entry:
         now = datetime.now(UTC).replace(tzinfo=None)
-        # Check grace window (10s)
-        if (now - block_entry.revoked_at).total_seconds() > 10:
+        # Inside the grace window this is two tabs racing, not an attacker —
+        # fall through and re-issue. Outside it, treat it as replay.
+        if (now - block_entry.revoked_at).total_seconds() > REFRESH_ROTATION_GRACE_SECONDS:
             if family_id:
-                BlocklistRepository.add_entry(jti="fam_" + family_id, user_id=user_id, family_id=family_id, reason="reuse_detected", expires_at=expires_at)
+                BlocklistRepository.revoke_family(user_id=user_id, family_id=family_id, reason="reuse_detected", expires_at=expires_at)
                 db.session.commit()
             raise ApiError("Session revoked due to token reuse", "session_revoked", 401)
     else:
@@ -111,7 +122,7 @@ def logout(jwt_payload: dict):
     exp = jwt_payload["exp"]
     expires_at = datetime.fromtimestamp(exp, UTC).replace(tzinfo=None)
     if family_id:
-        BlocklistRepository.add_entry(jti="logout_" + family_id, user_id=user_id, family_id=family_id, reason="logout", expires_at=expires_at)
+        BlocklistRepository.revoke_family(user_id=user_id, family_id=family_id, reason="logout", expires_at=expires_at)
         db.session.commit()
 
 

@@ -3,13 +3,15 @@
 Every assertion here rides the cookie-borne refresh flow, so these tests use the
 `cookie_client` fixture rather than the header-only `*_headers` fixtures — the
 refresh token never travels in a header by design (D-05)."""
-from datetime import timedelta
+from datetime import datetime, timedelta, UTC
 
 import pytest
 from flask_jwt_extended import create_access_token, decode_token
 
+from app.constants import REFRESH_ROTATION_GRACE_SECONDS
 from app.extensions import db
 from app.models import RefreshTokenBlocklist
+from app.repositories.repos import BlocklistRepository
 
 from .conftest import CookieClient
 
@@ -26,6 +28,33 @@ def _set_cookie_header(response, name):
         if header.startswith(f"{name}="):
             return header
     return None
+
+
+def _present(client, app, token, path="/api/v1/auth/refresh"):
+    """Present `token` at `path`, whatever the client's jar currently holds.
+
+    Replaying a spent token means putting it back in the jar *and* sending the
+    CSRF value that matches it — the double-submit check compares the header
+    against the `csrf` claim inside the presented token, and by now the jar's
+    csrf cookie belongs to the successor."""
+    with app.app_context():
+        csrf = decode_token(token)["csrf"]
+    client.set_cookie(CookieClient.REFRESH_COOKIE, token)
+    return client.post(path, headers={"X-CSRF-TOKEN": csrf})
+
+
+def _age_past_grace_window(app, token):
+    """Backdate a token's blocklist row so its replay reads as reuse, not a race.
+
+    Rewriting `revoked_at` rather than sleeping: the real wait is 15 seconds,
+    which would dominate the whole module's runtime, and patching datetime
+    module-wide is brittle against the several call sites that read it."""
+    with app.app_context():
+        jti = decode_token(token)["jti"]
+        row = db.session.query(RefreshTokenBlocklist).filter_by(jti=jti).first()
+        assert row is not None, "the token was never rotated, so there is no row to age"
+        row.revoked_at -= timedelta(seconds=REFRESH_ROTATION_GRACE_SECONDS + 5)
+        db.session.commit()
 
 
 def test_login_then_refresh_returns_new_access_token(cookie_client):
@@ -153,6 +182,136 @@ def test_logout_clears_cookies_and_revokes_only_this_family(cookie_client, app):
     assert other_device.post_refresh().status_code == 200, (
         "logging out on one device revoked another device's session — D-04 says "
         "logout is device scoped"
+    )
+
+
+def test_reuse_of_a_rotated_token_revokes_the_family_and_kills_the_live_successor(
+    cookie_client, app
+):
+    """D-02. Rejecting the replayed token alone would prove nothing that plain
+    rotation does not already give you — the token was spent either way. What
+    makes this family revocation is that the successor the *attacker* may be
+    holding dies too, which is the only thing that caps a stolen token's blast
+    radius below its 30-day lifetime (T-02-03)."""
+    assert cookie_client.login_as(*STUDENT).status_code == 200
+    token_a = cookie_client.refresh_cookie
+
+    assert cookie_client.post_refresh().status_code == 200
+    token_b = cookie_client.refresh_cookie
+    assert token_b != token_a
+
+    _age_past_grace_window(app, token_a)
+
+    replay = _present(cookie_client, app, token_a)
+    assert replay.status_code == 401, (
+        f"replaying a spent refresh token was accepted: {replay.get_data(as_text=True)}"
+    )
+
+    successor = _present(cookie_client, app, token_b)
+    assert successor.status_code == 401, (
+        "the live successor still refreshes after reuse was detected — revocation "
+        "stopped at the replayed token instead of taking the whole family down"
+    )
+
+
+def test_replay_inside_the_grace_window_reissues_instead_of_revoking(
+    cookie_client, app
+):
+    """D-02a / ROADMAP criterion 2. Two tabs waking together present the same
+    cookie milliseconds apart; the second is indistinguishable from replay by
+    inspection alone. Treating it as replay would log the user out on an
+    ordinary morning, which is a denial of service dressed as a security
+    control (T-02-18)."""
+    assert cookie_client.login_as(*STUDENT).status_code == 200
+    token_a = cookie_client.refresh_cookie
+
+    assert cookie_client.post_refresh().status_code == 200
+
+    # No ageing: this replay lands inside REFRESH_ROTATION_GRACE_SECONDS.
+    racing_tab = _present(cookie_client, app, token_a)
+
+    assert racing_tab.status_code == 200, (
+        "a second tab refreshing within the grace window was treated as replay: "
+        f"{racing_tab.get_data(as_text=True)}"
+    )
+    assert "access_token" in racing_tab.get_json()
+
+    with app.app_context():
+        family_id = decode_token(token_a)["fam"]
+        assert BlocklistRepository.family_revoked(family_id) is False, (
+            "the two-tab race revoked the family — the user was logged out by a "
+            "false positive"
+        )
+
+
+def test_two_logins_produce_independent_families(app):
+    """T-02-05. Each authentication mints its own family, so compromising one
+    session cannot be laundered into control of another. Two clients are two
+    devices — separate instances have separate cookie jars."""
+    laptop = CookieClient(app.test_client())
+    phone = CookieClient(app.test_client())
+    assert laptop.login_as(*STUDENT).status_code == 200
+    assert phone.login_as(*STUDENT).status_code == 200
+
+    laptop_token = laptop.refresh_cookie
+    with app.app_context():
+        laptop_family = decode_token(laptop_token)["fam"]
+        phone_family = decode_token(phone.refresh_cookie)["fam"]
+
+    assert laptop_family != phone_family, (
+        "both logins landed in one family — revoking either would revoke both"
+    )
+
+    # Burn the laptop's family down via reuse detection.
+    assert laptop.post_refresh().status_code == 200
+    _age_past_grace_window(app, laptop_token)
+    assert _present(laptop, app, laptop_token).status_code == 401
+
+    assert phone.post_refresh().status_code == 200, (
+        "revoking one session's family also killed an unrelated login — D-04 "
+        "scopes revocation to one family"
+    )
+
+
+def test_detecting_reuse_twice_on_one_family_does_not_error(cookie_client, app):
+    """T-02-19. The tombstone row needs a jti and is not a real token, so the
+    value is synthetic. Deriving it from the family id alone made it collide
+    with itself on the unique index, turning a second revocation into a 500 —
+    a denial of service reachable by simply retrying."""
+    assert cookie_client.login_as(*STUDENT).status_code == 200
+    token_a = cookie_client.refresh_cookie
+    assert cookie_client.post_refresh().status_code == 200
+    _age_past_grace_window(app, token_a)
+
+    for attempt in (1, 2):
+        res = _present(cookie_client, app, token_a)
+        assert res.status_code == 401, (
+            f"replay attempt {attempt} returned {res.status_code}: "
+            f"{res.get_data(as_text=True)}"
+        )
+
+    # The replays above short-circuit on the family-revoked check, so drive the
+    # duplicate write directly — that is where the collision actually lived.
+    with app.app_context():
+        family_id = decode_token(token_a)["fam"]
+        expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=30)
+        for _ in range(2):
+            BlocklistRepository.revoke_family(
+                user_id=decode_token(token_a)["sub"],
+                family_id=family_id,
+                reason="reuse_detected",
+                expires_at=expires_at,
+            )
+        db.session.commit()
+
+        rows = (
+            db.session.query(RefreshTokenBlocklist)
+            .filter_by(family_id=family_id, reason="reuse_detected")
+            .count()
+        )
+    assert rows >= 2, (
+        "repeated revocations collapsed into one row — the synthetic jti is not "
+        "collision-free by construction"
     )
 
 

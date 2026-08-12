@@ -22,7 +22,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 ### Auth & Session
 
 - [x] **AUTH-01**: User's session persists via a short-lived access token + long-lived refresh token, with a single-flight client-side refresh interceptor (no forced re-login, no concurrent-refresh race)
-- [ ] **AUTH-02**: `/auth/me` returns server-computed capabilities (effective organiser status) instead of the frontend deriving it from a second, independently-maintained POR-type list
+- [x] **AUTH-02**: `/auth/me` returns server-computed capabilities (effective organiser status) instead of the frontend deriving it from a second, independently-maintained POR-type list
 - [ ] **AUTH-03**: POR taxonomy in `constants.py` adds `Society Deputy Secretary` and `Coordinator` (Core Committee role) at House/Society/Region/Council scope, closing the gap confirmed against the IITM BS Students' Constitution
 - [ ] **AUTH-04**: User has an academic-status field (level: foundation/diploma/degree; status: active/on-break/withdrawn) with a termly self-confirmation nudge and admin override, fully decoupled from session/login behavior
 

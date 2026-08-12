@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: identity-session-dashboard-shell
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-08-12T09:17:44.699Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-08-12T09:38:29.291Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 12
-  completed_plans: 8
+  completed_plans: 9
   percent: 13
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 02 (identity-session-dashboard-shell) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 02 execution started
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [███████░░░] 67%
 | Phase 02 P01 | 35min | 3 tasks | 4 files |
 | Phase 02 P02 | 20min | 2 tasks | 5 files |
 | Phase 02 P03 | 45min | 3 tasks | 4 files |
+| Phase 02 P06 | 25min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 2] The D-02a grace-window replay mints a NEW refresh token in the same family rather than returning the already-issued successor — same no-logout outcome without the server retaining issued tokens; recorded in auth_service.refresh's docstring.
 - [Phase ?]: [Phase 2] revoke_family makes the tombstone jti unique by uuid suffix rather than catching IntegrityError, so a second reuse detection or logout on one family cannot 500 (T-02-19) and the extra rows are a truthful audit trail.
 - [Phase ?]: [Phase 2] The blocklist-loader efficiency test uses logout as its positive control, not refresh — refresh runs under 02-01's skip_revocation_check and never reaches the loader (probe-verified: 0 calls).
+- [Phase ?]: Session expiry travels as router state { from, expired }, never a query parameter
+- [Phase ?]: The expiry callback fires from _doRefresh's shared catch, so queued 401s produce one toast
+- [Phase ?]: Account and Capabilities live in types.ts as camelCase, adapted once by adaptMe in api.ts
 
 ### Pending Todos
 
@@ -123,8 +127,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-12T09:17:44.633Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-08-12T09:37:52.894Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None
 
 Next: `/gsd:next`

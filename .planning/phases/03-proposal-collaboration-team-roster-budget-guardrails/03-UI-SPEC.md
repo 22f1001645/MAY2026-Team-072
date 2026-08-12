@@ -79,13 +79,12 @@ Phase 2 introduced `Dialog` and `Select` and both shipped. Phase 3's surfaces ar
 
 ## Spacing Scale
 
-Base unit 4px. Declared values (all multiples of 4):
+Base unit 4px. Declared values — **8-point scale, no 12px member**:
 
 | Token | Value | Tailwind | Usage in this phase |
 |-------|-------|----------|---------------------|
 | xs | 4px | `p-1`, `gap-1` | badge icon-to-label gap; chip inner padding |
-| sm | 8px | `gap-2`, `mt-2`, `space-y-2` | gap between roster rows; gap between Accept and Decline; budget line-row gap (matches the existing `space-y-2` in `ProposalNew.tsx`) |
-| md | 12px | `gap-3`, `mb-3`, `space-y-3` | invitation card internal stack; collaborator chip row gap; gap between action buttons in a card footer |
+| sm | 8px | `gap-2`, `mt-2`, `space-y-2` | gap between roster rows; gap between Accept and Decline; collaborator chip row gap; the action-button gap in every new card footer; budget line-row gap (matches the existing `space-y-2` in `ProposalNew.tsx`) |
 | lg | 16px | `px-4`, `gap-4`, `mb-4` | invitation card padding (`p-4`); grid gap inside the admin review panel; the section-header row above each new proposal block |
 | xl | 24px | `p-6`, `space-y-6` | every new proposal `Card` uses `p-6`, matching the four existing ones; gap between form sections (`space-y-6` on the existing `<form>`) |
 | 2xl | 32px | `mb-8` | separation between the dashboard stat grid and the Invitations block |
@@ -95,11 +94,11 @@ Base unit 4px. Declared values (all multiples of 4):
 - The two new proposal `Card` sections join the existing `space-y-6` form stack. They add **no** margin of their own — `space-y-6` owns every gap between form sections and must remain the only mechanism.
 - Section order inside `ProposalNew.tsx` is **locked**: Scale → Core details → **Collaborating organisations** → **Team roster** → Line-item budget → Quota notice → Actions. Collaborators precede the roster because a roster of people is easier to reason about once you know which organisations are running it. Budget stays last because S3's ceiling depends on Capacity, which lives in Core details — a reader who scrolls linearly has already set capacity before the ceiling appears.
 - The Invitations block on the organiser dashboard sits **below** the stat grid (`mb-8` above it, inherited from the existing grid's own `mb-8`) and **above** "My proposals & events". Rationale: an invitation is a request from someone else with a decision attached; your own events are not going anywhere.
-- Invitation cards stack at `space-y-3`, matching the existing `space-y-3` on the dashboard's event list.
+- Invitation cards stack at `space-y-3` **only because they sit directly beneath, and read as a continuation of, the dashboard's existing `space-y-3` event list** (`OrganiserDashboard.tsx:65`). This is a call-site match, not a token — see the inherited-12px table below. Two adjacent lists on one page at different stack gaps would read as a misalignment, not a distinction.
 
 **Exceptions (documented, not to be "fixed") — NOT part of the declared scale above.**
 
-> ⚠️ The values in this table are **not tokens and not available for any new spacing decision in this phase.** Each is valid only on the one inherited primitive or call site named in its row. Every new spacing decision — new component, new gap, new margin, new padding — must come from the declared scale table above (4 / 8 / 12 / 16 / 24 / 32 / 48).
+> ⚠️ The values in this table are **not tokens and not available for any new spacing decision in this phase.** Each is valid only on the one inherited primitive or call site named in its row. Every new spacing decision — new component, new gap, new margin, new padding — must come from the declared scale table above (4 / 8 / 16 / 24 / 32 / 48).
 
 | Exception | Value | Valid ONLY on | Reason |
 |-----------|-------|---------------|--------|
@@ -107,7 +106,21 @@ Base unit 4px. Declared values (all multiples of 4):
 | `Input` / `Select` vertical padding | 10px (`py-2.5`) | the existing `Input` and `Select` primitives — nothing else | Same, inherited. |
 | `ProposalNew` local field padding | 12px vertical (`py-3`), 8px (`py-2`) on budget-line inputs | the existing local `Input`/`selectCls`/budget-row inputs in `ProposalNew.tsx` — nothing else | Pre-existing in the file this phase extends. New fields added by S1/S2 use the shared `Input`/`Select` primitives instead, so the exception does not spread. |
 | Badge vertical padding | 2px (`py-0.5`) | the existing `Badge` primitive — nothing else | Inherited. |
-| Row-remove button box | 36px (`w-9`, `h-9`) | the existing budget-line remove button and the roster/collaborator remove buttons that match it | Matches the existing control at `ProposalNew.tsx:202`. 36px exceeds WCAG 2.5.8 AA (24px minimum). **No icon-only control in this phase may be smaller than 36px.** |
+| Row-remove button box | 36px (`w-9`, `h-9`) | the existing budget-line remove button and the roster/collaborator remove buttons that match it | Matches the existing control at `ProposalNew.tsx:202`. 36px exceeds WCAG 2.5.8 AA (24px minimum). **No icon-only control in this phase may be smaller than 36px, and none may ship without an `aria-label`** — see the copy rule and the S1/S2 remove-button rows. |
+
+#### The inherited 12px rhythm — a closed list, not a token
+
+12px is **not** a member of this phase's spacing scale and is **not** available for any new spacing decision. It survives only where a new element is inserted directly into, or directly beside, an existing 12px element and any other value would visibly misalign against it. That is a finite, enumerated set:
+
+| New usage | Class | The existing call site it must match | Why 8px or 16px is wrong *here* |
+|-----------|-------|--------------------------------------|-------------------------------|
+| Invitations block `h2` bottom margin (S6) | `mb-3` | `OrganiserDashboard.tsx:56` — the "My proposals & events" `h2`, which S6's heading is explicitly specified to match "exactly" | Two sibling `h2`s on one page with different heading-to-content gaps read as a typo. |
+| Invitation card stack (S6) | `space-y-3` | `OrganiserDashboard.tsx:65` — the event list this block sits immediately above | Two adjacent card stacks at different gaps read as a misalignment. |
+| Invitation card action-row top margin (S6) | `mt-3` | `OrganiserDashboard.tsx:92` — the existing dashboard card's own action row | Same card family, same page, same shape. |
+| Collaborator / roster row inner gap and padding (S1, S2) | `gap-3`, `px-4 py-3` | `ProposalNew.tsx:330` (`gap-3 … px-4`) and the local field shell at `ProposalNew.tsx:451/456` (`px-4 py-3`) — the rows S1/S2 sit between | The new rows stack in the same form column as those; a different row height makes the form look like two forms. |
+| Submission-rejection strip padding (S4) | `px-4 py-3` | `ProposalNew.tsx:416` — the exact strip S4 replaces, in the exact same position | S4 is a replacement of that element, not a new one. |
+
+**Everything else is 8px or 16px.** Specifically, and by correction of an earlier draft of this contract: the gap between action buttons in any new card footer is `gap-2` (8px, S5 and S6 both), and the collaborator chip row in S7 is `gap-2` (8px). No new `gap-3`, `mb-3`, `mt-3`, `space-y-3` or `py-3` may appear anywhere in this phase outside the five rows above.
 
 ---
 
@@ -205,7 +218,7 @@ Dark surface only. Percentages are share of painted pixels on a proposal or dash
 | Secondary CTA — invitation | **Decline** (`Button variant="danger"`) |
 | Primary CTA — roster | **Add to team** |
 | Primary CTA — reassignment | **Reassign** |
-| Secondary CTA | **Cancel** (bare — see the Phase 2 reasoned exception, inherited verbatim) |
+| Secondary CTA | **Cancel** (bare — the Phase 2 reasoned exception, **re-confirmed for this phase's only use of it**, S8's reassignment `Dialog`) |
 | Collaborator section heading | **Collaborating organisations** |
 | Collaborator section hint | **Name every organisation running this with you. Each one's Secretary is asked to accept before it counts.** |
 | Collaborator empty (none added) | **No collaborators yet — this is a {Org name} event.** — states the true current shape rather than scolding. Zero collaborators is valid. |
@@ -245,6 +258,8 @@ Dark surface only. Percentages are share of painted pixels on a proposal or dash
 - **A rejection reason is the server's sentence, shown verbatim, under our heading.** ROADMAP criterion 3 requires "the reason shown, not a generic error". The heading is ours and is specific per failure kind; the body is `error.message` from the `{ error, code }` envelope. Never replace a server reason with a paraphrase — the server knows the actual number.
 - **Counts are always written out with their threshold.** "2 of 3 accepted", never "2 accepted". A count without its target is trivia.
 - **Money is always `inr()`.** No bare integers, no `₹` concatenated by hand, no `toLocaleString` at a call site.
+- **The bare "Cancel" exception, re-checked against this phase rather than assumed.** Phase 2's rule is that a dismiss control is labelled **Cancel** rather than **Cancel {noun}** when it is one of exactly two buttons in a dialog the user opened deliberately, and dismissing it changes nothing. Phase 3 uses **Cancel** in exactly one place — S8's reassignment `Dialog` — and it satisfies all three conditions: two buttons (**Cancel** / **Reassign**), opened by an explicit click on a reassign control, and closing it leaves the current Meetup Head untouched. Nothing else in this phase is labelled **Cancel**; S1's and S2's dismiss-equivalents are the 36px remove buttons, which are labelled by their `aria-label` per those surface contracts.
+- **Every icon-only control carries an accessible name.** No control in this phase may communicate its action through a glyph alone: each takes an `aria-label` (and a matching `title`) naming the object it acts on — **Remove {Org name}**, **Remove {Name}**. This is in addition to the 36px minimum box, not instead of it.
 
 ### Forbidden vocabulary in user-facing strings
 
@@ -268,7 +283,8 @@ Eight surfaces. Each names its trigger, placement, form, states and the requirem
 | Hint | Beneath the header, `text-caption text-graytext-light`: **Name every organisation running this with you. Each one's Secretary is asked to accept before it counts.** |
 | Primary org | The organisation already chosen in Core details is rendered as the **first, non-removable** row, carrying `Badge tone="teal"` **Primary** and the caption **Owns this proposal and its budget.** It is not a duplicate control — changing the primary happens in the existing Organisation select, and this row reflects it. |
 | Add control | A `Select` listing organisations not already added, plus a `Button size="sm" variant="secondary"` **Add**. Not a free-text field — collaborators are existing rows, and typing a name that does not resolve to an `org_id` is not a state the server can accept. |
-| Row | `flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3` — org name at `text-[14px] text-offwhite` on the left; status badge + 36px remove button on the right. |
+| Row | `flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3` (the 12px values are the enumerated `ProposalNew.tsx:330` / `:451` call-site match — see the inherited-12px table) — org name at `text-[14px] text-offwhite` on the left; status badge + 36px remove button on the right. |
+| Remove button | Icon-only, 36px box, and therefore **must** carry `aria-label="Remove {Org name}"` and the same string as `title`. An icon-only control with no accessible name is unusable on a screen reader and ambiguous on hover; the ✕ glyph is not a name. |
 | Status at proposal time | Every newly added collaborator is `pending` and renders `Badge tone="warn"` **Awaiting reply** with the caption **Invited on submit.** No collaborator is `accepted` before the proposal is submitted — the UI must never render an optimistic **Accepted**. |
 | Mega Meetup counter | Below the list, always visible once at least one collaborator is added: **{n} of 3 accepted — a Mega Meetup tag applies at 3.** At 3+, this is replaced by **3 organisations have accepted. This is tagged a Mega Meetup.** On an unsubmitted form the accepted count is 0, and the sentence says so honestly. |
 | Zero collaborators | Valid and unremarkable. Renders **No collaborators yet — this is a {Org name} event.** at `text-caption text-graytext-light`. No warning colour, no icon, no nudge. |
@@ -285,7 +301,8 @@ Eight surfaces. Each names its trigger, placement, form, states and the requirem
 | Search | `Input` with placeholder **Search by name or email**, debounced 300ms, backed by the existing `useUsers(q)` hook. **Scope: any user in the system** — no org-membership filter. This is deliberate and load-bearing: PROPOSAL-05 states the Meetup Head does not require an organiser POR, so a members-only picker would contradict the requirement. |
 | Result row | Name at `text-[14px] text-offwhite`, email beneath at `text-caption text-graytext-mid`, both `truncate` with the full value in `title`. A user already on the roster is shown `disabled` with the caption **Already on the team** rather than hidden — hiding makes the searcher think the search is broken. |
 | Add flow | Select a person → choose a role in a `Select` seeded from `constants.TEAM_ROLES` → `Button size="sm"` **Add to team**. Role is chosen at add time, not after, so no row can exist without one. |
-| Roster row | Same row shell as S1. Name + `Badge tone="neutral"` role chip on the left; 36px remove button on the right. The Meetup Head row carries `Badge tone="teal"` instead of neutral, and the caption **Approves the campaign before it goes live. Only this person can.** |
+| Roster row | Same row shell as S1, including its enumerated 12px call-site match. Name + `Badge tone="neutral"` role chip on the left; 36px remove button on the right. The Meetup Head row carries `Badge tone="teal"` instead of neutral, and the caption **Approves the campaign before it goes live. Only this person can.** |
+| Remove button | Icon-only, 36px box, and therefore **must** carry `aria-label="Remove {Name}"` and the same string as `title`. Where one person holds two roles the roster shows two rows, so the label disambiguates by role: `aria-label="Remove {Name} as {Role}"`. Removing the wrong row is the failure this label prevents. |
 | Meetup Head singleton | The role `Select` renders **Meetup Head** as `disabled` once one is assigned, with the option label suffixed **(assigned)**. Choosing a second is impossible in the UI, and the server's `uq_team_meetup_head` partial index is the real enforcement. Reassignment is S8's job, not this control's. |
 | Repeatable roles | Every role except Meetup Head may be held by several people, and one person may hold several roles (the server's unique key is `(activity, user, role)`). The UI imposes no extra limit. |
 | Empty | **No one added yet. A proposal needs exactly one Meetup Head before it can be submitted.** |

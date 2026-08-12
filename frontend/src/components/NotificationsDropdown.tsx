@@ -24,6 +24,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
   const { data: items = [], isLoading, isError } = useNotifications()
   const markReadMutation = useMarkNotificationsRead()
   const [filter, setFilter] = useState<'all' | 'reminder' | 'update'>('all')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const handleMarkAllRead = () => {
     markReadMutation.mutate()
@@ -32,7 +33,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
   const filteredItems = items.filter((n: any) => filter === 'all' || n.type === filter)
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx/95 p-3 shadow-2xl backdrop-blur-xl z-50 animate-[fadeIn_0.2s_ease-out]">
+    <div className="absolute right-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx p-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 animate-fade-up">
       <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-white/5">
         <h3 className="text-[13px] font-bold text-offwhite uppercase tracking-wider">Notifications</h3>
         <button 
@@ -65,23 +66,31 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
         ) : isError ? (
           <div className="p-4 text-center text-[12px] text-red-400">Failed to load</div>
         ) : filteredItems.length === 0 ? (
-          <div className="p-8 text-center text-[13px] text-graytext-mid">
-            You're all caught up.
+          <div className="p-8 text-center flex flex-col items-center justify-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-white/20 mb-3">
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+              <path d="M4 4l16 16" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+            </svg>
+            <div className="text-[13px] font-medium text-offwhite mb-1">No new notifications</div>
+            <div className="text-[12px] text-graytext-mid">You're all caught up.</div>
           </div>
         ) : (
           filteredItems.map((n: any) => {
             const t = TONE[n.type] ?? TONE.update
+            const isExpanded = expandedId === n.id
             return (
               <div
                 key={n.id}
-                onClick={onClose}
+                onClick={() => setExpandedId(isExpanded ? null : n.id)}
                 className={cx(
-                  'cursor-pointer rounded-xl p-3 hover:bg-white/10 transition-colors flex gap-3 relative',
-                  !n.read ? 'bg-white/5 border border-teal/20' : 'hover:bg-white/5'
+                  'cursor-pointer rounded-xl p-3 transition-all duration-200 flex gap-3 relative overflow-hidden',
+                  !n.read 
+                    ? 'bg-black/60 border-l-[3px] border-l-teal ring-1 ring-teal/30 shadow-[0_0_15px_rgba(92,230,201,0.15)] hover:bg-black' 
+                    : 'bg-transparent border border-transparent hover:bg-white/5 hover:border-white/10'
                 )}
               >
                 {!n.read && (
-                  <span className="absolute top-3 left-3 h-2 w-2 rounded-full bg-teal shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
+                  <div className="absolute top-0 right-0 h-16 w-16 bg-teal/10 blur-xl rounded-full translate-x-8 -translate-y-8" />
                 )}
                 <div
                   className={cx(
@@ -96,7 +105,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                     <Badge tone={t.tone}>{t.label}</Badge>
                     <span className="shrink-0 text-[10px] text-graytext-mid">{ago(n.at)}</span>
                   </div>
-                  <div className="mt-1.5 truncate text-[13px] font-semibold text-offwhite">
+                  <div className={cx("mt-1.5 text-[13px] font-semibold text-offwhite", !isExpanded && "truncate")}>
                     {n.title}
                   </div>
                   {n.type === 'update' && n.activity_title && (
@@ -104,7 +113,9 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                       From: {n.activity_title}
                     </div>
                   )}
-                  <div className="line-clamp-2 text-[12px] leading-relaxed text-graytext-light mt-1">{n.body}</div>
+                  <div className={cx("text-[12px] leading-relaxed text-graytext-light mt-1", !isExpanded && "line-clamp-2")}>
+                    {n.body}
+                  </div>
                 </div>
               </div>
             )

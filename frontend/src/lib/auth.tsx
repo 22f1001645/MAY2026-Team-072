@@ -49,6 +49,7 @@ interface AuthCtx {
     city?: string
   }) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
+  updateCurrentUser: (updates: Partial<Account>) => void
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -108,8 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null)
   }
 
+  const updateCurrentUser = (updates: Partial<Account>) => {
+    setCurrentUser((prev) => (prev ? { ...prev, ...updates } : prev))
+  }
+
   return (
-    <Ctx.Provider value={{ currentUser, loading, login, register, logout }}>
+    <Ctx.Provider value={{ currentUser, loading, login, register, logout, updateCurrentUser }}>
       {children}
     </Ctx.Provider>
   )

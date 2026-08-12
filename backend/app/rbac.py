@@ -60,3 +60,58 @@ def organiser_required(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+def can_manage_org(user: User, org) -> bool:
+    """True if user has an active organiser POR in the specified organisation."""
+    if user.role == ROLE_ADMIN:
+        return True
+    for m in user.memberships:
+        if m.org_id == org.id:
+            for p in m.pors:
+                if p.active and p.por_type in ORGANISER_PORS:
+                    return True
+    return False
+
+
+def can_manage_activity(user: User, activity) -> bool:
+    """True if user is admin, or holds a POR for the activity's org/collaborators."""
+    if user.role == ROLE_ADMIN:
+        return True
+    if can_manage_org(user, activity.org):
+        return True
+    
+    if hasattr(activity, "proposal") and getattr(activity, "proposal", None):
+        for collab in activity.proposal.collaborators:
+            if collab.status == "accepted" and can_manage_org(user, collab.org):
+                return True
+                
+    return False
+
+
+def can_participate_in_activity(user: User, activity) -> bool:
+    """True if user is a confirmed/waitlisted registrant or a team member."""
+    if user.role == ROLE_ADMIN:
+        return True
+        
+    for reg in activity.registrations:
+        if reg.student_id == user.id and reg.status in ("confirmed", "waitlisted"):
+            return True
+            
+    for tm in activity.team_members:
+        if tm.user_id == user.id:
+            return True
+            
+    return False
+
+
+def is_meetup_head(user: User, activity) -> bool:
+    """True if user is specifically designated as Meetup Head in team members."""
+    if user.role == ROLE_ADMIN:
+        return True
+        
+    for tm in activity.team_members:
+        if tm.user_id == user.id and tm.role == "Meetup Head":
+            return True
+            
+    return False

@@ -53,7 +53,7 @@ class User(Base):
     interests = db.Column(db.JSON, default=list)
 
     memberships = db.relationship("Membership", back_populates="user", cascade="all, delete-orphan")
-    registrations = db.relationship("Registration", back_populates="student")
+    registrations = db.relationship("Registration", back_populates="student", foreign_keys="Registration.student_id")
     region = db.relationship("Organisation", foreign_keys=[region_id])
 
     def to_dict(self):
@@ -91,9 +91,15 @@ class Organisation(Base):
     name = db.Column(db.String(150), nullable=False)
     type = db.Column(db.String(20), nullable=False)  # house|society|region|council
     city = db.Column(db.String(80))
+    bio = db.Column(db.Text)
+    logo_url = db.Column(db.String(300))
+    voice_descriptors = db.Column(db.JSON, default=list)
+    color_palette = db.Column(db.JSON, default=list)
+    sample_phrases = db.Column(db.JSON, default=list)
 
     activities = db.relationship("Activity", back_populates="org")
     memberships = db.relationship("Membership", back_populates="org")
+    social_links = db.relationship("OrganisationSocialLink", back_populates="org", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "type": self.type, "city": self.city}
@@ -168,6 +174,8 @@ class Activity(Base):
     status = db.Column(db.String(20), default="upcoming")  # upcoming|live|completed|archived
     organiser_id = db.Column(db.String(32), db.ForeignKey("users.id"))
     tags = db.Column(db.JSON, default=list)
+    mail_template = db.Column(db.Text)
+    poster_url = db.Column(db.String(300))
 
     org = db.relationship("Organisation", back_populates="activities")
     organiser = db.relationship("User")
@@ -175,6 +183,12 @@ class Activity(Base):
     budget_lines = db.relationship("BudgetLine", back_populates="activity", cascade="all, delete-orphan")
     registrations = db.relationship("Registration", back_populates="activity", cascade="all, delete-orphan")
     expenses = db.relationship("Expense", back_populates="activity", cascade="all, delete-orphan")
+    team_members = db.relationship("ActivityTeamMember", back_populates="activity", cascade="all, delete-orphan")
+    tasks = db.relationship("ActivityTask", back_populates="activity", cascade="all, delete-orphan")
+    schedule = db.relationship("EventSchedule", back_populates="activity", cascade="all, delete-orphan")
+    custom_fields = db.relationship("CustomRegistrationField", back_populates="activity", cascade="all, delete-orphan")
+    queries = db.relationship("EventQuery", back_populates="activity", cascade="all, delete-orphan")
+    polls = db.relationship("EventPoll", back_populates="activity", cascade="all, delete-orphan")
 
     def registered_count(self):
         return sum(1 for r in self.registrations if r.status == "confirmed")
@@ -218,13 +232,22 @@ class Announcement(Base):
     sender = db.relationship("User")
 
     def to_dict(self):
+        # Determine sender role dynamically since chat is now 2-way
+        role = "Student"
+        if self.sender:
+            if self.sender.role == "admin":
+                role = "Admin"
+            elif self.sender.id == self.activity.organiser_id:
+                role = "Organiser"
+
         return {
             "id": self.id,
             "eventId": self.activity_id,
             "senderName": self.sender.name if self.sender else "Organising Team",
-            "senderRole": "Organiser",
+            "senderRole": role if self.sender else "Organiser",
             "title": self.title,
             "content": self.body,
+            "isAlert": bool(self.title),
             "createdAt": _iso(self.created_at),
         }
 
@@ -239,6 +262,7 @@ class Proposal(Base):
     status = db.Column(db.String(30), default="submitted")
 
     activity = db.relationship("Activity", back_populates="proposal")
+    collaborators = db.relationship("ProposalCollaborator", back_populates="proposal", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {"id": self.id, "activity_id": self.activity_id, "status": self.status}
@@ -270,9 +294,12 @@ class Registration(Base):
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     status = db.Column(db.String(20), default="confirmed")  # confirmed|waitlisted
+    qr_token = db.Column(db.String(32), unique=True, default=_uuid, nullable=False)
+    referred_by_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
 
     activity = db.relationship("Activity", back_populates="registrations")
-    student = db.relationship("User", back_populates="registrations")
+    student = db.relationship("User", back_populates="registrations", foreign_keys=[student_id])
+    referred_by = db.relationship("User", foreign_keys=[referred_by_id])
     attendance = db.relationship("Attendance", back_populates="registration", uselist=False, cascade="all, delete-orphan")
 
     def to_dict(self):
@@ -283,7 +310,10 @@ class Registration(Base):
             "student_id": self.student_id,
             "student": self.student.name if self.student else None,
             "status": self.status,
+            "qr_token": self.qr_token,
             "attended": self.attendance is not None,
+            "referrer": self.referred_by.name if self.referred_by else None,
+            "referred_by_id": self.referred_by_id,
             # Embedded activity summary so the student's list renders without a join
             "activity": {
                 "id": a.id,
@@ -448,3 +478,123 @@ class AuditLog(Base):
             "note": self.note,
             "at": _iso(self.created_at),
         }
+
+# --------------------------------------------------------------------------- #
+# Milestone 3 - New Phase 1 Tables
+# --------------------------------------------------------------------------- #
+class ProposalCollaborator(Base):
+    __tablename__ = "proposal_collaborators"
+    proposal_id = db.Column(db.String(32), db.ForeignKey("proposals.id"), nullable=False, index=True)
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
+    status = db.Column(db.String(20), default="pending")  # pending|accepted|declined
+
+    proposal = db.relationship("Proposal", back_populates="collaborators")
+    org = db.relationship("Organisation")
+
+
+class ActivityTeamMember(Base):
+    __tablename__ = "activity_team_members"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    role = db.Column(db.String(80), nullable=False)
+
+    activity = db.relationship("Activity", back_populates="team_members")
+    user = db.relationship("User")
+
+
+class ActivityTask(Base):
+    __tablename__ = "activity_tasks"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    deadline = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default="todo")  # todo|in_progress|done
+    assignee_id = db.Column(db.String(32), db.ForeignKey("users.id"))
+
+    activity = db.relationship("Activity", back_populates="tasks")
+    assignee = db.relationship("User")
+
+
+class EventSchedule(Base):
+    __tablename__ = "event_schedules"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    owner = db.Column(db.String(120))
+
+    activity = db.relationship("Activity", back_populates="schedule")
+
+
+class CustomRegistrationField(Base):
+    __tablename__ = "custom_registration_fields"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    label = db.Column(db.String(150), nullable=False)
+    type = db.Column(db.String(20), nullable=False, default="text")  # text|dropdown
+    options = db.Column(db.JSON, default=list)
+    required = db.Column(db.Boolean, default=False)
+
+    activity = db.relationship("Activity", back_populates="custom_fields")
+
+
+class OrganisationSocialLink(Base):
+    __tablename__ = "organisation_social_links"
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
+    platform = db.Column(db.String(50), nullable=False)
+    url = db.Column(db.String(300), nullable=False)
+
+    org = db.relationship("Organisation", back_populates="social_links")
+
+
+class EventQuery(Base):
+    __tablename__ = "event_queries"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    submitter_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
+    query_text = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default="open")  # open|answered
+    response_text = db.Column(db.Text)
+    responder_id = db.Column(db.String(32), db.ForeignKey("users.id"))
+
+    activity = db.relationship("Activity", back_populates="queries")
+    submitter = db.relationship("User", foreign_keys=[submitter_id])
+    responder = db.relationship("User", foreign_keys=[responder_id])
+
+
+class EventPoll(Base):
+    __tablename__ = "event_polls"
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    options = db.Column(db.JSON, nullable=False)  # list of strings
+
+    activity = db.relationship("Activity", back_populates="polls")
+    votes = db.relationship("EventPollVote", back_populates="poll", cascade="all, delete-orphan")
+
+
+class EventPollVote(Base):
+    __tablename__ = "event_poll_votes"
+    __table_args__ = (db.UniqueConstraint("poll_id", "voter_id", name="uq_poll_vote"),)
+
+    poll_id = db.Column(db.String(32), db.ForeignKey("event_polls.id"), nullable=False, index=True)
+    voter_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    option_index = db.Column(db.Integer, nullable=False)
+
+    poll = db.relationship("EventPoll", back_populates="votes")
+    voter = db.relationship("User")
+
+
+class AttendeeFeedback(Base):
+    __tablename__ = "attendee_feedback"
+    __table_args__ = (db.UniqueConstraint("activity_id", "student_id", name="uq_feedback"),)
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    rating = db.Column(db.Integer, nullable=False)
+    comments = db.Column(db.Text)
+
+    activity = db.relationship("Activity")
+    student = db.relationship("User")
+
+
+class TokenBlocklist(Base):
+    __tablename__ = "token_blocklist"
+    jti = db.Column(db.String(36), nullable=False, index=True)

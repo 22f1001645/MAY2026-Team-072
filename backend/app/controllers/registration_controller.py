@@ -11,7 +11,9 @@ registration_bp = Blueprint("registration", __name__, url_prefix="/api/v1")
 @auth_required
 def register(activity_id):
     """FR-D1 — student registers; headcount recorded."""
-    reg = registration_service.register(activity_id, g.current_user)
+    data = request.get_json(silent=True) or {}
+    referred_by_id = data.get("referred_by")
+    reg = registration_service.register(activity_id, g.current_user, referred_by_id)
     return jsonify(reg.to_dict()), 201
 
 
@@ -39,10 +41,24 @@ def check_in(activity_id):
     return jsonify(result), 200
 
 
-@registration_bp.post("/events/<activity_id>/broadcast")
+@registration_bp.post("/events/<activity_id>/scan")
 @organiser_required
+def scan_qr(activity_id):
+    """Scan a QR code for check-in."""
+    data = request.get_json() or {}
+    qr_token = data.get("qr_token")
+    if not qr_token:
+        from ..errors import ApiError
+        raise ApiError("Missing qr_token", "invalid_request", 400)
+        
+    result = attendance_service.scan_qr(activity_id, qr_token, g.current_user)
+    return jsonify(result), 200
+
+
+@registration_bp.post("/events/<activity_id>/broadcast")
+@auth_required
 def broadcast(activity_id):
-    """FR-D3 — send a time-critical update to registrants."""
+    """FR-D3 — send a time-critical update or discussion message."""
     data = BroadcastSchema().load(request.get_json() or {})
     sent = registration_service.broadcast(activity_id, data["title"], data["body"], g.current_user)
     return jsonify({"sent": sent}), 200
@@ -51,6 +67,8 @@ def broadcast(activity_id):
 @registration_bp.get("/me/registrations")
 @auth_required
 def my_registrations():
+    from ..repositories.repos import ActivityRepository
+    ActivityRepository.sync_past_events()
     regs = registration_service.my_registrations(g.current_user)
     return jsonify([r.to_dict() for r in regs]), 200
 

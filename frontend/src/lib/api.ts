@@ -132,6 +132,11 @@ export const api = {
       body: JSON.stringify(data),
     }),
   me: () => request<any>('/auth/me'),
+  updateProfile: (data: { city?: string }) =>
+    request<any>('/auth/me/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 
   // Community (A)
   cities: () => request<{ id: string; name: string; region_id: string | null; region: string | null }[]>('/cities'),
@@ -156,13 +161,25 @@ export const api = {
     request(`/pors/${porId}/deactivate`, { method: 'PATCH' }),
 
   // Discovery (C)
-  events: (city?: string) =>
-    request<ApiActivity[]>(`/events${city && city !== 'All' ? `?city=${encodeURIComponent(city)}` : ''}`)
-      .then((rows) => rows.map(adaptEvent)),
+  events: (city?: string, scale?: string, dateRange?: string) => {
+    const params = new URLSearchParams()
+    if (city && city !== 'All') params.append('city', city)
+    if (scale && scale !== 'all' && scale !== 'All') params.append('scale', scale)
+    if (dateRange && dateRange !== 'all' && dateRange !== 'All') params.append('dateRange', dateRange)
+    const qs = params.toString()
+    return request<ApiActivity[]>(`/events${qs ? `?${qs}` : ''}`).then((rows) => rows.map(adaptEvent))
+  },
   event: (id: string) => request<ApiActivity>(`/events/${id}`).then(adaptEvent),
+  updateEvent: (id: string, payload: any) =>
+    request<ApiActivity>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(payload) }).then(adaptEvent),
+  cancelEvent: (id: string) =>
+    request<ApiActivity>(`/events/${id}`, { method: 'DELETE' }).then(adaptEvent),
 
   // Registration / attendance (D)
-  joinEvent: (id: string) => request(`/events/${id}/register`, { method: 'POST' }),
+  joinEvent: (id: string, referredBy?: string) => request(`/events/${id}/register`, { 
+    method: 'POST',
+    body: JSON.stringify({ referred_by: referredBy })
+  }),
   leaveEvent: (id: string) => request(`/events/${id}/register`, { method: 'DELETE' }),
   myRegistrations: () => request<any[]>('/me/registrations'),
   roster: (id: string) => request<any[]>(`/events/${id}/registrations`),
@@ -171,11 +188,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ registration_ids }),
     }),
+  scanQr: (id: string, qr_token: string) =>
+    request<{ status: string; student_name: string; student_id: string; message?: string }>(`/events/${id}/scan`, {
+      method: 'POST',
+      body: JSON.stringify({ qr_token }),
+    }),
   broadcast: (id: string, title: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title, body }) }),
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
-    request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: 'Update', body }) }),
+    request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
   notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
 

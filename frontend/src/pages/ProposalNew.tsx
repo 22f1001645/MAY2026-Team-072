@@ -46,7 +46,7 @@ export default function ProposalNew() {
       city: form.city || cities[0]?.name,
       scale,
       venue: form.venue,
-      starts_at: form.starts_at,
+      starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : '',
       capacity: parseInt(form.capacity) || 1,
       description: form.description,
       budget: lines
@@ -119,7 +119,7 @@ export default function ProposalNew() {
           <div>
             <Label>Event title</Label>
             <Input value={form.title} onChange={(e) => set('title', e.target.value)}
-                   placeholder="e.g. Hyderabad Coffee & Code" required />
+              placeholder="e.g. Hyderabad Coffee & Code" required />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -143,18 +143,18 @@ export default function ProposalNew() {
             <div>
               <Label>Date & time</Label>
               <Input type="datetime-local" value={form.starts_at}
-                     onChange={(e) => set('starts_at', e.target.value)} required />
+                onChange={(e) => set('starts_at', e.target.value)} required />
             </div>
             <div>
               <Label>Capacity</Label>
               <Input type="number" value={form.capacity}
-                     onChange={(e) => set('capacity', e.target.value)} placeholder="45" required />
+                onChange={(e) => set('capacity', e.target.value)} placeholder="45" required />
             </div>
           </div>
           <div>
             <Label>Venue</Label>
             <Input value={form.venue} onChange={(e) => set('venue', e.target.value)}
-                   placeholder="Roastery Coffee House, Banjara Hills" required />
+              placeholder="Roastery Coffee House, Banjara Hills" required />
           </div>
           <div>
             <Label>Description</Label>

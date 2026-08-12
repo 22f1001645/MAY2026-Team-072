@@ -33,12 +33,26 @@ from app.models import (
 TERM = "May 2026"
 
 
-def run():
+def reset_db():
     app = create_app()
     with app.app_context():
+        db_url = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        if not (db_url.startswith("sqlite://") or "localhost" in db_url or "127.0.0.1" in db_url):
+            raise RuntimeError("reset_db() refused to run against a non-dev DATABASE_URL")
+        print("Dropping all tables...")
+        # drop_all doesn't drop alembic_version, so we must drop it manually or use create_all+stamp
         db.drop_all()
-        db.create_all()
+        db.session.execute(db.text("DROP TABLE IF EXISTS alembic_version"))
+        db.session.commit()
+        from flask_migrate import upgrade
+        print("Running migrations...")
+        upgrade()
+        print("Schema recreated.")
 
+
+def seed_reference_data():
+    app = create_app()
+    with app.app_context():
         # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
         house_orgs = {}
         for name in HOUSES:
@@ -251,4 +265,5 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    reset_db()
+    seed_reference_data()

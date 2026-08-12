@@ -12,7 +12,7 @@ export type ProposalStatus =
   | 'approved'
   | 'rejected'
 
-export type EventStatus = 'upcoming' | 'live' | 'completed' | 'archived'
+export type EventStatus = 'upcoming' | 'live' | 'completed' | 'archived' | 'cancelled'
 
 export type ExpenseStatus = 'submitted' | 'verified' | 'approved' | 'paid'
 

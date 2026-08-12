@@ -23,3 +23,11 @@ def login():
 @auth_required
 def me():
     return jsonify(g.current_user.to_dict()), 200
+
+
+@auth_bp.patch("/me/profile")
+@auth_required
+def update_profile():
+    data = request.get_json() or {}
+    city = data.get("city")
+    return jsonify(auth_service.update_profile(g.current_user.id, city)), 200

@@ -64,11 +64,18 @@ export default {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' },
         },
+        'shake': {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(10deg)' },
+          '50%': { transform: 'rotate(-10deg)' },
+          '75%': { transform: 'rotate(5deg)' },
+        },
       },
       animation: {
         // Fade-in reveal: 20px upward slide + opacity 0→1 (brand kit §7)
         'fade-up': 'fade-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
         'spin-slow': 'spin-slow 2.4s linear infinite',
+        'shake': 'shake 0.4s ease-in-out',
       },
     },
   },

@@ -4,15 +4,14 @@ import { api } from './api'
 /* TanStack Query hooks — server cache, retries, and invalidation on mutation
  * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
 
-// ---- Queries ----
-export const useEvents = (city?: string) =>
-  useQuery({ queryKey: ['events', city], queryFn: () => api.events(city) })
+export const useEvents = (city?: string, scale?: string, dateRange?: string) =>
+  useQuery({ queryKey: ['events', city, scale, dateRange], queryFn: () => api.events(city, scale, dateRange) })
 
 export const useEvent = (id?: string) =>
   useQuery({ queryKey: ['event', id], queryFn: () => api.event(id!), enabled: !!id })
 
 export const useMyRegistrations = () =>
-  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations })
+  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, refetchInterval: 10000 })
 
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
@@ -24,7 +23,7 @@ export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
 export const useNotifications = () =>
-  useQuery({ queryKey: ['notifications'], queryFn: api.notifications })
+  useQuery({ queryKey: ['notifications'], queryFn: api.notifications, refetchInterval: 10000 })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status) })
@@ -70,14 +69,47 @@ export const useUsers = (q?: string) =>
   useQuery({ queryKey: ['users', q], queryFn: () => api.users(q) })
 
 // ---- Mutations ----
-export const useRegister = () => {
+export const useUpdateEvent = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.joinEvent(id),
+    mutationFn: (v: { id: string; payload: any }) => api.updateEvent(v.id, v.payload),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['event', v.id] })
+      qc.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+export const useCancelEvent = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.cancelEvent(id),
     onSuccess: (_d, id) => {
       qc.invalidateQueries({ queryKey: ['event', id] })
       qc.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+export const useUpdateProfile = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { city?: string }) => api.updateProfile(data),
+    onSuccess: () => {
+      // no-op, rely on the component calling updateCurrentUser from AuthCtx
+    },
+  })
+}
+
+export const useRegister = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; referredBy?: string }) => api.joinEvent(v.id, v.referredBy),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['event', v.id] })
+      qc.invalidateQueries({ queryKey: ['events'] })
       qc.invalidateQueries({ queryKey: ['my-registrations'] })
+      qc.invalidateQueries({ queryKey: ['announcements', v.id] })
     },
   })
 }
@@ -89,6 +121,7 @@ export const useUnregister = () => {
     onSuccess: (_d, id) => {
       qc.invalidateQueries({ queryKey: ['event', id] })
       qc.invalidateQueries({ queryKey: ['my-registrations'] })
+      qc.invalidateQueries({ queryKey: ['announcements', id] })
     },
   })
 }
@@ -117,6 +150,14 @@ export const useCheckIn = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (v: { id: string; ids: string[] }) => api.checkIn(v.id, v.ids),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.id] }),
+  })
+}
+
+export const useScanQr = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; qr_token: string }) => api.scanQr(v.id, v.qr_token),
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.id] }),
   })
 }

@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: identity-session-dashboard-shell
 status: executing
-stopped_at: Completed 02-07-PLAN.md
-last_updated: "2026-08-12T12:42:27.667Z"
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-08-12T13:43:58.703Z"
 last_activity: 2026-08-12
 last_activity_desc: Completed 02-07 (view switcher, DASH-01)
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 11
-  percent: 13
+  completed_plans: 12
+  percent: 25
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 02 (identity-session-dashboard-shell) — EXECUTING
-Plan: 7 of 7 (02-05 still outstanding — see Blockers)
-Status: 02-07 complete; phase not closeable until 02-05 executes
+Plan: 7 of 7 — all seven plans have summaries
+Status: 02-05 and 02-07 both complete; phase ready for verification
 Last activity: 2026-08-12 — Completed 02-07 (view switcher, DASH-01)
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [█████████░] 92%
 | Phase 02 P06 | 25min | 3 tasks | 11 files |
 | Phase 02 P04 | 30min | 3 tasks | 6 files |
 | Phase 02 P07 | 47min | 4 tasks | 7 files |
+| Phase 02 P05 | 52min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,8 @@ Recent decisions affecting current work:
 - [Phase ?]: View state is derived from location.pathname, never React state — the URL is the single source of truth (D-15/D-16)
 - [Phase ?]: localStorage['ekatva_view'] is read only by homeFor() to pick a landing route, never to decide what renders
 - [Phase ?]: Admin stays a login role, not a view — only the Student/Organiser distinction comes from the URL
+- [Phase ?]: AuditLog detail rides as JSON in the existing note column — the shared audit table is not widened for one caller
+- [Phase ?]: Academic enum validation lives only in the Marshmallow schemas, sourced from constants; the duplicated service tuples were deleted
 
 ### Pending Todos
 
@@ -131,12 +134,12 @@ None yet.
 - **Progression gating is unvalidated** — the milestone's only feature with no market analogue. Not fixable by investigation; needs real Regional Coordinators. Keeping mitigation as-is: build now, validate in parallel with Phases 1-6. No action pending.
 - ~~**Doc drift**~~ RESOLVED 2026-08-06: git archaeology showed `constants.ACTIVITY_FEE_INR` has been 200 since introduction (never 100 in code history) — ₹200 confirmed correct, docs/UI (README, PROJECT.md, Analytics.tsx, CheckIn.tsx, Landing.tsx) updated to match.
 - ~~**Requirement count drift**~~ RESOLVED (already fixed at source): REQUIREMENTS.md already states 52 with a correction note; the "51" only survives elsewhere as historical explanation, not a live error.
-- 02-05 (academic status / terms seed) is unexecuted: 02-05-PLAN.md has no SUMMARY, the dev terms table is empty, so the academic-status banner has no data path
+- RESOLVED 2026-08-12 — 02-05 executed (commits 531d19a, f684471, d10b3e6). The blocker also misattributed the cause: 02-05 never owned the terms seed. Remaining, and not a code defect: `seed_reference_data()` has not been run against the dev database, so `terms` is empty and the academic banner does not render locally. It is idempotent and non-destructive to run.
 
 ## Session Continuity
 
-Last session: 2026-08-12T12:41:16.796Z
-Stopped at: Completed 02-07-PLAN.md
+Last session: 2026-08-12T13:43:58.545Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None
 
 Next: `/gsd:next`

@@ -216,7 +216,9 @@ status: complete
 ## Issues Encountered
 
 - **The plan's checkpoint credentials do not exist in the dev database.** `saiteja@ekatva.os` and `arav@ekatva.os` are the pytest fixture emails from `conftest.py`; `seed.py` uses `saiteja@ds.study.iitm.ac.in` and `arav@ds.study.iitm.ac.in`. Verified against the running server and corrected at the checkpoint. `CLAUDE.md`'s seeded-accounts table carries the same wrong emails and is worth correcting.
-- **The academic-status banner cannot render in the dev environment.** The `terms` table has zero rows, and `is_academic_status_stale()` returns `False` when no current term exists. Root cause is outside this plan: `02-05-PLAN.md` has no SUMMARY, so the D-21/D-24 term seed was never executed. No data was inserted — the destructive `seed.py` reset was deliberately not run.
+- **The academic-status banner cannot render in the dev environment.** The `terms` table has zero rows, and `is_academic_status_stale()` returns `False` when no current term exists. No data was inserted — the destructive `seed.py` reset was deliberately not run.
+
+  > **Corrected 2026-08-12, after executing 02-05.** This originally attributed the empty `terms` table to 02-05 being unexecuted, and said 02-05 "owns the terms seed". Both claims were wrong. `seed.py`'s `seed_reference_data()` already creates the `May 2026` term idempotently, and 02-05's `files_modified` does not include `seed.py` at all. The real cause is simply that `seed_reference_data()` has not been run against this dev database. 02-05 has since been executed and its actual scope was the unregistered blueprint, the broken audit write, Marshmallow validation and migration-safety tests — none of which touch seeding.
 
 ## Known Stubs
 
@@ -226,7 +228,7 @@ None. `localStorage['ekatva_view']` was the one write-without-a-reader and it wa
 
 - **`NAV.organiser` hardcoded event ids** (`Layout.tsx:31-33`: `ev-ekatva-hyd`, `ev-hyd-coffee`). These sit on the exact routes S1 uses to detect the Organiser view, so they were read carefully and deliberately left alone. They predate this phase, no Phase 2 requirement covers them, and replacing them is a behaviour change with its own design question.
 - **`SessionProvider` is now a stateless passthrough.** Deleting it and its `App.tsx` usage is a one-line cleanup, held back to keep this plan's diff inside its declared files.
-- **Backstop item 2's banner half is unverified.** Once 02-05 seeds the `terms` table, re-check that the banner, switcher, nav and page title coexist at a 768px viewport height.
+- **Backstop item 2's banner half is unverified.** Run `seed_reference_data()` against the dev database (idempotent, non-destructive), then re-check that the banner, switcher, nav and page title coexist at a 768px viewport height.
 - **`CLAUDE.md` seeded-accounts table lists the wrong organiser and student emails.**
 
 ## User Setup Required

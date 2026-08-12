@@ -24,7 +24,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 - [x] **AUTH-01**: User's session persists via a short-lived access token + long-lived refresh token, with a single-flight client-side refresh interceptor (no forced re-login, no concurrent-refresh race)
 - [x] **AUTH-02**: `/auth/me` returns server-computed capabilities (effective organiser status) instead of the frontend deriving it from a second, independently-maintained POR-type list
 - [x] **AUTH-03**: POR taxonomy in `constants.py` adds `Society Deputy Secretary` and `Coordinator` (Core Committee role) at House/Society/Region/Council scope, closing the gap confirmed against the IITM BS Students' Constitution
-- [ ] **AUTH-04**: User has an academic-status field (level: foundation/diploma/degree; status: active/on-break/withdrawn) with a termly self-confirmation nudge and admin override, fully decoupled from session/login behavior
+- [x] **AUTH-04**: User has an academic-status field (level: foundation/diploma/degree; status: active/on-break/withdrawn) with a termly self-confirmation nudge and admin override, fully decoupled from session/login behavior
 
 ### Dashboard
 
@@ -157,7 +157,7 @@ Populated during roadmap creation — see ROADMAP.md.
 |-------------|-------|--------|
 | SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Complete |
 | RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Complete |
-| AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Pending |
+| AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Complete |
 | DASH-01 | Phase 2 | Complete |
 | PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | Phase 3 | Pending |
 | BUDGET-01 | Phase 3 | Pending |

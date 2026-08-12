@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: identity-session-dashboard-shell
 status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-08-12T09:38:29.291Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-08-12T10:06:48.324Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 13
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 02 (identity-session-dashboard-shell) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-08-12 — Phase 02 execution started
 
-Progress: [████████░░] 75%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [████████░░] 75%
 | Phase 02 P02 | 20min | 2 tasks | 5 files |
 | Phase 02 P03 | 45min | 3 tasks | 4 files |
 | Phase 02 P06 | 25min | 3 tasks | 11 files |
+| Phase 02 P04 | 30min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Session expiry travels as router state { from, expired }, never a query parameter
 - [Phase ?]: The expiry callback fires from _doRefresh's shared catch, so queued 401s produce one toast
 - [Phase ?]: Account and Capabilities live in types.ts as camelCase, adapted once by adaptMe in api.ts
+- [Phase ?]: AUTH-03 POR constants were already correct from Phase 1 — plan 02-04 added proof only, constants.py unchanged
+- [Phase ?]: The recognised-POR union lives in auth_service, not the repository: which positions confer authority is a business rule
 
 ### Pending Todos
 
@@ -127,8 +130,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-12T09:37:52.894Z
-Stopped at: Completed 02-06-PLAN.md
+Last session: 2026-08-12T10:06:48.258Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
 
 Next: `/gsd:next`

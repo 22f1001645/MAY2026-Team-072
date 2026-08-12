@@ -141,6 +141,13 @@ export const DEMO_ACCOUNTS = [
   { name: 'Arav Mehta', email: 'arav@ds.study.iitm.ac.in', password: 'student123', role: 'student' as Role },
 ]
 
-// Where each role lands after login
-export const homeFor = (role: Role) =>
-  role === 'admin' ? '/admin/approvals' : role === 'organiser' ? '/organiser' : '/discover'
+// Where each role lands after login.
+//
+// This is the one place `localStorage['ekatva_view']` is read (D-15): an
+// organiser who last used Student view comes back to the student home instead
+// of the organiser dashboard. It is read to pick a *landing route* only —
+// never to decide what the switcher renders, which is derived from the URL.
+export const homeFor = (role: Role) => {
+  if (role === 'organiser' && localStorage.getItem('ekatva_view') === 'student') return '/discover'
+  return role === 'admin' ? '/admin/approvals' : role === 'organiser' ? '/organiser' : '/discover'
+}

@@ -1,39 +1,30 @@
-import { useState, createContext, useContext, type ReactNode, useEffect } from 'react'
+import type { ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from './auth'
+import { viewFromPathname } from '../components/ViewSwitcher'
 import type { Role } from './types'
 
-interface SessionCtx {
-  viewRole: Role
-  setViewRole: (r: Role) => void
-}
-
-const Ctx = createContext<SessionCtx | null>(null)
+/* The active view is derived from the URL (D-15, D-16), so there is no
+ * `viewRole` state and no `setViewRole` — ViewSwitcher navigates instead of
+ * setting a flag, and the URL is the only source of truth. `SessionProvider` is
+ * kept as a passthrough so App.tsx's tree is unchanged; it holds no state. */
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { currentUser, capabilities } = useAuth()
-  const defaultRole: Role = currentUser?.role === 'admin' ? 'admin' : (capabilities?.isOrganiser ? 'organiser' : 'student')
-  const [viewRole, setViewRole] = useState<Role | null>(null)
-
-  // Reset view role if user changes
-  useEffect(() => {
-    setViewRole(null)
-  }, [currentUser?.id])
-
-  return (
-    <Ctx.Provider value={{ viewRole: viewRole || defaultRole, setViewRole }}>
-      {children}
-    </Ctx.Provider>
-  )
+  return <>{children}</>
 }
 
 export function useSession() {
   const { currentUser } = useAuth()
-  const ctx = useContext(Ctx)
-  
+  const { pathname } = useLocation()
+
+  // Admin is a login role, not a view: an admin keeps the admin nav whatever
+  // the URL says. For everyone else the pathname picks Student vs Organiser,
+  // which is what makes `NAV[role]` in Layout follow the switcher.
+  const role: Role = currentUser?.role === 'admin' ? 'admin' : viewFromPathname(pathname)
+
   return {
-    role: ctx?.viewRole ?? currentUser?.role ?? 'student',
+    role,
     name: currentUser?.name ?? 'Guest',
     city: currentUser?.city ?? 'Hyderabad',
-    setViewRole: ctx?.setViewRole ?? (() => {})
   }
 }

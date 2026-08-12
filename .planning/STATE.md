@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: milestone
 current_phase: 02
 current_phase_name: identity-session-dashboard-shell
-status: completed
-stopped_at: Phase 2 implementation complete
-last_updated: "2026-08-11T22:30:00.000Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-08-12T08:22:37.076Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 02 implementation complete
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 6
+  completed_phases: 1
+  total_plans: 12
   completed_plans: 6
-  percent: 25
+  percent: 13
 ---
 
 # Project State
@@ -28,12 +28,12 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 ## Current Position
 
-Phase: 02 (identity-session-dashboard-shell) — COMPLETED
-Plan: 1 of 1
-Status: Phase complete — verified
-Last activity: 2026-08-12 — Phase 02 implementation complete
+Phase: 02 (identity-session-dashboard-shell) — EXECUTING
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-08-12 — Phase 02 execution started
 
-Progress: [██████████] 100%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [██████████] 100%
 | Phase 01 P03 | 22min | 3 tasks | 4 files |
 | Phase 01 P04 | 30min | 3 tasks | 7 files |
 | Phase 01 P05 | 40min | 3 tasks | 5 files |
+| Phase 02 P01 | 35min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase 2]: Added `is_current` to `Term` model and generated migration `17240eb59839` to track the current term.
 - [Phase 2]: Introduced dynamic RBAC predicates (`manageable_orgs`, `manageable_activities`) avoiding token bloat.
 - [Phase 2]: Handled role-based capability switching entirely in the frontend using `SessionProvider` and a UI `ViewSwitcher` without server-side token modification.
+- [Phase ?]: [Phase 2] locations=["cookies"] on both cookie endpoints is the authoritative server-side fix for the stale-Authorization-header lockout — the frontend needs no change for correctness (T-02-17, mutation-verified).
+- [Phase ?]: [Phase 2] The blocklist loader stays a pure predicate; revocation side effects live in auth_service.refresh behind skip_revocation_check=True, which is what makes reuse detection reachable for 02-03.
+- [Phase ?]: [Phase 2] The never-500 guard asserts a status set {200,401,422} rather than exact per-state codes, so 02-03's CSRF and reuse work cannot make it brittle.
 
 ### Pending Todos
 
@@ -112,8 +116,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-12T04:02:00.000Z
-Stopped at: Phase 2 implementation complete
-Resume file: .planning/phases/03-core-activity-loop/03-UI-SPEC.md
+Last session: 2026-08-12T08:22:04.479Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
 
 Next: `/gsd:next`

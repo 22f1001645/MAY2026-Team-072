@@ -7,6 +7,14 @@ import { Loading, ErrorState } from '../components/states'
 import type { LeaderRow, LedgerEntry } from '../lib/types'
 import { cx } from '../lib/format'
 
+// Gamification tiers — a computed lens over the same points total, no separate store.
+function getTierInfo(points: number) {
+  if (points >= 600) return { name: 'Diamond', icon: '💎', tone: 'teal' as const, next: null as { name: string; points: number } | null }
+  if (points >= 300) return { name: 'Gold', icon: '🥇', tone: 'gold' as const, next: { name: 'Diamond', points: 600 } }
+  if (points >= 100) return { name: 'Silver', icon: '🥈', tone: 'neutral' as const, next: { name: 'Gold', points: 300 } }
+  return { name: 'Bronze', icon: '🥉', tone: 'neutral' as const, next: { name: 'Silver', points: 100 } }
+}
+
 // Recognition — points + leaderboard, computed over attendance data (FR-G5)
 export default function Leaderboard() {
   const { name } = useSession()
@@ -19,6 +27,7 @@ export default function Leaderboard() {
   const ranked = rows.map((r: LeaderRow) => ({ ...r, isMe: r.name === name }))
   const me = ranked.find((r: LeaderRow) => r.isMe)
   const totalPoints = points?.total ?? 0
+  const myTier = getTierInfo(totalPoints)
 
   return (
     <div>
@@ -149,9 +158,19 @@ export default function Leaderboard() {
             </div>
             <div className="my-1 text-[44px] font-bold leading-none text-teal">{totalPoints}</div>
             <div className="text-caption text-graytext-light">
-              {me 
-                ? `Rank #${me.rank} ${scope === 'Overall' ? 'Overall' : `in ${scope}`}` 
+              {me
+                ? `Rank #${me.rank} ${scope === 'Overall' ? 'Overall' : `in ${scope}`}`
                 : `No rank in ${scope} yet`}
+            </div>
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <Badge tone={myTier.tone}>
+                {myTier.icon} {myTier.name} tier
+              </Badge>
+              {myTier.next && (
+                <span className="text-caption text-graytext-mid">
+                  {myTier.next.points - totalPoints} pts to {myTier.next.name}
+                </span>
+              )}
             </div>
           </Card>
 

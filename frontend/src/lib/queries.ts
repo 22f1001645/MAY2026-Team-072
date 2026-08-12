@@ -124,6 +124,42 @@ export const useCheckIn = () => {
   })
 }
 
+export const useScanQr = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; registration_id: string }) => api.scanQr(v.id, v.registration_id),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.id] }),
+  })
+}
+
+export const useUpdateEvent = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; payload: any }) => api.updateEvent(v.id, v.payload),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ['event', id] })
+      qc.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+export const useUpdateProfile = () => {
+  return useMutation({
+    mutationFn: (data: { city?: string }) => api.updateProfile(data),
+  })
+}
+
+export const useCancelEvent = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.cancelEvent(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ['event', id] })
+      qc.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
 export const useSubmitExpense = () => {
   const qc = useQueryClient()
   return useMutation({

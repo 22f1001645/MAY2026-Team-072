@@ -253,6 +253,8 @@ export const api = {
     return res
   },
   me: (): Promise<Account> => request<ApiMe>('/auth/me').then(adaptMe),
+  updateProfile: (data: { city?: string }) =>
+    request('/auth/me/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   /** Rotate the refresh cookie and obtain a new access token. */
   refresh: async () => {
     const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
@@ -318,6 +320,9 @@ export const api = {
     request<ApiActivity[]>(`/events${city && city !== 'All' ? `?city=${encodeURIComponent(city)}` : ''}`)
       .then((rows) => rows.map(adaptEvent)),
   event: (id: string) => request<ApiActivity>(`/events/${id}`).then(adaptEvent),
+  updateEvent: (id: string, payload: any) =>
+    request(`/events/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  cancelEvent: (id: string) => request(`/events/${id}`, { method: 'DELETE' }),
 
   // Registration / attendance (D)
   joinEvent: (id: string, referredBy?: string) =>
@@ -332,6 +337,11 @@ export const api = {
     request<{ checked_in: number; total_attended: number }>(`/events/${id}/attendance`, {
       method: 'POST',
       body: JSON.stringify({ registration_ids }),
+    }),
+  scanQr: (id: string, registration_id: string) =>
+    request<{ status: string; student_name: string; message?: string }>(`/events/${id}/scan`, {
+      method: 'POST',
+      body: JSON.stringify({ registration_id }),
     }),
   broadcast: (id: string, title: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title, body }) }),

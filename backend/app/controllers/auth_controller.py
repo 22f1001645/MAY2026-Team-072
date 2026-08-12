@@ -8,6 +8,7 @@ from ..schemas import (
     AcademicStatusSchema,
     AdminAcademicOverrideSchema,
     LoginSchema,
+    ProfileSchema,
     RegisterSchema,
 )
 from ..services import auth_service
@@ -77,6 +78,13 @@ def me():
     data["capabilities"] = auth_service.get_capabilities(user)
     data["academic_status_stale"] = auth_service.is_academic_status_stale(user)
     return jsonify(data), 200
+
+
+@auth_bp.patch("/me/profile")
+@auth_required
+def update_profile():
+    data = ProfileSchema().load(request.get_json() or {})
+    return jsonify(auth_service.update_profile(g.current_user.id, data.get("city"))), 200
 
 
 @auth_bp.patch("/academic-status")

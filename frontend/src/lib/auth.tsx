@@ -25,6 +25,7 @@ interface AuthCtx {
     city?: string
   }) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
+  refreshUser: () => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -121,8 +122,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const refreshUser = async () => {
+    const user = await api.me()
+    setCurrentUser(user)
+    setCapabilities(user.capabilities)
+  }
+
   return (
-    <Ctx.Provider value={{ currentUser, capabilities, loading, login, register, logout }}>
+    <Ctx.Provider value={{ currentUser, capabilities, loading, login, register, logout, refreshUser }}>
       {children}
     </Ctx.Provider>
   )

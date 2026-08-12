@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime, UTC, timezone, timedelta
 
@@ -9,7 +10,7 @@ from ..errors import ApiError
 from ..extensions import db
 from ..models import ActivityFeeRecord, User, AuditLog
 from ..repositories.repos import UserRepository, TermRepository, BlocklistRepository, PORRepository
-from ..rbac import is_organiser, manageable_orgs, manageable_activities
+from ..rbac import has_organiser_por, manageable_orgs, manageable_activities
 
 CURRENT_TERM = "May 2026"
 
@@ -128,7 +129,7 @@ def logout(jwt_payload: dict):
 
 def get_capabilities(user: User) -> dict:
     return {
-        "is_organiser": is_organiser(user),
+        "is_organiser": has_organiser_por(user),
         "manageable_org_ids": [org.id for org in manageable_orgs(user)],
         "manageable_activity_ids": [act.id for act in manageable_activities(user)]
     }
@@ -146,6 +147,15 @@ def unrecognised_por_assignments() -> list:
 
 
 def is_academic_status_stale(user: User) -> bool:
+    """True when the user's confirmation predates the current term (D-20).
+
+    Staleness is a term-boundary question, not a rolling window: a confirmation
+    made 40 days ago inside the current term is fresh, while one made 10 days ago
+    in the previous term is stale.
+
+    No current term means nobody is nudged rather than everybody — a deliberate
+    fail-open, because an empty `terms` table is a seeding gap and dropping a
+    banner on every user in the app is the worse failure."""
     current_term = TermRepository.current_term()
     if not current_term:
         return False
@@ -172,11 +182,9 @@ def is_academic_status_stale(user: User) -> bool:
 
 
 def confirm_academic_status(user: User, level: str, status: str):
-    if level not in ("foundation", "diploma", "degree"):
-        raise ApiError("Invalid academic level", "invalid_level", 400)
-    if status not in ("active", "on_break", "withdrawn"):
-        raise ApiError("Invalid academic status", "invalid_status", 400)
-        
+    # Enum validation lives in AcademicStatusSchema (422, uniform envelope).
+    # Re-checking the allowlist here would be a second source of truth for the
+    # same rule, which is how the two drift apart.
     user.academic_level = level
     user.academic_status = status
     user.academic_confirmed_at = datetime.now(UTC)
@@ -194,18 +202,26 @@ def admin_override_academic_status(actor: User, target: User, level: str, status
     target.academic_status = status
     target.academic_confirmed_at = datetime.now(UTC)
     
+    # AuditLog has six columns — entity, entity_id, action, actor_id, actor_name,
+    # note. It has no entity_type and no changes; constructing it with those
+    # raised TypeError, so no override could ever have written an audit row.
+    # Old and new ride in `note` as JSON rather than widening the shared audit
+    # table, which would be a schema change broader than this phase warrants.
     log = AuditLog(
-        entity_type="user",
+        entity="user",
         entity_id=target.id,
         action="admin_override_academic_status",
         actor_id=actor.id,
-        changes={
-            "old_level": old_level,
-            "new_level": level,
-            "old_status": old_status,
-            "new_status": status,
-            "reason": reason
-        }
+        actor_name=actor.name,
+        note=json.dumps(
+            {
+                "old_level": old_level,
+                "new_level": level,
+                "old_status": old_status,
+                "new_status": status,
+                "reason": reason,
+            }
+        ),
     )
     db.session.add(log)
     db.session.commit()

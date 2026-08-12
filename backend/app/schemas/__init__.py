@@ -3,7 +3,7 @@
 Responses are shaped by each model's to_dict(); these guard the write paths."""
 from marshmallow import Schema, fields, validate
 
-from ..constants import ACTIVITY_SCALES
+from ..constants import ACADEMIC_LEVELS, ACADEMIC_STATUSES, ACTIVITY_SCALES
 
 
 class RegisterSchema(Schema):
@@ -56,6 +56,23 @@ class BroadcastSchema(Schema):
 
 class CheckInSchema(Schema):
     registration_ids = fields.List(fields.Str(), required=True)
+
+
+class AcademicStatusSchema(Schema):
+    """AUTH-04 self-confirmation. The allowlists are imported, never restated —
+    a third copy of these enums is how the UI, the schema and the service drift
+    apart."""
+
+    academic_level = fields.Str(required=True, validate=validate.OneOf(ACADEMIC_LEVELS))
+    academic_status = fields.Str(required=True, validate=validate.OneOf(ACADEMIC_STATUSES))
+
+
+class AdminAcademicOverrideSchema(AcademicStatusSchema):
+    """D-22 admin override. `reason` is optional by design: the audit row already
+    carries actor, target, old and new, so a mandatory reason would be a gate the
+    requirement does not ask for and would train admins to type "."."""
+
+    reason = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=500))
 
 
 class PORSchema(Schema):

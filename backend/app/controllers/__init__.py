@@ -1,6 +1,6 @@
 """Controller layer — Blueprints. HTTP only: parse, validate, call a service,
 shape the response. One blueprint per PRD module (Milestone 2 §3)."""
-from .auth_controller import auth_bp
+from .auth_controller import admin_auth_bp, auth_bp
 from .community_controller import community_bp
 from .proposal_controller import proposal_bp
 from .event_controller import event_bp
@@ -13,6 +13,10 @@ from .settings_controller import settings_bp
 
 ALL_BLUEPRINTS = [
     auth_bp,
+    # auth_controller contributes TWO blueprints — every other controller below
+    # contributes exactly one, and that asymmetry is precisely why this entry was
+    # missed and the admin override endpoint 404'd.
+    admin_auth_bp,
     community_bp,
     proposal_bp,
     event_bp,

@@ -1,13 +1,25 @@
 from flask import Blueprint, g, jsonify, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 
+from ..errors import ApiError
 from ..rbac import admin_required, auth_required
-from ..schemas import LoginSchema, RegisterSchema
+from ..repositories.repos import UserRepository
+from ..schemas import (
+    AcademicStatusSchema,
+    AdminAcademicOverrideSchema,
+    LoginSchema,
+    RegisterSchema,
+)
 from ..services import auth_service
 from ..models import User
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
-_admin_bp = Blueprint("admin_auth", __name__, url_prefix="/api/v1/admin")
+
+# This module is the one controller that contributes TWO blueprints. The admin
+# override lives under /api/v1/admin rather than /api/v1/auth, and the name is
+# deliberately public: as `_admin_bp` it read as module-private, which is why it
+# was left out of ALL_BLUEPRINTS and the endpoint 404'd.
+admin_auth_bp = Blueprint("admin_auth", __name__, url_prefix="/api/v1/admin")
 
 
 @auth_bp.post("/register")
@@ -70,27 +82,29 @@ def me():
 @auth_bp.patch("/academic-status")
 @auth_required
 def update_academic_status():
-    data = request.get_json() or {}
-    level = data.get("academic_level")
-    status = data.get("academic_status")
-    auth_service.confirm_academic_status(g.current_user, level, status)
+    data = AcademicStatusSchema().load(request.get_json() or {})
+    auth_service.confirm_academic_status(
+        g.current_user, data["academic_level"], data["academic_status"]
+    )
     return jsonify({"message": "Academic status updated"}), 200
 
 
-@_admin_bp.patch("/users/<user_id>/academic-status")
+@admin_auth_bp.patch("/users/<user_id>/academic-status")
 @admin_required
 def admin_update_academic_status(user_id):
-    data = request.get_json() or {}
-    level = data.get("academic_level")
-    status = data.get("academic_status")
-    reason = data.get("reason")
-    
-    from ..repositories.repos import UserRepository
+    data = AdminAcademicOverrideSchema().load(request.get_json() or {})
+
     target = UserRepository.by_id(user_id)
     if not target:
-        return jsonify({"error": "User not found", "code": "not_found"}), 404
-        
-    auth_service.admin_override_academic_status(g.current_user, target, level, status, reason)
+        raise ApiError("User not found", "not_found", 404)
+
+    auth_service.admin_override_academic_status(
+        g.current_user,
+        target,
+        data["academic_level"],
+        data["academic_status"],
+        data.get("reason"),
+    )
     return jsonify({"message": "User academic status updated by admin"}), 200
 
 

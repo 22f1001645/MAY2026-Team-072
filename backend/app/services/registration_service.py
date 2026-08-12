@@ -1,4 +1,4 @@
-from ..constants import PROPOSAL_APPROVED
+from ..constants import PROPOSAL_APPROVED, EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Notification, Registration, Announcement
@@ -9,6 +9,9 @@ def register(activity_id: str, student, referred_by_id: str = None) -> Registrat
     activity = ActivityRepository.by_id(activity_id)
     if not activity or not activity.proposal or activity.proposal.status != PROPOSAL_APPROVED:
         raise ApiError("Event not found or not published", "event_not_found", 404)
+
+    if activity.status == EVENT_CANCELLED:
+        raise ApiError("This event has been cancelled", "event_cancelled", 400)
 
     if RegistrationRepository.find(activity_id, student.id):
         raise ApiError("You are already registered for this event", "already_registered", 409)
@@ -45,7 +48,8 @@ def unregister(activity_id: str, student) -> None:
     reg = RegistrationRepository.find(activity_id, student.id)
     if not reg:
         raise ApiError("You are not registered", "not_registered", 404)
-    
+
+    activity_title = reg.activity.title
     was_confirmed = (reg.status == "confirmed")
     db.session.delete(reg)
     db.session.flush()
@@ -68,6 +72,16 @@ def unregister(activity_id: str, student) -> None:
                     body=f"A spot opened up! You are now confirmed for '{next_waitlisted.activity.title}'.",
                 )
             )
+
+    db.session.add(
+        Notification(
+            user_id=student.id,
+            activity_id=activity_id,
+            type="update",
+            title="Registration Cancelled",
+            body=f"Your registration for '{activity_title}' has been successfully cancelled.",
+        )
+    )
 
     db.session.commit()
 

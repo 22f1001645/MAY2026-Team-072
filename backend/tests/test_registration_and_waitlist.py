@@ -90,6 +90,39 @@ def test_registration_and_waitlist_flow(client, app, student_headers, rc_headers
     assert "You're in!" in titles
 
 
+def test_unregister_sends_cancellation_notification(client, app, student_headers, rc_headers, admin_headers):
+    with app.app_context():
+        from tests.conftest import org_id
+        o_id = org_id()
+
+    activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
+
+    res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
+    assert res.status_code == 201
+
+    res = client.delete(f"/api/v1/events/{activity_id}/register", headers=student_headers)
+    assert res.status_code == 200
+
+    res = client.get("/api/v1/notifications", headers=student_headers)
+    titles = [n["title"] for n in res.get_json()]
+    assert "Registration Cancelled" in titles
+
+
+def test_register_rejects_cancelled_event(client, app, student_headers, rc_headers, admin_headers):
+    with app.app_context():
+        from tests.conftest import org_id
+        o_id = org_id()
+
+    activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
+
+    res = client.delete(f"/api/v1/events/{activity_id}", headers=rc_headers)
+    assert res.status_code == 200
+
+    res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
+    assert res.status_code == 400
+    assert res.get_json()["code"] == "event_cancelled"
+
+
 def test_event_tags_fetching(client, app, rc_headers, admin_headers):
     # Setup event
     with app.app_context():

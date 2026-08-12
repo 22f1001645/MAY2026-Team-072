@@ -90,6 +90,16 @@ export default function EventDetail() {
               <InfoRow icon="pin" label="Venue" value={e.venue} />
               <InfoRow icon="user" label="Organiser" value={e.organiser} />
             </div>
+            <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+              <iframe
+                width="100%"
+                height="200"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(e.venue + ', ' + e.city)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+              />
+            </div>
           </Card>
 
           {/* Organiser-only face of the same object (PRD §16 — one object, two faces) */}
@@ -146,7 +156,14 @@ export default function EventDetail() {
             </div>
             <Progress value={count} max={e.capacity} />
 
-            {role === 'student' ? (
+            {e.status === 'cancelled' ? (
+              <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+                <div className="text-h3 font-semibold text-red-400">Event Cancelled</div>
+                <p className="mt-1 text-caption text-red-200/70">
+                  This event has been cancelled by the organiser.
+                </p>
+              </div>
+            ) : role === 'student' ? (
               registered ? (
                 <div className="mt-5">
                   <div className={`rounded-xl border p-4 text-center ${isWaitlisted ? 'border-warn/30 bg-warn/10' : 'border-teal/30 bg-teal/10'}`}>

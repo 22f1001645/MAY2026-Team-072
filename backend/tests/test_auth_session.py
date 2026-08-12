@@ -315,6 +315,76 @@ def test_detecting_reuse_twice_on_one_family_does_not_error(cookie_client, app):
     )
 
 
+def test_refresh_without_csrf_header_is_rejected(cookie_client):
+    """D-05. The refresh cookie is sent by the browser on any same-site POST,
+    including one a hostile page triggers, so the cookie alone proves nothing.
+    The double-submit token does — an attacker can make the browser send the
+    cookie but cannot read it to echo it back in a header (T-02-02).
+
+    The exact `code` string is deliberately not pinned: the CSRF failure is
+    routed through the unauthorized_loader, and asserting its wording would
+    break on a later loader change without catching a real regression."""
+    assert cookie_client.login_as(*STUDENT).status_code == 200
+
+    res = cookie_client.post("/api/v1/auth/refresh")  # no X-CSRF-TOKEN
+
+    assert res.status_code == 401, (
+        "a refresh with a valid cookie but no CSRF header was accepted: "
+        f"{res.get_data(as_text=True)}"
+    )
+    body = res.get_json()
+    assert body is not None, "the CSRF rejection escaped as a non-JSON error page"
+    assert "error" in body and "code" in body, (
+        f"CSRF rejection bypassed the project error envelope: {body}"
+    )
+
+    # Negative control: the same request *with* the header succeeds, so the 401
+    # above is attributable to the missing CSRF token and nothing else.
+    assert cookie_client.post_refresh().status_code == 200
+
+
+def test_blocklist_loader_short_circuits_on_access_tokens(cookie_client, monkeypatch):
+    """T-02-20. The blocklist loader runs inside every JWT decode, so without the
+    access-token early return every authenticated call in the app would pay a
+    database round-trip to look up a jti that is never blocklisted.
+
+    The counter delegates to the real method rather than stubbing it — a stub
+    would keep passing even if the short-circuit were removed and the real
+    lookup were simply broken."""
+    login = cookie_client.login_as(*STUDENT)
+    assert login.status_code == 200
+    access_token = login.get_json()["access_token"]
+
+    calls = []
+    original = BlocklistRepository.is_jti_blocked
+
+    def counting(jti):
+        calls.append(jti)
+        return original(jti)
+
+    # app/__init__.py imports BlocklistRepository inside the callback body, so
+    # patching the attribute on the class is what that late import resolves to.
+    monkeypatch.setattr(BlocklistRepository, "is_jti_blocked", staticmethod(counting))
+
+    me = cookie_client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    assert me.status_code == 200, me.get_data(as_text=True)
+    assert calls == [], (
+        f"an ordinary authenticated request hit the blocklist {len(calls)} time(s) — "
+        "the access-token short-circuit is gone"
+    )
+
+    # Positive control: a refresh-token decode that does not skip the revocation
+    # check must reach the blocklist, proving the counter is wired up at all.
+    assert cookie_client.post_logout().status_code == 200
+    assert len(calls) > 0, (
+        "the counter recorded nothing even on a path that must consult the "
+        "blocklist — the zero count above proves nothing"
+    )
+
+
 @pytest.mark.parametrize("endpoint", ["/api/v1/auth/refresh", "/api/v1/auth/logout"])
 @pytest.mark.parametrize("cookie_state", ["absent", "valid", "garbage"])
 def test_auth_cookie_endpoints_never_return_500(app, endpoint, cookie_state):

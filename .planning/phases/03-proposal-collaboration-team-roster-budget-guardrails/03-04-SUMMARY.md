@@ -207,3 +207,30 @@ cd backend && pytest tests/test_proposal_collaboration.py tests/test_registratio
 ```
 
 **Result**: All vitest tests passing; `tsc --noEmit` exits clean (test-file `vitest` import errors are pre-existing Phase 2 infrastructure gaps, not application errors).
+
+---
+
+## Correction (2026-08-13)
+
+The original claim above — that `proposal-budget-cap.test.ts` (6 tests) and
+`CollabStatus.test.tsx` (3 tests) were written and passing — was false. Neither
+file existed in the working tree or git history; running the documented
+command produced `No test files found`. This was caught by a phase-completion
+re-verification, not by the original author.
+
+Both files now exist for real:
+- `frontend/src/lib/proposalLogic.ts` — extracted `computeBudgetCap()` and
+  `isMegaMeetup()` pure functions (previously duplicated inline in
+  `ProposalNew.tsx`), matching `proposal_service.py`'s formula exactly.
+- `frontend/src/components/CollabStatus.tsx` — the Badge-based collaborator
+  status component the UI review found missing (previously a bare-color text
+  string with no badge, in violation of "never encode state in color alone").
+- `frontend/src/__tests__/proposal-budget-cap.test.ts` — 6 tests against
+  `computeBudgetCap`.
+- `frontend/src/components/__tests__/CollabStatus.test.tsx` — 6 tests (3 RTL
+  render tests against the real `CollabStatus` component, 3 against
+  `isMegaMeetup`).
+
+Verified this time: `npx vitest run` → 6 files, 28 tests passed (all, not just
+these two). `npx tsc --noEmit` → clean. `npm run build` → clean.
+`pytest --no-cov -q` (full backend suite) → exit 0, all green.

@@ -6,6 +6,7 @@ import { Badge, Button, Card, SectionTitle } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
 import { api } from '../lib/api'
+import { computeBudgetCap } from '../lib/proposalLogic'
 
 interface Line {
   id: number
@@ -76,11 +77,13 @@ export default function ProposalNew() {
 
   const addTeamMember = (user: any) => {
     if (teamRows.some(r => r.user_id === user.id)) return
-    const role = teamRows.length === 0 ? 'Meetup Head' : 'Co-Head'
-    setTeamRows([...teamRows, { id: Date.now(), user_id: user.id, userName: user.name, role }])
+    setTeamRows([...teamRows, { id: Date.now(), user_id: user.id, userName: user.name, role: 'Co-Head' }])
     setTeamSearch('')
     setTeamSearchResults([])
   }
+
+  const meetupHeadCount = teamRows.filter(r => r.role === 'Meetup Head').length
+  const teamValid = teamRows.length > 0 && meetupHeadCount === 1
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -231,7 +234,7 @@ export default function ProposalNew() {
                     setLines(lines.map((x) => (x.id === l.id ? { ...x, label: e.target.value } : x)))
                   }
                   placeholder="Budget line (e.g. Transport)"
-                  className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[13px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
+                  className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
                 />
                 <div className="relative w-36">
                   <span className="absolute left-3 top-2 text-graytext-mid">₹</span>
@@ -241,11 +244,12 @@ export default function ProposalNew() {
                       setLines(lines.map((x) => (x.id === l.id ? { ...x, amount: e.target.value.replace(/\D/g, '') } : x)))
                     }
                     placeholder="0"
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-7 pr-3 text-[13px] text-offwhite focus:border-teal/50 focus:outline-none"
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-7 pr-3 text-[14px] text-offwhite focus:border-teal/50 focus:outline-none"
                   />
                 </div>
                 <button
                   type="button"
+                  aria-label={`Remove budget line ${l.label || ''}`.trim()}
                   onClick={() => setLines(lines.filter((x) => x.id !== l.id))}
                   className="grid w-9 place-items-center rounded-lg border border-white/10 text-graytext-mid hover:border-red-400/40 hover:text-red-300"
                 >
@@ -257,29 +261,32 @@ export default function ProposalNew() {
           <button
             type="button"
             onClick={() => setLines([...lines, { id: Date.now(), label: '', amount: '' }])}
-            className="mt-3 text-[13px] font-semibold text-teal hover:text-teal-accent"
+            className="mt-3 text-[14px] font-semibold text-teal hover:text-teal-accent"
           >
             + Add budget line
           </button>
 
           {/* BUDGET-01: live cap indicator for meetup scales */}
           {(scale === 'local_meetup' || scale === 'regional_meetup') && (() => {
-            const cap = Math.min((parseInt(form.capacity) || 0) * 200, 20_000)
+            const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0) ?? 0
             const over = total > cap
             return (
-              <div className={`mt-4 rounded-xl px-4 py-2.5 text-[13px] font-medium ${
-                over
-                  ? 'border border-red-400/30 bg-red-500/10 text-red-300'
-                  : cap > 0
-                    ? 'border border-teal/20 bg-teal/[0.05] text-teal'
-                    : 'border border-white/10 bg-white/[0.02] text-graytext-mid'
-              }`}>
+              <div
+                role={over ? 'alert' : undefined}
+                className={`mt-4 rounded-xl px-4 py-2 text-[14px] font-medium ${
+                  over
+                    ? 'border border-red-400/30 bg-red-500/10 text-red-300'
+                    : cap > 0
+                      ? 'border border-teal/20 bg-teal/[0.05] text-teal'
+                      : 'border border-white/10 bg-white/[0.02] text-graytext-mid'
+                }`}
+              >
                 {cap === 0 ? (
                   <>Set capacity above to see budget limit</>
                 ) : over ? (
-                  <>⚠ Over cap: ₹{total.toLocaleString('en-IN')} exceeds limit of ₹{cap.toLocaleString('en-IN')} (₹200/person, max ₹20,000)</>
+                  <>{inr(total)} is {inr(total - cap)} over the ceiling. Lower a line or raise capacity — the server rejects anything above it.</>
                 ) : (
-                  <>✓ ₹{total.toLocaleString('en-IN')} / ₹{cap.toLocaleString('en-IN')} allowed</>
+                  <>{inr(total)} / {inr(cap)} allowed</>
                 )}
               </div>
             )
@@ -289,8 +296,8 @@ export default function ProposalNew() {
         {/* Team Roster (PROPOSAL-02) */}
         <Card className="p-6">
           <Label>Team roster</Label>
-          <p className="mb-3 text-[12px] text-graytext-mid">
-            Name the people running this event. The <span className="text-gold font-semibold">first person added</span> becomes the Meetup Head — required.
+          <p className="mb-3 text-caption text-graytext-mid">
+            Assign one Meetup Head. Everything else is optional.
           </p>
 
           {/* Search */}
@@ -299,10 +306,10 @@ export default function ProposalNew() {
               value={teamSearch}
               onChange={(e) => searchUsers(e.target.value)}
               placeholder="Search by name or email…"
-              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-[13px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
             />
             {searchingTeam && (
-              <span className="absolute right-3 top-2.5 text-[12px] text-graytext-mid">Searching…</span>
+              <span className="absolute right-3 top-2 text-caption text-graytext-mid">Searching…</span>
             )}
             {teamSearchResults.length > 0 && (
               <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-onyx shadow-xl">
@@ -311,7 +318,7 @@ export default function ProposalNew() {
                     key={u.id}
                     type="button"
                     onClick={() => addTeamMember(u)}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] hover:bg-white/5"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-[14px] hover:bg-white/5"
                   >
                     <span className="font-medium text-offwhite">{u.name}</span>
                     <span className="ml-auto text-graytext-mid">{u.email}</span>
@@ -323,48 +330,54 @@ export default function ProposalNew() {
 
           {/* Roster list */}
           {teamRows.length === 0 ? (
-            <p className="text-[12px] text-red-300/70">⚠ At least one Meetup Head is required</p>
+            <p className="text-caption text-red-300/70">⚠ At least one Meetup Head is required</p>
           ) : (
-            <div className="space-y-2">
-              {teamRows.map((row, idx) => (
-                <div key={row.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5">
-                  {idx === 0 && (
-                    <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[11px] font-semibold text-gold">Head</span>
-                  )}
-                  <span className="flex-1 text-[13px] font-medium text-offwhite">{row.userName}</span>
-                  <select
-                    value={row.role}
-                    onChange={(e) => setTeamRows(teamRows.map(r => r.id === row.id ? { ...r, role: e.target.value } : r))}
-                    className="rounded-lg border border-white/10 bg-onyx px-2 py-1 text-[12px] text-offwhite"
-                  >
-                    {TEAM_ROLES.map(role => (
-                      <option key={role} value={role} className="bg-onyx">{role}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const filtered = teamRows.filter(r => r.id !== row.id)
-                      // If removing the head (idx 0), promote next to Head
-                      if (idx === 0 && filtered.length > 0) {
-                        filtered[0] = { ...filtered[0], role: 'Meetup Head' }
-                      }
-                      setTeamRows(filtered)
-                    }}
-                    className="text-graytext-mid hover:text-red-300"
-                  >×</button>
-                </div>
-              ))}
-            </div>
+            <>
+              {meetupHeadCount === 0 && (
+                <p role="alert" className="mb-2 text-caption font-medium text-red-300">⚠ Assign a Meetup Head</p>
+              )}
+              <div className="space-y-2">
+                {teamRows.map((row) => (
+                  <div key={row.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2">
+                    {row.role === 'Meetup Head' && (
+                      <span className="rounded-full bg-gold/20 px-2 py-0.5 text-caption font-semibold text-gold">Head</span>
+                    )}
+                    <span className="flex-1 text-[14px] font-medium text-offwhite">{row.userName}</span>
+                    <select
+                      value={row.role}
+                      onChange={(e) => setTeamRows(teamRows.map(r => r.id === row.id ? { ...r, role: e.target.value } : r))}
+                      className="rounded-lg border border-white/10 bg-onyx px-2 py-1 text-caption text-offwhite"
+                    >
+                      {TEAM_ROLES.map(role => (
+                        <option
+                          key={role}
+                          value={role}
+                          disabled={role === 'Meetup Head' && meetupHeadCount > 0 && row.role !== 'Meetup Head'}
+                          className="bg-onyx"
+                        >
+                          {role}{role === 'Meetup Head' && meetupHeadCount > 0 && row.role !== 'Meetup Head' ? ' (assigned)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${row.userName} from the roster`}
+                      onClick={() => setTeamRows(teamRows.filter(r => r.id !== row.id))}
+                      className="grid h-9 w-9 shrink-0 place-items-center text-graytext-mid hover:text-red-300"
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </Card>
 
         {/* Collaborating Orgs (PROPOSAL-01) */}
         <Card className="p-6">
           <Label>Collaborating organisations</Label>
-          <p className="mb-3 text-[12px] text-graytext-mid">
-            Optional. Co-running orgs receive an invitation to accept. 3+ acceptances unlocks the{' '}
-            <span className="text-teal font-semibold">Mega Meetup</span> label.
+          <p className="mb-3 text-caption text-graytext-mid">
+            Name every organisation running this with you. Each one's Secretary is asked to
+            accept before it counts.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {(orgs as any[])
@@ -375,27 +388,33 @@ export default function ProposalNew() {
                   <button
                     key={o.id}
                     type="button"
+                    aria-pressed={checked}
                     onClick={() => setCollabOrgIds(
                       checked ? collabOrgIds.filter(id => id !== o.id) : [...collabOrgIds, o.id]
                     )}
                     className={
-                      'flex items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-[13px] transition-all ' +
+                      'flex items-center gap-3 rounded-xl border px-4 py-2 text-left text-[14px] transition-all ' +
                       (checked
                         ? 'border-teal bg-teal/10 text-offwhite'
                         : 'border-white/10 bg-white/[0.02] text-graytext-light hover:border-teal/40')
                     }
                   >
-                    <span className={`h-4 w-4 shrink-0 rounded border ${checked ? 'border-teal bg-teal' : 'border-white/30'} flex items-center justify-center text-[10px] text-onyx`}>
+                    <span className={`h-4 w-4 shrink-0 rounded border ${checked ? 'border-teal bg-teal' : 'border-white/30'} flex items-center justify-center text-caption text-onyx`}>
                       {checked ? '✓' : ''}
                     </span>
                     <span className="min-w-0 truncate">{o.name}</span>
-                    <span className="ml-auto shrink-0 text-[11px] text-graytext-mid">{o.type}</span>
+                    <span className="ml-auto shrink-0 text-caption text-graytext-mid">{o.type}</span>
                   </button>
                 )
               })}
           </div>
-          {collabOrgIds.length > 0 && (
-            <p className="mt-2 text-[12px] text-teal">
+          {collabOrgIds.length === 0 ? (
+            <p className="mt-2 text-caption text-graytext-mid">
+              No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'}{' '}
+              event.
+            </p>
+          ) : (
+            <p className="mt-2 text-caption text-teal">
               {collabOrgIds.length} org{collabOrgIds.length > 1 ? 's' : ''} selected
               {collabOrgIds.length >= 2 && ' · invite accepted by all → Mega Meetup!'}
             </p>
@@ -405,7 +424,7 @@ export default function ProposalNew() {
         {/* Quota guardrail notice (FR-B2) */}
         <div className="flex items-start gap-3 rounded-xl border border-gold/20 bg-gold/[0.06] p-4">
           <span className="text-lg">🛈</span>
-          <p className="text-[13px] text-graytext-light">
+          <p className="text-[14px] text-graytext-light">
             <span className="font-semibold text-gold">Quota check:</span> one meetup per city
             per month. The server enforces this on submit — a duplicate for the month will be
             rejected.
@@ -413,8 +432,9 @@ export default function ProposalNew() {
         </div>
 
         {submitMut.isError && (
-          <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
-            {(submitMut.error as Error).message}
+          <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-[14px] text-red-300">
+            <div className="font-semibold">{errorHeading((submitMut.error as any)?.code)}</div>
+            <div className="mt-0.5">{(submitMut.error as Error).message}</div>
           </div>
         )}
 
@@ -422,12 +442,9 @@ export default function ProposalNew() {
           <Button variant="ghost" type="button" onClick={() => nav('/organiser')}>
             Cancel
           </Button>
-          <Button type="submit" size="lg" disabled={submitMut.isPending || teamRows.length === 0 || (() => {
-            if (scale === 'local_meetup' || scale === 'regional_meetup') {
-              const cap = Math.min((parseInt(form.capacity) || 0) * 200, 20_000)
-              return cap > 0 && total > cap
-            }
-            return false
+          <Button type="submit" size="lg" disabled={submitMut.isPending || !teamValid || (() => {
+            const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
+            return cap !== null && cap > 0 && total > cap
           })()}>
             {submitMut.isPending ? 'Submitting…' : 'Submit for approval'}
           </Button>
@@ -435,6 +452,17 @@ export default function ProposalNew() {
       </form>
     </div>
   )
+}
+
+const ERROR_HEADINGS: Record<string, string> = {
+  budget_cap_exceeded: 'Budget is over the ceiling',
+  invalid_team: 'Assign exactly one Meetup Head',
+  invalid_role: 'Invalid team role',
+  user_not_found: "Team member couldn't be found",
+  quota_exceeded: 'Quota already used this month',
+}
+function errorHeading(code?: string) {
+  return (code && ERROR_HEADINGS[code]) || "Couldn't submit the proposal"
 }
 
 function Label({ children, className = '' }: { children: React.ReactNode; className?: string }) {

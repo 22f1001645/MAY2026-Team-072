@@ -596,3 +596,33 @@ class TestReassignMeetupHead:
             ).all()
         assert len(rows) == 1
         assert rows[0].user_id == self.new_head_id
+
+    def test_reassign_to_existing_team_member_does_not_duplicate_row(self, app, client):
+        """PROPOSAL-05 regression: promoting a user who already has a roster row
+        (e.g. Co-Head) to Meetup Head must update that row in place, not leave
+        them listed twice. Caught by manual UAT (M-10 in 03-UAT.md) against the
+        old unconditional-insert behaviour."""
+        with app.app_context():
+            _db.session.add(ActivityTeamMember(
+                activity_id=self.activity_id,
+                user_id=self.new_head_id,
+                role="Co-Head",
+                added_by=self.new_head_id,
+            ))
+            _db.session.commit()
+
+        resp = client.post(
+            f"/api/v1/activities/{self.activity_id}/reassign-meetup-head",
+            json={"new_meetup_head_user_id": self.new_head_id},
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert resp.status_code == 200
+
+        with app.app_context():
+            all_rows = ActivityTeamMember.query.filter_by(
+                activity_id=self.activity_id
+            ).all()
+            new_head_rows = [r for r in all_rows if r.user_id == self.new_head_id]
+        assert len(new_head_rows) == 1
+        assert new_head_rows[0].role == TEAM_ROLE_MEETUP_HEAD
+        assert len(all_rows) == 1  # original Meetup Head (self.team_id) row is gone too

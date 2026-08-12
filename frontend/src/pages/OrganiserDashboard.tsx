@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useDashboard } from '../lib/queries'
+import { useDashboard, useNotifications } from '../lib/queries'
 import { inr } from '../lib/mock'
 import { Badge, Button, Card, Progress, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { daysUntil, formatDate } from '../lib/format'
 import EventAnnouncementsModal from '../components/EventAnnouncementsModal'
+import InvitationCard from '../components/InvitationCard'
 
 const STATUS_TONE: Record<string, any> = {
   approved: 'success',
@@ -24,6 +25,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function OrganiserDashboard() {
   const { data, isLoading, isError, error } = useDashboard()
+  const { data: notifications = [] } = useNotifications()
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
 
   if (isLoading) return <Loading label="Loading your dashboard…" />
@@ -31,6 +33,9 @@ export default function OrganiserDashboard() {
 
   const events: any[] = data?.my_events ?? []
   const live = events.filter((e) => e.proposal_status === 'approved' && e.status !== 'completed')
+  const pendingInvites = (notifications as any[]).filter(
+    (n) => n.type === 'collaboration_invite' && !n.read && n.activity_id,
+  )
 
   return (
     <div>
@@ -44,6 +49,18 @@ export default function OrganiserDashboard() {
           </Link>
         }
       />
+
+      {/* Collaboration invitations (PROPOSAL-06, S6) */}
+      {pendingInvites.length > 0 && (
+        <div id="invitations" className="mb-8">
+          <h2 className="mb-3 text-h3 font-semibold text-gold">Invitations</h2>
+          <div className="space-y-2">
+            {pendingInvites.map((n) => (
+              <InvitationCard key={n.id} activityId={n.activity_id} activityTitle={n.activity_title ?? n.title} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Live events" value={live.length} hint="published & taking registrations" />

@@ -806,6 +806,7 @@ class Notification(Base):
             "title": self.title,
             "body": self.body,
             "read": self.read,
+            "activity_id": self.activity_id,
             "activity_title": self.activity.title if self.activity else None,
             "at": _iso(self.created_at),
         }

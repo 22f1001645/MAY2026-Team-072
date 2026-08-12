@@ -213,27 +213,37 @@ def reassign_meetup_head(activity, new_user_id: str, actor) -> dict:
             raise ApiError("Cannot reassign Meetup Head after campaign goes live",
                            "campaign_live", 409)
 
-    The old Meetup Head row is DELETED (not demoted). If the proposer wants the
-    former head to remain in another role, they add a separate team member row."""
+    The old Meetup Head row is DELETED (not demoted) *unless* the new head is
+    already on the roster in another role, in which case that existing row is
+    promoted in place — inserting a second row for the same user would leave
+    them listed twice (once at their old role, once as Meetup Head)."""
     new_user = User.query.get(new_user_id)
     if not new_user:
         raise ApiError("User not found", "user_not_found", 404)
 
     # Phase 5 live-campaign gate — stub intentionally left as no-op until Phase 5.
 
+    existing_new_head_row = ActivityTeamMember.query.filter_by(
+        activity_id=activity.id, user_id=new_user_id
+    ).first()
+
     old = ActivityTeamMember.query.filter_by(
         activity_id=activity.id, role=TEAM_ROLE_MEETUP_HEAD
     ).first()
-    if old:
+    if old and old.user_id != new_user_id:
         db.session.delete(old)
         db.session.flush()
 
-    db.session.add(ActivityTeamMember(
-        activity_id=activity.id,
-        user_id=new_user_id,
-        role=TEAM_ROLE_MEETUP_HEAD,
-        added_by=actor.id,
-    ))
+    if existing_new_head_row:
+        existing_new_head_row.role = TEAM_ROLE_MEETUP_HEAD
+        existing_new_head_row.added_by = actor.id
+    else:
+        db.session.add(ActivityTeamMember(
+            activity_id=activity.id,
+            user_id=new_user_id,
+            role=TEAM_ROLE_MEETUP_HEAD,
+            added_by=actor.id,
+        ))
     AuditRepository.record(
         "proposal",
         activity.id,

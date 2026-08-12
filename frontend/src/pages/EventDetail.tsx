@@ -1,12 +1,15 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useEvent, useMyRegistrations, useRegister, useUnregister, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
-import { Badge, Button, Card, Progress, useToast } from '../components/ui'
+import { Badge, Button, Card, Dialog, Progress, Select, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
-import { cover, daysUntil, formatDate, formatTime, scaleLabel, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
+import { cover, daysUntil, formatDate, formatTime, scaleLabel, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
+import EventChat from '../components/EventChat'
+import CollabStatus from '../components/CollabStatus'
 
 export default function EventDetail() {
   const { id } = useParams()
@@ -21,11 +24,13 @@ export default function EventDetail() {
   const unregisterMut = useUnregister()
   const respondCollabMut = useRespondCollab()
   const reassignMut = useReassignMeetupHead()
+  const [reassignOpen, setReassignOpen] = useState(false)
   const [reassignUserId, setReassignUserId] = useState('')
 
   const canManage = role !== 'student' || capabilities?.manageableActivityIds?.includes(id!)
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
+  const [isChatOpen, setIsChatOpen] = useState(false)
 
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
@@ -113,7 +118,7 @@ export default function EventDetail() {
             <Card className="p-6">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-h3 font-semibold text-gold">Collaborating organisations</h2>
-                {e.isMegaMeetup && <Badge tone="teal">⚡ Mega Meetup</Badge>}
+                {e.isMegaMeetup && <Badge tone="gold">⭐ Mega Meetup</Badge>}
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
@@ -125,10 +130,8 @@ export default function EventDetail() {
                           <span className="text-[14px] font-medium text-offwhite truncate">{c.org || c.org_id}</span>
                           {c.is_primary && <Badge tone="gold">Primary</Badge>}
                         </div>
-                        <div className="mt-1 flex items-center gap-2 text-[12px]">
-                          <span className={c.status === 'accepted' ? 'text-teal' : c.status === 'declined' ? 'text-graytext-mid' : 'text-warn'}>
-                            {c.status.toUpperCase()}
-                          </span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <CollabStatus status={c.status} />
                         </div>
                       </div>
                       
@@ -220,38 +223,68 @@ export default function EventDetail() {
               {/* Reassign Meetup Head (PROPOSAL-05) */}
               <div className="mt-6 border-t border-white/5 pt-4">
                 <h3 className="mb-2 text-[14px] font-semibold text-offwhite">Reassign Meetup Head</h3>
-                <p className="mb-3 text-[12px] text-graytext-light leading-relaxed">
-                  Transfer the Meetup Head role to someone else. They will immediately become the sole accountable person for this event's budget and execution.
+                <p className="mb-3 text-caption text-graytext-light leading-relaxed">
+                  Transfer the Meetup Head role to someone else on the team roster.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={reassignUserId}
-                    onChange={(evt) => setReassignUserId(evt.target.value)}
-                    placeholder="User ID (e.g. fd4b...)"
-                    className="flex-1 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-offwhite outline-none focus:border-teal/50"
-                  />
-                  <Button
-                    size="sm"
-                    disabled={!reassignUserId.trim() || reassignMut.isPending}
-                    onClick={() => {
-                      reassignMut.mutate(
-                        { activityId: e.id, newUserId: reassignUserId.trim() },
-                        { onSuccess: () => setReassignUserId('') }
-                      )
-                    }}
-                  >
-                    {reassignMut.isPending ? 'Reassigning…' : 'Reassign'}
-                  </Button>
-                </div>
-                {reassignMut.isError && (
-                  <p className="mt-2 text-[12px] text-warn">
-                    {(reassignMut.error as any).message || 'Failed to reassign'}
-                  </p>
-                )}
+                <Button size="sm" onClick={() => { setReassignUserId(''); setReassignOpen(true) }}>
+                  Reassign
+                </Button>
               </div>
             </Card>
           )}
+
+          <Dialog open={reassignOpen} onClose={() => setReassignOpen(false)} title="Reassign Meetup Head">
+            {(() => {
+              const roster = e.teamMembers ?? []
+              const currentHead = roster.find((t: any) => t.role === 'Meetup Head')
+              const candidates = roster.filter((t: any) => t.role !== 'Meetup Head')
+              const newHead = roster.find((t: any) => t.user_id === reassignUserId)
+              return (
+                <div className="space-y-4">
+                  <p className="text-[14px] text-graytext-light">
+                    Currently {currentHead ? (currentHead.member ?? currentHead.user_id) : 'unassigned'}.
+                  </p>
+                  {candidates.length === 0 ? (
+                    <p className="text-caption text-graytext-mid">No other team members on the roster to reassign to.</p>
+                  ) : (
+                    <Select
+                      value={reassignUserId}
+                      onChange={(evt) => setReassignUserId(evt.target.value)}
+                      options={[
+                        { label: 'Select a team member…', value: '' },
+                        ...candidates.map((t: any) => ({ label: t.member ?? t.user_id, value: t.user_id })),
+                      ]}
+                    />
+                  )}
+                  {newHead && (
+                    <p role="alert" className="text-caption text-gold">
+                      {newHead.member ?? newHead.user_id} will immediately become the sole accountable person for this event's budget and execution.
+                    </p>
+                  )}
+                  {reassignMut.isError && (
+                    <p role="alert" className="text-caption text-red-300">
+                      {(reassignMut.error as any).message || 'Failed to reassign'}
+                    </p>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setReassignOpen(false)}>Cancel</Button>
+                    <Button
+                      size="sm"
+                      disabled={!reassignUserId || reassignMut.isPending}
+                      onClick={() => {
+                        reassignMut.mutate(
+                          { activityId: e.id, newUserId: reassignUserId },
+                          { onSuccess: () => setReassignOpen(false) },
+                        )
+                      }}
+                    >
+                      {reassignMut.isPending ? 'Reassigning…' : 'Confirm reassignment'}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })()}
+          </Dialog>
         </div>
 
         {/* Right: sticky register card */}
@@ -369,9 +402,60 @@ export default function EventDetail() {
               <Perk text="Meet people from your city IRL" />
               <Perk text="Contribution points on attendance" />
             </div>
+
+            {e.status !== 'cancelled' && (
+              <div className="mt-6">
+                <Button
+                  variant="secondary"
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={() => setIsChatOpen(true)}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  Open Event Discussion
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       </div>
+
+      {/* Chat Drawer & Backdrop (rendered via Portal to escape stacking context) */}
+      {createPortal(
+        <>
+          {isChatOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"
+              onClick={() => setIsChatOpen(false)}
+            />
+          )}
+
+          <div
+            className={cx(
+              "fixed top-0 right-0 z-50 h-full w-[420px] max-w-[100vw] bg-onyx border-l border-white/10 shadow-2xl transition-transform duration-300 ease-in-out flex flex-col",
+              isChatOpen ? "translate-x-0" : "translate-x-full"
+            )}
+          >
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+              <h2 className="text-h3 font-bold text-offwhite">Event Chat</h2>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="text-graytext-mid hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 w-10 h-10 flex items-center justify-center transition-colors shadow-lg"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden p-6 pb-8">
+              <EventChat eventId={e.id} isRegistered={registered} />
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   )
 }

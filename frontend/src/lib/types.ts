@@ -139,11 +139,13 @@ export interface LedgerEntry {
 
 export interface NotificationItem {
   id: string
-  type: 'reminder' | 'update' | 'approval' | 'points'
+  type: 'reminder' | 'update' | 'approval' | 'points' | 'collaboration_invite'
   title: string
   body: string
   at: string
   read: boolean
+  activity_id?: string | null
+  activity_title?: string | null
 }
 
 export interface Task {

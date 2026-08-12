@@ -1,19 +1,41 @@
-from datetime import datetime
+from datetime import datetime, UTC
 
 from ..constants import (
+    ACTIVITY_FEE_INR,
+    BUDGET_CAPACITY_RATE,
+    BUDGET_ABSOLUTE_CEILING,
+    COLLAB_ACCEPTED,
+    COLLAB_DECLINED,
+    COLLAB_PENDING,
     EVENT_UPCOMING,
     EVENT_CANCELLED,
     MEETUPS_PER_CITY_PER_MONTH,
+    MEGA_MEETUP_THRESHOLD,
+    ORG_MANAGER_PORS,
     PROPOSAL_APPROVED,
     PROPOSAL_CHANGES,
     PROPOSAL_REJECTED,
     PROPOSAL_REVOKED,
     PROPOSAL_SUBMITTED,
+    ROLE_ADMIN,
+    TEAM_ROLES,
+    TEAM_ROLE_MEETUP_HEAD,
 )
 from .settings_service import get_recognition_points
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Activity, BudgetLine, ContributionPoint, Notification, Proposal, Report
+from ..models import (
+    Activity,
+    ActivityCollaborator,
+    ActivityTeamMember,
+    BudgetLine,
+    ContributionPoint,
+    Notification,
+    Proposal,
+    Report,
+    User,
+)
+from ..rbac import has_organiser_por_in_org
 from ..repositories.repos import ActivityRepository, AuditRepository, OrgRepository
 
 
@@ -22,7 +44,50 @@ def submit_proposal(data: dict, organiser) -> Activity:
     if not org:
         raise ApiError("Organisation not found", "org_not_found", 404)
 
-    # Quota guardrail (FR-B2): one meetup per region per month
+    # PROPOSAL-00: submitter must hold an active organiser POR in the primary org.
+    # Admin users bypass this check — they can propose on behalf of any org.
+    if organiser.role != ROLE_ADMIN and not has_organiser_por_in_org(organiser, org):
+        raise ApiError(
+            "You must hold an active organiser POR in this organisation to propose on its behalf",
+            "forbidden",
+            403,
+        )
+
+    # BUDGET-01: hard cap for meetup scales (regional_fest is sponsor-funded, exempt).
+    if data["scale"] in ("local_meetup", "regional_meetup"):
+        requested = sum(line["planned"] for line in data.get("budget", []))
+        allowed = min(data["capacity"] * BUDGET_CAPACITY_RATE, BUDGET_ABSOLUTE_CEILING)
+        if requested > allowed:
+            raise ApiError(
+                f"Budget \u20b9{requested:,} exceeds the cap of \u20b9{allowed:,} "
+                f"for a {data['capacity']}-person {data['scale'].replace('_', ' ')} "
+                f"(\u20b9{BUDGET_CAPACITY_RATE}/person, max \u20b9{BUDGET_ABSOLUTE_CEILING:,})",
+                "budget_cap_exceeded",
+                400,
+            )
+
+    # PROPOSAL-02: validate team roster — exactly one Meetup Head required.
+    team = data.get("team", [])
+    meetup_heads = [m for m in team if m["role"] == TEAM_ROLE_MEETUP_HEAD]
+    if len(meetup_heads) == 0:
+        raise ApiError(
+            "A proposal must name exactly one Meetup Head",
+            "invalid_team",
+            400,
+        )
+    if len(meetup_heads) > 1:
+        raise ApiError(
+            "A proposal must name exactly one Meetup Head",
+            "invalid_team",
+            400,
+        )
+    for member in team:
+        if member["role"] not in TEAM_ROLES:
+            raise ApiError(f"Invalid team role: {member['role']!r}", "invalid_role", 400)
+        if not User.query.get(member["user_id"]):
+            raise ApiError(f"Team member not found: {member['user_id']!r}", "user_not_found", 404)
+
+    # Quota guardrail (FR-B2): one meetup per region per month.
     if data["scale"] in ("local_meetup", "regional_meetup"):
         count = ActivityRepository.meetups_in_region_month(data["org_id"], data["starts_at"])
         if count >= MEETUPS_PER_CITY_PER_MONTH:
@@ -31,6 +96,25 @@ def submit_proposal(data: dict, organiser) -> Activity:
                 "quota_exceeded",
                 409,
             )
+
+    # PROPOSAL-01: validate collaborating org IDs before writing anything.
+    collab_org_ids_raw = data.get("collaborating_org_ids", [])
+    seen_org_ids = {org.id}
+    valid_collab_orgs = []
+    for collab_org_id in collab_org_ids_raw:
+        if collab_org_id in seen_org_ids:
+            continue  # deduplicate silently; primary appearing in list is ignored
+        collab_org = OrgRepository.by_id(collab_org_id)
+        if not collab_org:
+            raise ApiError(
+                f"Collaborating organisation not found: {collab_org_id!r}",
+                "org_not_found",
+                404,
+            )
+        seen_org_ids.add(collab_org_id)
+        valid_collab_orgs.append(collab_org)
+
+    # --- All validation passed; write to DB ---
 
     activity = Activity(
         org_id=org.id,
@@ -52,12 +136,112 @@ def submit_proposal(data: dict, organiser) -> Activity:
             BudgetLine(activity_id=activity.id, label=line["label"], planned=line["planned"])
         )
 
+    # PROPOSAL-02: write team roster rows.
+    for member in team:
+        db.session.add(ActivityTeamMember(
+            activity_id=activity.id,
+            user_id=member["user_id"],
+            role=member["role"],
+            added_by=organiser.id,
+        ))
+
+    # PROPOSAL-01: write primary org as an accepted ActivityCollaborator.
+    now = datetime.now(UTC)
+    db.session.add(ActivityCollaborator(
+        activity_id=activity.id,
+        org_id=org.id,
+        is_primary=True,
+        status=COLLAB_ACCEPTED,
+        invited_by=organiser.id,
+        responded_by=organiser.id,
+        responded_at=now,
+    ))
+
+    # PROPOSAL-01 + PROPOSAL-06: write secondary collaborating orgs as pending invites
+    # and notify their authority holders.
+    for collab_org in valid_collab_orgs:
+        db.session.add(ActivityCollaborator(
+            activity_id=activity.id,
+            org_id=collab_org.id,
+            is_primary=False,
+            status=COLLAB_PENDING,
+            invited_by=organiser.id,
+        ))
+        _notify_collab_invite(activity, org, collab_org)
+
     proposal = Proposal(activity_id=activity.id, submitted_by=organiser.id, status=PROPOSAL_SUBMITTED)
     db.session.add(proposal)
 
     AuditRepository.record("proposal", activity.id, "Submitted proposal", organiser)
     db.session.commit()
     return activity
+
+
+def respond_collab(collab, new_status: str):
+    """PROPOSAL-06: accept or decline a collaboration invite.
+
+    Only PENDING invites can be responded to. The caller (controller) must have
+    already verified that the acting user holds can_manage_org authority over
+    collab.org before calling this function."""
+    if collab.status != COLLAB_PENDING:
+        raise ApiError(
+            "This collaboration invite has already been responded to",
+            "already_responded",
+            409,
+        )
+    if new_status not in (COLLAB_ACCEPTED, COLLAB_DECLINED):
+        raise ApiError(
+            "Status must be 'accepted' or 'declined'",
+            "invalid_status",
+            400,
+        )
+    collab.status = new_status
+    collab.responded_at = datetime.now(UTC)
+    db.session.commit()
+    return collab
+
+
+def reassign_meetup_head(activity, new_user_id: str, actor) -> dict:
+    """PROPOSAL-05: reassign the Meetup Head to any user, by proposer or admin.
+
+    The live-campaign gate (cannot reassign after the campaign goes live) is a
+    no-op stub — the Campaign model lands in Phase 5 (CAMPAIGN-06). Fill this
+    stub when that model exists:
+
+        campaign = Campaign.query.filter_by(activity_id=activity.id).first()
+        if campaign and campaign.status == CAMPAIGN_LIVE:
+            raise ApiError("Cannot reassign Meetup Head after campaign goes live",
+                           "campaign_live", 409)
+
+    The old Meetup Head row is DELETED (not demoted). If the proposer wants the
+    former head to remain in another role, they add a separate team member row."""
+    new_user = User.query.get(new_user_id)
+    if not new_user:
+        raise ApiError("User not found", "user_not_found", 404)
+
+    # Phase 5 live-campaign gate — stub intentionally left as no-op until Phase 5.
+
+    old = ActivityTeamMember.query.filter_by(
+        activity_id=activity.id, role=TEAM_ROLE_MEETUP_HEAD
+    ).first()
+    if old:
+        db.session.delete(old)
+        db.session.flush()
+
+    db.session.add(ActivityTeamMember(
+        activity_id=activity.id,
+        user_id=new_user_id,
+        role=TEAM_ROLE_MEETUP_HEAD,
+        added_by=actor.id,
+    ))
+    AuditRepository.record(
+        "proposal",
+        activity.id,
+        f"Meetup Head reassigned to {new_user.name}",
+        actor,
+    )
+    db.session.commit()
+    return {"activity_id": activity.id, "new_meetup_head_user_id": new_user_id}
 
 
 def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
@@ -111,13 +295,13 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         proposal.status = PROPOSAL_REVOKED
         activity.status = EVENT_CANCELLED
         AuditRepository.record("proposal", activity.id, "Revoked", admin, note)
-        
+
         point = ContributionPoint.query.filter_by(
             user_id=activity.organiser_id, activity_id=activity.id, action="organised"
         ).first()
         if point:
             db.session.delete(point)
-            
+
         _notify(activity.organiser_id, activity.id, "update", "Approval Revoked", note or "The admin has revoked the approval for this event.")
 
     db.session.commit()
@@ -160,3 +344,27 @@ def _notify(user_id, activity_id, ntype, title, body):
     db.session.add(
         Notification(user_id=user_id, activity_id=activity_id, type=ntype, title=title, body=body)
     )
+
+
+def _notify_collab_invite(activity: Activity, primary_org, collab_org):
+    """PROPOSAL-06: fire a notification to every active ORG_MANAGER_PORS holder
+    in collab_org informing them they have been invited to collaborate.
+
+    Authority holders are determined by the same ORG_MANAGER_PORS set used by
+    can_manage_org — the same people who will later accept or decline the invite.
+    Notification bodies avoid storing accept/decline links; the UI routes to the
+    event detail page where the respond button lives."""
+    authority_user_ids = {
+        m.user_id
+        for m in collab_org.memberships
+        if any(p.active and p.por_type in ORG_MANAGER_PORS for p in m.pors)
+    }
+    for uid in authority_user_ids:
+        _notify(
+            uid,
+            activity.id,
+            "collaboration_invite",
+            f"Collaboration invite: {activity.title}",
+            f"{primary_org.name} has invited {collab_org.name} to collaborate on "
+            f"'{activity.title}'. Accept or decline from the event detail page.",
+        )

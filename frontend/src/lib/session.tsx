@@ -24,7 +24,8 @@ export function useSession() {
 
   return {
     role,
-    name: currentUser?.name ?? 'Guest',
-    city: currentUser?.city ?? 'Hyderabad',
+    name: currentUser?.name ?? '',
+    city: currentUser?.city ?? '',
+    capabilities: currentUser?.capabilities,
   }
 }

@@ -134,6 +134,26 @@ def has_organiser_por(user: User) -> bool:
     return False
 
 
+def has_organiser_por_in_org(user: User, org) -> bool:
+    """PROPOSAL-00: does user hold an active ORGANISER_PORS POR in this specific org?
+
+    Checks ORGANISER_PORS (not ORG_MANAGER_PORS) because PROPOSAL-00 explicitly
+    includes Event Lead — an Event Lead is in ORGANISER_PORS but not ORG_MANAGER_PORS.
+    The boundary is org ID identity — two organisations that share a name or city
+    are still two organisations. Admin users may propose for any org; this function
+    is not called for admins (the service checks the user's role first).
+
+    Total function: returns False for None user or None org without raising."""
+    if not user or not org:
+        return False
+    for por in _active_pors(user):
+        if por.por_type in ORGANISER_PORS and org.id in _por_org_ids(por):
+            return True
+    return False
+
+
+
+
 # --------------------------------------------------------------------------
 # Resource-scoped predicates (RBAC-01, RBAC-03)
 # --------------------------------------------------------------------------

@@ -7,6 +7,12 @@ def _org_id():
     return Organisation.query.first().id
 
 
+def _meetup_head_id():
+    """Return the seeded 'head' user who holds no POR and is used as Meetup Head."""
+    from app.models import User
+    return User.query.filter_by(email="head@ekatva.os").first().id
+
+
 def _proposal_payload(**over):
     base = {
         "title": "Hyderabad Chai & Charcha",
@@ -18,9 +24,13 @@ def _proposal_payload(**over):
         "capacity": 40,
         "description": "An evening of chai and conversation.",
         "budget": [{"label": "Snacks", "planned": 4000}],
+        # Phase 3: team roster required (PROPOSAL-02)
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
     base.update(over)
     return base
+
 
 
 def test_student_cannot_submit_proposal(client, student_headers):

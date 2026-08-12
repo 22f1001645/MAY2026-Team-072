@@ -10,7 +10,9 @@ from ..constants import (
     ATTENDANCE_METHOD_MANUAL,
     BRAND_KIT_MANUAL,
     CAMPAIGN_DRAFT,
+    COLLAB_ACCEPTED,
     COLLAB_PENDING,
+    MEGA_MEETUP_THRESHOLD,
     POLL_OPEN,
     QUERY_OPEN,
     REPORT_SUBMITTED,
@@ -313,6 +315,17 @@ class Activity(Base):
     def attended_count(self):
         return sum(1 for r in self.registrations if r.attendance is not None)
 
+    @property
+    def is_mega_meetup(self) -> bool:
+        """PROPOSAL-03: True when >=3 collaborating orgs have accepted the invite.
+
+        Computed dynamically so it tracks real-time accept/decline state without
+        a stored flag that would drift. MEGA_MEETUP_THRESHOLD = 3 (constants.py)."""
+        return (
+            sum(1 for c in self.collaborators if c.status == COLLAB_ACCEPTED)
+            >= MEGA_MEETUP_THRESHOLD
+        )
+
     def to_dict(self, detail=False):
         d = {
             "id": self.id,
@@ -329,10 +342,13 @@ class Activity(Base):
             "attended": self.attended_count(),
             "organiser": self.organiser.name if self.organiser else None,
             "proposal_status": self.proposal.status if self.proposal else None,
+            "is_mega_meetup": self.is_mega_meetup,  # PROPOSAL-03
         }
         if detail:
             d["description"] = self.description
             d["budget"] = [b.to_dict() for b in self.budget_lines]
+            d["collaborators"] = [c.to_dict() for c in self.collaborators]   # PROPOSAL-04
+            d["team_members"] = [t.to_dict() for t in self.team_members]     # PROPOSAL-04
         return d
 
 

@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Migration & Authorization Foundation** - Schema becomes changeable without data loss, and authorization becomes activity/org-scoped
 - [x] **Phase 2: Identity, Session & Dashboard Shell** - Sessions persist, organiser status comes from the server, and POR holders can switch views (completed 2026-08-12, see 02-VERIFICATION.md)
-- [ ] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget
+- [x] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget (completed 2026-08-12)
 - [ ] **Phase 4: Organisation Profile & Brand Kit** - Every org type gets an editable identity and a brand kit that drives campaigns
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
 - [ ] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement
@@ -118,8 +118,25 @@ Plans:
   4. The admin approval queue shows the team roster and collaborating-entity list alongside description, highlights, budget and city, in one review.
   5. The proposer or an admin can reassign the Meetup Head to any team member — POR or not — at any point before the campaign goes live.
 
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [x] 03-01-PLAN.md — Tracer: submitter org-POR guard (PROPOSAL-00) + budget hard cap (BUDGET-01) + team roster validation, exactly one Meetup Head (PROPOSAL-02)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 03-02-PLAN.md — Collaborator invite flow: write `ActivityCollaborator` rows at submission, respond endpoint, authority-holder notifications (PROPOSAL-01, PROPOSAL-06)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 03-03-PLAN.md — Mega Meetup label (`is_mega_meetup` property) + admin queue enrichment (collaborators + team in `to_dict`) + Meetup Head reassignment endpoint (PROPOSAL-03, PROPOSAL-04, PROPOSAL-05)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [x] 03-04-PLAN.md — Frontend: ProposalNew collaborator picker + team roster builder + live budget cap indicator, ApprovalQueue enriched columns + Mega Meetup badge, EventDetail collaborator respond UI (UI)
 
 ### Phase 4: Organisation Profile & Brand Kit
 
@@ -209,7 +226,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 |-------|----------------|--------|-----------|
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
-| 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
+| 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |

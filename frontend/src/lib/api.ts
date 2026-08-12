@@ -161,8 +161,11 @@ export interface ApiActivity {
   registered: number
   attended: number
   organiser: string
+  is_mega_meetup: boolean
   description?: string
   budget?: { id: string; label: string; planned: number; actual: number }[]
+  collaborators?: { id: string; activity_id: string; org_id: string; org: string | null; is_primary: boolean; status: string; responded_at: string | null }[]
+  team_members?: { id: string; activity_id: string; user_id: string; member: string | null; role: string; added_by: string | null }[]
 }
 
 export function adaptEvent(a: ApiActivity): EkatvaEvent {
@@ -183,6 +186,9 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     cover: coverFor(a.scale, a.id),
     organiser: a.organiser,
     tags: TAGS_BY_SCALE[a.scale] ?? [],
+    isMegaMeetup: a.is_mega_meetup ?? false,
+    collaborators: (a.collaborators ?? []) as EkatvaEvent['collaborators'],
+    teamMembers: a.team_members ?? [],
     budget: (a.budget ?? []).map((b) => ({
       id: b.id,
       label: b.label,
@@ -385,5 +391,17 @@ export const api = {
   
   // Settings (System)
   adminSettingsPoints: () => request<any>('/admin/settings/points'),
-  adminUpdateSettingsPoints: (data: any) => request<any>('/admin/settings/points', { method: 'PUT', body: JSON.stringify(data) })
+  adminUpdateSettingsPoints: (data: any) => request<any>('/admin/settings/points', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Phase 3: Collaboration (PROPOSAL-06) & Team Roster (PROPOSAL-05)
+  respondCollab: (activityId: string, collabId: string, status: 'accepted' | 'declined') =>
+    request<any>(`/activities/${activityId}/collaborators/${collabId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
+  reassignMeetupHead: (activityId: string, newUserId: string) =>
+    request<{ activity_id: string; new_meetup_head_user_id: string }>(
+      `/activities/${activityId}/reassign-meetup-head`,
+      { method: 'POST', body: JSON.stringify({ new_meetup_head_user_id: newUserId }) },
+    ),
 }

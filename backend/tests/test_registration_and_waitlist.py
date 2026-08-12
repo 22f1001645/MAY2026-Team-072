@@ -1,5 +1,10 @@
 from app.extensions import db
-from app.models import Activity, Proposal, User, Registration
+from app.models import Activity, Proposal, User, Registration, Organisation
+
+
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
+
 
 def _setup_approved_event(client, rc_headers, admin_headers, org_id):
     # Organiser proposes an event
@@ -12,10 +17,17 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id):
         "venue": "Test Venue",
         "capacity": 1,
         "description": "Testing waitlist logic",
-        "budget": [{"label": "Snacks", "planned": 500}],
+        "budget": [{"label": "Snacks", "planned": 200}],
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
+
     res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
+    if res.status_code != 201:
+        print("ERROR CODE:", res.get_json().get("code"))
+        print("ERROR MSG:", str(res.get_json().get("message")).encode('utf-8'))
     assert res.status_code == 201
+
     activity_id = res.get_json()["id"]
 
     # Admin approves it

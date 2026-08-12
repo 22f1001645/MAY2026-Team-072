@@ -3,7 +3,14 @@
 Responses are shaped by each model's to_dict(); these guard the write paths."""
 from marshmallow import Schema, fields, validate
 
-from ..constants import ACADEMIC_LEVELS, ACADEMIC_STATUSES, ACTIVITY_SCALES
+from ..constants import (
+    ACADEMIC_LEVELS,
+    ACADEMIC_STATUSES,
+    ACTIVITY_SCALES,
+    COLLAB_ACCEPTED,
+    COLLAB_DECLINED,
+    TEAM_ROLES,
+)
 
 
 class RegisterSchema(Schema):
@@ -24,6 +31,12 @@ class BudgetLineSchema(Schema):
     planned = fields.Int(required=True, validate=validate.Range(min=0))
 
 
+class TeamMemberInputSchema(Schema):
+    """PROPOSAL-02: one member of the proposed team roster."""
+    user_id = fields.String(required=True)
+    role = fields.String(required=True, validate=validate.OneOf(TEAM_ROLES))
+
+
 class ProposalSchema(Schema):
     title = fields.Str(required=True, validate=validate.Length(min=3, max=200))
     org_id = fields.Str(required=True)
@@ -34,6 +47,9 @@ class ProposalSchema(Schema):
     capacity = fields.Int(required=True, validate=validate.Range(min=1))
     description = fields.Str(load_default="")
     budget = fields.List(fields.Nested(BudgetLineSchema), load_default=list)
+    # Phase 3 additions (PROPOSAL-01, PROPOSAL-02)
+    team = fields.List(fields.Nested(TeamMemberInputSchema), load_default=list)
+    collaborating_org_ids = fields.List(fields.String(), load_default=list)
 
 
 class DecisionSchema(Schema):
@@ -111,3 +127,17 @@ class ReportSchema(Schema):
 class VolunteerSchema(Schema):
     user_id = fields.Str(required=True)
     role_name = fields.Str(load_default="Volunteer")
+
+
+class CollabRespondSchema(Schema):
+    """PROPOSAL-06: accept or decline a collaboration invite."""
+    status = fields.String(
+        required=True,
+        validate=validate.OneOf([COLLAB_ACCEPTED, COLLAB_DECLINED]),
+    )
+
+
+class ReassignMeetupHeadSchema(Schema):
+    """PROPOSAL-05: reassign the Meetup Head role to a different user."""
+    new_meetup_head_user_id = fields.String(required=True)
+

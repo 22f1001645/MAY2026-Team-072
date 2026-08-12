@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 from werkzeug.security import generate_password_hash
 
@@ -13,6 +15,7 @@ from app.models import (
     Organisation,
     PORAssignment,
     Proposal,
+    Term,
     User,
 )
 
@@ -157,3 +160,86 @@ def region_org():
 
 def other_org():
     return Organisation.query.filter_by(type="society").first()
+
+
+# --- Cookie-aware session fixtures (02-01) ----------------------------------
+# The refresh flow is cookie-borne, so the header-only fixtures above cannot
+# drive it. Flask's test_client() already persists cookies across calls within
+# one instance; this wrapper adds the two things every session test needs — the
+# current csrf_refresh_token value and a one-line login — so that no test has to
+# hand-roll cookie parsing.
+
+
+class CookieClient:
+    """A cookie-retaining test client with CSRF and login helpers.
+
+    One instance is one browser: separate instances have separate cookie jars,
+    which is what makes them two devices for the D-04 logout-scope test."""
+
+    REFRESH_COOKIE = "refresh_token_cookie"
+    CSRF_COOKIE = "csrf_refresh_token"
+
+    def __init__(self, client):
+        self.client = client
+
+    def __getattr__(self, name):
+        # Anything not defined here falls through to the real test client.
+        return getattr(self.client, name)
+
+    def cookie(self, name):
+        """Current value of a cookie in this client's jar, or None."""
+        found = self.client.get_cookie(name)
+        return found.value if found else None
+
+    @property
+    def csrf_token(self):
+        return self.cookie(self.CSRF_COOKIE)
+
+    @property
+    def refresh_cookie(self):
+        return self.cookie(self.REFRESH_COOKIE)
+
+    def csrf_headers(self, extra=None):
+        headers = {"X-CSRF-TOKEN": self.csrf_token or ""}
+        if extra:
+            headers.update(extra)
+        return headers
+
+    def login_as(self, email, password):
+        return self.client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+
+    def post_refresh(self, extra_headers=None):
+        return self.client.post(
+            "/api/v1/auth/refresh", headers=self.csrf_headers(extra_headers)
+        )
+
+    def post_logout(self, extra_headers=None):
+        return self.client.post(
+            "/api/v1/auth/logout", headers=self.csrf_headers(extra_headers)
+        )
+
+
+@pytest.fixture
+def cookie_client(app):
+    return CookieClient(app.test_client())
+
+
+@pytest.fixture
+def current_term(app):
+    """One current Term row whose window contains now.
+
+    _seed_minimal creates no terms, and auth_service.is_academic_status_stale
+    returns False when no current term exists — so every staleness assertion
+    needs this row to be meaningful at all."""
+    now = datetime.now()
+    term = Term(
+        name="May 2026",
+        start_date=now - timedelta(days=30),
+        end_date=now + timedelta(days=120),
+        is_current=True,
+    )
+    db.session.add(term)
+    db.session.commit()
+    return term

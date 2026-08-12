@@ -38,13 +38,22 @@ export function setOnSessionExpired(cb: () => void) {
   _onSessionExpired = cb
 }
 
-/** Obtain a new access token using the httpOnly refresh cookie. */
+/** Obtain a new access token using the httpOnly refresh cookie.
+ *
+ *  The expiry callback fires from here — the *shared* failure path — and never
+ *  from the individual rejected callers. Ten requests queued behind one failed
+ *  refresh are one expired session, so they produce one toast and one redirect
+ *  (D-06, D-07). Firing per caller is what produced a stack of ten. */
 async function _doRefresh() {
   if (!_refreshPromise) {
     _refreshPromise = (async () => {
       try {
         const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
         _accessToken = res.access_token
+      } catch (err) {
+        _accessToken = null
+        _onSessionExpired?.()
+        throw err
       } finally {
         _refreshPromise = null
       }
@@ -114,8 +123,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         await _doRefresh()
         return await _rawRequest<T>(path, options) // retry once
       } catch {
-        _onSessionExpired?.()
-        throw err // re-throw the original 401
+        throw err // re-throw the original 401; _doRefresh already signalled expiry
       }
     }
     throw err

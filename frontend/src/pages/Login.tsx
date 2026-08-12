@@ -10,8 +10,13 @@ export default function Login() {
   const nav = useNavigate()
   const location = useLocation()
   
-  const searchParams = new URLSearchParams(location.search)
-  const isExpired = searchParams.get('expired') === '1'
+  // Router state, not a query param: a query param survives a bookmark and
+  // would show an expiry notice to someone whose session never expired
+  // (02-UI-SPEC S3). `from` is the route the bounce came off, set by both
+  // App.tsx's protected-route guard and the session-expiry callback.
+  const navState = location.state as { from?: string; expired?: boolean } | null
+  const isExpired = navState?.expired === true
+  const goHome = (role: Parameters<typeof homeFor>[0]) => nav(navState?.from ?? homeFor(role))
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,7 +34,7 @@ export default function Login() {
       setError(res.error || 'Login failed.')
       return
     }
-    nav(homeFor(res.role!))
+    goHome(res.role!)
   }
 
   const quickLogin = async (em: string, pw: string) => {
@@ -39,7 +44,7 @@ export default function Login() {
     setLoading(true)
     const res = await login(em, pw)
     setLoading(false)
-    if (res.ok) nav(homeFor(res.role!))
+    if (res.ok) goHome(res.role!)
     else setError(res.error || 'Login failed.')
   }
 
@@ -56,13 +61,8 @@ export default function Login() {
       </p>
 
       {isExpired && (
-        <div className="mt-6 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-200">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          Your session expired. Please sign in again.
+        <div className="mt-6 rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-[14px] text-amber-300">
+          Your session expired. Sign in to continue.
         </div>
       )}
 

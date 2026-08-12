@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { api, setOnSessionExpired } from './api'
+import { useToast } from '../components/ui'
 import type { Account, Capabilities, Role } from './types'
 
 /* Auth backed by the Flask JWT API Phase 2. The access token lives in memory;
@@ -34,18 +35,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
   const location = useLocation()
+  const { addToast } = useToast()
 
-  // Register session expiry callback (D-06)
+  // Register session expiry callback (D-06). api.ts calls this once per failed
+  // refresh, so the toast and the redirect happen once however many requests
+  // were queued behind it. The expiry travels as router state, never a query
+  // param — a query param survives a bookmark and would lie (02-UI-SPEC S3).
   useEffect(() => {
     setOnSessionExpired(() => {
       setCurrentUser(null)
       setCapabilities(null)
       // Redirect to login if not already there, preserving intent
       if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/') {
-        navigate(`/login?from=${encodeURIComponent(location.pathname)}&expired=1`)
+        addToast('Session expired — please sign in', 'info')
+        navigate('/login', { replace: true, state: { from: location.pathname, expired: true } })
       }
     })
-  }, [navigate, location.pathname])
+  }, [navigate, location.pathname, addToast])
 
   // Resolve an existing session on first load (D-08)
   useEffect(() => {

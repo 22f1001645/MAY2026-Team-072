@@ -16,8 +16,11 @@ from pathlib import Path
 import pytest
 import sqlalchemy as sa
 from alembic.autogenerate import compare_metadata
+from alembic.config import Config as AlembicConfig
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from alembic.script import ScriptDirectory
+from flask_migrate import downgrade as alembic_downgrade
 from flask_migrate import upgrade as alembic_upgrade
 from sqlalchemy.exc import IntegrityError
 
@@ -296,3 +299,190 @@ def test_pending_batch_list_is_accurate(migrated_app):
         "these columns are in the migration chain now — remove them from "
         f"PENDING_BATCH_COLUMNS: {sorted(already_done_columns)}"
     )
+
+
+# --------------------------------------------------------------------------- #
+# The Phase 2 revision (02-05, verification map row 20)
+# --------------------------------------------------------------------------- #
+# GSD's schema-push gate does not recognise Flask-Migrate, so these four tests
+# are the only thing standing between an unsafe Phase 2 column and a teammate's
+# database. D-23's rule: a column landing on an already-populated table must be
+# nullable or carry a server_default.
+
+PHASE_2_REVISION = "e23b8dff512c"
+PHASE_2_DOWN_REVISION = "213804635519"
+PHASE_2_BLOCKLIST_COLUMNS = ("family_id", "reason")
+
+
+def _script_directory():
+    """Revision metadata straight off disk.
+
+    Deliberately not `flask db heads` in a subprocess: that is slow, depends on
+    the shell environment, and returns text to parse instead of objects to
+    assert on. ScriptDirectory reads the versions/ files without running env.py.
+    """
+    config = AlembicConfig()
+    config.set_main_option("script_location", MIGRATIONS_DIR)
+    return ScriptDirectory.from_config(config)
+
+
+@pytest.fixture
+def unmigrated_app(tmp_path):
+    """An app on an empty file-backed database with no migration applied yet.
+
+    File-backed rather than `:memory:` on purpose — SQLite ALTER runs through
+    Alembic's render_as_batch table-copy, and an in-memory database does not
+    exercise that path faithfully.
+    """
+    db_file = tmp_path / "phase2.db"
+
+    class _Phase2Config(TestConfig):
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_file.as_posix()}"
+
+    app = create_app(_Phase2Config)
+    with app.app_context():
+        yield app
+        db.session.remove()
+        db.engine.dispose()
+
+
+def _insert_academic_user(user_id, email, name, level, status, region_id=None):
+    """A users row carrying real academic values, named through explicit SQL so
+    the insert only mentions columns the target revision has created."""
+    with db.engine.begin() as connection:
+        connection.execute(
+            sa.text(
+                "INSERT INTO users (id, email, name, password_hash, role,"
+                " region_id, academic_level, academic_status, created_at,"
+                " updated_at) VALUES (:id, :email, :name, 'not-a-real-hash',"
+                " 'student', :region_id, :level, :status, :now, :now)"
+            ),
+            {
+                "id": user_id,
+                "email": email,
+                "name": name,
+                "region_id": region_id,
+                "level": level,
+                "status": status,
+                "now": _STAMP,
+            },
+        )
+
+
+def _insert_por(membership_id, por_id, user_id, org_id):
+    with db.engine.begin() as connection:
+        connection.execute(
+            sa.text(
+                "INSERT INTO memberships (id, user_id, org_id, created_at,"
+                " updated_at) VALUES (:id, :user_id, :org_id, :now, :now)"
+            ),
+            {"id": membership_id, "user_id": user_id, "org_id": org_id, "now": _STAMP},
+        )
+        connection.execute(
+            sa.text(
+                "INSERT INTO por_assignments (id, membership_id, por_type, term,"
+                " active, created_at, updated_at) VALUES (:id, :membership_id,"
+                " 'Regional Coordinator', 'May 2026', 1, :now, :now)"
+            ),
+            {"id": por_id, "membership_id": membership_id, "now": _STAMP},
+        )
+
+
+def _blocklist_columns():
+    return {c["name"]: c for c in sa.inspect(db.engine).get_columns("refresh_token_blocklist")}
+
+
+def test_single_head_after_phase_2():
+    """One head, and the Phase 2 revision sitting exactly where it claims.
+
+    Naming the expected down_revision explicitly is what makes a future revision
+    inserted in the wrong place fail here rather than at a teammate's upgrade.
+    """
+    script = _script_directory()
+
+    heads = script.get_heads()
+    assert len(heads) == 1, f"expected a single head, found {heads}"
+
+    phase2 = script.get_revision(PHASE_2_REVISION)
+    assert phase2.down_revision == PHASE_2_DOWN_REVISION
+
+
+def test_phase2_blocklist_columns_are_nullable(migrated_app):
+    """D-23: both columns land on `refresh_token_blocklist`, which Phase 1 already
+    populates, so neither may be NOT NULL without a server_default."""
+    columns = _blocklist_columns()
+
+    for name in PHASE_2_BLOCKLIST_COLUMNS:
+        assert name in columns, f"{name} missing from refresh_token_blocklist"
+        assert columns[name]["nullable"] is True, (
+            f"refresh_token_blocklist.{name} is NOT NULL — a column added to an "
+            "already-populated table must be nullable or carry a server_default"
+        )
+
+
+def test_upgrade_applies_on_a_populated_database(unmigrated_app):
+    """The upgrade must be safe on real rows, not only on an empty file."""
+    alembic_upgrade(directory=MIGRATIONS_DIR, revision=PHASE_2_DOWN_REVISION)
+
+    _insert_probe_rows()
+    _insert_academic_user(
+        "user-degree", "degree@ekatva.os", "Degree", "degree", "active", "org-probe"
+    )
+    _insert_academic_user(
+        "user-break", "break@ekatva.os", "Break", "foundation", "on_break", "org-probe"
+    )
+    _insert_por("mem-1", "por-1", "user-degree", "org-probe")
+
+    with db.engine.connect() as connection:
+        before_users = connection.execute(
+            sa.text("SELECT COUNT(*) FROM users")
+        ).scalar()
+        before_pors = connection.execute(
+            sa.text("SELECT COUNT(*) FROM por_assignments")
+        ).scalar()
+
+    alembic_upgrade(directory=MIGRATIONS_DIR)
+
+    with db.engine.connect() as connection:
+        assert connection.execute(sa.text("SELECT COUNT(*) FROM users")).scalar() == before_users
+        assert (
+            connection.execute(sa.text("SELECT COUNT(*) FROM por_assignments")).scalar()
+            == before_pors
+        )
+
+        # Comparing real values, not a table of nulls — the point is preservation.
+        preserved = connection.execute(
+            sa.text(
+                "SELECT id, academic_level, academic_status FROM users"
+                " WHERE id IN ('user-degree', 'user-break') ORDER BY id"
+            )
+        ).all()
+
+    assert [tuple(row) for row in preserved] == [
+        ("user-break", "foundation", "on_break"),
+        ("user-degree", "degree", "active"),
+    ]
+
+    assert "terms" in set(sa.inspect(db.engine).get_table_names())
+
+
+def test_downgrade_removes_the_phase2_objects(unmigrated_app):
+    """Down as well as up. A revision that cannot be reversed is a one-way door,
+    and this one is reversible by design."""
+    alembic_upgrade(directory=MIGRATIONS_DIR)
+
+    _insert_probe_rows()
+    assert "terms" in set(sa.inspect(db.engine).get_table_names())
+    assert set(PHASE_2_BLOCKLIST_COLUMNS) <= set(_blocklist_columns())
+
+    alembic_downgrade(directory=MIGRATIONS_DIR, revision=PHASE_2_DOWN_REVISION)
+
+    tables = set(sa.inspect(db.engine).get_table_names())
+    assert "terms" not in tables
+
+    remaining = set(_blocklist_columns())
+    for name in PHASE_2_BLOCKLIST_COLUMNS:
+        assert name not in remaining, f"downgrade left {name} behind"
+
+    # The batch table-copy must not have taken unrelated rows with it.
+    assert _probe_email() == "probe@ekatva.os"

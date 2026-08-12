@@ -13,8 +13,8 @@ Ekatva OS already ships the city-meetup spine: propose → admin approval → au
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Migration & Authorization Foundation** - Schema becomes changeable without data loss, and authorization becomes activity/org-scoped
-- [ ] **Phase 2: Identity, Session & Dashboard Shell** - Sessions persist, organiser status comes from the server, and POR holders can switch views
+- [x] **Phase 1: Migration & Authorization Foundation** - Schema becomes changeable without data loss, and authorization becomes activity/org-scoped
+- [ ] **Phase 2: Identity, Session & Dashboard Shell** - Sessions persist, organiser status comes from the server, and POR holders can switch views (code review 2026-08-12: view-switcher fails success criterion 4, zero test coverage, scope creep — not done)
 - [ ] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget
 - [ ] **Phase 4: Organisation Profile & Brand Kit** - Every org type gets an editable identity and a brand kit that drives campaigns
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
@@ -75,7 +75,34 @@ Plans:
   4. A POR holder can switch between Student and Organiser views from the nav, the choice survives a reload and lands on that view's home route; a single-role student sees no switcher at all, and the choice changes zero authorization outcomes.
   5. A user can declare and later re-confirm their academic level and status (and an admin can override it) with no effect on login or session behaviour.
 
-**Plans**: TBD
+**Plans**: 7 plans
+
+> **Gap-closure phase.** Phase 2 code was written and merged (commits `54ea81a`, `f2c127e`) without ever going through plan/execute, so no PLAN, VERIFICATION or UAT existed. A source and runtime audit on 2026-08-12 found `/auth/refresh` and `/auth/logout` returning **HTTP 500 on every call** (`BlocklistRepository.is_jti_blocked` is referenced but never defined), the admin academic-status endpoint unroutable (its blueprint was never registered) and crashing on a nonexistent `AuditLog` column, the view switcher failing every clause of success criterion 4, and zero automated tests for all five requirements. These plans close those gaps. Work already verified correct — the Phase 2 migration, the JWT cookie config, and the AUTH-03 POR constants — is covered by tests, not rebuilt.
+>
+> **Out of scope but present in the tree:** commit `f2c127e` bundled an unrelated "Phase 9 admin analytics" feature (`pages/OrganiserAnalytics.tsx`, `/admin/organiser-analytics`, organiser endpoints in `analytics_controller.py`). No Phase 2 plan extends, tests or refactors it. It is a candidate for its own backlog phase.
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Tracer: restore the session spine — login → refresh → rotate → /auth/me proven end-to-end, fixing the 500 (AUTH-01)
+- [ ] 02-02-PLAN.md — Wave 0: frontend test runner (vitest 3.2.7 / jsdom 26.1.0) + D-12 POR-literal build gate (AUTH-02)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 02-03-PLAN.md — AUTH-01 hardening: reuse detection, the 10s multi-tab grace window, CSRF, loader efficiency, session fixation (AUTH-01)
+- [ ] 02-06-PLAN.md — Frontend contract: snake_case→camelCase adapted once in api.ts, session expiry via router state, single-flight tests (AUTH-01, AUTH-02)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 02-04-PLAN.md — Capability contract + POR taxonomy proof + D-14 por-audit routed through the service layer (AUTH-02, AUTH-03)
+- [ ] 02-07-PLAN.md — [CHECKPOINT] DASH-01 view switcher rebuilt to UI-SPEC S1, view-aware nav, S4 banner placement, D-18 tests (DASH-01)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 02-05-PLAN.md — AUTH-04: register the orphaned blueprint, fix the audit write, Marshmallow enums, staleness/decoupling tests, migration gate (AUTH-04)
+
+**Wave structure**: two independent chains that meet at the end. The backend session chain (01 → 03 → 04 → 05) is strictly sequential because every plan edits `auth_service.py`, `repos.py` or `auth_controller.py`. The frontend chain (02 → 06 → 07) is sequential for the same reason on `lib/api.ts` and `ViewSwitcher.tsx`. The two chains share no files, so waves 1-3 each run two plans in parallel.
+
 **UI hint**: yes
 
 ### Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails
@@ -181,7 +208,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
-| 2. Identity, Session & Dashboard Shell | 0/TBD | Not started | - |
+| 2. Identity, Session & Dashboard Shell | 0/7 | Planned (gap closure) | - |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/TBD | Not started | - |
 | 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |

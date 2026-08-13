@@ -11,6 +11,7 @@ from ..constants import (
     COLLAB_DECLINED,
     SOCIAL_PLATFORM_KEYS,
     TEAM_ROLES,
+    UPLOAD_URL_PATTERN,
 )
 from ..url_safety import MAX_SOCIAL_URL_LENGTH
 
@@ -129,9 +130,25 @@ class OrgProfileSchema(Schema):
     unbounded db.Text and nothing upstream caps it: a client-side counter over a
     server with no limit is a promise the server does not keep (T-04-04).
     `bio` is optional so a PATCH can carry other fields once 04-02 and 04-03 add
-    them, and nullable so clearing a bio is expressible."""
+    them, and nullable so clearing a bio is expressible.
+
+    `logo_url` is here only so a null can clear it — there is no separate delete
+    endpoint (UI-SPEC S3). A NON-null value is matched against the exact served
+    path this server issues, because the upload endpoint is the only legitimate
+    writer of one: an arbitrary string would reintroduce the external-hotlink
+    shape D-01 rejected, and would also let a caller aim the unlink-on-replace
+    path at a file of their choosing (T-04-25). The pattern is exact rather than
+    a prefix check for that second reason."""
 
     bio = fields.Str(required=False, allow_none=True, validate=validate.Length(max=1000))
+    logo_url = fields.Str(
+        required=False,
+        allow_none=True,
+        validate=[
+            validate.Length(max=300),
+            validate.Regexp(UPLOAD_URL_PATTERN, error="Not a stored image."),
+        ],
+    )
 
 
 class SocialLinkSchema(Schema):

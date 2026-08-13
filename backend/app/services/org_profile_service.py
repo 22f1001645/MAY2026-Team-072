@@ -5,17 +5,33 @@ the route has already loaded the row, already 404'd a missing one and already
 403'd a caller without authority over it, so re-querying by id here would be a
 second and weaker copy of a decision that was made upstream.
 """
-from ..constants import SOCIAL_FIELD_ORDER
+import re
+from uuid import uuid4
+
+from flask import current_app
+
+from ..constants import SOCIAL_FIELD_ORDER, UPLOAD_URL_PATTERN, UPLOAD_URL_PREFIX
+# The upload primitive lives with the route that serves it (D-01). This is the
+# one place a service reaches into a controller module, and it is deliberate:
+# splitting `sniff_image_ext` away from the route whose `nosniff` header depends
+# on it would put the format allowlist and the serving rule in two files that
+# can drift.
+from ..controllers.upload_controller import served_path, sniff_image_ext, upload_dir
 from ..errors import ApiError
 from ..extensions import db
 from ..models import OrganisationSocialLink
 from ..repositories.repos import AuditRepository
 from ..url_safety import check_social_url, check_website_url, is_renderable_social_url
 
-# The profile keys this service may write. `bio` is the whole of it for now:
-# 04-02 owns social links and 04-03 owns the logo, and each adds its key here
-# rather than letting the request body decide what a profile field is.
-EDITABLE_FIELDS = ("bio",)
+# The profile keys this service may write, rather than letting the request body
+# decide what a profile field is. `logo_url` is writable here ONLY so a null can
+# clear it — the schema refuses any non-null value that is not a path this server
+# issued, so the upload endpoint below stays the only writer of a real one.
+EDITABLE_FIELDS = ("bio", "logo_url")
+
+# 16 bytes covers every signature in IMAGE_MAGIC and is all that is ever read
+# before the format decision is made.
+_SNIFF_BYTES = 16
 
 _REJECTION_MESSAGES = {
     "social_url_scheme": "A link must start with http:// or https://.",
@@ -134,6 +150,8 @@ def update_profile(org, data: dict, actor):
 
     Absent keys are left alone rather than nulled, so a partial PATCH cannot
     silently erase a field the client never mentioned."""
+    previous_logo = org.logo_url
+
     for field in EDITABLE_FIELDS:
         if field in data:
             setattr(org, field, data[field])
@@ -143,4 +161,69 @@ def update_profile(org, data: dict, actor):
         "organisation", org.id, "Updated organisation profile", actor, org.name
     )
     db.session.commit()
+
+    # Clearing the column is how a logo is removed (UI-SPEC S3), so the same
+    # after-commit unlink applies here as on a replace.
+    if org.logo_url != previous_logo:
+        _discard_stored_file(previous_logo)
     return org
+
+
+def store_logo(org, file_storage, actor):
+    """Save an uploaded logo and point the organisation at its served path.
+
+    The format decision is made from the FIRST BYTES and nothing else. The
+    multipart part's declared content type and its filename are both fully
+    client-controlled, so neither is read here. Werkzeug's filename sanitiser is
+    not the defence either: it can return an empty string, and it does nothing
+    at all about content-type confusion. The stored name is `uuid4().hex` plus
+    the extension the SNIFF produced, which is the only filename an attacker has
+    no input to.
+    """
+    head = file_storage.read(_SNIFF_BYTES)
+    file_storage.seek(0)                    # the sniff must not eat the file
+
+    ext = sniff_image_ext(head)
+    if ext is None:
+        # Refused before anything is written, so a rejected upload leaves no
+        # file behind to be served or cleaned up later.
+        raise ApiError(
+            "That file isn't a PNG, JPEG or WebP.", "invalid_image", 400
+        )
+
+    previous = org.logo_url
+    name = f"{uuid4().hex}{ext}"
+    file_storage.save(str(upload_dir() / name))
+
+    org.logo_url = served_path(name)
+    AuditRepository.record(
+        "organisation", org.id, "Updated organisation logo", actor, org.name
+    )
+    db.session.commit()
+
+    # AFTER the commit, never before: deleting first would leave the row
+    # pointing at a file that no longer exists if the write rolled back. The
+    # reverse order at worst leaves one unreferenced file on disk, which is a
+    # cleanup problem rather than a broken profile.
+    _discard_stored_file(previous)
+    return org
+
+
+def _discard_stored_file(logo_url):
+    """Unlink a file this server issued, if that is what `logo_url` names.
+
+    The pattern check is the guard: only a value matching the served-path shape
+    is ever turned into a filesystem path, so nothing outside the upload
+    directory is reachable from this function even if a stray value reached the
+    column. A failure is logged and swallowed — a logo that saved correctly is
+    not a failed request because a stale file happened to be locked or already
+    gone.
+    """
+    if not logo_url or not re.match(UPLOAD_URL_PATTERN, logo_url):
+        return
+    try:
+        (upload_dir() / logo_url[len(UPLOAD_URL_PREFIX):]).unlink(missing_ok=True)
+    except OSError:
+        current_app.logger.warning(
+            "Could not remove the previous logo file %s", logo_url, exc_info=True
+        )

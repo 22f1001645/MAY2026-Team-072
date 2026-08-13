@@ -42,6 +42,29 @@ def update_profile(org_id):
     return jsonify(org_profile_service.public_profile(org)), 200
 
 
+@org_profile_bp.post("/orgs/<org_id>/logo")
+@can_manage_org_required
+def upload_logo(org_id):
+    """ORG-01, D-01 — replace this organisation's logo with an uploaded image.
+
+    An oversized body never reaches this function: Flask refuses anything past
+    MAX_CONTENT_LENGTH before buffering it, and the existing HTTPException
+    handler turns that into the standard envelope. There is deliberately no
+    length check here — by the time a view could run one, the body it is
+    measuring is already in memory, which is precisely the cost the cap exists
+    to avoid.
+
+    There is no matching DELETE: a logo is removed with PATCH /profile and a
+    null `logo_url` (UI-SPEC S3), so the column has exactly one writer per
+    direction and one audit trail.
+    """
+    file_storage = request.files.get("file")
+    if file_storage is None:
+        raise ApiError("Attach the image as the `file` field.", "invalid_image", 400)
+    org = org_profile_service.store_logo(g.org, file_storage, g.current_user)
+    return jsonify(org_profile_service.public_profile(org)), 200
+
+
 @org_profile_bp.put("/orgs/<org_id>/social-links")
 @can_manage_org_required
 def replace_social_links(org_id):

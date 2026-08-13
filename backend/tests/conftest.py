@@ -68,6 +68,15 @@ def _seed_minimal():
     db.session.add(profile_house)
     db.session.flush()
 
+    # The fourth organisation type (Phase 4, ORG-01). ROADMAP Phase 4 criterion 1
+    # asks for all four types editable through one code path, and without this
+    # row `council` would be the only one the polymorphic path never sees. Its
+    # city is distinct from all three above, so a cross-org denial can only ever
+    # be about id identity.
+    council = Organisation(name="Student Executive Council", type="council", city="Chennai")
+    db.session.add(council)
+    db.session.flush()
+
     # City scoped to the Hyderabad region
     db.session.add(City(name="Hyderabad", region_id=org.id))
 
@@ -103,16 +112,30 @@ def _seed_minimal():
     secretary = User(name="Meera", email="secretary@ekatva.os",
                      password_hash=generate_password_hash("sec12345"), role="student",
                      city="Hyderabad")
-    db.session.add(secretary)
+    deputy = User(name="Rohan", email="deputy@ekatva.os",
+                  password_hash=generate_password_hash("dep12345"), role="student",
+                  city="Bengaluru")
+    coordinator = User(name="Ananya", email="coordinator@ekatva.os",
+                       password_hash=generate_password_hash("coord12345"), role="student",
+                       city="Chennai")
+    db.session.add_all([secretary, deputy, coordinator])
     db.session.flush()
 
     db.session.add(ActivityFeeRecord(user_id=student.id, term="May 2026", paid=True))
 
-    sec_m = Membership(user_id=secretary.id, org_id=profile_house.id)
-    db.session.add(sec_m)
-    db.session.flush()
-    db.session.add(PORAssignment(membership_id=sec_m.id, por_type="House Secretary",
-                                 term="May 2026", active=True))
+    for user, org_row, por_type in (
+        (secretary, profile_house, "House Secretary"),
+        (deputy, society, "Society Deputy Secretary"),
+        # AUTH-03 defines Coordinator as a House/Society/Region/Council-scoped
+        # Core Committee role, and it is already in ORG_MANAGER_PORS, so the
+        # council needs no new POR constant of its own.
+        (coordinator, council, "Coordinator"),
+    ):
+        membership = Membership(user_id=user.id, org_id=org_row.id)
+        db.session.add(membership)
+        db.session.flush()
+        db.session.add(PORAssignment(membership_id=membership.id, por_type=por_type,
+                                     term="May 2026", active=True))
 
     # Give rc an organiser POR
     m = Membership(user_id=rc.id, org_id=org.id)
@@ -157,6 +180,18 @@ def meetup_head_headers(client):
 def house_secretary_headers(client):
     """A House Secretary of the SECRETARY_HOUSE org — ORG-01's first subject."""
     return {"Authorization": f"Bearer {_token(client, 'secretary@ekatva.os', 'sec12345')}"}
+
+
+@pytest.fixture
+def society_deputy_headers(client):
+    """A Society Deputy Secretary of the society org (ORG-01, AUTH-03)."""
+    return {"Authorization": f"Bearer {_token(client, 'deputy@ekatva.os', 'dep12345')}"}
+
+
+@pytest.fixture
+def council_coordinator_headers(client):
+    """A Coordinator of the council org — the fourth organisation type."""
+    return {"Authorization": f"Bearer {_token(client, 'coordinator@ekatva.os', 'coord12345')}"}
 
 
 @pytest.fixture
@@ -209,6 +244,10 @@ def house_org():
     the first one's House Secretary slot is deliberately kept free for
     org_service.assign_por's uniqueness tests."""
     return Organisation.query.filter_by(name=SECRETARY_HOUSE).first()
+
+
+def council_org():
+    return Organisation.query.filter_by(type="council").first()
 
 
 def secretary_user():

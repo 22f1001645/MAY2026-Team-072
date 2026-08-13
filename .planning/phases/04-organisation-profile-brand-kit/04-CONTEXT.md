@@ -17,7 +17,9 @@ Delivered:
 
 Not delivered here: campaign generation itself (Phase 5), any change to the POR taxonomy (AUTH-03's concern), rate limiting on generation endpoints (Phase 5, where CAMPAIGN-01 is the real exposure).
 
-**No migration is due.** `bio`, `logo_url`, `organisation_social_links` and `brand_kits` all landed in Phase 1's batch revision `213804635519`. Adding a migration here would break ROADMAP Phase 1 criterion 3 and trip the drift gate.
+**No migration was expected going in.** `bio`, `logo_url`, `organisation_social_links` and `brand_kits` all landed in Phase 1's batch revision `213804635519`, so most of this phase needs no schema change.
+
+**Amended 2026-08-14 (04-02 checkpoint):** the blanket "no migration" framing above turned out to be stale. ROADMAP Phase 1 criterion 3 prohibits a second *destructive reset*, not an additive migration — criterion 1 literally requires that a developer can add and drop a column via `flask db upgrade`. Four additive revisions have already landed after the batch revision (`213804635519` → `e23b8dff512c` → `17240eb59839` → `6c8abb840122` → `60ec9bdbcde9`, from Phases 2 and 3) with the drift gate green throughout. D-03's `website` field is modelled as a distinct column per its own text, which needs one additive revision; see 04-02's SUMMARY for the migration it adds. The rule that still holds is: no destructive reset, and no dropping/rewriting a populated column without a backfill.
 
 </domain>
 
@@ -53,7 +55,7 @@ Not delivered here: campaign generation itself (Phase 5), any change to the POR 
 <constraints>
 ## Constraints
 
-- **No new Alembic migration.** Every column this phase needs already exists.
+- **No destructive schema reset** (ROADMAP Phase 1 criterion 3). Additive migrations are fine and already routine post-Phase-1 (see the amendment note in `<domain>` above) — `organisations.website` (D-03) is the one column this phase adds, via a normal `flask db migrate` + `flask db upgrade` revision.
 - URL parameter on org-scoped routes **must** be named `org_id` — `can_manage_org_required = org_scoped(can_manage_org)` (`rbac.py:369`) resolves on that name. Any other name yields 404-for-everyone while `test_rbac_enforcement.py` stays green.
 - Both new blueprints must be added to `ALL_BLUEPRINTS` (see `04-RESEARCH.md` Pitfall 1 — the file carries a comment about the last endpoint this cost).
 - The frontend gates the Edit control on `manageableOrgIds` from `/auth/me`, never on a POR string (`no-por-literals.test.ts` enforces this).

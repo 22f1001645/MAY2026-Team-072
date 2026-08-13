@@ -126,6 +126,13 @@ class Organisation(Base):
     # org types, replacing the Houses-only HOUSE_META precedent.
     bio = db.Column(db.Text, nullable=True)
     logo_url = db.Column(db.String(300), nullable=True)
+    # The organisation's own site (ORG-02, decision D-03). A DISTINCT field, not
+    # a `platform` row on organisation_social_links: modelling it here is what
+    # keeps "a social link with a non-allowlisted host is rejected" true of every
+    # social-link row with no carve-out. It is the one deliberate narrowing of
+    # the host allowlist and keeps every other control (scheme, userinfo, ASCII
+    # host, private-range, re-serialisation) — see app/url_safety.py.
+    website = db.Column(db.String(300), nullable=True)
 
     activities = db.relationship("Activity", back_populates="org")
     memberships = db.relationship("Membership", back_populates="org")
@@ -138,6 +145,7 @@ class Organisation(Base):
             "city": self.city,
             "bio": self.bio,
             "logo_url": self.logo_url,
+            "website": self.website,
         }
         if detail:
             # The declared home for the two profile pieces that cannot be read

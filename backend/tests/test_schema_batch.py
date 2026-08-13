@@ -25,12 +25,16 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "60ec9bdbcde9" # 60ec9bdbcde9 — add referred_by_id to registrations
+HEAD_REVISION = "f997686e136b" # f997686e136b — add organisations.website (Phase 4, ORG-02 / D-03)
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 6
+EXPECTED_REVISION_COUNT = 7
+# 7th: f997686e136b adds organisations.website — ORG-02 decision D-03 models the
+# organisation's own site as a distinct column rather than a `platform` row on
+# organisation_social_links, so the host-allowlist guarantee stays true of every
+# social-link row without a carve-out. Additive, nullable, no reseed.
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {

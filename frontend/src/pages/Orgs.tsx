@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor, useAdminOverrideAcademicStatus } from '../lib/queries'
 import { api } from '../lib/api'
 import { Badge, Button, Card, Input, SectionTitle, useToast, Dialog, Select } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
-import { cx } from '../lib/format'
+import { cx, safeExternalHref } from '../lib/format'
 import { IndiaMap } from '../components/IndiaMap'
+import { OrgLogo } from '../components/OrgLogo'
 
 const ORG_TONE: Record<string, any> = {
   house: 'gold',
@@ -57,6 +59,7 @@ const REGIONS = [
 ]
 
 export default function Orgs() {
+  const navigate = useNavigate()
   const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities' | 'members'>('houses')
   const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
 
@@ -244,16 +247,7 @@ export default function Orgs() {
               return (
                 <Card key={h.id} hover className="p-5" onClick={() => setViewingHouseId(h.id)}>
                   <div className="mb-3 flex items-start justify-between gap-2">
-                    <div
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[18px] overflow-hidden"
-                      style={{ background: `${meta.color}18`, color: meta.color }}
-                    >
-                      {meta.imageLogo ? (
-                        <img src={meta.imageLogo} alt={`${h.name} logo`} className="h-full w-full object-cover" />
-                      ) : (
-                        meta.logo
-                      )}
-                    </div>
+                    <OrgLogo org={h} size={40} />
                     <Badge tone="gold">{meta.state}</Badge>
                   </div>
                   <div className="text-[15px] font-bold text-offwhite">{h.name}</div>
@@ -930,6 +924,10 @@ export default function Orgs() {
               const h = orgs.find((o: any) => o.id === viewingHouseId)
               if (!h) return null
               const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9', logo: '🌿' }
+              // Real data wins, and both paths go through the same gate. A
+              // second rendering path for "trusted" seeded URLs is how the safe
+              // path becomes the special case.
+              const websiteHref = safeExternalHref(h.website ?? HOUSE_META[h.name]?.website)
               const secretary = pors.find((p: any) => p.org === h.name && p.por_type === 'House Secretary' && p.active)
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
               const webAdmin = pors.find((p: any) => p.org === h.name && p.por_type === 'Web Admin' && p.active)
@@ -943,26 +941,21 @@ export default function Orgs() {
                     </button>
                   </div>
                   <div className="mb-8 flex items-center gap-5">
-                    <div
-                      className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-[36px] shadow-lg overflow-hidden"
-                      style={{ background: `${meta.color}20`, color: meta.color, border: `1px solid ${meta.color}40` }}
-                    >
-                      {meta.imageLogo ? (
-                        <img src={meta.imageLogo} alt={`${h.name} logo`} className="h-full w-full object-cover" />
-                      ) : (
-                        meta.logo
-                      )}
-                    </div>
+                    <OrgLogo org={h} size={80} />
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="text-[28px] font-bold text-offwhite tracking-tight">{h.name}</h2>
                         <Badge tone="gold">{meta.state}</Badge>
-                        {meta.website && (
-                          <a href={meta.website} target="_blank" rel="noreferrer" className="ml-2 flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[13px] font-semibold text-graytext-mid transition-colors hover:bg-white/10 hover:text-offwhite">
+                        {websiteHref && (
+                          <a href={websiteHref} target="_blank" rel="noopener noreferrer" className="ml-2 flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[13px] font-semibold text-graytext-mid transition-colors hover:bg-white/10 hover:text-offwhite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                             Website
                           </a>
                         )}
+                        {/* The organisation profile's second entry point. */}
+                        <Button size="sm" variant="secondary" onClick={() => navigate(`/orgs/${h.id}`)}>
+                          Open organisation profile
+                        </Button>
                       </div>
                       <p className="mt-1 text-[15px] text-graytext-light flex items-center gap-2">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>

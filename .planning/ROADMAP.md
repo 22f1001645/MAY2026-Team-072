@@ -150,8 +150,38 @@ Plans:
   3. A Secretary can define and save a brand kit (voice/tone descriptors, colour palette, sample phrases) that is readable by the campaign creator.
   4. An organisation with no brand kit can request an AI-drafted starting kit, edit every field, and nothing applies until they explicitly save it.
 
-**Plans**: TBD
+**Plans**: 9 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [ ] 04-01-PLAN.md — Tracer: `org_profile_bp` + `GET`/`PATCH /orgs/<org_id>/profile`, all four org types, the 403/404 denial matrix, and a blueprint-registration guard test (ORG-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 04-02-PLAN.md — ORG-02 security core: `url_safety.py` + host allowlist + the read-side filter + `PUT /social-links`; [CHECKPOINT] where the `website` value lives (ORG-01, ORG-02)
+- [ ] 04-06-PLAN.md — Frontend data layer: `safeExternalHref`, types, adapters/endpoints, the non-JSON error-body guard, query hooks (ORG-01/02/03/04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 04-03-PLAN.md — Logo upload primitive: `MAX_CONTENT_LENGTH`, magic-byte sniff, UUID names, public `nosniff` serve route (ORG-01)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 04-04-PLAN.md — ORG-03 brand kit: schema bounds, upsert endpoints, and `brand_kit_for()` — the read contract Phase 5 consumes (ORG-03)
+- [ ] 04-07-PLAN.md — Frontend page: `OrgProfile` shell + gating, `OrgLogo` fallback ladder, `Textarea`, route/nav, `/admin/orgs` reconciliation (ORG-01)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 04-05-PLAN.md — ORG-04 AI draft: lazy-imported `google-genai`, 503 degradation, the persists-nothing test (ORG-04)
+- [ ] 04-08-PLAN.md — Frontend links: `SocialLinksEditor` + `SocialLinksRow`, per-row rejections, the absence rule (ORG-01, ORG-02)
+
+**Wave 6** *(blocked on Wave 5)*
+
+- [ ] 04-09-PLAN.md — [CHECKPOINT] Frontend brand kit + AI draft flow (S6/S7) + phase manual UAT (ORG-03, ORG-04)
+
+**Wave structure**: two chains that interleave. The backend chain (01 → 02 → 03 → 04 → 05) is strictly sequential because every plan edits `org_profile_service.py` and `org_profile_controller.py`. The frontend chain (06 → 07 → 08 → 09) is sequential for the same reason on `OrgProfile.tsx`. The chains share no files, so waves 2, 4 and 5 each run two plans in parallel.
 
 ### Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)
 
@@ -227,7 +257,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
-| 4. Organisation Profile & Brand Kit | 0/TBD | Not started | - |
+| 4. Organisation Profile & Brand Kit | 0/9 | Planning | - |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |
 | 7. Progression Gating | 0/TBD | Not started | - |

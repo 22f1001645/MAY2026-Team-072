@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: organisation-profile-brand-kit
 status: executing
-stopped_at: Phase 4 UI-SPEC approved
-last_updated: "2026-08-13T18:27:00.255Z"
-last_activity: 2026-08-13
-last_activity_desc: Phase 04 execution started
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-08-13T20:09:38.841Z"
+last_activity: 2026-08-14
+last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 25
-  completed_plans: 16
+  completed_plans: 18
   percent: 38
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — EXECUTING
-Plan: 1 of 9
-Status: Executing Phase 04
-Last activity: 2026-08-13 — Phase 04 execution started
+Plan: 2 of 9
+Status: Ready to execute
+Last activity: 2026-08-14 — Phase 04 execution resumed (wave continue)
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 72%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [██████████] 100%
 | Phase 03 P02 | — | — | — |
 | Phase 03 P03 | — | — | — |
 | Phase 03 P04 | — | — | — |
+| Phase 04 P02 | 35min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Admin stays a login role, not a view — only the Student/Organiser distinction comes from the URL
 - [Phase ?]: AuditLog detail rides as JSON in the existing note column — the shared audit table is not widened for one caller
 - [Phase ?]: Academic enum validation lives only in the Marshmallow schemas, sourced from constants; the duplicated service tuples were deleted
+- [Phase ?]: 04-02: organisations.website is a distinct nullable column (Alembic f997686e136b), resolving the D-03 vs no-migration conflict as option-a
+- [Phase ?]: 04-02: rejection codes split by what the user must fix — social_url_scheme for the link's kind, social_url_host for where it points
+- [Phase ?]: 04-02: validate.URL deliberately omitted from SocialLinkSchema.url so url_safety's stronger check produces a placeable 400 rather than a 422
 
 ### Pending Todos
 
@@ -143,8 +147,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T11:17:44.152Z
-Stopped at: Phase 4 UI-SPEC approved
-Resume file: .planning/phases/04-organisation-profile-brand-kit/04-UI-SPEC.md
+Last session: 2026-08-13T20:09:38.806Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: None
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

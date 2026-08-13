@@ -78,7 +78,24 @@ def _seed_minimal():
     db.session.add_all([crew, head])
     db.session.flush()
 
+    # Organisation-profile POR holders (Phase 4, ORG-01). Their POR rows are
+    # constructed directly rather than through org_service.assign_por, whose
+    # HOUSE_ONLY_POR_TYPES guardrail would 400 the non-house assignments this
+    # phase needs. region_id is left unset for the same reason as crew/head
+    # above — a profile-editing fixture must not shift a regional analytics count.
+    secretary = User(name="Meera", email="secretary@ekatva.os",
+                     password_hash=generate_password_hash("sec12345"), role="student",
+                     city="Hyderabad")
+    db.session.add(secretary)
+    db.session.flush()
+
     db.session.add(ActivityFeeRecord(user_id=student.id, term="May 2026", paid=True))
+
+    sec_m = Membership(user_id=secretary.id, org_id=house.id)
+    db.session.add(sec_m)
+    db.session.flush()
+    db.session.add(PORAssignment(membership_id=sec_m.id, por_type="House Secretary",
+                                 term="May 2026", active=True))
 
     # Give rc an organiser POR
     m = Membership(user_id=rc.id, org_id=org.id)
@@ -117,6 +134,12 @@ def crew_headers(client):
 @pytest.fixture
 def meetup_head_headers(client):
     return {"Authorization": f"Bearer {_token(client, 'head@ekatva.os', 'head12345')}"}
+
+
+@pytest.fixture
+def house_secretary_headers(client):
+    """A House Secretary of the Nilgiri House org — ORG-01's first subject."""
+    return {"Authorization": f"Bearer {_token(client, 'secretary@ekatva.os', 'sec12345')}"}
 
 
 @pytest.fixture
@@ -160,6 +183,14 @@ def region_org():
 
 def other_org():
     return Organisation.query.filter_by(type="society").first()
+
+
+def house_org():
+    return Organisation.query.filter_by(type="house").first()
+
+
+def secretary_user():
+    return User.query.filter_by(email="secretary@ekatva.os").first()
 
 
 # --- Cookie-aware session fixtures (02-01) ----------------------------------

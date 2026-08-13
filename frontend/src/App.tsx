@@ -27,6 +27,7 @@ import Reimbursements from './pages/Reimbursements'
 import Analytics from './pages/Analytics'
 import OrganiserAnalytics from './pages/OrganiserAnalytics'
 import Orgs from './pages/Orgs'
+import OrgProfile from './pages/OrgProfile'
 import AdminSettings from './pages/AdminSettings'
 
 // 3-tier loading: silent (0-600ms), spinner (>600ms), timeout (>8s)
@@ -105,6 +106,10 @@ function AppShell() {
         <Route path="/me" element={<MyRegistrations />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/notifications" element={<Notifications />} />
+        {/* Readable by anyone signed in; the editing surface inside it is gated
+            on capabilities.manageableOrgIds. Registering it here rather than
+            beside the public routes is what makes it protected for free. */}
+        <Route path="/orgs/:orgId" element={<OrgProfile />} />
 
         {/* Organiser */}
         <Route path="/organiser" element={<OrganiserDashboard />} />

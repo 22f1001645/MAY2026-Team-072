@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from '../lib/session'
@@ -68,13 +68,30 @@ const ROLE_LABEL: Record<Role, string> = {
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { role, name, city } = useSession()
+  const { role, name, city, capabilities } = useSession()
   const { currentUser, logout, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [editCityOpen, setEditCityOpen] = useState(false)
   const location = useLocation()
-  const nav = NAV[role]
+
+  // The first data-derived nav entry in this file. `NAV` stays a static
+  // Record<Role, NavItem[]>; the organisation-profile entry is appended from
+  // the capability the server computed, not from a new static role key —
+  // whether it renders is a fact about this user, not about their login role.
+  const manageableOrgIds = capabilities?.manageableOrgIds
+  const nav = useMemo(() => {
+    const base = NAV[role]
+    if (!manageableOrgIds?.length) return base
+    return [
+      ...base,
+      {
+        to: `/orgs/${manageableOrgIds[0]}`,
+        label: 'Organisation profile',
+        icon: <Icon d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M9 8h2M9 12h2M9 16h2" />,
+      },
+    ]
+  }, [role, manageableOrgIds])
 
   // The two home routes, and only those. 02-UI-SPEC S4 keeps the academic
   // status nudge off deep pages entirely; it is not a header strip.

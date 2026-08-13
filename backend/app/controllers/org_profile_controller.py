@@ -12,7 +12,7 @@ from flask import Blueprint, g, jsonify, request
 from ..errors import ApiError
 from ..rbac import auth_required, can_manage_org_required
 from ..repositories.repos import OrgRepository
-from ..schemas import OrgProfileSchema
+from ..schemas import OrgProfileSchema, SocialLinksReplaceSchema
 from ..services import org_profile_service
 
 org_profile_bp = Blueprint("org_profile", __name__, url_prefix="/api/v1")
@@ -39,4 +39,22 @@ def update_profile(org_id):
     re-authorizes — it validates the body and hands the object to the service."""
     data = OrgProfileSchema().load(request.get_json() or {})
     org = org_profile_service.update_profile(g.org, data, g.current_user)
+    return jsonify(org_profile_service.public_profile(org)), 200
+
+
+@org_profile_bp.put("/orgs/<org_id>/social-links")
+@can_manage_org_required
+def replace_social_links(org_id):
+    """ORG-02 — replace the whole social section in one write.
+
+    Replace-all rather than per-link routes: the editor shows every platform at
+    once, so one write matching what the user sees avoids a half-applied section
+    when one row of several is rejected.
+
+    Returns the same payload GET /profile returns, so the client re-renders from
+    the server's normalised values rather than from its own form state — the
+    stored URL is not always the string that was typed.
+    """
+    data = SocialLinksReplaceSchema().load(request.get_json() or {})
+    org = org_profile_service.replace_social_links(g.org, data, g.current_user)
     return jsonify(org_profile_service.public_profile(org)), 200

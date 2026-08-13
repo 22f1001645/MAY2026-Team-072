@@ -9,8 +9,10 @@ from ..constants import (
     ACTIVITY_SCALES,
     COLLAB_ACCEPTED,
     COLLAB_DECLINED,
+    SOCIAL_PLATFORM_KEYS,
     TEAM_ROLES,
 )
+from ..url_safety import MAX_SOCIAL_URL_LENGTH
 
 
 class RegisterSchema(Schema):
@@ -130,6 +132,45 @@ class OrgProfileSchema(Schema):
     them, and nullable so clearing a bio is expressible."""
 
     bio = fields.Str(required=False, allow_none=True, validate=validate.Length(max=1000))
+
+
+class SocialLinkSchema(Schema):
+    """ORG-02 — one social handle in a replace-all payload.
+
+    The platform allowlist is imported, never restated: a third copy of it in the
+    schema is how the UI, the schema and the service drift apart (the
+    AcademicStatusSchema precedent above).
+
+    `url` carries a length bound only. The shape of a URL is decided by
+    `app.url_safety`, whose check is strictly stronger than a regex — it runs the
+    scheme allowlist unconditionally and first, then rejects credentials, ports,
+    non-ASCII hosts, IP literals and off-allowlist hosts. Duplicating a weaker
+    check here would pre-empt it with a 422 whose message the editor cannot place
+    on the offending row, where the domain rejection carries an explicit code and
+    a `details` object naming the platform.
+    """
+
+    platform = fields.Str(required=True, validate=validate.OneOf(SOCIAL_PLATFORM_KEYS))
+    url = fields.Str(
+        required=True, validate=validate.Length(max=MAX_SOCIAL_URL_LENGTH)
+    )
+
+
+class SocialLinksReplaceSchema(Schema):
+    """ORG-02 — the whole social section in one replace-all write.
+
+    `links` absent means "no links", which is a valid saved state. `website` is
+    absent-means-unchanged rather than absent-means-cleared, matching the partial
+    PATCH rule the profile service already follows, so a client that only edits
+    links cannot silently erase a site it never mentioned.
+    """
+
+    links = fields.List(fields.Nested(SocialLinkSchema), load_default=list)
+    website = fields.Str(
+        required=False,
+        allow_none=True,
+        validate=validate.Length(max=MAX_SOCIAL_URL_LENGTH),
+    )
 
 
 class ReportSchema(Schema):

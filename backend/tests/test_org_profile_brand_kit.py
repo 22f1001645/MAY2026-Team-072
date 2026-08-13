@@ -25,6 +25,7 @@ import pytest
 from app.config import Config
 from app.constants import (
     BRAND_KIT_AI_DRAFT,
+    BRAND_KIT_DEFAULT_VOICE,
     BRAND_KIT_MANUAL,
     UPLOAD_URL_PATTERN,
     UPLOAD_URL_PREFIX,
@@ -33,6 +34,7 @@ from app.controllers.upload_controller import sniff_image_ext, upload_dir
 from app.extensions import db
 from app.rbac import _DENIAL_MESSAGES
 from app.models import AuditLog, BrandKit, OrganisationSocialLink
+from app.services import org_profile_service
 
 from .conftest import council_org, house_org, other_org, region_org
 
@@ -1175,3 +1177,92 @@ def test_brand_kit_save_records_one_audit_row(client, app, house_secretary_heade
     entry = AuditLog.query.order_by(AuditLog.created_at.desc()).first()
     assert entry.entity == "organisation"
     assert entry.action == "Updated organisation brand kit"
+
+
+# --- ORG-03: brand_kit_for(), the seam Phase 5 consumes ----------------------
+# These two issue no HTTP; they need the app fixture only for the ORM. What is
+# under test is a Python contract another phase will call in-process, so it is
+# asserted as one rather than through a route that does not exist for it.
+
+BRAND_KIT_FOR_KEYS = {
+    "org_id",
+    "org_name",
+    "logo_url",
+    "has_kit",
+    "voice_tone",
+    "palette",
+    "sample_phrases",
+    "source",
+}
+
+
+def test_brand_kit_for_contract(client, app, house_secretary_headers):
+    """The totality guarantee, as a test rather than a convention.
+
+    Phase 5 gets one code path with no absence branch: an organisation nobody
+    wrote a kit for still yields usable neutral defaults, which is what makes
+    ROADMAP Phase 5 criterion 2 — a draft is producible for any organisation —
+    reachable. `has_kit` is how a caller tells "they chose these words" from
+    "nobody has written one yet".
+
+    The key set is asserted explicitly so a later phase cannot silently drop
+    one and leave a template rendering an empty string.
+    """
+    house = house_org()
+
+    empty = org_profile_service.brand_kit_for(house)
+    assert empty is not None
+    assert isinstance(empty, dict)
+    assert set(empty) == BRAND_KIT_FOR_KEYS
+    assert empty["has_kit"] is False
+    assert empty["voice_tone"] == BRAND_KIT_DEFAULT_VOICE
+    assert empty["voice_tone"], "the default must be usable, not an empty string"
+    assert empty["palette"] == []
+    assert empty["sample_phrases"] == []
+    assert empty["source"] == BRAND_KIT_MANUAL
+    assert empty["org_id"] == house.id
+    assert empty["org_name"] == house.name
+
+    saved = _save_kit(client, house_org(), house_secretary_headers)
+    assert saved.status_code == 200, saved.get_json()
+
+    filled = org_profile_service.brand_kit_for(house_org())
+    assert set(filled) == BRAND_KIT_FOR_KEYS
+    assert filled["has_kit"] is True
+    assert filled["voice_tone"] == "Warm, direct, never corporate."
+    assert filled["palette"] == ["#5ce6c9", "#ffcf96"]
+    assert filled["sample_phrases"] == [
+        "See you in the city.",
+        "One community, many cities.",
+    ]
+    assert filled["source"] == BRAND_KIT_MANUAL
+
+    # A row that EXISTS with null columns is the case a `has_kit` check alone
+    # would miss — every field coalesces individually, so no None reaches a
+    # Phase 5 template.
+    society = other_org()
+    db.session.add(
+        BrandKit(
+            org_id=society.id, voice_tone=None, palette=None, sample_phrases=None
+        )
+    )
+    db.session.commit()
+
+    null_columns = org_profile_service.brand_kit_for(other_org())
+    assert null_columns["has_kit"] is True
+    assert null_columns["voice_tone"] == BRAND_KIT_DEFAULT_VOICE
+    assert null_columns["palette"] == []
+    assert null_columns["sample_phrases"] == []
+    assert null_columns["source"] == BRAND_KIT_MANUAL
+
+
+def test_brand_kit_for_carries_logo(client, app):
+    """CAMPAIGN-02 calls this once per accepted collaborator and needs every one
+    of their logos. Fetching those separately would guarantee a second,
+    divergent accessor for the same thing, so the logo rides along."""
+    stored = UPLOAD_URL_PREFIX + "a" * 32 + ".png"
+    house = house_org()
+    house.logo_url = stored
+    db.session.commit()
+
+    assert org_profile_service.brand_kit_for(house_org())["logo_url"] == stored

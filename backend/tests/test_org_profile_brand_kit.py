@@ -23,17 +23,23 @@ import re
 import pytest
 
 from app.config import Config
-from app.constants import UPLOAD_URL_PATTERN, UPLOAD_URL_PREFIX
+from app.constants import (
+    BRAND_KIT_AI_DRAFT,
+    BRAND_KIT_MANUAL,
+    UPLOAD_URL_PATTERN,
+    UPLOAD_URL_PREFIX,
+)
 from app.controllers.upload_controller import sniff_image_ext, upload_dir
 from app.extensions import db
 from app.rbac import _DENIAL_MESSAGES
-from app.models import AuditLog, OrganisationSocialLink
+from app.models import AuditLog, BrandKit, OrganisationSocialLink
 
 from .conftest import council_org, house_org, other_org, region_org
 
 PROFILE_URL = "/api/v1/orgs/{org_id}/profile"
 SOCIAL_URL = "/api/v1/orgs/{org_id}/social-links"
 LOGO_URL = "/api/v1/orgs/{org_id}/logo"
+BRAND_KIT_URL = "/api/v1/orgs/{org_id}/brand-kit"
 
 # Real leading bytes for each accepted format, padded to something a file system
 # will happily hold. Only the signature matters — nothing downstream decodes the
@@ -55,6 +61,24 @@ def _social(org):
 
 def _logo(org):
     return LOGO_URL.format(org_id=org.id)
+
+
+def _brand_kit(org):
+    return BRAND_KIT_URL.format(org_id=org.id)
+
+
+def _save_kit(client, org, headers, **overrides):
+    """PUT a complete, valid kit, with individual fields overridden per case.
+
+    A whole-body helper rather than per-field ones because the endpoint is a
+    replace-all: a partial body is a different assertion, not a shorter one."""
+    body = {
+        "voice_tone": "Warm, direct, never corporate.",
+        "palette": ["#5CE6C9", "#FFCF96"],
+        "sample_phrases": ["See you in the city.", "One community, many cities."],
+    }
+    body.update(overrides)
+    return client.put(_brand_kit(org), json=body, headers=headers)
 
 
 def _stored_file(logo_url):
@@ -942,3 +966,212 @@ def test_logo_upload_records_one_audit_row(client, app, house_secretary_headers)
     assert AuditLog.query.count() == before + 1
     entry = AuditLog.query.order_by(AuditLog.created_at.desc()).first()
     assert entry.entity == "organisation"
+
+
+# --- ORG-03: the brand kit ---------------------------------------------------
+# The brand_kits table has existed since Phase 1; what has never existed is any
+# rule about what may go INSIDE its JSON columns. Neither SQLite nor Postgres
+# enforces anything there, so every bound asserted below is a service-tier rule
+# and is the only thing standing between a typo and a Phase 5 mail template.
+
+
+def test_brand_kit_roundtrip(client, app, house_secretary_headers):
+    """ORG-03. A kit saves and reads back — and the palette reads back
+    LOWERCASE. The stored value is what the editor re-renders from, so a colour
+    that silently changes case on the next load reads as a lost edit."""
+    house = house_org()
+
+    saved = _save_kit(client, house, house_secretary_headers)
+    assert saved.status_code == 200, saved.get_json()
+
+    res = client.get(_brand_kit(house_org()), headers=house_secretary_headers)
+    assert res.status_code == 200, res.get_json()
+    body = res.get_json()
+    assert body["has_kit"] is True
+    assert body["voice_tone"] == "Warm, direct, never corporate."
+    assert body["palette"] == ["#5ce6c9", "#ffcf96"]
+    assert body["sample_phrases"] == [
+        "See you in the city.",
+        "One community, many cities.",
+    ]
+    assert body["source"] == BRAND_KIT_MANUAL
+
+
+def test_brand_kit_read_without_a_saved_kit_creates_no_row(
+    client, app, house_secretary_headers
+):
+    """T-04-31. An organisation nobody has written a kit for reads back a
+    truthful `has_kit: false` — not a 404 the campaign creator would have to
+    branch on, and not a freshly minted empty row. The read writes nothing."""
+    before = BrandKit.query.count()
+
+    res = client.get(_brand_kit(house_org()), headers=house_secretary_headers)
+
+    assert res.status_code == 200, res.get_json()
+    body = res.get_json()
+    assert body["has_kit"] is False
+    assert body["voice_tone"] is None
+    assert body["palette"] == []
+    assert body["sample_phrases"] == []
+    assert BrandKit.query.count() == before
+
+
+def test_brand_kit_upsert_updates_the_one_row(client, app, house_secretary_headers):
+    """`brand_kits.org_id` is unique, so a second save must update rather than
+    insert — an IntegrityError here would be a 500 on an ordinary second edit."""
+    house = house_org()
+
+    first = _save_kit(client, house, house_secretary_headers)
+    assert first.status_code == 200, first.get_json()
+
+    second = _save_kit(
+        client, house_org(), house_secretary_headers,
+        voice_tone="Second pass.", palette=["#050505"],
+    )
+    assert second.status_code == 200, second.get_json()
+
+    assert BrandKit.query.filter_by(org_id=house_org().id).count() == 1
+    body = client.get(
+        _brand_kit(house_org()), headers=house_secretary_headers
+    ).get_json()
+    assert body["voice_tone"] == "Second pass."
+    assert body["palette"] == ["#050505"]
+
+
+@pytest.mark.parametrize(
+    "bad", ["red", "#ff", "rgb(1,2,3)", "#5CE6C9G", "#12345", "", "#5ce6c9;color:red"]
+)
+def test_brand_kit_palette_hex_only(client, app, house_secretary_headers, bad):
+    """T-04-26. This is a stored-XSS gate, not a formatting preference: Phase 5
+    interpolates these strings into generated mail HTML in a CSS context, so a
+    free-text colour is a CSS-context injection. Six hex digits and nothing
+    else — no rgb() form, no named colour, no three-digit shorthand."""
+    res = _save_kit(client, house_org(), house_secretary_headers, palette=[bad])
+
+    assert res.status_code == 422, (bad, res.get_json())
+    assert res.get_json()["code"] == "validation_error"
+    assert BrandKit.query.count() == 0
+
+
+def test_brand_kit_bounds(client, app, house_secretary_headers):
+    """T-04-27. A JSON column is unbounded at both database engines, so these
+    caps are the only ones that exist. Each is asserted AT the limit as well as
+    past it, so the test pins the actual number rather than merely proving that
+    some cap exists somewhere."""
+    for override in (
+        {"palette": ["#000000"] * 7},
+        {"sample_phrases": ["Hello."] * 11},
+        {"sample_phrases": ["x" * 201]},
+        {"voice_tone": "x" * 501},
+    ):
+        res = _save_kit(client, house_org(), house_secretary_headers, **override)
+        assert res.status_code == 422, (list(override), res.get_json())
+        assert res.get_json()["code"] == "validation_error"
+
+    assert BrandKit.query.count() == 0
+
+    at_limit = _save_kit(
+        client, house_org(), house_secretary_headers,
+        voice_tone="x" * 500,
+        palette=["#000000"] * 6,
+        sample_phrases=["y" * 200] * 10,
+    )
+    assert at_limit.status_code == 200, at_limit.get_json()
+
+
+def test_brand_kit_source_enum(client, app, house_secretary_headers):
+    """T-04-29. `source` is provenance metadata, never an authorization input —
+    a client that lies about it changes nothing that matters. The enum is still
+    validated so a Phase 5 reader can rely on the value set, and it is imported
+    from constants rather than restated in the schema."""
+    bad = _save_kit(
+        client, house_org(), house_secretary_headers, source="totally_made_up"
+    )
+    assert bad.status_code == 422, bad.get_json()
+    assert bad.get_json()["code"] == "validation_error"
+
+    ok = _save_kit(
+        client, house_org(), house_secretary_headers, source=BRAND_KIT_AI_DRAFT
+    )
+    assert ok.status_code == 200, ok.get_json()
+    body = client.get(
+        _brand_kit(house_org()), headers=house_secretary_headers
+    ).get_json()
+    assert body["source"] == BRAND_KIT_AI_DRAFT
+
+
+def test_brand_kit_drops_blank_entries(client, app, house_secretary_headers):
+    """A row the user cleared in the editor arrives as whitespace, and storing
+    it would render as an empty bullet in a Phase 5 template. Dropped, not
+    stored — and the surviving phrase is stored stripped."""
+    res = _save_kit(
+        client, house_org(), house_secretary_headers,
+        sample_phrases=["  See you in the city.  ", "   "],
+    )
+
+    assert res.status_code == 200, res.get_json()
+    body = client.get(
+        _brand_kit(house_org()), headers=house_secretary_headers
+    ).get_json()
+    assert body["sample_phrases"] == ["See you in the city."]
+
+
+def test_brand_kit_ai_available_flag(client, app, house_secretary_headers):
+    """D-04. The flag is computed from server-side config and reported HERE.
+    `/auth/me` deliberately does not carry it: that payload is AUTH-02's
+    authorization capability contract, and mixing a server feature flag into it
+    invites the next config flag onto the auth payload too.
+
+    Both directions are asserted, so this pins the computation rather than
+    whatever happens to sit in the developer's environment."""
+    app.config["GEMINI_API_KEY"] = None
+    unset = client.get(_brand_kit(house_org()), headers=house_secretary_headers)
+    assert unset.status_code == 200, unset.get_json()
+    assert unset.get_json()["ai_available"] is False
+
+    app.config["GEMINI_API_KEY"] = "a-configured-key"
+    configured = client.get(_brand_kit(house_org()), headers=house_secretary_headers)
+    assert configured.get_json()["ai_available"] is True
+
+
+def test_brand_kit_cross_org_is_refused(
+    client, app, house_secretary_headers, student_headers
+):
+    """P-09, T-04-28. A brand kit is an internal working document for one
+    organisation's own communications, not part of its public identity, so it is
+    guarded on the READ as well as the write — unlike the profile, which any
+    signed-in reader may see."""
+    society = other_org()
+
+    cross_read = client.get(_brand_kit(society), headers=house_secretary_headers)
+    assert cross_read.status_code == 403, cross_read.get_json()
+    assert cross_read.get_json()["code"] == "forbidden"
+
+    cross_write = client.put(
+        _brand_kit(other_org()),
+        json={"voice_tone": "Not mine to write."},
+        headers=house_secretary_headers,
+    )
+    assert cross_write.status_code == 403, cross_write.get_json()
+    assert cross_write.get_json()["code"] == "forbidden"
+
+    por_less = client.get(_brand_kit(house_org()), headers=student_headers)
+    assert por_less.status_code == 403
+
+    anonymous = client.get(_brand_kit(house_org()))
+    assert anonymous.status_code == 401
+
+    assert BrandKit.query.count() == 0
+
+
+def test_brand_kit_save_records_one_audit_row(client, app, house_secretary_headers):
+    """T-04-30. Exactly one row per successful save, in the same transaction."""
+    before = AuditLog.query.count()
+
+    res = _save_kit(client, house_org(), house_secretary_headers)
+
+    assert res.status_code == 200, res.get_json()
+    assert AuditLog.query.count() == before + 1
+    entry = AuditLog.query.order_by(AuditLog.created_at.desc()).first()
+    assert entry.entity == "organisation"
+    assert entry.action == "Updated organisation brand kit"

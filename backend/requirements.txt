@@ -6,6 +6,9 @@ Flask-Cors==4.0.1
 marshmallow==3.22.0
 python-dotenv==1.0.1
 Werkzeug==3.0.3
+# AI-drafted brand kit (ORG-04). Imported lazily inside the draft service, so
+# the app boots and the whole suite passes on a machine that never installed it.
+google-genai==2.18.0
 # psycopg2-binary==2.9.9
 # Testing (course deliverable)
 pytest==8.3.2

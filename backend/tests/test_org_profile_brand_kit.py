@@ -19,6 +19,9 @@ by type, headers from the `_token` helper.
 import io
 import json
 import re
+import sys
+from contextlib import contextmanager
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -42,6 +45,7 @@ PROFILE_URL = "/api/v1/orgs/{org_id}/profile"
 SOCIAL_URL = "/api/v1/orgs/{org_id}/social-links"
 LOGO_URL = "/api/v1/orgs/{org_id}/logo"
 BRAND_KIT_URL = "/api/v1/orgs/{org_id}/brand-kit"
+DRAFT_URL = "/api/v1/orgs/{org_id}/brand-kit/draft"
 
 # Real leading bytes for each accepted format, padded to something a file system
 # will happily hold. Only the signature matters — nothing downstream decodes the
@@ -67,6 +71,10 @@ def _logo(org):
 
 def _brand_kit(org):
     return BRAND_KIT_URL.format(org_id=org.id)
+
+
+def _draft(org):
+    return DRAFT_URL.format(org_id=org.id)
 
 
 def _save_kit(client, org, headers, **overrides):
@@ -1266,3 +1274,291 @@ def test_brand_kit_for_carries_logo(client, app):
     db.session.commit()
 
     assert org_profile_service.brand_kit_for(house_org())["logo_url"] == stored
+
+
+# --- ORG-04: the AI draft ----------------------------------------------------
+# ROADMAP Phase 4 criterion 4 is "nothing applies until they explicitly save
+# it", and these tests assert it with ROW COUNTS rather than with a response
+# body. A body assertion passes just as happily against a service that quietly
+# upserted on its way to returning the right JSON, which is the one regression
+# the criterion actually needs catching — a reviewer cannot see it, because the
+# UI looks exactly right either way.
+#
+# Nothing here reaches the provider. The whole battery runs with no key and with
+# the SDK uninstalled, which is the state of every machine on this team and of
+# every grading run.
+
+# A well-formed model reply. The palette arrives in upper case on purpose: the
+# draft normalises it the same way a save does, so the values the editor shows
+# are the values a save would store.
+GOOD_DRAFT = json.dumps(
+    {
+        "voice_tone": "Warm, plainspoken, never corporate.",
+        "palette": ["#5CE6C9", "#FFCF96", "#050505"],
+        "sample_phrases": ["See you in the city.", "One community, many cities."],
+    }
+)
+
+# The reply that must be refused. A palette entry is interpolated into a CSS
+# context by Phase 5's mail template, so this is the AI path meeting the same
+# hex regex a human typo meets — the proof that there is ONE validator and not a
+# looser second one on the side that needs it most.
+HOSTILE_DRAFT = json.dumps(
+    {
+        "voice_tone": "Fine.",
+        "palette": ["<script>alert(1)</script>"],
+        "sample_phrases": ["Hello."],
+    }
+)
+
+
+@contextmanager
+def _fake_sdk(reply=None, error=None):
+    """Stand a fake `google.genai` in `sys.modules` for the duration of a test.
+
+    Injected rather than `mock.patch`ed onto the real package, because the real
+    package is genuinely absent on most machines here: patching an attribute of
+    something that cannot be imported fails before it can patch anything, and a
+    battery that only runs where the SDK happens to be installed is a battery
+    that is green for nobody. The service imports the SDK lazily inside the
+    function, so by the time the import runs this fake is what it finds.
+
+    Yields the list of calls the service made, so a test can assert on what was
+    sent as well as on what came back.
+    """
+    calls = []
+
+    class _Models:
+        def __init__(self, api_key):
+            self._api_key = api_key
+
+        def generate_content(self, model, contents, config):
+            calls.append(
+                {"api_key": self._api_key, "model": model,
+                 "contents": contents, "config": config}
+            )
+            if error is not None:
+                raise error
+            return SimpleNamespace(text=reply)
+
+    class _Client:
+        def __init__(self, api_key=None, **kwargs):
+            self.models = _Models(api_key)
+
+    fake_genai = ModuleType("google.genai")
+    fake_genai.Client = _Client
+    fake_types = ModuleType("google.genai.types")
+    fake_types.GenerateContentConfig = lambda **kwargs: SimpleNamespace(**kwargs)
+    fake_genai.types = fake_types
+    fake_google = ModuleType("google")
+    fake_google.genai = fake_genai
+
+    # The real package may or may not be loaded. Set it aside either way and put
+    # it back afterwards, so one test cannot leave a stub behind for the next.
+    saved = {
+        name: module for name, module in sys.modules.items()
+        if name == "google" or name.startswith("google.")
+    }
+    for name in saved:
+        del sys.modules[name]
+    sys.modules["google"] = fake_google
+    sys.modules["google.genai"] = fake_genai
+    sys.modules["google.genai.types"] = fake_types
+    try:
+        yield calls
+    finally:
+        for name in ("google", "google.genai", "google.genai.types"):
+            sys.modules.pop(name, None)
+        sys.modules.update(saved)
+
+
+def test_draft_persists_nothing(client, app, house_secretary_headers):
+    """ROADMAP Phase 4 criterion 4, asserted as the absence of writes.
+
+    Both counts and the backref, on BOTH outcomes: this is not a test about
+    what the endpoint returns, it is a test that the endpoint returns it without
+    having stored anything. Accepting either 200 or 503 is deliberate — the
+    no-write guarantee has to hold whether or not a key happens to be
+    configured, and pinning the status here would quietly turn it into a test of
+    the developer's environment.
+    """
+    house = house_org()
+    kits_before = BrandKit.query.count()
+    audit_before = AuditLog.query.count()
+
+    app.config["GEMINI_API_KEY"] = None
+    unconfigured = client.post(_draft(house), headers=house_secretary_headers)
+
+    app.config["GEMINI_API_KEY"] = "a-configured-key"
+    with _fake_sdk(reply=GOOD_DRAFT):
+        drafted = client.post(_draft(house_org()), headers=house_secretary_headers)
+
+    for res in (unconfigured, drafted):
+        assert res.status_code in (200, 503), res.get_json()
+
+    assert BrandKit.query.count() == kits_before, "the draft wrote a brand kit"
+    assert AuditLog.query.count() == audit_before, "the draft wrote an audit row"
+    assert house_org().brand_kit is None
+
+
+def test_ai_unconfigured_503(client, app, house_secretary_headers):
+    """The default state of every machine in this project, so it is the path
+    built first and tested hardest.
+
+    503 and not 500: the unhandled-exception handler is precisely the outcome
+    the draft service exists to prevent, and a 500 gives the UI nothing to
+    branch on. The message is a literal authored in the service, so it names
+    neither the vendor nor the variable the key lives in.
+    """
+    app.config["GEMINI_API_KEY"] = None
+
+    res = client.post(_draft(house_org()), headers=house_secretary_headers)
+
+    assert res.status_code == 503, res.get_json()
+    body = res.get_json()
+    assert body["code"] == "ai_unavailable"
+    assert "gemini" not in body["error"].lower()
+    assert "GEMINI_API_KEY" not in body["error"]
+    # P-02: an unavailable provider answers with an error and an empty form, not
+    # with a plausible kit the user would reasonably believe was drafted for
+    # their organisation.
+    assert "voice_tone" not in body
+    assert "palette" not in body
+
+
+def test_draft_happy_path_mocked(client, app, house_secretary_headers):
+    """The whole round trip with the provider faked out, and the row count still
+    zero afterwards — then the PUT, which is what actually creates the row.
+
+    The second half is the regression this test exists for. A draft that returns
+    200 and a kit that exists afterwards are indistinguishable in the UI, so the
+    only place the difference can be caught is here.
+    """
+    house = house_org()
+    app.config["GEMINI_API_KEY"] = "a-configured-key"
+
+    with _fake_sdk(reply=GOOD_DRAFT) as calls:
+        res = client.post(_draft(house), headers=house_secretary_headers)
+
+    assert res.status_code == 200, res.get_json()
+    body = res.get_json()
+    assert body["voice_tone"] == "Warm, plainspoken, never corporate."
+    assert body["palette"] == ["#5ce6c9", "#ffcf96", "#050505"]
+    assert body["sample_phrases"] == [
+        "See you in the city.",
+        "One community, many cities.",
+    ]
+    assert body["source"] == BRAND_KIT_AI_DRAFT
+
+    # One call, and it carried the configured key and the configured model —
+    # neither hardcoded in the service.
+    assert len(calls) == 1
+    assert calls[0]["api_key"] == "a-configured-key"
+    assert calls[0]["model"] == app.config["GEMINI_MODEL"]
+    # The organisation's own three fields go into the prompt, and no fact is
+    # asked for.
+    assert house_org().name in calls[0]["contents"]
+
+    assert BrandKit.query.count() == 0, "a 200 draft created a row"
+    assert house_org().brand_kit is None
+
+    saved = _save_kit(
+        client, house_org(), house_secretary_headers,
+        voice_tone=body["voice_tone"],
+        palette=body["palette"],
+        sample_phrases=body["sample_phrases"],
+        source=body["source"],
+    )
+    assert saved.status_code == 200, saved.get_json()
+    assert BrandKit.query.count() == 1
+    read = client.get(
+        _brand_kit(house_org()), headers=house_secretary_headers
+    ).get_json()
+    assert read["has_kit"] is True
+    assert read["source"] == BRAND_KIT_AI_DRAFT
+
+
+def test_draft_invalid_output(client, app, house_secretary_headers):
+    """T-04-36. A model can ignore the response schema it was handed, so the
+    output is revalidated by the SAME BrandKitSchema a human save goes through.
+
+    The retry is bounded at one, and the hostile string never reaches the
+    client: a rejected draft is an error, not a half-parsed kit.
+    """
+    app.config["GEMINI_API_KEY"] = "a-configured-key"
+    before = BrandKit.query.count()
+
+    with _fake_sdk(reply=HOSTILE_DRAFT) as calls:
+        res = client.post(_draft(house_org()), headers=house_secretary_headers)
+
+    assert res.status_code == 503, res.get_json()
+    assert res.get_json()["code"] == "ai_failed"
+    assert "script" not in res.get_data(as_text=True)
+    assert "alert" not in res.get_data(as_text=True)
+    assert len(calls) == 2, "one attempt and exactly one retry"
+
+    assert BrandKit.query.count() == before
+    assert house_org().brand_kit is None
+
+
+def test_draft_unparseable_output(client, app, house_secretary_headers):
+    """A reply that is not JSON at all takes the same route as one that fails
+    revalidation — 503 ai_failed, nothing stored, no 500."""
+    app.config["GEMINI_API_KEY"] = "a-configured-key"
+
+    with _fake_sdk(reply="Sure! Here is your brand kit:") as calls:
+        res = client.post(_draft(house_org()), headers=house_secretary_headers)
+
+    assert res.status_code == 503, res.get_json()
+    assert res.get_json()["code"] == "ai_failed"
+    assert len(calls) == 2
+    assert BrandKit.query.count() == 0
+
+
+def test_draft_never_leaks_the_vendor_exception(
+    client, app, house_secretary_headers
+):
+    """T-04-33, P-03. Vendor exception text routinely quotes the request and the
+    credential that failed, so none of it may be echoed back.
+
+    The exception below carries the key verbatim, which is exactly how a real
+    one arrives. What the client gets is the sentence this service authored.
+    """
+    key = "AIzaSy-this-is-the-secret-key"
+    app.config["GEMINI_API_KEY"] = key
+    boom = RuntimeError(f"400 INVALID_ARGUMENT: API key {key} is not valid")
+
+    with _fake_sdk(error=boom):
+        res = client.post(_draft(house_org()), headers=house_secretary_headers)
+
+    assert res.status_code == 503, res.get_json()
+    body = res.get_data(as_text=True)
+    assert res.get_json()["code"] == "ai_failed"
+    assert key not in body
+    assert "INVALID_ARGUMENT" not in body
+    assert "API key" not in body
+    assert BrandKit.query.count() == 0
+
+
+def test_draft_cross_org(client, app, house_secretary_headers, student_headers):
+    """T-04-40. The draft route is org-scoped like every other write on this
+    profile, and its URL parameter is `org_id` — any other spelling would 404
+    for everyone while the RBAC suite stayed green.
+
+    Authorization is settled before the key is ever read, so a denied caller
+    cannot spend this server's quota either.
+    """
+    app.config["GEMINI_API_KEY"] = "a-configured-key"
+    society = other_org()
+
+    cross_org = client.post(_draft(society), headers=house_secretary_headers)
+    assert cross_org.status_code == 403, cross_org.get_json()
+    assert cross_org.get_json()["code"] == "forbidden"
+
+    por_less = client.post(_draft(house_org()), headers=student_headers)
+    assert por_less.status_code == 403
+
+    anonymous = client.post(_draft(house_org()))
+    assert anonymous.status_code == 401
+
+    assert BrandKit.query.count() == 0

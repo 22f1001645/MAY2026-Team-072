@@ -9,6 +9,7 @@ from .expense_controller import expense_bp
 from .recognition_controller import recognition_bp
 from .analytics_controller import analytics_bp
 from .misc_controller import misc_bp
+from .org_profile_controller import org_profile_bp
 from .settings_controller import settings_bp
 
 ALL_BLUEPRINTS = [
@@ -25,5 +26,6 @@ ALL_BLUEPRINTS = [
     recognition_bp,
     analytics_bp,
     misc_bp,
+    org_profile_bp,
     settings_bp,
 ]

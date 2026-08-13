@@ -19,13 +19,18 @@ export const CITIES: City[] = [
   { id: 'pun', name: 'Pune' },
 ]
 
+// Phase 4 gave Organisation three profile fields. These fixtures carry exactly
+// what the adapter produces for a real row that has none, so a fixture and a
+// server row are the same shape rather than nearly the same shape.
+const NO_PROFILE = { bio: null, logoUrl: null, website: null }
+
 export const ORGS: Organisation[] = [
-  { id: 'o1', name: 'Neelgiri House', type: 'house', city: 'Hyderabad' },
-  { id: 'o2', name: 'Hyderabad Regional Chapter', type: 'region', city: 'Hyderabad' },
-  { id: 'o3', name: 'Bangalore Regional Chapter', type: 'region', city: 'Bangalore' },
-  { id: 'o4', name: 'Rhythm Dance Society', type: 'society', city: 'Chennai' },
-  { id: 'o5', name: 'Student Executive Council', type: 'council', city: 'Chennai' },
-  { id: 'o6', name: 'Delhi Regional Chapter', type: 'region', city: 'Delhi' },
+  { id: 'o1', name: 'Neelgiri House', type: 'house', city: 'Hyderabad', ...NO_PROFILE },
+  { id: 'o2', name: 'Hyderabad Regional Chapter', type: 'region', city: 'Hyderabad', ...NO_PROFILE },
+  { id: 'o3', name: 'Bangalore Regional Chapter', type: 'region', city: 'Bangalore', ...NO_PROFILE },
+  { id: 'o4', name: 'Rhythm Dance Society', type: 'society', city: 'Chennai', ...NO_PROFILE },
+  { id: 'o5', name: 'Student Executive Council', type: 'council', city: 'Chennai', ...NO_PROFILE },
+  { id: 'o6', name: 'Delhi Regional Chapter', type: 'region', city: 'Delhi', ...NO_PROFILE },
 ]
 
 // Currency formatter — all monetary values in INR (PRD assumption)

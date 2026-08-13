@@ -58,6 +58,54 @@ export interface Organisation {
   name: string
   type: 'house' | 'society' | 'region' | 'council'
   city: string
+  /** Phase 4 (ORG-01). `null` until a manager writes one — never `undefined`,
+   *  because the adapter always supplies a value. */
+  bio: string | null
+  /** An **absolute** URL. The server serves `/api/v1/uploads/<uuid>.<ext>`;
+   *  `adaptOrganisation` in lib/api.ts is the one place that path is resolved
+   *  against the API base, so no component ever concatenates one. */
+  logoUrl: string | null
+  /** ORG-02: the organisation's own site. A distinct field, never a seventh
+   *  social platform — the model's honesty here is what makes ROADMAP criterion
+   *  2 literally true of every social-link row. */
+  website: string | null
+}
+
+/* ── Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ─────────────── */
+
+export interface SocialLink {
+  /** One of the six allowlisted platform keys. Never `website`. */
+  platform: string
+  /** Already filtered by the server's read gate — still passed through
+   *  `safeExternalHref` before it reaches an `href` (ORG-02 layer 3). */
+  url: string
+}
+
+/** `GET /orgs/{id}/profile`. Carries no editability hint on purpose: the Edit
+ *  gate is `capabilities.manageableOrgIds`, and a second source for it would be
+ *  a second, weaker authorization system. */
+export interface OrgProfile extends Organisation {
+  socialLinks: SocialLink[]
+  /** Platform keys only — never the URL and never a reason. A row the read
+   *  filter refused is listed here so the editor can say it was saved earlier,
+   *  without putting the offending string back in the DOM. */
+  withheldPlatforms: string[]
+}
+
+export interface BrandKit {
+  voiceTone: string | null
+  /** Six-digit lowercase hex, up to six entries. */
+  palette: string[]
+  samplePhrases: string[]
+  /** Provenance, not approval state: `ai_draft` means a human reviewed a draft
+   *  and kept it. */
+  source: 'manual' | 'ai_draft'
+  /** `false` when the organisation has never saved a kit. The read never
+   *  creates a row, so this is the only way to tell absence from an empty kit. */
+  hasKit: boolean
+  /** A server feature flag, not a capability — it reports whether AI drafting
+   *  is configured on this server. */
+  aiAvailable: boolean
 }
 
 export interface BudgetLine {

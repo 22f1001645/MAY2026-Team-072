@@ -1,4 +1,4 @@
-import type { Account, EkatvaEvent, Role } from './types'
+import type { Account, BrandKit, EkatvaEvent, OrgProfile, Organisation, Role } from './types'
 
 /* ---------------------------------------------------------------------------
  * API client — Phase 2 (D-01, D-05, D-06, D-09).
@@ -75,7 +75,15 @@ async function _rawRequest<T>(path: string, options: RequestInit = {}): Promise<
     ...(_accessToken ? { 'Authorization': `Bearer ${_accessToken}` } : {}),
     ...(options.headers as Record<string, string>),
   }
-  
+
+  // A multipart upload must carry the browser's own Content-Type, because only
+  // the browser knows the boundary token it generated. Spreading an explicit
+  // `undefined` into the literal above would not remove the key, so the delete
+  // is the fix.
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type']
+  }
+
   // Double-submit CSRF for cookie-based auth (D-05)
   if (isMutation) {
     // Flask-JWT-Extended puts the CSRF token value in the access-token cookie's
@@ -103,8 +111,22 @@ async function _rawRequest<T>(path: string, options: RequestInit = {}): Promise<
     )
   }
 
+  // Not every error body is JSON. Flask raises 413 from MAX_CONTENT_LENGTH
+  // before the body is buffered and answers with HTML, and any proxy or
+  // dev-server error page does the same. An unguarded parse throws a raw
+  // SyntaxError — which is not an ApiError, so the 401 refresh branch below
+  // never sees it and the caller renders a parser error instead of a message.
+  // Falling back to `null` is enough: every `body?.` read below already
+  // tolerates it, and the status line alone makes a readable message.
   const text = await res.text()
-  const body = text ? JSON.parse(text) : null
+  let body: any = null
+  if (text) {
+    try {
+      body = JSON.parse(text)
+    } catch {
+      body = null
+    }
+  }
 
   if (!res.ok) {
     const msg = body?.error || `Request failed (${res.status})`
@@ -239,6 +261,86 @@ export function adaptMe(u: ApiMe): Account {
   }
 }
 
+/* ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ---------- */
+
+/** Wire shape of an organisation row — `GET /orgs` and the profile routes. */
+export interface ApiOrganisation {
+  id: string
+  name: string
+  type: string
+  city: string
+  bio?: string | null
+  logo_url?: string | null
+  website?: string | null
+}
+
+export interface ApiOrgProfile extends ApiOrganisation {
+  social_links?: { platform: string; url: string }[]
+  withheld_platforms?: string[]
+}
+
+export interface ApiBrandKit {
+  voice_tone?: string | null
+  palette?: string[]
+  sample_phrases?: string[]
+  source?: string
+  has_kit?: boolean
+  ai_available?: boolean
+}
+
+/** Resolve a served upload path to an absolute URL, **exactly once**.
+ *
+ *  `logo_url` arrives as `/api/v1/uploads/<uuid>.<ext>`, and the API lives on a
+ *  different origin from the dev server, so a bare path in an `<img src>` would
+ *  point at :5173 and 404. Resolving it here rather than in a component is the
+ *  same "the adapter is the only place" rule this module already states for
+ *  snake_case: a second call site is a second base URL to keep in step.
+ *
+ *  A failure returns `null`, not the raw path — `OrgLogo`'s fallback ladder
+ *  produces a real mark from null, whereas a garbage `src` produces a broken
+ *  image, which the ladder promises is never a state of that component. */
+function absoluteUploadUrl(path?: string | null): string | null {
+  if (!path) return null
+  try {
+    return new URL(path, new URL(BASE, window.location.href)).href
+  } catch {
+    return null
+  }
+}
+
+/** Every optional lands on a non-`undefined` value, following `adaptMe`, so no
+ *  page needs a `?.` chain for a field the server always sends. */
+export function adaptOrganisation(o: ApiOrganisation): Organisation {
+  return {
+    id: o.id,
+    name: o.name,
+    type: o.type as Organisation['type'],
+    city: o.city,
+    bio: o.bio ?? null,
+    logoUrl: absoluteUploadUrl(o.logo_url),
+    website: o.website ?? null,
+  }
+}
+
+export function adaptOrgProfile(p: ApiOrgProfile): OrgProfile {
+  return {
+    ...adaptOrganisation(p),
+    socialLinks: (p.social_links ?? []).map((l) => ({ platform: l.platform, url: l.url })),
+    withheldPlatforms: p.withheld_platforms ?? [],
+  }
+}
+
+export function adaptBrandKit(k: ApiBrandKit): BrandKit {
+  return {
+    voiceTone: k.voice_tone ?? null,
+    palette: k.palette ?? [],
+    samplePhrases: k.sample_phrases ?? [],
+    source: (k.source ?? 'manual') as BrandKit['source'],
+    hasKit: k.has_kit ?? false,
+    aiAvailable: k.ai_available ?? false,
+  }
+}
+
 /* -------------------------------- endpoints ------------------------------ */
 export const api = {
   // Auth (Phase 2 — cookie session)
@@ -310,7 +412,11 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ name }) }
     ),
   houses: () => request<any[]>('/houses'),
-  orgs: () => request<any[]>('/orgs'),
+  /** Adapted, not raw: `/admin/orgs` renders logos from these same rows, and a
+   *  second shape for an organisation would mean a second place a logo path is
+   *  resolved. */
+  orgs: (): Promise<Organisation[]> =>
+    request<ApiOrganisation[]>('/orgs').then((rows) => rows.map(adaptOrganisation)),
   pors: () => request<any[]>('/pors'),
   users: (q?: string) =>
     request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
@@ -403,5 +509,59 @@ export const api = {
     request<{ activity_id: string; new_meetup_head_user_id: string }>(
       `/activities/${activityId}/reassign-meetup-head`,
       { method: 'POST', body: JSON.stringify({ new_meetup_head_user_id: newUserId }) },
+    ),
+
+  // Phase 4: Organisation profile (ORG-01, ORG-02) & brand kit (ORG-03, ORG-04).
+  // No capability value is ever added to any of these requests — not a header,
+  // not a query parameter, not a body field. `manageableOrgIds` decides what
+  // renders; `can_manage_org` on the server decides what is permitted (P-10).
+
+  /** The profile: org fields, the social links the server vouches for, and the
+   *  platform keys it withheld. Readable by anyone signed in. */
+  orgProfile: (orgId: string): Promise<OrgProfile> =>
+    request<ApiOrgProfile>(`/orgs/${orgId}/profile`).then(adaptOrgProfile),
+  /** Bio and logo. Pass `logo_url: null` to clear the logo — there is no delete
+   *  endpoint. Returns the same payload GET does, so the caller re-renders from
+   *  the server's normalised values rather than its own form state. */
+  updateOrgProfile: (orgId: string, payload: { bio?: string; logo_url?: string | null }) =>
+    request<ApiOrgProfile>(`/orgs/${orgId}/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }).then(adaptOrgProfile),
+  /** Replace the whole social section in one write. An omitted platform is a
+   *  removed link. Also returns the profile payload. */
+  replaceSocialLinks: (orgId: string, payload: { social_links: { platform: string; url: string }[] }) =>
+    request<ApiOrgProfile>(`/orgs/${orgId}/social-links`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }).then(adaptOrgProfile),
+  /** Multipart upload. The request helper drops the JSON content type for a
+   *  FormData body so the browser sets its own boundary. */
+  uploadOrgLogo: (orgId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<ApiOrgProfile>(`/orgs/${orgId}/logo`, { method: 'POST', body: form }).then(
+      adaptOrgProfile,
+    )
+  },
+  /** `can_manage_org_required` — a non-manager gets a 403, so the caller gates
+   *  this request rather than issuing it and swallowing the error. */
+  brandKit: (orgId: string): Promise<BrandKit> =>
+    request<ApiBrandKit>(`/orgs/${orgId}/brand-kit`).then(adaptBrandKit),
+  /** Upsert — the only writer of a brand kit. */
+  saveBrandKit: (
+    orgId: string,
+    payload: { voice_tone?: string | null; palette?: string[]; sample_phrases?: string[] },
+  ) =>
+    request<ApiBrandKit>(`/orgs/${orgId}/brand-kit`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }).then(adaptBrandKit),
+  /** An AI-drafted starting kit. Writes nothing — the draft only reaches the
+   *  server if the user presses Save. Takes an `AbortSignal` so the caller can
+   *  impose its own timeout on what is an LLM round trip. */
+  draftBrandKit: (orgId: string, signal?: AbortSignal): Promise<BrandKit> =>
+    request<ApiBrandKit>(`/orgs/${orgId}/brand-kit/draft`, { method: 'POST', signal }).then(
+      adaptBrandKit,
     ),
 }

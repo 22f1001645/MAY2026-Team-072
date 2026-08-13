@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: organisation-profile-brand-kit
 status: executing
-stopped_at: Completed 04-07-PLAN.md
-last_updated: "2026-08-13T22:31:03.899Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-08-13T23:57:24.389Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 25
-  completed_plans: 22
+  completed_plans: 23
   percent: 38
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 04 execution resumed (wave continue)
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [█████████░] 88%
 | Phase 04 P03 | 55min | 2 tasks | 8 files |
 | Phase 04 P04 | 40min | 2 tasks | 5 files |
 | Phase 04 P07 | 45m | 3 tasks | 7 files |
+| Phase 04 P05 | 50min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,9 @@ Recent decisions affecting current work:
 - [Phase ?]: HOUSE_META stays defined in pages/Orgs.tsx and is exported; OrgLogo is the only component that reads it
 - [Phase ?]: The organisation-profile nav entry is derived from manageableOrgIds for any role, because /orgs/:orgId is not an ORGANISER_ROUTE and an organiser-only entry would vanish while on the page
 - [Phase ?]: Links and Brand kit are commented mounting points rather than empty rendered cards, so 04-07 ships no visible stub
+- [Phase ?]: 04-05: response_schema is passed to google-genai as a plain JSON-Schema dict (verified accepted by 2.18.0), so the planned response_mime_type-only fallback is not in the code and pydantic stays out of a marshmallow project
+- [Phase ?]: 04-05: the GEMINI_API_KEY check runs BEFORE the lazy SDK import, so a machine with neither reports the configuration problem the user can act on rather than the packaging one
+- [Phase ?]: 04-05: the AI draft is faked in tests by injecting a stub google.genai into sys.modules rather than mock.patch on the real package, because the package is genuinely absent on most machines here and patching would fail before it could patch
 
 ### Pending Todos
 
@@ -162,8 +166,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T22:30:50.631Z
-Stopped at: Completed 04-07-PLAN.md
+Last session: 2026-08-13T23:57:24.366Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

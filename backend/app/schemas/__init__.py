@@ -7,6 +7,8 @@ from ..constants import (
     ACADEMIC_LEVELS,
     ACADEMIC_STATUSES,
     ACTIVITY_SCALES,
+    BRAND_KIT_MANUAL,
+    BRAND_KIT_SOURCES,
     COLLAB_ACCEPTED,
     COLLAB_DECLINED,
     SOCIAL_PLATFORM_KEYS,
@@ -187,6 +189,49 @@ class SocialLinksReplaceSchema(Schema):
         required=False,
         allow_none=True,
         validate=validate.Length(max=MAX_SOCIAL_URL_LENGTH),
+    )
+
+
+class BrandKitSchema(Schema):
+    """ORG-03 — the whole brand kit in one replace-all write.
+
+    Every bound here is the only bound that exists. `brand_kits.palette` and
+    `sample_phrases` are JSON columns, and neither SQLite nor Postgres enforces
+    anything about what goes inside one, so nothing below is a duplicate of a
+    database constraint.
+
+    The palette pattern is a stored-XSS gate rather than a formatting
+    preference (T-04-26). Phase 5's campaign generator interpolates these
+    strings into generated mail HTML in a CSS context, so a free-text colour is
+    a CSS-context injection. Six hex digits only: no `rgb()` form, no named
+    colour, no three-digit shorthand — each of those would need its own parser
+    downstream, and the one that gets it wrong is the one that ships.
+
+    `source` is provenance metadata, never an authorization input (T-04-29): a
+    client that lies about it changes nothing that matters. The enum is
+    validated anyway so a Phase 5 reader can rely on the value set, and it is
+    imported rather than restated, following AcademicStatusSchema above.
+    """
+
+    voice_tone = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(max=500)
+    )
+    palette = fields.List(
+        fields.Str(
+            validate=validate.Regexp(
+                r"^#[0-9a-fA-F]{6}$", error="Use a six-digit hex colour like #5ce6c9."
+            )
+        ),
+        load_default=list,
+        validate=validate.Length(max=6),
+    )
+    sample_phrases = fields.List(
+        fields.Str(validate=validate.Length(min=1, max=200)),
+        load_default=list,
+        validate=validate.Length(max=10),
+    )
+    source = fields.Str(
+        load_default=BRAND_KIT_MANUAL, validate=validate.OneOf(BRAND_KIT_SOURCES)
     )
 
 

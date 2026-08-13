@@ -1,4 +1,4 @@
-"""ORG-01 — reads and writes of an organisation's public profile.
+"""ORG-01 and ORG-03 — an organisation's public profile and its brand kit.
 
 Both functions take the Organisation OBJECT, never an id. The scoped guard on
 the route has already loaded the row, already 404'd a missing one and already
@@ -10,7 +10,12 @@ from uuid import uuid4
 
 from flask import current_app
 
-from ..constants import SOCIAL_FIELD_ORDER, UPLOAD_URL_PATTERN, UPLOAD_URL_PREFIX
+from ..constants import (
+    BRAND_KIT_MANUAL,
+    SOCIAL_FIELD_ORDER,
+    UPLOAD_URL_PATTERN,
+    UPLOAD_URL_PREFIX,
+)
 # The upload primitive lives with the route that serves it (D-01). This is the
 # one place a service reaches into a controller module, and it is deliberate:
 # splitting `sniff_image_ext` away from the route whose `nosniff` header depends
@@ -19,7 +24,7 @@ from ..constants import SOCIAL_FIELD_ORDER, UPLOAD_URL_PATTERN, UPLOAD_URL_PREFI
 from ..controllers.upload_controller import served_path, sniff_image_ext, upload_dir
 from ..errors import ApiError
 from ..extensions import db
-from ..models import OrganisationSocialLink
+from ..models import BrandKit, OrganisationSocialLink
 from ..repositories.repos import AuditRepository
 from ..url_safety import check_social_url, check_website_url, is_renderable_social_url
 
@@ -207,6 +212,78 @@ def store_logo(org, file_storage, actor):
     # cleanup problem rather than a broken profile.
     _discard_stored_file(previous)
     return org
+
+
+def get_brand_kit(org) -> dict:
+    """ORG-03 — the editor's read payload. THIS FUNCTION NEVER WRITES.
+
+    An organisation nobody has written a kit for gets a truthful
+    `has_kit: false` rather than a 404 or a freshly minted empty row
+    (T-04-31). A 404 would force every caller to branch on absence, and a row
+    created by a read would make "has anyone written one?" unanswerable
+    afterwards.
+
+    `voice_tone` comes back as `None` rather than as the neutral default here,
+    because this payload fills a form: prefilling the default would show the
+    user words they never wrote as though they had. `brand_kit_for()` — the
+    Phase 5 seam — coalesces instead, which is the difference between the two
+    functions.
+
+    `ai_available` is reported on this payload and NOT on `/auth/me` (D-04).
+    That payload is AUTH-02's authorization capability contract; a server
+    feature flag on it invites the next config flag onto it too.
+    """
+    kit = org.brand_kit
+    return {
+        "org_id": org.id,
+        "has_kit": kit is not None,
+        "voice_tone": kit.voice_tone if kit else None,
+        "palette": (kit.palette if kit else None) or [],
+        "sample_phrases": (kit.sample_phrases if kit else None) or [],
+        "source": kit.source if kit else BRAND_KIT_MANUAL,
+        "ai_available": bool(current_app.config.get("GEMINI_API_KEY")),
+    }
+
+
+def upsert_brand_kit(org, data: dict, actor):
+    """Save the organisation's one brand kit, creating the row or updating it.
+
+    **This is the ONLY writer of a BrandKit row.** 04-05's AI draft endpoint
+    returns a suggestion for the user to review and must not become a second
+    one — ORG-04 requires that nothing persists until a human explicitly saves,
+    and a second writer is exactly how that guarantee is lost. The same
+    BrandKitSchema validates both paths for the same reason: two validators
+    would drift, and the AI path is precisely where the weaker one would be.
+
+    `brand_kits.org_id` is unique, so the row is reached through the
+    `uselist=False` backref rather than inserted blind — a second save is an
+    ordinary edit, not an IntegrityError.
+
+    Palette entries are lowercased before storage so the stored value matches
+    what the editor re-renders, and a user does not watch their colour change
+    case on the next load. Phrases are stripped and blanks are dropped: a row
+    the user cleared arrives as whitespace, and storing it would render as an
+    empty bullet in a Phase 5 template.
+    """
+    kit = org.brand_kit
+    if kit is None:
+        kit = BrandKit(org_id=org.id)
+        db.session.add(kit)
+
+    kit.voice_tone = data.get("voice_tone")
+    kit.palette = [c.strip().lower() for c in data.get("palette") or [] if c.strip()]
+    kit.sample_phrases = [
+        p.strip() for p in data.get("sample_phrases") or [] if p.strip()
+    ]
+    kit.source = data.get("source") or BRAND_KIT_MANUAL
+
+    # Recorded before the commit, so the audit row and the change land in the
+    # same transaction — matching every other write in this service.
+    AuditRepository.record(
+        "organisation", org.id, "Updated organisation brand kit", actor, org.name
+    )
+    db.session.commit()
+    return kit
 
 
 def _discard_stored_file(logo_url):

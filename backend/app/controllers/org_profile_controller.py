@@ -12,7 +12,7 @@ from flask import Blueprint, g, jsonify, request
 from ..errors import ApiError
 from ..rbac import auth_required, can_manage_org_required
 from ..repositories.repos import OrgRepository
-from ..schemas import OrgProfileSchema, SocialLinksReplaceSchema
+from ..schemas import BrandKitSchema, OrgProfileSchema, SocialLinksReplaceSchema
 from ..services import org_profile_service
 
 org_profile_bp = Blueprint("org_profile", __name__, url_prefix="/api/v1")
@@ -81,3 +81,37 @@ def replace_social_links(org_id):
     data = SocialLinksReplaceSchema().load(request.get_json() or {})
     org = org_profile_service.replace_social_links(g.org, data, g.current_user)
     return jsonify(org_profile_service.public_profile(org)), 200
+
+
+@org_profile_bp.get("/orgs/<org_id>/brand-kit")
+@can_manage_org_required
+def get_brand_kit(org_id):
+    """ORG-03 — read this organisation's brand kit.
+
+    Guarded on the READ, unlike GET /profile which any signed-in member may see
+    (P-09). A brand kit is an internal working document for one organisation's
+    own communications rather than part of its public identity, and a reader who
+    cannot use it must not even be shown that the surface exists.
+
+    An organisation with no saved kit answers 200 with `has_kit: false` rather
+    than 404, so the campaign creator reads one stable shape.
+    """
+    return jsonify(org_profile_service.get_brand_kit(g.org)), 200
+
+
+@org_profile_bp.put("/orgs/<org_id>/brand-kit")
+@can_manage_org_required
+def put_brand_kit(org_id):
+    """ORG-03 — save the whole brand kit in one write.
+
+    Replace-all rather than per-field routes, matching the social-links editor
+    above: the form shows every field at once, so one write matching what the
+    user sees avoids a half-applied kit when one field of several is rejected.
+
+    Returns the same payload the GET returns, so the client re-renders from the
+    server's normalised values — a palette entry is stored lowercase whatever
+    case it was typed in.
+    """
+    data = BrandKitSchema().load(request.get_json() or {})
+    org_profile_service.upsert_brand_kit(g.org, data, g.current_user)
+    return jsonify(org_profile_service.get_brand_kit(g.org)), 200

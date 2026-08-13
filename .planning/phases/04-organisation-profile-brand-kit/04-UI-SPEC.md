@@ -127,7 +127,7 @@ Four declared sizes. All are existing `tailwind.config.js` tokens except the 14p
 | Control | 14px | 500 (600 when it is a value rather than a label) | 1.4 | `text-[14px]` | every field value, every hex value, org name in the switcher, button labels (`Button size="md"`), the platform name beside a rendered link |
 | Caption | 12px | 600 when a label (`uppercase tracking-wider`), 400 when a sentence | 1.5 | `text-caption` | field labels, hints, character counters, error bodies, the fallback disclosure line |
 
-**Weights — exactly two declared:** `400` (regular) and `600` (semibold).
+**Weights — two *new* declared:** `400` (regular) and `600` (semibold). `500` and `700` also appear in the table above and in inherited primitives; both are pre-existing, scoped exceptions this phase carries unchanged rather than choices it makes — see the exception note directly below.
 
 **Weight exception (inherited, not introduced):** `Button` hardcodes `font-bold` (700), `SectionTitle` renders its `h1` at `font-bold`, and `Badge` renders at `font-medium` (500). All three are pre-existing brand-kit decisions. **This phase introduces zero new 700-weight text.** The scoped reading of 500 that Phase 3 locked is inherited unchanged: 500 is the control-row weight and appears only where the codebase already puts it. Every *new* string this phase authors is 400 or 600.
 

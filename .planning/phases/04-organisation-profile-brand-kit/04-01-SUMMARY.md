@@ -264,6 +264,12 @@ Ready. What the rest of Wave 1+ inherits:
 
 No blockers.
 
+## Self-Check: PASSED
+
+- Created files present on disk: `backend/app/controllers/org_profile_controller.py`, `backend/app/services/org_profile_service.py`, `backend/tests/test_org_profile_brand_kit.py`, `backend/tests/test_blueprint_registration.py`.
+- Commits present in `git log`: `4125be8`, `50b9518`, `5b37f50`, `f0ff0ad`.
+- `cd backend && pytest -q` — 216 passed, 0 failed.
+
 ---
 *Phase: 04-organisation-profile-brand-kit*
 *Completed: 2026-08-13*

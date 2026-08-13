@@ -16,12 +16,14 @@ denial cases matter at least as much as the happy path.
 Fixture conventions follow conftest.py: users looked up by email, organisations
 by type, headers from the `_token` helper.
 """
+import io
 import json
+import re
 
 import pytest
 
 from app.config import Config
-from app.constants import UPLOAD_URL_PREFIX
+from app.constants import UPLOAD_URL_PATTERN, UPLOAD_URL_PREFIX
 from app.controllers.upload_controller import sniff_image_ext, upload_dir
 from app.extensions import db
 from app.rbac import _DENIAL_MESSAGES
@@ -58,6 +60,45 @@ def _logo(org):
 def _stored_file(logo_url):
     """The file on disk a served `logo_url` points at."""
     return upload_dir() / logo_url[len(UPLOAD_URL_PREFIX):]
+
+
+def _upload(client, org, content, filename="logo.png", content_type=None, headers=None):
+    """POST one part named `file`, the way the browser's FormData will."""
+    part = (io.BytesIO(content), filename)
+    if content_type is not None:
+        part = (io.BytesIO(content), filename, content_type)
+    return client.post(
+        _logo(org),
+        data={"file": part},
+        content_type="multipart/form-data",
+        headers=headers or {},
+    )
+
+
+_BOUNDARY = "ekatvalogoboundary"
+_MULTIPART = f"multipart/form-data; boundary={_BOUNDARY}"
+
+
+def _multipart_of_exactly(total):
+    """A genuine multipart body whose TOTAL length is exactly `total` bytes.
+
+    The cap applies to the request body, not to the file inside it, so the
+    boundary cases can only be built by counting the envelope as well — a
+    2 MiB file always arrives as a slightly larger body and would prove nothing
+    about the cap's exact edge.
+    """
+    prefix = (
+        f"--{_BOUNDARY}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="logo.png"\r\n'
+        "Content-Type: image/png\r\n\r\n"
+    ).encode()
+    suffix = f"\r\n--{_BOUNDARY}--\r\n".encode()
+    magic = PNG_BYTES[:8]
+    padding = total - len(prefix) - len(suffix) - len(magic)
+    assert padding >= 0, "asked for a body smaller than its own envelope"
+    body = prefix + magic + b"\x00" * padding + suffix
+    assert len(body) == total
+    return body
 
 
 @pytest.fixture(autouse=True)
@@ -646,3 +687,258 @@ def test_upload_size_cap_is_two_mib_and_not_overridden_in_tests():
     itself is the control. TestConfig must not soften it, or the boundary test
     below would be proving something about a test-only number."""
     assert Config.MAX_CONTENT_LENGTH == 2 * 1024 * 1024
+
+
+# --------------------------------------------------------------------------- #
+# ORG-01, D-01 — the upload primitive: write half
+# --------------------------------------------------------------------------- #
+
+
+def test_logo_upload_png(client, app, house_secretary_headers):
+    """The happy path, end to end: the row points at a served path, the bytes
+    are on disk, and the public route hands them back.
+
+    The client's filename is deliberately `Ekatva Logo (final) v2.PNG` — a name
+    with spaces, brackets and the wrong case. None of it may survive into the
+    stored path, because the only filename that cannot be attacked is one the
+    client never supplied.
+    """
+    house = house_org()
+
+    res = _upload(
+        client, house, PNG_BYTES,
+        filename="Ekatva Logo (final) v2.PNG",
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 200, res.get_json()
+    logo_url = res.get_json()["logo_url"]
+    assert re.match(UPLOAD_URL_PATTERN, logo_url), logo_url
+    assert "Ekatva" not in logo_url and "final" not in logo_url
+
+    assert _stored_file(logo_url).read_bytes() == PNG_BYTES
+    assert house_org().logo_url == logo_url
+
+    with client.get(logo_url) as served:
+        assert served.status_code == 200
+        assert served.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_logo_upload_accepts_jpeg_and_webp(client, app, house_secretary_headers):
+    """The other two allowlisted formats, and the extension each one lands on.
+
+    The WebP case is the one worth having: `RIFF` at offset 0 is shared with WAV
+    and AVI, so a prefix-only table would either refuse a real WebP or accept an
+    audio file.
+    """
+    for content, expected_ext in ((JPEG_BYTES, ".jpg"), (WEBP_BYTES, ".webp")):
+        res = _upload(
+            client, house_org(), content,
+            filename="logo.png",          # wrong on purpose — the bytes decide
+            headers=house_secretary_headers,
+        )
+        assert res.status_code == 200, res.get_json()
+        assert res.get_json()["logo_url"].endswith(expected_ext)
+
+
+def test_logo_rejects_svg(client, app, house_secretary_headers):
+    """T-04-17. An SVG is an XML document that can carry a script element, and
+    serving one from the API origin is stored XSS — so it is refused at the door
+    rather than sanitised, and nothing is written."""
+    house = house_org()
+    before = set(upload_dir().iterdir())
+
+    res = _upload(
+        client, house, SVG_BYTES,
+        filename="logo.svg", content_type="image/svg+xml",
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "invalid_image"
+    assert set(upload_dir().iterdir()) == before
+    assert house_org().logo_url is None
+
+
+def test_logo_sniffs_content(client, app, house_secretary_headers):
+    """T-04-18 — the decision is made by the bytes, not by the label.
+
+    This payload is named `logo.png` AND declares `Content-Type: image/png`.
+    Both are free for an attacker to set, so a server that trusts either one has
+    no format allowlist at all — it has a naming convention.
+    """
+    house = house_org()
+    before = set(upload_dir().iterdir())
+
+    res = _upload(
+        client, house, b"MZ\x90\x00 this is a windows executable, not an image",
+        filename="logo.png", content_type="image/png",
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "invalid_image"
+    assert set(upload_dir().iterdir()) == before, "a refused file was written anyway"
+    assert house_org().logo_url is None
+
+
+def test_logo_too_large(client, app, house_secretary_headers):
+    """T-04-21, asserted at the exact edge and one byte past it.
+
+    The over-size body is refused by Flask before it is buffered, so the view
+    never runs: no file appears and the row still points at the file the
+    at-the-cap upload stored. The pair matters — a cap that also refused a body
+    exactly at the limit would be off by one and nothing else here would notice.
+    """
+    house = house_org()
+    cap = app.config["MAX_CONTENT_LENGTH"]
+
+    at_the_cap = client.post(
+        _logo(house), data=_multipart_of_exactly(cap),
+        content_type=_MULTIPART, headers=house_secretary_headers,
+    )
+    assert at_the_cap.status_code == 200, at_the_cap.status_code
+    accepted_url = at_the_cap.get_json()["logo_url"]
+    after_the_cap = set(upload_dir().iterdir())
+
+    over = client.post(
+        _logo(house), data=_multipart_of_exactly(cap + 1),
+        content_type=_MULTIPART, headers=house_secretary_headers,
+    )
+
+    assert over.status_code == 413
+    assert set(upload_dir().iterdir()) == after_the_cap, "the view ran anyway"
+    assert house_org().logo_url == accepted_url
+
+
+def test_logo_replace_removes_the_previous_file(client, app, house_secretary_headers):
+    """T-04-22. The old file is unlinked only AFTER the commit that stopped
+    pointing at it — delete-first would orphan the row's image if the write
+    rolled back. Asserted as a before/after pair, so a test that passed because
+    the first file was never written would fail."""
+    house = house_org()
+
+    first = _upload(client, house, PNG_BYTES, headers=house_secretary_headers)
+    assert first.status_code == 200, first.get_json()
+    first_file = _stored_file(first.get_json()["logo_url"])
+    assert first_file.exists()
+
+    second = _upload(client, house_org(), JPEG_BYTES, headers=house_secretary_headers)
+    assert second.status_code == 200, second.get_json()
+
+    assert second.get_json()["logo_url"] != first.get_json()["logo_url"]
+    assert not first_file.exists(), "the replaced file is still on disk"
+    assert _stored_file(second.get_json()["logo_url"]).exists()
+    assert house_org().logo_url == second.get_json()["logo_url"]
+
+
+def test_logo_removed_through_profile_patch(client, app, house_secretary_headers):
+    """UI-SPEC S3 — removal is `PATCH /profile` with a null, not a delete route.
+    One writer for the column means one audit trail and one authorization
+    decision."""
+    house = house_org()
+    uploaded = _upload(client, house, PNG_BYTES, headers=house_secretary_headers)
+    stored = _stored_file(uploaded.get_json()["logo_url"])
+    assert stored.exists()
+
+    res = client.patch(
+        _profile(house_org()), json={"logo_url": None}, headers=house_secretary_headers
+    )
+
+    assert res.status_code == 200, res.get_json()
+    assert res.get_json()["logo_url"] is None
+    assert house_org().logo_url is None
+    assert not stored.exists(), "clearing the column left the file behind"
+
+
+def test_logo_patch_leaves_the_logo_alone_when_the_key_is_absent(
+    client, app, house_secretary_headers
+):
+    """The partial-PATCH rule the profile service already follows: a client
+    editing only the bio must not silently erase a logo it never mentioned."""
+    house = house_org()
+    uploaded = _upload(client, house, PNG_BYTES, headers=house_secretary_headers)
+    logo_url = uploaded.get_json()["logo_url"]
+
+    res = client.patch(
+        _profile(house_org()), json={"bio": "Only the bio."},
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 200, res.get_json()
+    assert res.get_json()["logo_url"] == logo_url
+    assert _stored_file(logo_url).exists()
+
+
+def test_logo_url_cannot_be_set_to_an_arbitrary_value(
+    client, app, house_secretary_headers
+):
+    """T-04-25 — the upload endpoint is the only legitimate writer of a non-null
+    `logo_url`. Accepting a client-supplied string here would reintroduce exactly
+    the external-hotlink shape D-01 rejected, and would let a caller point the
+    unlink-on-replace path at a file of their choosing."""
+    house = house_org()
+
+    for hostile in (
+        "https://evil.com/tracker.png",
+        "/api/v1/uploads/../../ekatva.db",
+        "/api/v1/uploads/notauuid.png",
+        "/api/v1/uploads/deadbeefdeadbeefdeadbeefdeadbeef.svg",
+        "javascript:alert(1)",
+    ):
+        res = client.patch(
+            _profile(house), json={"logo_url": hostile},
+            headers=house_secretary_headers,
+        )
+        assert res.status_code == 422, (hostile, res.get_json())
+        assert res.get_json()["code"] == "validation_error"
+
+    assert house_org().logo_url is None
+
+
+def test_logo_upload_is_org_scoped(client, app, house_secretary_headers,
+                                   student_headers):
+    """T-04-24. The upload route is org-scoped like every other write on this
+    profile, and its URL parameter is `org_id` — any other spelling would 404
+    for everyone while the RBAC suite stayed green."""
+    society = other_org()
+    before = set(upload_dir().iterdir())
+
+    cross_org = _upload(client, society, PNG_BYTES, headers=house_secretary_headers)
+    assert cross_org.status_code == 403, cross_org.get_json()
+    assert cross_org.get_json()["code"] == "forbidden"
+
+    por_less = _upload(client, house_org(), PNG_BYTES, headers=student_headers)
+    assert por_less.status_code == 403
+
+    anonymous = _upload(client, house_org(), PNG_BYTES)
+    assert anonymous.status_code == 401
+
+    assert set(upload_dir().iterdir()) == before
+    assert other_org().logo_url is None
+
+
+def test_logo_upload_without_a_file_part_is_rejected(
+    client, app, house_secretary_headers
+):
+    """A request with no part at all is a client mistake with a sentence, not a
+    500 on a None."""
+    res = client.post(
+        _logo(house_org()), data={}, content_type="multipart/form-data",
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "invalid_image"
+
+
+def test_logo_upload_records_one_audit_row(client, app, house_secretary_headers):
+    """A logo change is a profile mutation and is attributable, once."""
+    before = AuditLog.query.count()
+
+    res = _upload(client, house_org(), PNG_BYTES, headers=house_secretary_headers)
+
+    assert res.status_code == 200, res.get_json()
+    assert AuditLog.query.count() == before + 1
+    entry = AuditLog.query.order_by(AuditLog.created_at.desc()).first()
+    assert entry.entity == "organisation"

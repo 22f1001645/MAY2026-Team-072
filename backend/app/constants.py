@@ -253,6 +253,17 @@ BRAND_KIT_MANUAL = "manual"
 BRAND_KIT_AI_DRAFT = "ai_draft"
 BRAND_KIT_SOURCES = (BRAND_KIT_MANUAL, BRAND_KIT_AI_DRAFT)
 
+# The voice `brand_kit_for()` falls back to when an organisation has never
+# saved a kit. It exists because ROADMAP Phase 5 criterion 2 requires a campaign
+# draft to be producible for ANY organisation, including one that wrote nothing
+# here — without a default, the generator would need an absence branch and would
+# produce a visibly worse draft on the exact path a first-time user takes.
+# Deliberately neutral and organisation-agnostic: it is a floor to fall back to,
+# never a suggestion of what an organisation sounds like.
+BRAND_KIT_DEFAULT_VOICE = (
+    "Warm, clear and welcoming, written for fellow students rather than at them."
+)
+
 # --- Social platform host allowlist (ORG-02) ---
 # The allowlist is per platform, not global: a LinkedIn URL stored under the
 # `instagram` key is a data-integrity bug even though both hosts are safe, and a

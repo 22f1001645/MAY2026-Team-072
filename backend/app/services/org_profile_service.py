@@ -11,6 +11,7 @@ from uuid import uuid4
 from flask import current_app
 
 from ..constants import (
+    BRAND_KIT_DEFAULT_VOICE,
     BRAND_KIT_MANUAL,
     SOCIAL_FIELD_ORDER,
     UPLOAD_URL_PATTERN,
@@ -284,6 +285,45 @@ def upsert_brand_kit(org, data: dict, actor):
     )
     db.session.commit()
     return kit
+
+
+def brand_kit_for(org) -> dict:
+    """ORG-03's real deliverable: the read contract Phase 5 consumes.
+
+    A Python function called in-process, not a REST endpoint — Phase 5's
+    campaign generator is the same Flask app, and a round trip over HTTP to
+    reach one's own database would be cost with no benefit. An endpoint can be
+    added later without changing this function.
+
+    Two guarantees, each asserted by a test rather than left as a convention:
+
+    1. **Total.** It returns a dict for EVERY organisation, never `None` and
+       never raising, so Phase 5 has one code path with no absence branch.
+       ROADMAP Phase 5 criterion 2 requires a campaign draft to be producible
+       for any organisation, including one that never wrote a kit, which is why
+       the fields fall back to usable neutral defaults instead of nulls.
+       `has_kit` is how a caller distinguishes "they chose these words" from
+       "nobody has written one yet".
+    2. **`logo_url` rides along.** CAMPAIGN-02 calls this once per accepted
+       collaborator and needs every one of their logos. A separate accessor for
+       the logo would guarantee a second, divergent way to read the same thing.
+
+    Each field falls back individually, so a row that exists with a null column
+    still yields the default rather than leaking a `None` into a template. This
+    differs from `get_brand_kit()` above on purpose: that payload fills the
+    editor's form and must show `None` where the user wrote nothing.
+    """
+    kit = org.brand_kit
+    return {
+        "org_id": org.id,
+        "org_name": org.name,
+        "logo_url": org.logo_url,
+        "has_kit": kit is not None,
+        "voice_tone": (kit.voice_tone if kit else None) or BRAND_KIT_DEFAULT_VOICE,
+        "palette": (kit.palette if kit else None) or [],
+        "sample_phrases": (kit.sample_phrases if kit else None) or [],
+        "source": (kit.source if kit else None) or BRAND_KIT_MANUAL,
+    }
 
 
 def _discard_stored_file(logo_url):

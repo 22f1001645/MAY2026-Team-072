@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: organisation-profile-brand-kit
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-08-13T21:58:15.055Z"
+stopped_at: Completed 04-07-PLAN.md
+last_updated: "2026-08-13T22:31:03.899Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 25
-  completed_plans: 21
+  completed_plans: 22
   percent: 38
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 04 execution resumed (wave continue)
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [████████░░] 84%
 | Phase 04 P06 | 25min | 3 tasks | 7 files |
 | Phase 04 P03 | 55min | 2 tasks | 8 files |
 | Phase 04 P04 | 40min | 2 tasks | 5 files |
+| Phase 04 P07 | 45m | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-04: get_brand_kit() and brand_kit_for() are separate functions because they must disagree about absence: the editor payload returns None so a form never shows a user words they did not write, the Phase 5 seam falls back to a default so the generator needs no absence branch
 - [Phase ?]: 04-04: The brand kit palette accepts six-digit hex only, as a stored-XSS control rather than formatting: Phase 5 interpolates those values into a CSS context in generated mail
 - [Phase ?]: 04-04: The brand-kit GET is guarded by can_manage_org_required unlike GET /profile, because a brand kit is an internal working document rather than part of an organisation's public identity (P-09)
+- [Phase ?]: HOUSE_META stays defined in pages/Orgs.tsx and is exported; OrgLogo is the only component that reads it
+- [Phase ?]: The organisation-profile nav entry is derived from manageableOrgIds for any role, because /orgs/:orgId is not an ORGANISER_ROUTE and an organiser-only entry would vanish while on the page
+- [Phase ?]: Links and Brand kit are commented mounting points rather than empty rendered cards, so 04-07 ships no visible stub
 
 ### Pending Todos
 
@@ -158,8 +162,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T21:58:03.263Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-08-13T22:30:50.631Z
+Stopped at: Completed 04-07-PLAN.md
 Resume file: None
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

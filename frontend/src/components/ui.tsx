@@ -288,6 +288,26 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   )
 }
 
+/** The multi-line sibling of `Input`.
+ *
+ *  The base string is lifted verbatim from the `<textarea>` in
+ *  `pages/ProposalNew.tsx` — four hand-rolled textareas with three different
+ *  class strings already exist, and this phase needed two more. Lifting rather
+ *  than authoring keeps the new primitive visually identical to the call sites
+ *  it exists to unify; only the global focus ring is appended. Migrating the
+ *  four existing call sites is deliberately out of scope (04-UI-SPEC.md). */
+export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={cx(
+        'w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Mandala({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg

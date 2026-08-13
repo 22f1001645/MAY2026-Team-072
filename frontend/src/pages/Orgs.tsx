@@ -15,8 +15,13 @@ const ORG_TONE: Record<string, any> = {
   council: 'warn',
 }
 
-// 12 Forest Houses with national park metadata
-const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
+// 12 Forest Houses with national park metadata.
+//
+// Exported, not deleted (04-07 P-04). From Phase 4 it is the data behind rungs
+// 2 and 3 of `components/OrgLogo.tsx`'s fallback ladder, and `OrgLogo` is the
+// only component that reads it. Twelve seeded Houses have visual identity that
+// exists nowhere else — an upload wins, but nothing here is thrown away.
+export const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
   'Bandipur House':    { park: 'Bandipur National Park',    state: 'Karnataka',    color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
   'Corbett House':     { park: 'Jim Corbett National Park', state: 'Uttarakhand',  color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
   'Gir House':         { park: 'Gir Forest National Park',  state: 'Gujarat',      color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },

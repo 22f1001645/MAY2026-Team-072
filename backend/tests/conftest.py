@@ -20,6 +20,12 @@ from app.models import (
 )
 
 
+# The house the Phase 4 organisation-profile fixtures manage. Named rather than
+# positional because _seed_minimal now holds two houses — see the comment beside
+# the row itself for why the first one is deliberately left alone.
+SECRETARY_HOUSE = "Kanha House"
+
+
 @pytest.fixture
 def app():
     app = create_app(TestConfig)
@@ -49,6 +55,17 @@ def _seed_minimal():
     # and city from both, so a cross-org denial can only be about id identity.
     society = Organisation(name="Shutterbugs Society", type="society", city="Bengaluru")
     db.session.add(society)
+    db.session.flush()
+
+    # A SECOND house, for the Phase 4 profile fixtures (ORG-01). Nilgiri cannot
+    # host them: org_service.assign_por allows exactly one active House Secretary
+    # per House, and three existing tests assign that role to
+    # `filter_by(type="house").first()`. A seeded secretary there would fill the
+    # slot those tests need free, so the Phase 4 POR holders live here instead
+    # and Nilgiri stays untouched. Fetch this one by name (SECRETARY_HOUSE), not
+    # by position — there are two houses now.
+    profile_house = Organisation(name=SECRETARY_HOUSE, type="house", city="Pune")
+    db.session.add(profile_house)
     db.session.flush()
 
     # City scoped to the Hyderabad region
@@ -91,7 +108,7 @@ def _seed_minimal():
 
     db.session.add(ActivityFeeRecord(user_id=student.id, term="May 2026", paid=True))
 
-    sec_m = Membership(user_id=secretary.id, org_id=house.id)
+    sec_m = Membership(user_id=secretary.id, org_id=profile_house.id)
     db.session.add(sec_m)
     db.session.flush()
     db.session.add(PORAssignment(membership_id=sec_m.id, por_type="House Secretary",
@@ -138,7 +155,7 @@ def meetup_head_headers(client):
 
 @pytest.fixture
 def house_secretary_headers(client):
-    """A House Secretary of the Nilgiri House org — ORG-01's first subject."""
+    """A House Secretary of the SECRETARY_HOUSE org — ORG-01's first subject."""
     return {"Authorization": f"Bearer {_token(client, 'secretary@ekatva.os', 'sec12345')}"}
 
 
@@ -186,7 +203,12 @@ def other_org():
 
 
 def house_org():
-    return Organisation.query.filter_by(type="house").first()
+    """The house the Phase 4 House Secretary fixture manages.
+
+    By name, not `filter_by(type="house").first()`: there are two houses, and
+    the first one's House Secretary slot is deliberately kept free for
+    org_service.assign_por's uniqueness tests."""
+    return Organisation.query.filter_by(name=SECRETARY_HOUSE).first()
 
 
 def secretary_user():

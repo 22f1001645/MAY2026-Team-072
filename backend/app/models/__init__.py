@@ -130,8 +130,8 @@ class Organisation(Base):
     activities = db.relationship("Activity", back_populates="org")
     memberships = db.relationship("Membership", back_populates="org")
 
-    def to_dict(self):
-        return {
+    def to_dict(self, detail=False):
+        data = {
             "id": self.id,
             "name": self.name,
             "type": self.type,
@@ -139,6 +139,14 @@ class Organisation(Base):
             "bio": self.bio,
             "logo_url": self.logo_url,
         }
+        if detail:
+            # The declared home for the two profile pieces that cannot be read
+            # off this row: `social_links` (04-02) and `brand_kit` (04-04) both
+            # need a filtered query. Nothing to add yet, but the branch exists
+            # so those plans widen the detail payload here rather than inventing
+            # a second, competing serialiser.
+            pass
+        return data
 
 
 # --------------------------------------------------------------------------- #

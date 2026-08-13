@@ -120,6 +120,18 @@ class OrgSchema(Schema):
     city = fields.Str(required=True)
 
 
+class OrgProfileSchema(Schema):
+    """ORG-01 — the editable half of an organisation's public profile.
+
+    The 1000-character bound is server-side because organisations.bio is an
+    unbounded db.Text and nothing upstream caps it: a client-side counter over a
+    server with no limit is a promise the server does not keep (T-04-04).
+    `bio` is optional so a PATCH can carry other fields once 04-02 and 04-03 add
+    them, and nullable so clearing a bio is expressible."""
+
+    bio = fields.Str(required=False, allow_none=True, validate=validate.Length(max=1000))
+
+
 class ReportSchema(Schema):
     summary = fields.Str(required=True, validate=validate.Length(min=10))
 

@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 4
 current_phase_name: Organisation Profile & Brand Kit
 status: complete
-stopped_at: Phase 3 code-complete (34/34 automated tests green, all 8 requirements validated) and UI-SPEC retro-documented + approved; manual UAT 3/12 done, 9/12 pending — Phase 4 next
-last_updated: "2026-08-13T00:00:00.000Z"
+stopped_at: Phase 4 UI-SPEC approved
+last_updated: "2026-08-13T11:17:44.378Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 03 merged from phase3-uat (4 plans executed, all tests passing) and UI-SPEC written+approved; manual UAT still open
 progress:
@@ -14,7 +14,7 @@ progress:
   completed_phases: 3
   total_plans: 16
   completed_plans: 16
-  percent: 37
+  percent: 38
 ---
 
 # Project State
@@ -144,8 +144,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T00:00:00.000Z
-Stopped at: Reconciled STATE.md/ROADMAP.md against the `phase3-uat` merge (Kavya Jain) — Phase 3 is code-complete and UI-SPEC-approved; manual UAT is the one open item (9/12 pending, see Pending Todos)
-Resume file: .planning/phases/03-proposal-collaboration-team-roster-budget-guardrails/03-UAT.md
+Last session: 2026-08-13T11:17:44.152Z
+Stopped at: Phase 4 UI-SPEC approved
+Resume file: .planning/phases/04-organisation-profile-brand-kit/04-UI-SPEC.md
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

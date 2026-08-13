@@ -59,6 +59,35 @@ export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
 }
 
+/** Return `url` when it is safe to put in an `href`, otherwise `undefined`.
+ *
+ *  Layer 3 of ORG-02's three-layer defence. Layer 1 is the server's write gate
+ *  and layer 2 is the same predicate on the read path; this is the last one,
+ *  and it exists because **React 18.3.1 only *warns* on a `javascript:` href —
+ *  it still renders the attribute.** React is not the security boundary here.
+ *  Returning `undefined` makes React omit `href` entirely, so the element
+ *  renders as inert text rather than as a live XSS sink.
+ *
+ *  Parsing goes through the platform's own `URL`, never a regex or a string
+ *  split: every bypass this refuses is a parser differential, and a hand-rolled
+ *  parser reintroduces the gap by construction. Only `http:` and `https:` are
+ *  accepted (`URL` lowercases the protocol, so `JavaScript:` is caught too),
+ *  and a scheme-relative `//host/x` or a site-relative `/x` throws without a
+ *  base and is refused with everything else that throws.
+ *
+ *  The **original** string comes back on acceptance, not `parsed.href` — the
+ *  server already normalised what it stored, and re-serialising client-side
+ *  would show the reader something other than what was saved. */
+export function safeExternalHref(url?: string | null): string | undefined {
+  if (!url) return undefined
+  try {
+    const { protocol } = new URL(url)
+    return protocol === 'http:' || protocol === 'https:' ? url : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function googleCalendarLink(event: { title: string; startsAt: string; venue: string; description?: string }) {
   const start = new Date(event.startsAt)
   const end = new Date(start.getTime() + 2 * 60 * 60 * 1000)

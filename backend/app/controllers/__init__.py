@@ -11,6 +11,7 @@ from .analytics_controller import analytics_bp
 from .misc_controller import misc_bp
 from .org_profile_controller import org_profile_bp
 from .settings_controller import settings_bp
+from .upload_controller import upload_bp
 
 ALL_BLUEPRINTS = [
     auth_bp,
@@ -28,4 +29,5 @@ ALL_BLUEPRINTS = [
     misc_bp,
     org_profile_bp,
     settings_bp,
+    upload_bp,
 ]

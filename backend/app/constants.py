@@ -279,6 +279,20 @@ SOCIAL_PLATFORM_KEYS = tuple(SOCIAL_PLATFORMS)
 # NOWHERE in SOCIAL_PLATFORMS or SOCIAL_PLATFORM_KEYS.
 SOCIAL_FIELD_ORDER = ("website",) + SOCIAL_PLATFORM_KEYS
 
+# --- Uploaded-file URL shape (ORG-01, decision D-01) ---
+# ONE declaration of the served path, because three layers read it: the serve
+# route answers on it, OrgProfileSchema refuses any logo_url that does not match
+# it, and org_profile_service maps a stored value back to a file on disk when a
+# logo is replaced or cleared. Every value ever written to organisations.logo_url
+# matches UPLOAD_URL_PATTERN — a ~40-character path, never bytes and never an
+# external URL, which is why String(300) needs no migration.
+#
+# The name is `uuid4().hex` plus an extension derived from the SNIFFED type. The
+# client's own filename never reaches the path, so the pattern is exact rather
+# than permissive.
+UPLOAD_URL_PREFIX = "/api/v1/uploads/"
+UPLOAD_URL_PATTERN = r"^/api/v1/uploads/[0-9a-f]{32}\.(?:png|jpg|webp)$"
+
 # --- Budget guardrail constants (BUDGET-01) ---
 # Applies to local_meetup and regional_meetup scale only. regional_fest is
 # sponsor-funded and is explicitly exempt. The cap is whichever is smaller:

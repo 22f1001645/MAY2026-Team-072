@@ -18,6 +18,11 @@ by type, headers from the `_token` helper.
 """
 import json
 
+import pytest
+
+from app.config import Config
+from app.constants import UPLOAD_URL_PREFIX
+from app.controllers.upload_controller import sniff_image_ext, upload_dir
 from app.extensions import db
 from app.rbac import _DENIAL_MESSAGES
 from app.models import AuditLog, OrganisationSocialLink
@@ -26,6 +31,16 @@ from .conftest import council_org, house_org, other_org, region_org
 
 PROFILE_URL = "/api/v1/orgs/{org_id}/profile"
 SOCIAL_URL = "/api/v1/orgs/{org_id}/social-links"
+LOGO_URL = "/api/v1/orgs/{org_id}/logo"
+
+# Real leading bytes for each accepted format, padded to something a file system
+# will happily hold. Only the signature matters — nothing downstream decodes the
+# image — but the signatures themselves are verbatim, because a "close enough"
+# magic number would make every sniff assertion below vacuous.
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+WEBP_BYTES = b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP" + b"\x00" * 64
+SVG_BYTES = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
 
 
 def _profile(org):
@@ -34,6 +49,30 @@ def _profile(org):
 
 def _social(org):
     return SOCIAL_URL.format(org_id=org.id)
+
+
+def _logo(org):
+    return LOGO_URL.format(org_id=org.id)
+
+
+def _stored_file(logo_url):
+    """The file on disk a served `logo_url` points at."""
+    return upload_dir() / logo_url[len(UPLOAD_URL_PREFIX):]
+
+
+@pytest.fixture(autouse=True)
+def swept_upload_dir(app):
+    """`instance/uploads/` is real, gitignored disk shared by every run.
+
+    Unlike the in-memory database, nothing tears it down between tests, so a
+    test that uploads a logo would otherwise leave the file there for the next
+    developer and for CI. Snapshot, then remove exactly what this test added —
+    never the whole directory, which would delete a real developer's uploads.
+    """
+    before = set(upload_dir().iterdir())
+    yield
+    for path in set(upload_dir().iterdir()) - before:
+        path.unlink(missing_ok=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -545,3 +584,65 @@ def test_social_links_write_records_one_audit_row(
 
     assert res.status_code == 200, res.get_json()
     assert AuditLog.query.count() == before + 1
+
+
+# --------------------------------------------------------------------------- #
+# ORG-01, D-01 — the upload primitive: serve half
+# --------------------------------------------------------------------------- #
+
+
+def test_uploads_public_no_traversal(client, app):
+    """The serve route answers without credentials, carries `nosniff`, and
+    refuses to walk out of the upload directory.
+
+    Unauthenticated is the requirement, not an oversight: the SPA is on another
+    origin, so a plain `<img>` for a logo sends neither the in-memory bearer
+    token nor a cookie. A guarded logo URL is a broken image everywhere.
+
+    Traversal is handled by `send_from_directory`, so the percent-encoded form
+    matters as much as the plain one — a hand-rolled `..` check typically stops
+    the first and waves the second through.
+    """
+    stored = upload_dir() / "aserved0000000000000000000000fed.png"
+    stored.write_bytes(PNG_BYTES)
+
+    # Closed explicitly: send_from_directory streams from an open handle, and on
+    # Windows an unclosed one makes the file undeletable for the sweeper above.
+    with client.get(f"{UPLOAD_URL_PREFIX}{stored.name}") as res:
+        assert res.status_code == 200, "the logo route must not require a token"
+        assert "Authorization" not in res.request.headers
+        assert res.headers["X-Content-Type-Options"] == "nosniff"
+        assert res.data == PNG_BYTES
+
+    for attempt in (
+        "../../ekatva.db",
+        "%2e%2e%2f%2e%2e%2fekatva.db",
+        "..%2f..%2fekatva.db",
+        "..%5c..%5cekatva.db",          # the Windows separator this repo develops on
+    ):
+        escaped = client.get(f"{UPLOAD_URL_PREFIX}{attempt}")
+        assert escaped.status_code != 200, attempt
+
+
+def test_sniff_accepts_three_formats_and_refuses_everything_else():
+    """T-04-17 and T-04-18 asserted on the helper itself, with no HTTP in the
+    way. SVG is the row that matters: it is refused because an SVG is an XML
+    document that can carry a script element, not because we lack a decoder."""
+    assert sniff_image_ext(PNG_BYTES) == ".png"
+    assert sniff_image_ext(JPEG_BYTES) == ".jpg"
+    assert sniff_image_ext(WEBP_BYTES) == ".webp"
+
+    assert sniff_image_ext(SVG_BYTES) is None
+    assert sniff_image_ext(b"GIF89a" + b"\x00" * 16) is None
+    assert sniff_image_ext(b"<!DOCTYPE html><script>alert(1)</script>") is None
+    assert sniff_image_ext(b"%PDF-1.7") is None
+    assert sniff_image_ext(b"") is None
+    # RIFF alone is a WAV or an AVI. Only `WEBP` at offset 8 makes it an image.
+    assert sniff_image_ext(b"RIFF\x00\x00\x00\x00WAVE" + b"\x00" * 16) is None
+
+
+def test_upload_size_cap_is_two_mib_and_not_overridden_in_tests():
+    """The cap is enforced by Flask before the body is buffered, so the value
+    itself is the control. TestConfig must not soften it, or the boundary test
+    below would be proving something about a test-only number."""
+    assert Config.MAX_CONTENT_LENGTH == 2 * 1024 * 1024

@@ -35,6 +35,22 @@ class Config:
         "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://localhost:5175",
     ).split(",")
 
+    # Upload size cap (ORG-01, decision D-01). 2 MiB, and deliberately NOT an
+    # env-var override: it is a security control, not a deployment knob. Flask
+    # refuses a larger body BEFORE buffering it, which is the whole reason the
+    # cap lives here rather than as a length check inside a view — a view-level
+    # check has already read the entire body into memory by the time it can
+    # reject it. TestConfig does not override it, because the boundary test has
+    # to exercise the real value.
+    MAX_CONTENT_LENGTH = 2 * 1024 * 1024
+
+    # AI-drafted brand kit (ORG-04, decision D-04). Server-side only: this must
+    # never be re-exposed as a VITE_* name, because Vite inlines those into the
+    # client bundle. An unset key means the feature is simply off — the endpoint
+    # degrades to 503 rather than failing at import time.
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
 
 class TestConfig(Config):
     TESTING = True

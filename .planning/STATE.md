@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: organisation-profile-brand-kit
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-08-13T21:09:41.466Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-08-13T21:58:15.055Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 25
-  completed_plans: 20
+  completed_plans: 21
   percent: 38
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 04 execution resumed (wave continue)
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [████████░░] 80%
 | Phase 04 P02 | 35min | 3 tasks | 10 files |
 | Phase 04 P06 | 25min | 3 tasks | 7 files |
 | Phase 04 P03 | 55min | 2 tasks | 8 files |
+| Phase 04 P04 | 40min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-03: UPLOAD_URL_PREFIX/UPLOAD_URL_PATTERN live in constants.py, not in upload_controller.py: the schema is one of three readers and a schema importing a controller inverts the backend's layering
 - [Phase ?]: 04-03: The stored-file unlink is guarded by an exact UPLOAD_URL_PATTERN match, not a prefix check, so a client-writable logo_url can never become arbitrary file deletion
 - [Phase ?]: 04-03: The 2 MiB size cap is asserted with a multipart body built to exactly MAX_CONTENT_LENGTH, because the cap applies to the request body rather than to the file inside it
+- [Phase ?]: 04-04: get_brand_kit() and brand_kit_for() are separate functions because they must disagree about absence: the editor payload returns None so a form never shows a user words they did not write, the Phase 5 seam falls back to a default so the generator needs no absence branch
+- [Phase ?]: 04-04: The brand kit palette accepts six-digit hex only, as a stored-XSS control rather than formatting: Phase 5 interpolates those values into a CSS context in generated mail
+- [Phase ?]: 04-04: The brand-kit GET is guarded by can_manage_org_required unlike GET /profile, because a brand kit is an internal working document rather than part of an organisation's public identity (P-09)
 
 ### Pending Todos
 
@@ -154,8 +158,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T21:09:29.421Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-08-13T21:58:03.263Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

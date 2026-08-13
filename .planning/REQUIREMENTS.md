@@ -61,7 +61,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 - [x] **ORG-01**: Secretary/Deputy Secretary can edit their organisation's profile (bio, logo) and social links, across all four org types (house/society/region/council)
 - [x] **ORG-02**: Social links are validated server-side against an http/https scheme + host allowlist (stored-XSS / open-redirect prevention)
-- [ ] **ORG-03**: Secretary/Deputy Secretary can define a brand kit (voice/tone descriptors, color palette, sample phrases) for their organisation, feeding CAMPAIGN-02
+- [x] **ORG-03**: Secretary/Deputy Secretary can define a brand kit (voice/tone descriptors, color palette, sample phrases) for their organisation, feeding CAMPAIGN-02
 - [ ] **ORG-04**: An optional AI-assist button drafts a starting brand kit for organisations that don't have one yet, fully editable before saving — never auto-applied without review
 
 ### Activity Teams & Tasks

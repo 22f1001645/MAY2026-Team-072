@@ -150,7 +150,7 @@ Plans:
   3. A Secretary can define and save a brand kit (voice/tone descriptors, colour palette, sample phrases) that is readable by the campaign creator.
   4. An organisation with no brand kit can request an AI-drafted starting kit, edit every field, and nothing applies until they explicitly save it.
 
-**Plans**: 4/9 plans executed
+**Plans**: 5/9 plans executed
 **UI hint**: yes
 
 Plans:
@@ -169,7 +169,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 04-04-PLAN.md — ORG-03 brand kit: schema bounds, upsert endpoints, and `brand_kit_for()` — the read contract Phase 5 consumes (ORG-03)
+- [x] 04-04-PLAN.md — ORG-03 brand kit: schema bounds, upsert endpoints, and `brand_kit_for()` — the read contract Phase 5 consumes (ORG-03)
 - [ ] 04-07-PLAN.md — Frontend page: `OrgProfile` shell + gating, `OrgLogo` fallback ladder, `Textarea`, route/nav, `/admin/orgs` reconciliation (ORG-01)
 
 **Wave 5** *(blocked on Wave 4)*
@@ -257,7 +257,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
-| 4. Organisation Profile & Brand Kit | 4/9 | In Progress|  |
+| 4. Organisation Profile & Brand Kit | 5/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |
 | 7. Progression Gating | 0/TBD | Not started | - |

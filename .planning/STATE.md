@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: milestone
 current_phase: 4
 current_phase_name: Organisation Profile & Brand Kit
-status: complete
+status: executing
 stopped_at: Phase 4 UI-SPEC approved
-last_updated: "2026-08-13T11:17:44.378Z"
+last_updated: "2026-08-13T17:56:19.953Z"
 last_activity: 2026-08-13
-last_activity_desc: Phase 03 merged from phase3-uat (4 plans executed, all tests passing) and UI-SPEC written+approved; manual UAT still open
+last_activity_desc: "Phase 3 merged from `phase3-uat` (Kavya Jain): 4 plans executed, 34/34 automated tests green, all 8 requirements validated, manual UAT 12/12 complete (03-UAT.md, sign-off checked). Phase 4 UI-SPEC written and approved."
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 16
+  total_plans: 25
   completed_plans: 16
   percent: 38
 ---
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 4 — Organisation Profile & Brand Kit
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-13 — Phase 3 merged from `phase3-uat` (Kavya Jain): 4 plans executed, 34/34 automated tests green, all 8 requirements validated, UI-SPEC written and approved. Manual UAT still open (9/12 pending) — see Pending Todos.
+Status: Ready to execute
+Last activity: 2026-08-13 — Phase 3 merged from `phase3-uat` (Kavya Jain): 4 plans executed, 34/34 automated tests green, all 8 requirements validated, manual UAT 12/12 complete (03-UAT.md, sign-off checked). Phase 4 UI-SPEC written and approved.
 
 Progress: [██████████] 100%
 
@@ -129,7 +129,6 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- **Phase 3 manual UAT incomplete** — `03-UAT.md` frontmatter still `status: in-progress`, sign-off checkboxes unchecked. 3/12 manual cases done (M-01, M-02, M-05); 9 pending (M-03, M-04, M-06 through M-12) — mostly EventDetail collaborator respond UI, ApprovalQueue admin roster/collab display, and Meetup Head reassignment, none of which have been clicked through in a browser yet. Automated coverage (34/34 tests, all 8 requirements) is green regardless.
 - **No `03-VERIFICATION.md`** — Phase 1 and Phase 2 both have one; Phase 3 does not. Worth writing once manual UAT closes out, for parity with the other phases.
 
 ### Blockers/Concerns

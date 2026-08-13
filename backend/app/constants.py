@@ -253,6 +253,32 @@ BRAND_KIT_MANUAL = "manual"
 BRAND_KIT_AI_DRAFT = "ai_draft"
 BRAND_KIT_SOURCES = (BRAND_KIT_MANUAL, BRAND_KIT_AI_DRAFT)
 
+# --- Social platform host allowlist (ORG-02) ---
+# The allowlist is per platform, not global: a LinkedIn URL stored under the
+# `instagram` key is a data-integrity bug even though both hosts are safe, and a
+# reader who clicks an "Instagram" link expects Instagram.
+#
+# There is deliberately NO generic or any-host entry (P-08). One would defeat the
+# host allowlist by definition and would force ROADMAP Phase 4 criterion 2 — "a
+# link with a non-allowlisted host is rejected" — to carry a carve-out. The
+# organisation's own site is `organisations.website`, a distinct column with its
+# own narrower rule (D-03), never a `platform` value here.
+SOCIAL_PLATFORMS = {
+    "instagram": ("instagram.com",),
+    "linkedin": ("linkedin.com",),
+    "x": ("x.com", "twitter.com"),
+    "youtube": ("youtube.com", "youtu.be"),
+    "facebook": ("facebook.com",),
+    "github": ("github.com",),
+}
+SOCIAL_PLATFORM_KEYS = tuple(SOCIAL_PLATFORMS)
+
+# The single declaration of the fixed, stable rendering order: the website field
+# first, then the six platform rows. Declared here so the seven-row editor and
+# the server cannot drift about which row is which. `website` appears here and
+# NOWHERE in SOCIAL_PLATFORMS or SOCIAL_PLATFORM_KEYS.
+SOCIAL_FIELD_ORDER = ("website",) + SOCIAL_PLATFORM_KEYS
+
 # --- Budget guardrail constants (BUDGET-01) ---
 # Applies to local_meetup and regional_meetup scale only. regional_fest is
 # sponsor-funded and is explicitly exempt. The cap is whichever is smaller:

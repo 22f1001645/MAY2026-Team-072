@@ -150,13 +150,13 @@ Plans:
   3. A Secretary can define and save a brand kit (voice/tone descriptors, colour palette, sample phrases) that is readable by the campaign creator.
   4. An organisation with no brand kit can request an AI-drafted starting kit, edit every field, and nothing applies until they explicitly save it.
 
-**Plans**: 9 plans
+**Plans**: 1/9 plans executed
 **UI hint**: yes
 
 Plans:
 **Wave 1** *(tracer)*
 
-- [ ] 04-01-PLAN.md — Tracer: `org_profile_bp` + `GET`/`PATCH /orgs/<org_id>/profile`, all four org types, the 403/404 denial matrix, and a blueprint-registration guard test (ORG-01)
+- [x] 04-01-PLAN.md — Tracer: `org_profile_bp` + `GET`/`PATCH /orgs/<org_id>/profile`, all four org types, the 403/404 denial matrix, and a blueprint-registration guard test (ORG-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -257,7 +257,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 1. Migration & Authorization Foundation | 5/5 | In Progress|  |
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
-| 4. Organisation Profile & Brand Kit | 0/9 | Planning | - |
+| 4. Organisation Profile & Brand Kit | 1/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |
 | 7. Progression Gating | 0/TBD | Not started | - |

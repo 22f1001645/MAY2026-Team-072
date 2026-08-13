@@ -115,3 +115,26 @@ def put_brand_kit(org_id):
     data = BrandKitSchema().load(request.get_json() or {})
     org_profile_service.upsert_brand_kit(g.org, data, g.current_user)
     return jsonify(org_profile_service.get_brand_kit(g.org)), 200
+
+
+@org_profile_bp.post("/orgs/<org_id>/brand-kit/draft")
+@can_manage_org_required
+def draft_brand_kit(org_id):
+    """ORG-04 — draft a starting kit for the user to edit. Persists NOTHING.
+
+    A POST because it costs an outbound call and is not idempotent, not because
+    it writes: the PUT above remains the only writer of a BrandKit row, and
+    there is deliberately no accept-draft route to become a second one. Nothing
+    the user sees here applies until they save it themselves.
+
+    Unconditional on purpose. It answers even when a kit already exists, because
+    regenerating is harmless when it stores nothing, and refusing server-side
+    would block a legitimate "start over" without adding any safety. ORG-04's
+    "for organisations that don't have one yet" scopes who the BUTTON is for,
+    and the UI is what scopes the button.
+
+    Every failure is a 503 carrying `ai_unavailable` or `ai_failed`, so the
+    client can tell "this server has no AI" from "the call went wrong" and word
+    each one differently.
+    """
+    return jsonify(org_profile_service.draft_brand_kit(g.org)), 200

@@ -2,6 +2,11 @@
 
 Covers: ORG-01 — a Secretary, Deputy Secretary, Regional Coordinator or
 Coordinator edits the profile of the one organisation they hold authority over.
+Covers: ORG-02 — the replace-all social-links endpoint, the read-side filter and
+the withheld-link contract. The bypass vectors themselves live in
+test_url_safety.py; what is asserted here is that the API refuses them with an
+error the editor can place on a row, and that a hostile row already in the table
+never reaches the response.
 
 The spine under test is `can_manage_org_required`, which had zero route call
 sites before this phase. Every assertion here about who may edit what is
@@ -11,16 +16,24 @@ denial cases matter at least as much as the happy path.
 Fixture conventions follow conftest.py: users looked up by email, organisations
 by type, headers from the `_token` helper.
 """
+import json
+
+from app.extensions import db
 from app.rbac import _DENIAL_MESSAGES
-from app.models import AuditLog
+from app.models import AuditLog, OrganisationSocialLink
 
 from .conftest import council_org, house_org, other_org, region_org
 
 PROFILE_URL = "/api/v1/orgs/{org_id}/profile"
+SOCIAL_URL = "/api/v1/orgs/{org_id}/social-links"
 
 
 def _profile(org):
     return PROFILE_URL.format(org_id=org.id)
+
+
+def _social(org):
+    return SOCIAL_URL.format(org_id=org.id)
 
 
 # --------------------------------------------------------------------------- #
@@ -237,3 +250,298 @@ def test_read_is_open_to_any_signed_in_user(client, app, student_headers,
 
     assert as_student.status_code == 200
     assert as_student.get_json() == as_secretary.get_json()
+
+
+# --------------------------------------------------------------------------- #
+# ORG-02 — the replace-all social links endpoint
+# --------------------------------------------------------------------------- #
+
+
+def test_social_links_round_trip(client, app, house_secretary_headers):
+    """PUT writes the link and GET reads it back through the filtered payload."""
+    house = house_org()
+
+    res = client.put(
+        _social(house),
+        json={"links": [{"platform": "instagram", "url": "https://instagram.com/kanha"}]},
+        headers=house_secretary_headers,
+    )
+    assert res.status_code == 200, res.get_json()
+    assert res.get_json()["social_links"] == [
+        {
+            "id": res.get_json()["social_links"][0]["id"],
+            "org_id": house.id,
+            "platform": "instagram",
+            "url": "https://instagram.com/kanha",
+        }
+    ]
+
+    read = client.get(_profile(house), headers=house_secretary_headers)
+    assert [link["url"] for link in read.get_json()["social_links"]] == [
+        "https://instagram.com/kanha"
+    ]
+    assert read.get_json()["withheld_platforms"] == []
+
+
+def test_replace_existing_platform_keeps_one_row(client, app, house_secretary_headers):
+    """The unique constraint on (org, platform) fires unless the delete is
+    flushed before the insert — this is the edit case, not the create case."""
+    house = house_org()
+
+    first = client.put(
+        _social(house),
+        json={"links": [{"platform": "instagram", "url": "https://instagram.com/old"}]},
+        headers=house_secretary_headers,
+    )
+    assert first.status_code == 200
+
+    second = client.put(
+        _social(house),
+        json={"links": [{"platform": "instagram", "url": "https://instagram.com/new"}]},
+        headers=house_secretary_headers,
+    )
+    assert second.status_code == 200, second.get_json()
+
+    links = second.get_json()["social_links"]
+    assert len(links) == 1
+    assert links[0]["url"] == "https://instagram.com/new"
+    assert OrganisationSocialLink.query.filter_by(org_id=house.id).count() == 1
+
+
+def test_duplicate_platform_is_rejected_before_any_write(
+    client, app, house_secretary_headers
+):
+    """Two rows naming one platform is a user mistake with a sentence, not an
+    IntegrityError with a 500."""
+    house = house_org()
+    before = OrganisationSocialLink.query.filter_by(org_id=house.id).count()
+
+    res = client.put(
+        _social(house),
+        json={
+            "links": [
+                {"platform": "instagram", "url": "https://instagram.com/one"},
+                {"platform": "instagram", "url": "https://instagram.com/two"},
+            ]
+        },
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "duplicate_platform"
+    assert res.get_json()["details"] == {"platform": "instagram"}
+    assert OrganisationSocialLink.query.filter_by(org_id=house.id).count() == before
+
+
+def test_scheme_rejected_with_placeable_details(client, app, house_secretary_headers):
+    """`details` must be a NON-EMPTY dict: errors.envelope() drops a falsy one,
+    and the editor cannot mark the offending row without it."""
+    house = house_org()
+
+    res = client.put(
+        _social(house),
+        json={"links": [{"platform": "instagram", "url": "javascript:alert(1)"}]},
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "social_url_scheme"
+    assert res.get_json()["details"] == {"platform": "instagram"}
+    assert OrganisationSocialLink.query.filter_by(org_id=house.id).count() == 0
+
+
+def test_host_rejected_with_placeable_details(client, app, house_secretary_headers):
+    """A well-formed URL pointing somewhere else is a distinct correction from a
+    malformed one, so it carries its own code and its own heading."""
+    house = house_org()
+
+    res = client.put(
+        _social(house),
+        json={"links": [{"platform": "instagram", "url": "https://evil.com/x"}]},
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "social_url_host"
+    assert res.get_json()["details"] == {"platform": "instagram"}
+    assert OrganisationSocialLink.query.filter_by(org_id=house.id).count() == 0
+
+
+def test_website_rejection_names_the_field_not_a_platform(
+    client, app, house_secretary_headers
+):
+    """The website field is not a platform (P-08), so its rejection is placed by
+    field name instead."""
+    house = house_org()
+
+    scheme = client.put(
+        _social(house),
+        json={"website": "javascript:alert(1)"},
+        headers=house_secretary_headers,
+    )
+    assert scheme.status_code == 400, scheme.get_json()
+    assert scheme.get_json()["code"] == "social_url_scheme"
+    assert scheme.get_json()["details"] == {"field": "website"}
+
+    # The link-local metadata address: nothing fetches a stored URL today, so
+    # this is closed at save time rather than when something eventually does.
+    ssrf = client.put(
+        _social(house),
+        json={"website": "http://169.254.169.254/x"},
+        headers=house_secretary_headers,
+    )
+    assert ssrf.status_code == 400, ssrf.get_json()
+    assert ssrf.get_json()["code"] == "social_url_host"
+    assert ssrf.get_json()["details"] == {"field": "website"}
+
+    assert house_org().website is None
+
+
+def test_website_round_trip(client, app, house_secretary_headers):
+    """A host no platform allowlist would accept is exactly the point of D-03."""
+    house = house_org()
+
+    res = client.put(
+        _social(house),
+        json={"website": "HTTPS://Kanha.example.org/home#top"},
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 200, res.get_json()
+    assert res.get_json()["website"] == "https://kanha.example.org/home"
+
+    read = client.get(_profile(house), headers=house_secretary_headers)
+    assert read.get_json()["website"] == "https://kanha.example.org/home"
+
+
+def test_stores_normalised_url_never_the_raw_input(
+    client, app, house_secretary_headers
+):
+    """urlsplit strips tab, CR and LF before parsing, so storing the raw string
+    would persist something other than the string that was validated."""
+    house = house_org()
+
+    res = client.put(
+        _social(house),
+        json={"links": [{"platform": "instagram", "url": "https://insta\tgram.com/x"}]},
+        headers=house_secretary_headers,
+    )
+    assert res.status_code == 200, res.get_json()
+
+    read = client.get(_profile(house), headers=house_secretary_headers)
+    assert read.get_json()["social_links"][0]["url"] == "https://instagram.com/x"
+
+    stored = OrganisationSocialLink.query.filter_by(org_id=house.id).first()
+    assert stored.url == "https://instagram.com/x"
+    assert "\t" not in stored.url
+
+
+def test_empty_payload_is_a_valid_saved_state(client, app, house_secretary_headers):
+    """No bio, no links. An organisation that has not filled anything in is a
+    truthful state, not a validation failure."""
+    house = house_org()
+
+    res = client.put(_social(house), json={}, headers=house_secretary_headers)
+    assert res.status_code == 200, res.get_json()
+
+    read = client.get(_profile(house), headers=house_secretary_headers)
+    body = read.get_json()
+    assert body["social_links"] == []
+    assert body["withheld_platforms"] == []
+    assert "error" not in body
+
+
+def test_hostile_row_never_rendered(client, app, house_secretary_headers):
+    """ROADMAP Phase 4 criterion 2's SECOND clause.
+
+    The row here bypasses the API entirely, which is the whole point: rows can
+    pre-date this phase, arrive from a direct database edit or seed data, or come
+    from a future bug. Without the read-side filter, "never rendered anywhere" is
+    a claim about the write path rather than a property of the system.
+    """
+    house = house_org()
+    db.session.add(
+        OrganisationSocialLink(
+            org_id=house.id, platform="instagram", url="javascript:alert(1)"
+        )
+    )
+    db.session.commit()
+
+    read = client.get(_profile(house), headers=house_secretary_headers)
+    body = read.get_json()
+
+    assert read.status_code == 200
+    assert [link["platform"] for link in body["social_links"]] == []
+    assert "instagram" in body["withheld_platforms"]
+    # P-05a: the key is already public, the URL is precisely the string that
+    # failed the check and must not reach the DOM at all.
+    assert "javascript" not in json.dumps(body)
+    assert "alert" not in json.dumps(body)
+
+
+def test_social_links_come_back_in_the_declared_order(
+    client, app, house_secretary_headers
+):
+    """The seven-row editor maps each platform to the same row every time, so the
+    server orders the collection rather than leaving it to insertion order."""
+    house = house_org()
+
+    res = client.put(
+        _social(house),
+        json={
+            "links": [
+                {"platform": "github", "url": "https://github.com/ekatva"},
+                {"platform": "instagram", "url": "https://instagram.com/ekatva"},
+                {"platform": "linkedin", "url": "https://linkedin.com/company/ekatva"},
+            ]
+        },
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 200, res.get_json()
+    assert [link["platform"] for link in res.get_json()["social_links"]] == [
+        "instagram",
+        "linkedin",
+        "github",
+    ]
+
+
+def test_social_links_write_is_org_scoped(client, app, house_secretary_headers,
+                                          student_headers):
+    """The new route sits behind the same guard as the profile PATCH."""
+    society = other_org()
+
+    cross_org = client.put(
+        _social(society),
+        json={"links": [{"platform": "instagram", "url": "https://instagram.com/x"}]},
+        headers=house_secretary_headers,
+    )
+    assert cross_org.status_code == 403
+    assert cross_org.get_json()["code"] == "forbidden"
+
+    por_less = client.put(
+        _social(house_org()),
+        json={"links": []},
+        headers=student_headers,
+    )
+    assert por_less.status_code == 403
+
+    anonymous = client.put(_social(house_org()), json={"links": []})
+    assert anonymous.status_code == 401
+
+
+def test_social_links_write_records_one_audit_row(
+    client, app, house_secretary_headers
+):
+    """A replace-all is a mutation and is attributable, once."""
+    house = house_org()
+    before = AuditLog.query.count()
+
+    res = client.put(
+        _social(house),
+        json={"links": [{"platform": "x", "url": "https://x.com/ekatva"}]},
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 200, res.get_json()
+    assert AuditLog.query.count() == before + 1

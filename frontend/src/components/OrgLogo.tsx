@@ -47,13 +47,18 @@ export function resolveRung(org: LogoOrg, from: Rung = 1): Rung {
 }
 
 /** The first letter of up to two words, uppercased. A single-word name yields
- *  one character — the monogram never grows past two. */
+ *  one character — the monogram never grows past two.
+ *
+ *  Words are taken as runs of letters and digits rather than by splitting on
+ *  whitespace, because real organisation names carry punctuation:
+ *  "Hyderabad (AP & Telangana)" splits into `Hyderabad` and `(AP`, and the
+ *  first character of the second word is then an open bracket. A monogram
+ *  reading "H(" looks like a rendering fault rather than a mark. */
 export function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
+  const words = name.match(/[\p{L}\p{N}]+/gu) ?? []
+  return words
     .slice(0, 2)
-    .map((word) => word[0] ?? '')
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
 }

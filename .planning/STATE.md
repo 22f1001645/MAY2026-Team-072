@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: organisation-profile-brand-kit
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-08-13T20:09:38.841Z"
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-08-13T20:23:07.814Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 25
-  completed_plans: 18
+  completed_plans: 19
   percent: 38
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 04 execution resumed (wave continue)
 
-Progress: [███████░░░] 72%
+Progress: [████████░░] 76%
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [███████░░░] 72%
 | Phase 03 P03 | — | — | — |
 | Phase 03 P04 | — | — | — |
 | Phase 04 P02 | 35min | 3 tasks | 10 files |
+| Phase 04 P06 | 25min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-02: organisations.website is a distinct nullable column (Alembic f997686e136b), resolving the D-03 vs no-migration conflict as option-a
 - [Phase ?]: 04-02: rejection codes split by what the user must fix — social_url_scheme for the link's kind, social_url_host for where it points
 - [Phase ?]: 04-02: validate.URL deliberately omitted from SocialLinkSchema.url so url_safety's stronger check produces a placeable 400 rather than a 422
+- [Phase ?]: 04-06: api.orgs() now adapts to camelCase Organisation rather than returning raw snake_case, because /admin/orgs renders logos from those same rows and a type without adaptation would be wrong at runtime
+- [Phase ?]: 04-06: OrgProfile carries no canEdit — the edit gate stays capabilities.manageableOrgIds, since a second source would be a second, weaker authorization signal
 
 ### Pending Todos
 
@@ -147,8 +150,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T20:09:38.806Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-08-13T20:23:07.776Z
+Stopped at: Completed 04-06-PLAN.md
 Resume file: None
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

@@ -112,7 +112,7 @@ export function resolveRejection(
 
 /** Walk marshmallow's nested structure down to the first actual sentence, so a
  *  raw serialised object is never rendered to a user. */
-function firstMessage(node: unknown): string | undefined {
+export function firstMessage(node: unknown): string | undefined {
   if (typeof node === 'string') return node
   if (Array.isArray(node)) return firstMessage(node[0])
   if (node && typeof node === 'object') return firstMessage(Object.values(node)[0])
@@ -121,12 +121,14 @@ function firstMessage(node: unknown): string | undefined {
 
 const fieldId = (key: string) => `link-${key}`
 
-const CAPTION_LABEL = 'block text-caption font-semibold uppercase tracking-wider text-graytext-light'
+export const CAPTION_LABEL =
+  'block text-caption font-semibold uppercase tracking-wider text-graytext-light'
 
 /** The row shell, used verbatim by the palette swatches and the sample phrases
  *  too — three lists on one page at three row heights would read as three
- *  unrelated widgets. */
-const ROW_SHELL =
+ *  unrelated widgets. Exported rather than re-typed so "one string, used
+ *  verbatim in all three" is enforced by the module system. */
+export const ROW_SHELL =
   'flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2'
 
 export function SocialLinksEditor({

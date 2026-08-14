@@ -514,16 +514,24 @@ export function BrandKitEditor({
                         border is `border-white/20` and never teal — teal chrome
                         on a user's own colour would misread as "selected". */}
                     <span className="relative block h-9 w-9 shrink-0">
-                      <span
-                        className="block h-9 w-9 rounded-lg border border-white/20 peer-focus-visible:ring-2 peer-focus-visible:ring-teal/50"
-                        style={{ background: hex }}
-                      />
+                      {/* The input is written first so `peer-focus-visible` on
+                          the swatch resolves — Tailwind's peer variant compiles
+                          to a general sibling combinator, so the peer must come
+                          first in the DOM. The input stays on top and clickable
+                          because a positioned element paints above in-flow
+                          siblings regardless of source order. Without this the
+                          `opacity-0` input swallows its own focus ring and the
+                          picker has no visible keyboard indicator at all. */}
                       <input
                         type="color"
                         value={pickerValue(hex)}
                         aria-label={`Pick colour ${i + 1}`}
                         onChange={(e) => setColour(i, e.target.value.toLowerCase())}
-                        className="peer absolute inset-0 h-9 w-9 cursor-pointer opacity-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
+                        className="peer absolute inset-0 h-9 w-9 cursor-pointer opacity-0 focus:outline-none"
+                      />
+                      <span
+                        className="block h-9 w-9 rounded-lg border border-white/20 peer-focus-visible:ring-2 peer-focus-visible:ring-teal/50"
+                        style={{ background: hex }}
                       />
                     </span>
                     {/* Typing is the accessible path — a native colour picker is

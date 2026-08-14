@@ -950,23 +950,26 @@ For `RegistrationLinkCard`, copy the *shape* but write `registration_url` **from
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does the registration link need to work for a logged-out student?**
+> All four resolved during the `/gsd-plan-phase 5` run on 2026-08-15. Q1 and Q2 were answered
+> by the user as orchestrator decisions OD-3 and OD-2; Q3 and Q4 were resolved by the planner.
+
+1. **RESOLVED (OD-3 — public preview, login to register).** Does the registration link need to work for a logged-out student?
    - What we know: D-12 routes it to `/events/{slug}`; that route is `@auth_required` server-side and behind `AppShell`'s login redirect client-side. The redirect preserves `state.from`, so a logged-out click lands on login and returns afterwards.
    - What's unclear: whether "shareable registration link" implies a public preview page. No acceptance criterion covers it.
    - Recommendation: ship the login bounce, and raise it as a `checkpoint:human-verify` in the slug plan. Making it public is a security decision (event visibility, enumeration surface) that belongs to a human, and D-12 is marked costly-to-reverse.
 
-2. **Poster size cap: 2 MB or 5 MB?**
+2. **RESOLVED (OD-2 — 5 MB app-wide, 2 MB enforced per-endpoint for logos).** Poster size cap: 2 MB or 5 MB?
    - What we know: `MAX_CONTENT_LENGTH` is a single app-wide Flask config key. Phase 4 sets 2 MB for logos; UI-SPEC copy promises 5 MB for posters.
    - What's unclear: which wins.
    - Recommendation: set 5 MB app-wide (posters are the larger legitimate artefact) and keep the logo endpoint's own stricter service-tier check if one is wanted. Update whichever copy loses.
 
-3. **Does Phase 5 delete the Kanban half of `frontend/src/lib/mock.ts`?**
+3. **RESOLVED (plan 05-09 — replace the Kanban consumer only, leave the rest of `mock.ts`).** Does Phase 5 delete the Kanban half of `frontend/src/lib/mock.ts`?
    - What we know: the `ActivityTask` docstring names `mock.ts` as what it replaces. `mock.ts` is still imported elsewhere in the frontend.
    - Recommendation: replace the Kanban consumer, leave the rest of `mock.ts` alone, and note the residue as a Phase 6 cleanup rather than widening this phase's diff.
 
-4. **Which plan owns the `Textarea` primitive if Phase 4 slips?**
+4. **RESOLVED (plan 05-06 — adds `Textarea` conditionally if Phase 4 has not).** Which plan owns the `Textarea` primitive if Phase 4 slips?
    - What we know: Phase 4 plan 04-07 adds it to `ui.tsx`; `MailTemplateEditor` and `ScheduleRow`'s notes field both need it.
    - Recommendation: make the Phase 5 frontend plan state the dependency explicitly and carry a two-line fallback (copy `Input`'s shape with `<textarea>`) so the phase is not blocked by one primitive.
 

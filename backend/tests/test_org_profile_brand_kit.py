@@ -930,6 +930,33 @@ def test_logo_url_cannot_be_set_to_an_arbitrary_value(
     assert house_org().logo_url is None
 
 
+def test_logo_url_cannot_be_hijacked_from_another_organisation(
+    client, app, house_secretary_headers, society_deputy_headers
+):
+    """CR-01 — a same-shape `logo_url` is not the same as an owned one. Every
+    stored path is readable from GET /orgs/<id>/profile, so the schema's shape
+    check alone lets a manager name ANOTHER organisation's file, render it as
+    their own, then null it out and unlink someone else's logo. Org B's file
+    must survive a hostile PATCH against org A untouched."""
+    society = other_org()
+    uploaded = _upload(client, society, PNG_BYTES, headers=society_deputy_headers)
+    assert uploaded.status_code == 200, uploaded.get_json()
+    other_logo_url = uploaded.get_json()["logo_url"]
+    other_file = _stored_file(other_logo_url)
+    assert other_file.exists()
+
+    res = client.patch(
+        _profile(house_org()), json={"logo_url": other_logo_url},
+        headers=house_secretary_headers,
+    )
+
+    assert res.status_code == 400, res.get_json()
+    assert res.get_json()["code"] == "invalid_image"
+    assert house_org().logo_url is None
+    assert other_org().logo_url == other_logo_url
+    assert other_file.exists(), "another organisation's logo was deleted"
+
+
 def test_logo_upload_is_org_scoped(client, app, house_secretary_headers,
                                    student_headers):
     """T-04-24. The upload route is org-scoped like every other write on this

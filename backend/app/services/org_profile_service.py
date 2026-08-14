@@ -190,6 +190,17 @@ def update_profile(org, data: dict, actor):
     silently erase a field the client never mentioned."""
     previous_logo = org.logo_url
 
+    # logo_url's schema check is shape-only (matches the served-path pattern),
+    # not ownership: every organisation's logo path is readable from GET
+    # /orgs/<id>/profile, so a same-shape string can name ANOTHER org's file.
+    # The only legitimate non-null value is one this org already has — a new
+    # logo is set via POST /logo, never via this field (T-04-25).
+    if "logo_url" in data and data["logo_url"] is not None and data["logo_url"] != org.logo_url:
+        raise ApiError(
+            "A logo is set by uploading one, not by naming a path.",
+            "invalid_image", 400,
+        )
+
     for field in EDITABLE_FIELDS:
         if field in data:
             setattr(org, field, data[field])

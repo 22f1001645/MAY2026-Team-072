@@ -161,7 +161,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | DASH-01 | Phase 2 | Complete |
 | PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | Phase 3 | Pending |
 | BUDGET-01 | Phase 3 | Pending |
-| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Pending |
+| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Complete (manual UAT deferred — see 04-09-SUMMARY.md) |
 | DESIGN-01 | Phase 5 | Pending |
 | CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06 | Phase 5 | Pending |
 | TEAM-01, TEAM-02, TEAM-03, TEAM-04 | Phase 5 | Pending |

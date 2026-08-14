@@ -79,7 +79,7 @@ describe('a non-JSON error body becomes a readable ApiError, never a SyntaxError
     )
 
     const err = (await api
-      .replaceSocialLinks('org-1', { social_links: [{ platform: 'instagram', url: 'javascript:1' }] })
+      .replaceSocialLinks('org-1', { links: [{ platform: 'instagram', url: 'javascript:1' }] })
       .catch((e: unknown) => e)) as ApiError
 
     expect(err).toBeInstanceOf(ApiError)

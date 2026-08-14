@@ -5,12 +5,15 @@ import { ApiError, api } from '../lib/api'
 import {
   useCapabilities,
   useOrgProfile,
+  useReplaceSocialLinks,
   useUpdateOrgProfile,
   useUploadOrgLogo,
 } from '../lib/queries'
 import { Badge, Button, Card, Dialog, SectionTitle, Select, Textarea, useToast } from '../components/ui'
 import { ErrorState, Loading } from '../components/states'
 import { OrgLogo, resolveRung } from '../components/OrgLogo'
+import { SocialLinksEditor } from '../components/SocialLinksEditor'
+import { SocialLinksRow } from '../components/SocialLinksRow'
 import { cx } from '../lib/format'
 
 /* The organisation profile — ORG-01, 04-UI-SPEC.md S1/S2/S3.
@@ -85,6 +88,7 @@ export default function OrgProfile() {
   const saveProfile = useUpdateOrgProfile()
   const removeLogo = useUpdateOrgProfile()
   const uploadLogo = useUploadOrgLogo()
+  const saveLinks = useReplaceSocialLinks()
 
   const showSwitcher = manageableOrgIds.length > 1 && manageableOrgIds.includes(orgId)
   const { data: allOrgs = [] } = useQuery({
@@ -162,7 +166,9 @@ export default function OrgProfile() {
   // The one place the render-locked exception applies to authority: silently
   // discarding a half-written bio is worse than an honest dead end.
   const lostAccess = editing !== null && !canEdit
-  const blockedBy = editing !== null && editing !== 'profile' ? SECTION_LABEL[editing] : null
+  const blockedFor = (section: Section) =>
+    editing !== null && editing !== section ? SECTION_LABEL[editing] : null
+  const blockedBy = blockedFor('profile')
 
   const startEdit = () => {
     setBio(org.bio ?? '')
@@ -175,6 +181,21 @@ export default function OrgProfile() {
     setLogoNotice(null)
   }
 
+  // Only what the server vouches for reaches the read view, so this is also the
+  // count of everything there is to render.
+  const hasLinks = org.socialLinks.length > 0 || !!org.website
+  const needsAttention = org.withheldPlatforms.length
+
+  const startLinks = () => {
+    saveLinks.reset()
+    setEditing('links')
+  }
+
+  const cancelLinks = () => {
+    saveLinks.reset()
+    setEditing(null)
+  }
+
   const submitProfile = () => {
     saveProfile.mutate(
       { id: orgId, payload: { bio } },
@@ -185,6 +206,26 @@ export default function OrgProfile() {
           // was actually saved.
           qc.setQueryData(['orgProfile', orgId], data)
           addToast('Profile saved', 'success')
+          setEditing(null)
+        },
+      },
+    )
+  }
+
+  const submitLinks = (payload: {
+    links: { platform: string; url: string }[]
+    website: string
+  }) => {
+    saveLinks.mutate(
+      { id: orgId, payload },
+      {
+        onSuccess: (data) => {
+          // From the server's own response, never from the form state: the
+          // server normalises what it stores — a tab inside a hostname is
+          // silently removed by the URL parser — and the user must see what
+          // was actually saved.
+          qc.setQueryData(['orgProfile', orgId], data)
+          addToast('Links saved', 'success')
           setEditing(null)
         },
       },
@@ -454,7 +495,54 @@ export default function OrgProfile() {
           )}
         </Card>
 
-        {/* Links card mounts here (04-08). */}
+        {/* Links — ORG-02. Absent entirely for a reader with nothing to show:
+            on a read-only profile an empty section is clutter. Present for a
+            manager, because the manager needs the entry point. */}
+        {(canEdit || hasLinks) && (
+          <Card className="p-6">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 className="text-h3 font-semibold text-gold">Links</h2>
+              <div className="flex items-center gap-2">
+                {/* A manager should not have to open the editor to learn
+                    something needs their attention. A reader never sees this —
+                    they cannot act on it, and naming it would only advertise a
+                    link they must not receive. */}
+                {canEdit && needsAttention > 0 && (
+                  <Badge tone="warn">
+                    {needsAttention === 1
+                      ? '1 link needs attention'
+                      : `${needsAttention} links need attention`}
+                  </Badge>
+                )}
+                {canEdit && editing === null && (
+                  <Button size="sm" variant="secondary" onClick={startLinks}>
+                    Edit
+                  </Button>
+                )}
+                {canEdit && blockedFor('links') && (
+                  <LockedControl
+                    label="Edit"
+                    reason={`Finish editing ${blockedFor('links')} first.`}
+                  />
+                )}
+              </div>
+            </div>
+
+            {editing === 'links' ? (
+              <SocialLinksEditor
+                org={org}
+                saving={saveLinks.isPending}
+                error={saveLinks.isError ? (saveLinks.error as ApiError) : null}
+                onSave={submitLinks}
+                onCancel={cancelLinks}
+              />
+            ) : hasLinks ? (
+              <SocialLinksRow links={org.socialLinks} website={org.website} />
+            ) : (
+              <p className="text-caption text-graytext-mid">No links yet.</p>
+            )}
+          </Card>
+        )}
 
         {/* Brand kit card mounts here (04-09) — rendered iff `canEdit`, with
             its own separately-gated query. */}

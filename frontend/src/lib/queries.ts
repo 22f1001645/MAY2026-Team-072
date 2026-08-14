@@ -307,8 +307,10 @@ export const useUpdateOrgProfile = () => {
 export const useReplaceSocialLinks = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { id: string; payload: { social_links: { platform: string; url: string }[] } }) =>
-      api.replaceSocialLinks(v.id, v.payload),
+    mutationFn: (v: {
+      id: string
+      payload: { links: { platform: string; url: string }[]; website?: string | null }
+    }) => api.replaceSocialLinks(v.id, v.payload),
     onSuccess: (_d, { id }) => {
       qc.invalidateQueries({ queryKey: ['orgProfile', id] })
       qc.invalidateQueries({ queryKey: ['orgs'] })

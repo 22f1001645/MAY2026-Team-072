@@ -529,8 +529,17 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(adaptOrgProfile),
   /** Replace the whole social section in one write. An omitted platform is a
-   *  removed link. Also returns the profile payload. */
-  replaceSocialLinks: (orgId: string, payload: { social_links: { platform: string; url: string }[] }) =>
+   *  removed link. Also returns the profile payload.
+   *
+   *  The wire keys are `links` and `website` — `SocialLinksReplaceSchema` names
+   *  them, and it rejects an unknown key, so a payload under any other name is
+   *  a 422 rather than a save. `website` is absent-means-unchanged on the
+   *  server; the editor owns the field and always sends it, and a blank string
+   *  clears it. */
+  replaceSocialLinks: (
+    orgId: string,
+    payload: { links: { platform: string; url: string }[]; website?: string | null },
+  ) =>
     request<ApiOrgProfile>(`/orgs/${orgId}/social-links`, {
       method: 'PUT',
       body: JSON.stringify(payload),

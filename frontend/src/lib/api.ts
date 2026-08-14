@@ -560,7 +560,16 @@ export const api = {
   /** Upsert — the only writer of a brand kit. */
   saveBrandKit: (
     orgId: string,
-    payload: { voice_tone?: string | null; palette?: string[]; sample_phrases?: string[] },
+    payload: {
+      voice_tone?: string | null
+      palette?: string[]
+      sample_phrases?: string[]
+      /** Provenance, never authorization (the server treats it as metadata).
+       *  `ai_draft` records that a human reviewed a draft and kept it, which is
+       *  what the read view's chip reports. Omitted, the server stores
+       *  `manual`. */
+      source?: 'manual' | 'ai_draft'
+    },
   ) =>
     request<ApiBrandKit>(`/orgs/${orgId}/brand-kit`, {
       method: 'PUT',

@@ -334,7 +334,12 @@ export const useSaveBrandKit = () => {
   return useMutation({
     mutationFn: (v: {
       id: string
-      payload: { voice_tone?: string | null; palette?: string[]; sample_phrases?: string[] }
+      payload: {
+        voice_tone?: string | null
+        palette?: string[]
+        sample_phrases?: string[]
+        source?: 'manual' | 'ai_draft'
+      }
     }) => api.saveBrandKit(v.id, v.payload),
     onSuccess: (_d, { id }) => {
       qc.invalidateQueries({ queryKey: ['brandKit', id] })

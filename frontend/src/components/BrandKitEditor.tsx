@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
-import { Badge, Button, Card, Input, Textarea, useToast } from './ui'
+import { useEffect, useRef, useState } from 'react'
+import { Badge, Button, Card, Dialog, Input, Textarea, useToast } from './ui'
 import { CAPTION_LABEL, ROW_SHELL, firstMessage, type Rejection } from './SocialLinksEditor'
 import { cx } from '../lib/format'
-import { useBrandKit, useSaveBrandKit } from '../lib/queries'
+import { useBrandKit, useDraftBrandKit, useSaveBrandKit } from '../lib/queries'
 import type { ApiError } from '../lib/api'
 import type { BrandKit } from '../lib/types'
 
@@ -96,6 +96,39 @@ export function resolveKitRejection(
   return { field: null, index: null, heading: GENERIC_HEADING, body: err.message }
 }
 
+/* The AI draft — ORG-04, 04-UI-SPEC.md S7.
+ *
+ * The structural decision: a returned draft **populates the live form fields in
+ * place.** There is no preview panel, no side-by-side diff, no modal and no
+ * second control that commits it. Criterion 4 requires the user to be able to
+ * edit *every* field, and a preview-then-apply flow creates a second write
+ * surface and a second review moment — which is precisely the second
+ * brand-kit-writer anti-pattern this phase exists to avoid. `PUT /brand-kit` is
+ * the only writer and `Save brand kit` is the only button that reaches it.
+ *
+ * The draft is never cached. Not in a persisted query key and not in any client
+ * storage: it lives in component state and dies with the component. A draft
+ * that survived a reload would be indistinguishable, to anyone checking
+ * criterion 4, from something having been applied.
+ *
+ * The AI provider is never named in user-facing copy. It is swappable behind a
+ * lazy-import seam on the server, and a brand name here would turn a
+ * configuration change into a copy change. */
+
+const AI_UNAVAILABLE_REASON =
+  "AI drafting isn't set up on this server. Fill the kit in yourself — every field below works without it."
+const DRAFT_MIN_VISIBLE_MS = 300
+const DRAFT_SLOW_AFTER_MS = 1200
+const DRAFT_TIMEOUT_MS = 30_000
+
+/* Headings come from the envelope `code`, never from string-matching. */
+const AI_ERROR_HEADINGS: Record<string, string> = {
+  ai_unavailable: "AI drafting isn't available right now",
+  ai_failed: "The draft didn't come through",
+}
+const AI_GENERIC_HEADING = 'Could not draft a brand kit'
+const AI_TIMEOUT_BODY = 'Nothing changed. Try again, or fill the kit in yourself.'
+
 const voiceId = 'kit-voice'
 const hexId = (i: number) => `kit-colour-${i}`
 const phraseId = (i: number) => `kit-phrase-${i}`
@@ -107,6 +140,7 @@ export function BrandKitEditor({
   blockedBy,
   onEdit,
   onCancel,
+  onDirtyChange,
 }: {
   orgId: string
   canEdit: boolean
@@ -114,22 +148,60 @@ export function BrandKitEditor({
   blockedBy: string | null
   onEdit: () => void
   onCancel: () => void
+  /** Reported up so the page can own the single unsaved-work listener. Exactly
+   *  one listener, owned by the page, never one per section. */
+  onDirtyChange: (dirty: boolean) => void
 }) {
   const { addToast } = useToast()
   const { data: kit, isLoading, isError, refetch } = useBrandKit(orgId, canEdit)
   const save = useSaveBrandKit()
+  const draft = useDraftBrandKit()
 
   const [voice, setVoice] = useState('')
   const [palette, setPalette] = useState<string[]>([])
   const [phrases, setPhrases] = useState<string[]>([])
 
+  /** The user's own typing since the form was last seeded or filled. It is the
+   *  threshold for confirming a discard — the model's words are not the user's
+   *  work, so an untouched draft goes without a question. */
+  const [touched, setTouched] = useState(false)
+  const [draftShown, setDraftShown] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [slow, setSlow] = useState(false)
+  const [draftError, setDraftError] = useState<{ heading: string; body?: string } | null>(null)
+  /** Flipped for the rest of the session when the server reports the feature
+   *  gone: the availability flag was stale, and a second click would only
+   *  repeat the same failure. */
+  const [aiLocked, setAiLocked] = useState(false)
+  const [dialog, setDialog] = useState<'discard' | 'draft' | null>(null)
+
   const sent = useRef<SentRows>({ palette: [], phrases: [] })
+  const timers = useRef<number[]>([])
+  const aborter = useRef<AbortController | null>(null)
+  const timedOut = useRef(false)
+  const trigger = useRef<HTMLElement | null>(null)
   const rejection = resolveKitRejection(save.isError ? (save.error as ApiError) : null, sent.current)
+
+  const dirty = editing && (draftShown || touched)
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
+
+  const clearTimers = () => {
+    timers.current.forEach(window.clearTimeout)
+    timers.current = []
+  }
+  useEffect(
+    () => () => {
+      clearTimers()
+      aborter.current?.abort()
+    },
+    [],
+  )
 
   const seed = (from?: BrandKit) => {
     setVoice(from?.voiceTone ?? '')
     setPalette(from?.palette ?? [])
     setPhrases(from?.samplePhrases ?? [])
+    setTouched(false)
   }
 
   const startEdit = () => {
@@ -140,13 +212,124 @@ export function BrandKitEditor({
 
   const cancelEdit = () => {
     save.reset()
+    setDraftShown(false)
+    setDraftError(null)
     onCancel()
   }
 
-  const setColour = (i: number, value: string) =>
+  const setColour = (i: number, value: string) => {
+    setTouched(true)
     setPalette((prev) => prev.map((c, n) => (n === i ? value : c)))
-  const setPhrase = (i: number, value: string) =>
+  }
+  const setPhrase = (i: number, value: string) => {
+    setTouched(true)
     setPhrases((prev) => prev.map((p, n) => (n === i ? value : p)))
+  }
+
+  const aiAvailable = !!kit?.aiAvailable && !aiLocked
+
+  /** The draft fills the live fields and nothing else. Nothing here reaches a
+   *  writer — that is `Save brand kit`'s job alone. */
+  const fillFrom = (drafted: BrandKit) => {
+    setVoice(drafted.voiceTone ?? '')
+    setPalette(drafted.palette)
+    setPhrases(drafted.samplePhrases)
+    setTouched(false)
+    setDraftShown(true)
+    setDraftError(null)
+    if (!editing) {
+      save.reset()
+      onEdit()
+    }
+  }
+
+  const runDraft = () => {
+    setDraftError(null)
+    setSlow(false)
+    setDrafting(true)
+    timedOut.current = false
+
+    const controller = new AbortController()
+    aborter.current = controller
+    const started = Date.now()
+    timers.current.push(
+      window.setTimeout(() => {
+        // A hung provider call must not freeze the surface indefinitely.
+        timedOut.current = true
+        controller.abort()
+      }, DRAFT_TIMEOUT_MS),
+      window.setTimeout(() => setSlow(true), DRAFT_SLOW_AFTER_MS),
+    )
+
+    draft.mutate(
+      { id: orgId, signal: controller.signal },
+      {
+        onSettled: (drafted, err) => {
+          clearTimers()
+          aborter.current = null
+          // Held for the minimum visible duration, so a fast answer does not
+          // flash a busy state the user cannot read.
+          const wait = Math.max(0, DRAFT_MIN_VISIBLE_MS - (Date.now() - started))
+          timers.current.push(
+            window.setTimeout(() => {
+              setDrafting(false)
+              setSlow(false)
+              if (drafted) {
+                fillFrom(drafted)
+                return
+              }
+              if (timedOut.current) {
+                setDraftError({ heading: AI_GENERIC_HEADING, body: AI_TIMEOUT_BODY })
+                return
+              }
+              const apiErr = err as ApiError
+              setDraftError({
+                heading: AI_ERROR_HEADINGS[apiErr?.code] ?? AI_GENERIC_HEADING,
+                body: apiErr?.message,
+              })
+              if (apiErr?.code === 'ai_unavailable') setAiLocked(true)
+            }, wait),
+          )
+        },
+      },
+    )
+  }
+
+  /** No request is sent and no toast fires — nothing was ever on the server to
+   *  undo. The form goes back to the saved kit, or to an empty form when there
+   *  is none. */
+  const discardDraft = () => {
+    seed(kit)
+    setDraftShown(false)
+    setDraftError(null)
+  }
+
+  const openDialog = (kind: 'discard' | 'draft') => {
+    trigger.current = document.activeElement as HTMLElement | null
+    setDialog(kind)
+  }
+
+  const closeDialog = () => {
+    setDialog(null)
+    trigger.current?.focus()
+  }
+
+  const confirmDialog = () => {
+    const kind = dialog
+    discardDraft()
+    setDialog(null)
+    trigger.current?.focus()
+    if (kind === 'draft') runDraft()
+  }
+
+  useEffect(() => {
+    if (!dialog) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeDialog()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [dialog])
 
   const submit = () => {
     // A blank row is a user who changed their mind, not a value — it is dropped
@@ -179,6 +362,9 @@ export function BrandKitEditor({
           voice_tone: voice.trim() ? voice : null,
           palette: paletteOut,
           sample_phrases: phrasesOut,
+          // Provenance: a kit the user kept after a draft is recorded as having
+          // come from one. It is not approval state and it grants nothing.
+          source: draftShown ? 'ai_draft' : (kit?.hasKit ? kit.source : 'manual'),
         },
       },
       {
@@ -187,6 +373,8 @@ export function BrandKitEditor({
           // lowercases hexes and strips phrases, and the user must see what was
           // actually saved.
           addToast('Brand kit saved', 'success')
+          setDraftShown(false)
+          setDraftError(null)
           onCancel()
         },
       },
@@ -248,8 +436,39 @@ export function BrandKitEditor({
   )
 
   const form = () => (
-    <>
+    // One disabled group rather than a `disabled` on every field: while a draft
+    // is in flight the whole Brand kit card is busy, and the Profile and Links
+    // sections deliberately are not. The hex text field is never individually
+    // disabled — typing is the accessible path and it is never taken away.
+    <fieldset disabled={drafting} className="contents">
       <div className="space-y-4">
+        {/* The draft is atomic: one strip over the whole form, never a
+            per-field marker. Six provenance captions scattered through a form
+            is clutter, and once the user edits one field the per-field claim
+            stops being true anyway. Gold, and the only gold surface this phase
+            adds — the class string is Phase 2's banner, lifted whole. */}
+        {draftShown && (
+          <div role="status" className="flex items-start gap-3 rounded-xl border border-gold/25 bg-gold/[0.06] px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[14px] font-semibold text-offwhite">
+                This is an AI draft. Nothing is saved yet.
+              </div>
+              <p className="mt-1 text-caption text-graytext-light">
+                Edit anything below, then press Save brand kit. Discard draft puts back what was
+                there before.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              type="button"
+              onClick={() => (touched ? openDialog('discard') : discardDraft())}
+            >
+              Discard draft
+            </Button>
+          </div>
+        )}
+
         <div>
           <label htmlFor={voiceId} className={cx(CAPTION_LABEL, 'mb-2')}>
             Voice &amp; tone
@@ -260,7 +479,10 @@ export function BrandKitEditor({
             id={voiceId}
             rows={3}
             value={voice}
-            onChange={(e) => setVoice(e.target.value)}
+            onChange={(e) => {
+              setTouched(true)
+              setVoice(e.target.value)
+            }}
             placeholder="Warm, student-led, a little irreverent. Never corporate."
             className={cx(rejection?.field === 'voice' && 'border-red-400/50')}
           />
@@ -320,7 +542,10 @@ export function BrandKitEditor({
                     />
                     <RemoveButton
                       label={`Remove colour ${hex}`}
-                      onClick={() => setPalette((prev) => prev.filter((_, n) => n !== i))}
+                      onClick={() => {
+                        setTouched(true)
+                        setPalette((prev) => prev.filter((_, n) => n !== i))
+                      }}
                     />
                   </div>
                   {rejected && (
@@ -339,7 +564,10 @@ export function BrandKitEditor({
                 size="sm"
                 variant="secondary"
                 type="button"
-                onClick={() => setPalette((prev) => [...prev, '#ffffff'])}
+                onClick={() => {
+                  setTouched(true)
+                  setPalette((prev) => [...prev, '#ffffff'])
+                }}
               >
                 Add a colour
               </Button>
@@ -377,7 +605,10 @@ export function BrandKitEditor({
                     />
                     <RemoveButton
                       label={`Remove phrase ${i + 1}`}
-                      onClick={() => setPhrases((prev) => prev.filter((_, n) => n !== i))}
+                      onClick={() => {
+                        setTouched(true)
+                        setPhrases((prev) => prev.filter((_, n) => n !== i))
+                      }}
                     />
                   </div>
                   {rejected && (
@@ -395,7 +626,10 @@ export function BrandKitEditor({
                 size="sm"
                 variant="secondary"
                 type="button"
-                onClick={() => setPhrases((prev) => [...prev, ''])}
+                onClick={() => {
+                  setTouched(true)
+                  setPhrases((prev) => [...prev, ''])
+                }}
               >
                 Add a phrase
               </Button>
@@ -435,8 +669,65 @@ export function BrandKitEditor({
           {save.isPending ? 'Saving…' : 'Save brand kit'}
         </Button>
       </div>
-    </>
+    </fieldset>
   )
+
+  /* The AI control and everything that explains it. It sits directly under the
+   * heading row and above the field stack, because A5's failure strip has to
+   * render *above the Draft control* and its own explanation *below* it, and a
+   * two-sentence caption right-aligned inside a header row is unreadable at
+   * 320px. Never in the save-error slot, which belongs to the write. */
+  const aiBlock = () => {
+    if (!kit || isLoading || isError || blockedBy) return null
+    const label = kit.hasKit ? 'Draft a new version with AI' : 'Draft with AI'
+
+    // A0: render-locked, never hidden and never a bare disabled button. The
+    // control's absence would be indistinguishable from the feature not
+    // existing, and a phase success criterion requires it be discoverable.
+    if (!aiAvailable) {
+      return (
+        <div className="mb-4">
+          <LockedControl label={label} reason={AI_UNAVAILABLE_REASON} />
+        </div>
+      )
+    }
+
+    return (
+      <div className="mb-4">
+        {draftError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3"
+          >
+            <div className="text-[14px] font-semibold text-red-300">{draftError.heading}</div>
+            {draftError.body && <p className="mt-1 text-caption text-red-300">{draftError.body}</p>}
+          </div>
+        )}
+        <Button
+          size="sm"
+          variant="secondary"
+          type="button"
+          disabled={drafting}
+          aria-busy={drafting || undefined}
+          onClick={() => (dirty ? openDialog('draft') : runDraft())}
+        >
+          {drafting ? 'Drafting…' : label}
+        </Button>
+        <p className="mt-2 text-caption text-graytext-light">
+          {kit.hasKit
+            ? "This replaces what's in the form. Your saved kit isn't touched until you press Save brand kit."
+            : 'Gives you a starting point. Nothing is saved until you press Save brand kit.'}
+        </p>
+        {/* Announced once when it appears. It is not a second `status` region:
+            this phase has exactly one, the gold strip. */}
+        {slow && (
+          <p aria-live="polite" className="mt-2 text-caption text-graytext-light">
+            Still drafting — this takes a few seconds.
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <Card className="p-6">
@@ -457,7 +748,23 @@ export function BrandKitEditor({
         </div>
       </div>
 
+      {aiBlock()}
       {body()}
+
+      <Dialog open={dialog !== null} onClose={closeDialog} title="Discard your edits?">
+        <p className="text-body text-graytext-light">
+          You've changed the draft. Discarding puts back{' '}
+          {kit?.hasKit ? 'the kit you saved earlier' : 'an empty form'}.
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="ghost" type="button" autoFocus onClick={closeDialog}>
+            Cancel
+          </Button>
+          <Button variant="danger" type="button" onClick={confirmDialog}>
+            Discard draft
+          </Button>
+        </div>
+      </Dialog>
     </Card>
   )
 }

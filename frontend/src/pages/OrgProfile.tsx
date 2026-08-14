@@ -12,6 +12,7 @@ import {
 import { Badge, Button, Card, Dialog, SectionTitle, Select, Textarea, useToast } from '../components/ui'
 import { ErrorState, Loading } from '../components/states'
 import { OrgLogo, resolveRung } from '../components/OrgLogo'
+import { BrandKitEditor } from '../components/BrandKitEditor'
 import { SocialLinksEditor } from '../components/SocialLinksEditor'
 import { SocialLinksRow } from '../components/SocialLinksRow'
 import { cx } from '../lib/format'
@@ -84,6 +85,10 @@ export default function OrgProfile() {
   const [logoNotice, setLogoNotice] = useState<{ heading: string; body?: string } | null>(null)
   const [logoLoadFailed, setLogoLoadFailed] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
+  /** Reported up by the Brand kit section so this page can own the one
+   *  unsaved-work listener below rather than each section registering its
+   *  own. A pending AI draft counts as unsaved work. */
+  const [kitDirty, setKitDirty] = useState(false)
 
   const saveProfile = useUpdateOrgProfile()
   const removeLogo = useUpdateOrgProfile()
@@ -104,10 +109,15 @@ export default function OrgProfile() {
     [allOrgs, manageableOrgIds],
   )
 
-  const dirty = editing === 'profile' && bio !== (org?.bio ?? '')
+  const dirty = (editing === 'profile' && bio !== (org?.bio ?? '')) || kitDirty
 
   // The browser's own confirm covers the one loss the user did not initiate
-  // through the app. In-app navigation is deliberately not blocked.
+  // through the app. In-app navigation is deliberately not blocked: the draft
+  // is discarded and nothing is saved, which is exactly what ORG-04 demands,
+  // and the disclosure happens before the loss in the draft strip's own first
+  // sentence rather than as a confirm afterwards. `useBlocker` would need a
+  // data router, which this app does not use — recorded as a decision, not an
+  // omission.
   useEffect(() => {
     if (!dirty) return
     const warn = (e: BeforeUnloadEvent) => {
@@ -544,8 +554,21 @@ export default function OrgProfile() {
           </Card>
         )}
 
-        {/* Brand kit card mounts here (04-09) — rendered iff `canEdit`, with
-            its own separately-gated query. */}
+        {/* Brand kit — ORG-03/ORG-04. Rendered iff `canEdit`, with its own
+            separately-gated query, so the request is never issued for a
+            non-manager and no 403 reaches this surface. A brand kit is an
+            internal working document, not part of the public identity. */}
+        {canEdit && (
+          <BrandKitEditor
+            orgId={orgId}
+            canEdit={canEdit}
+            editing={editing === 'brandkit'}
+            blockedBy={blockedFor('brandkit')}
+            onEdit={() => setEditing('brandkit')}
+            onCancel={() => setEditing(null)}
+            onDirtyChange={setKitDirty}
+          />
+        )}
       </div>
 
       <Dialog open={removeOpen} onClose={() => setRemoveOpen(false)} title="Remove the logo?">

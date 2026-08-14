@@ -196,8 +196,43 @@ Plans:
   4. Nothing reaches students until the assigned Meetup Head explicitly approves the full package; a non-Meetup-Head team member's push-live attempt is rejected server-side.
   5. Once live, the roster assembled at proposal time sees a Kanban board whose tasks (assignee, deadline, status) survive a hard reload and are visible to another team member on another device; volunteer points can only be awarded to actual crew members, and crew membership grants no org-wide permission anywhere else.
 
-**Plans**: TBD
+**Plans**: 11 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [ ] 05-01-PLAN.md — Tracer: schedule vertical slice end-to-end + the single `assert_editable` chokepoint + presets, ordering and position-only reorder (DESIGN-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 05-02-PLAN.md — Campaign singleton + server-minted registration slug + custom form fields + real slug resolution and public event preview (CAMPAIGN-04, CAMPAIGN-05)
+- [ ] 05-06-PLAN.md — Frontend: `ScheduleRow` blur-save/reorder and `PresetAccordion` — both new shapes, no codebase analog (DESIGN-01)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 05-03-PLAN.md — [CHECKPOINT] Campaign state machine decision + Meetup Head push-live gate, its audit trail and the AC-25 negative control (CAMPAIGN-06)
+- [ ] 05-07-PLAN.md — [CHECKPOINT] Frontend: `FormFieldRow`, `RegistrationLinkCard`, and the logged-out visitor path (CAMPAIGN-04, CAMPAIGN-05)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 05-04-PLAN.md — Kanban task API: CRUD, the `assert_campaign_live` gate, and the deterministic ordering tiebreak (TEAM-01, TEAM-02)
+- [ ] 05-08-PLAN.md — Frontend: `PipelineStepper` + `PushLiveGate` with the server-supplied Meetup Head flag (CAMPAIGN-06)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 05-05-PLAN.md — Volunteer-points crew guard + the TEAM-03 url_map proof and the removed-member control (TEAM-03, TEAM-04)
+- [ ] 05-09-PLAN.md — Frontend: `KanbanBoard` + `KanbanWorkspace`, mock array retired, no-polling structural gate (TEAM-01, TEAM-02)
+
+**Wave 6** *(blocked on Wave 5 — needs Phase 4)*
+
+- [ ] 05-10-PLAN.md — Poster upload: 5 MB app cap per OD-2, magic-byte type sniffing, `PosterUpload` (CAMPAIGN-03)
+
+**Wave 7** *(blocked on Wave 6 — needs Phase 4)*
+
+- [ ] 05-11-PLAN.md — AI mail generation: server-interpolated facts, injection-hardened prompt, degraded fallback, `MailTemplateEditor` (CAMPAIGN-01, CAMPAIGN-02)
+
+**Wave structure**: a backend chain (01 → 02 → 03 → 04 → 05) and a frontend chain (01 → 06 → 07 → 08 → 09) that run in parallel from Wave 2 onward. Both chains are internally sequential because every backend plan edits `campaign_service.py`, `schemas/__init__.py` or `controllers/__init__.py`, and every frontend plan edits `api.ts`, `queries.ts` and `CampaignBuilder.tsx`. The chains share no files, so Waves 2–5 each run two plans in parallel. Per **OD-1**, the two Phase-4-dependent slices — poster (CAMPAIGN-03) and AI mail (CAMPAIGN-01/02) — are sequenced last; the other 8 requirements need no Phase 4 artifact and are executable immediately.
 
 ### Phase 6: Event Execution & Close-Out
 
@@ -258,7 +293,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 0/9 | Planning | - |
-| 5. Post-Acceptance Pipeline | 0/TBD | Not started | - |
+| 5. Post-Acceptance Pipeline | 0/11 | Planning | - |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |
 | 7. Progression Gating | 0/TBD | Not started | - |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |

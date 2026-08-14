@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: organisation-profile-brand-kit
 status: executing
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-08-13T23:57:24.389Z"
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-08-14T04:52:32.447Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 25
-  completed_plans: 23
+  completed_plans: 24
   percent: 38
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — EXECUTING
-Plan: 7 of 9
+Plan: 8 of 9
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 04 execution resumed (wave continue)
 
-Progress: [█████████░] 92%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [█████████░] 92%
 | Phase 04 P04 | 40min | 2 tasks | 5 files |
 | Phase 04 P07 | 45m | 3 tasks | 7 files |
 | Phase 04 P05 | 50min | 3 tasks | 5 files |
+| Phase 04 P08 | 40min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-05: response_schema is passed to google-genai as a plain JSON-Schema dict (verified accepted by 2.18.0), so the planned response_mime_type-only fallback is not in the code and pydantic stays out of a marshmallow project
 - [Phase ?]: 04-05: the GEMINI_API_KEY check runs BEFORE the lazy SDK import, so a machine with neither reports the configuration problem the user can act on rather than the packaging one
 - [Phase ?]: 04-05: the AI draft is faked in tests by injecting a stub google.genai into sys.modules rather than mock.patch on the real package, because the package is genuinely absent on most machines here and patching would fail before it could patch
+- [Phase ?]: resolveRejection is exported as a pure function so where a server rejection lands is unit-tested without a DOM
+- [Phase ?]: A 422 keyed by payload row index is mapped through the order actually sent, never the display order
+- [Phase ?]: The read view has no prop through which a withheld link could arrive, so the absence rule is structural rather than conditional
+- [Phase ?]: The social-links wire keys are links and website; social_links was a 422 that would have failed every save
 
 ### Pending Todos
 
@@ -166,8 +171,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-13T23:57:24.366Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-08-14T04:52:10.977Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None
 
 Next: `/gsd:next` (Phase 4), or finish Phase 3 manual UAT first via `03-UAT.md`

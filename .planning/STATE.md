@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 executed (05-01, 05-02, 05-06) from origin/phase-5-planning
-last_updated: "2026-08-15T00:00:00.000Z"
-last_activity: 2026-08-15
-last_activity_desc: "Merged origin/phase-5-planning into main: Phase 05 planning docs (11 plans, 7 waves) plus waves 1-2 implementation (05-01 schedule tracer, 05-02 campaign spine, 05-06 schedule UI)"
+stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 complete (05-01, 05-02, 05-06 — 05-06 finished and summarised)
+last_updated: "2026-08-16T00:00:00.000Z"
+last_activity: 2026-08-16
+last_activity_desc: "Completed 05-06 (ScheduleRow spec + CampaignBuilder wiring + PresetAccordion) — the earlier session had committed a partial ScheduleRow with no spec, no wiring and no summary"
 progress:
   total_phases: 8
   completed_phases: 4
@@ -30,9 +30,9 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 3/11 (Phase 05 — 05-01, 05-02, 05-06 executed; 05-03..05-05, 05-07..05-11 remain)
-Status: Phase 05 waves 1-2 merged from origin/phase-5-planning; wave 3 (05-03 checkpoint, 05-07) next
-Last activity: 2026-08-15 — Merged origin/phase-5-planning (11-plan spec + waves 1-2 implementation) into main
+Plan: 9/9 (Phase 04); 3/11 (Phase 05 — 05-01, 05-02, 05-06 complete; 05-03..05-05, 05-07..05-11 remain)
+Status: Phase 05 waves 1-2 complete (05-06 finished this session and summarised); wave 3 (05-03 checkpoint, 05-07) next
+Last activity: 2026-08-16 — Completed 05-06: ScheduleRow verified against spec and fixed, its spec written, CampaignBuilder wired, PresetAccordion built
 
 Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 27%
 
@@ -85,6 +85,7 @@ Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 2
 | Phase 04 P05 | 50min | 3 tasks | 5 files |
 | Phase 04 P08 | 40min | 2 tasks | 8 files |
 | Phase 04 P09 | 35min | 3 tasks | 6 files |
+| Phase 05 P06 | 35min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -156,6 +157,10 @@ Recent decisions affecting current work:
 - [Phase ?]: A 422 keyed by payload row index is mapped through the order actually sent, never the display order
 - [Phase ?]: The read view has no prop through which a withheld link could arrive, so the absence rule is structural rather than conditional
 - [Phase ?]: The social-links wire keys are links and website; social_links was a 422 that would have failed every save
+- [Phase 5]: 05-06: a schedule PATCH writes only the keys the caller supplied, so a reorder posts position alone and a blur-save in flight cannot clobber it (T-05-30)
+- [Phase 5]: 05-06: isFirst/isLast/disabled REMOVE row controls rather than disable them — a permanently disabled arrow on row one is a control that never applies
+- [Phase 5]: 05-06: the Saving caption unmounts after its fade rather than sitting at opacity-0, so a saved row carries no invisible label for a screen reader
+- [Phase 5]: 05-06: ScheduleRow's disabled prop is sourced from manageableActivityIds, not campaign.status — 05-02 landed backend-only, and the server's 409 campaign_live is the real control (T-05-31)
 
 ### Pending Todos
 
@@ -173,8 +178,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-15T00:00:00.000Z
-Stopped at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 (05-01, 05-02, 05-06) merged from origin/phase-5-planning
+Last session: 2026-08-16T00:00:00.000Z
+Stopped at: Completed 05-06-PLAN.md (see 05-06-SUMMARY.md); Phase 05 waves 1-2 done
 Resume file: .planning/phases/05-post-acceptance-pipeline-design-campaign-live-workspace/05-03-PLAN.md
 
 Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 3 (05-03 checkpoint, 05-07)

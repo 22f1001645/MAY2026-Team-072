@@ -10,6 +10,8 @@ from .recognition_controller import recognition_bp
 from .analytics_controller import analytics_bp
 from .misc_controller import misc_bp
 from .settings_controller import settings_bp
+from .schedule_controller import schedule_bp
+from .campaign_controller import campaign_bp
 
 ALL_BLUEPRINTS = [
     auth_bp,
@@ -26,4 +28,6 @@ ALL_BLUEPRINTS = [
     analytics_bp,
     misc_bp,
     settings_bp,
+    schedule_bp,
+    campaign_bp,
 ]

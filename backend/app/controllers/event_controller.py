@@ -1,7 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
 from ..errors import ApiError
-from ..rbac import auth_required, can_manage_activity_required
+from ..rbac import auth_required, can_manage_activity_required, public_or_auth
 from ..repositories.repos import ActivityRepository
 from ..schemas import EditEventSchema
 from ..services import event_service
@@ -19,13 +19,24 @@ def feed():
 
 
 @event_bp.get("/events/<activity_id>")
-@auth_required
+@public_or_auth
 def detail(activity_id):
-    """FR-C3 — event detail page."""
-    activity = ActivityRepository.by_id(activity_id)
+    """FR-C3 — event detail page.
+
+    Authenticated callers receive the full detail payload (budget, collaborators,
+    team_members). Anonymous callers receive the public preview: to_dict() plus
+    description (OD-3). The slug is resolved via by_slug_or_id so shared
+    registration links work without breaking existing id-based links.
+    """
+    activity = ActivityRepository.by_slug_or_id(activity_id)
     if not activity:
         raise ApiError("Event not found", "not_found", 404)
-    return jsonify(activity.to_dict(detail=True)), 200
+    if g.current_user is not None:
+        return jsonify(activity.to_dict(detail=True)), 200
+    # Anonymous preview — to_dict() base + description
+    data = activity.to_dict()
+    data["description"] = activity.proposal.description if activity.proposal else None
+    return jsonify(data), 200
 
 
 @event_bp.put("/events/<activity_id>")

@@ -288,6 +288,18 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   )
 }
 
+export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={cx(
+        'w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40 resize-y',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Mandala({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg

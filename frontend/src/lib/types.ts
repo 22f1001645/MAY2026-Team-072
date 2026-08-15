@@ -207,3 +207,9 @@ export interface ApiScheduleItem {
   ownerLabel: string | null
   notes: string | null
 }
+
+/** One scale-appropriate schedule preset (DESIGN-01 / AC-07). */
+export interface ApiSchedulePreset {
+  name: string
+  items: Array<{ timeBlock: string; title: string }>
+}

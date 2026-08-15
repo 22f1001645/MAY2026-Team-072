@@ -269,6 +269,38 @@ def auth_required(fn):
     return _mark(wrapper, fn, "auth_required")
 
 
+def public_or_auth(fn):
+    """Optionally authenticate; authorise nothing.
+
+    Calls ``verify_jwt_in_request(optional=True)`` — when a valid JWT is
+    present the ``User`` row is loaded and ``g.current_user`` is set exactly as
+    ``_load_current_user`` does; when there is no token ``g.current_user`` is
+    set to ``None`` and the request proceeds.
+
+    This decorator belongs only on read routes whose payload is already public.
+    It MUST NOT be used on any write route — the ``optional=True`` path sets no
+    capability, so an unauthenticated caller would pass through with no user.
+
+    Marked via ``_mark`` so ``test_every_scoped_route_carries_at_least_one_guard``
+    still sees a guard on ``<activity_id>`` routes (threat T-05-10).
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        verify_jwt_in_request(optional=True)
+        try:
+            identity = get_jwt_identity()
+        except Exception:
+            identity = None
+        if identity:
+            user = User.query.get(identity)
+            g.current_user = user  # may still be None if the row was deleted
+        else:
+            g.current_user = None
+        return fn(*args, **kwargs)
+
+    return _mark(wrapper, fn, "public_or_auth")
+
+
 def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):

@@ -115,6 +115,25 @@ class ActivityRepository:
         return Activity.query.get(aid)
 
     @staticmethod
+    def by_slug_or_id(value):
+        """Resolve an activity by primary key or registration slug.
+
+        Tries the primary key first so existing id links keep their
+        single-query cost; slug resolution is the fallback, not the default.
+        Returns None when neither matches."""
+        from ..models import CampaignPackage
+        activity = Activity.query.get(value)
+        if activity:
+            return activity
+        # Fall back to slug join
+        return (
+            Activity.query
+            .join(CampaignPackage, CampaignPackage.activity_id == Activity.id)
+            .filter(CampaignPackage.registration_slug == value)
+            .first()
+        )
+
+    @staticmethod
     def published_feed(city=None):
         q = Activity.query.filter(Activity.status.in_(["upcoming", "live"]))
         q = q.join(Proposal).filter(Proposal.status == "approved")

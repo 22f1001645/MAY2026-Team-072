@@ -9,7 +9,7 @@
  * - isFirst hides Move up; isLast hides Move down; disabled hides both + delete.
  * - No text-danger, no field-sizing, no refetchInterval.
  */
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Input, Textarea } from './ui'
 import { useToast } from './ui'
 import { cx } from '../lib/format'
@@ -45,10 +45,11 @@ export function ScheduleRow({
     notes: item.notes ?? '',
   })
   const [lastSaved, setLastSaved] = useState<Draft>({ ...draft })
-  const [saving, setSaving] = useState(false)
-  const [savingVisible, setSavingVisible] = useState(false)
-  const savingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [savePhase, setSavePhase] = useState<'idle' | 'active' | 'fading'>('idle')
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const [showNotes, setShowNotes] = useState(!!item.notes)
+
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), [])
 
   const triggerSave = async (field: keyof Draft, value: string) => {
     if (field === 'title' && !value.trim()) {
@@ -58,21 +59,23 @@ export function ScheduleRow({
     }
     if (value === lastSaved[field]) return
 
-    setSaving(true)
-    setSavingVisible(true)
+    timersRef.current.forEach(clearTimeout)
+    timersRef.current = []
+    setSavePhase('active')
     try {
-      await onUpdate(item.id, { [field]: value })
+      await onUpdate(item.id, { [field]: value } as Partial<ApiScheduleItem>)
       setLastSaved(d => ({ ...d, [field]: value }))
-      // Fade indicator out after 800ms
-      if (savingTimerRef.current) clearTimeout(savingTimerRef.current)
-      savingTimerRef.current = setTimeout(() => setSavingVisible(false), 800)
+      // Hold the caption for 800ms, fade it over 500ms, then unmount it — the
+      // caption is gone from the DOM once saved, not just transparent.
+      timersRef.current = [
+        setTimeout(() => setSavePhase('fading'), 800),
+        setTimeout(() => setSavePhase('idle'), 1300),
+      ]
     } catch {
       // Revert field to last-saved value
       setDraft(d => ({ ...d, [field]: lastSaved[field] }))
       addToast('Failed to save', 'error')
-      setSavingVisible(false)
-    } finally {
-      setSaving(false)
+      setSavePhase('idle')
     }
   }
 
@@ -81,22 +84,24 @@ export function ScheduleRow({
       {/* Reorder controls */}
       {!disabled && (
         <div className="flex flex-col gap-0.5 mt-1 shrink-0">
-          <button
-            aria-label="Move up"
-            onClick={() => onMoveUp(item.id)}
-            disabled={isFirst}
-            className="p-0.5 rounded text-graytext-light hover:text-teal disabled:opacity-30 transition"
-          >
-            ▲
-          </button>
-          <button
-            aria-label="Move down"
-            onClick={() => onMoveDown(item.id)}
-            disabled={isLast}
-            className="p-0.5 rounded text-graytext-light hover:text-teal disabled:opacity-30 transition"
-          >
-            ▼
-          </button>
+          {!isFirst && (
+            <button
+              aria-label="Move up"
+              onClick={() => onMoveUp(item.id)}
+              className="p-0.5 rounded text-graytext-light hover:text-teal transition"
+            >
+              ▲
+            </button>
+          )}
+          {!isLast && (
+            <button
+              aria-label="Move down"
+              onClick={() => onMoveDown(item.id)}
+              className="p-0.5 rounded text-graytext-light hover:text-teal transition"
+            >
+              ▼
+            </button>
+          )}
         </div>
       )}
 
@@ -151,14 +156,16 @@ export function ScheduleRow({
         )}
 
         {/* Saving indicator */}
-        <span
-          className={cx(
-            'text-caption text-teal transition-opacity duration-500',
-            savingVisible ? 'opacity-100' : 'opacity-0',
-          )}
-        >
-          Saving…
-        </span>
+        {savePhase !== 'idle' && (
+          <span
+            className={cx(
+              'text-caption text-teal transition-opacity duration-500',
+              savePhase === 'fading' ? 'opacity-0' : 'opacity-100',
+            )}
+          >
+            Saving…
+          </span>
+        )}
       </div>
 
       {/* Delete button */}

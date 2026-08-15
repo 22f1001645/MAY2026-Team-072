@@ -1,11 +1,20 @@
 /**
  * CampaignBuilder — /events/:id/campaign
  *
- * Phase 5, Plan 05-01 (DESIGN-01 thin slice). This page is deliberately thin:
+ * Phase 5, Plans 05-01 and 05-06 (DESIGN-01):
  * - Reads schedule items from the server via useScheduleItems (not local state).
- * - Renders the items as a plain list (time block + title).
+ * - Renders each item as a ScheduleRow: blur-save, arrow reorder, delete.
  * - Provides a "+ Add item" ghost button that calls useCreateScheduleItem.
- * - ScheduleRow (blur-save), PresetAccordion, and PipelineStepper arrive in later plans.
+ * - PipelineStepper arrives in a later plan.
+ *
+ * `disabled` is sourced from the manage capability, not from the campaign's
+ * live status: there is no campaign query on the client yet, and the server's
+ * 409 `campaign_live` is the actual control either way (T-05-31). The row's
+ * disabled affordance switches source the moment that query lands.
+ *
+ * Reorder sends a patch carrying `position` alone, which is the server's
+ * reorder branch — a whole-row replace here would let a blur-save in flight
+ * overwrite the move (T-05-30).
  *
  * Authorization gate: `capabilities?.manageableActivityIds?.includes(id!)`
  * — exactly as EventDetail.tsx:30 does. Never a quoted POR string, which
@@ -17,10 +26,16 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { ScheduleRow } from '../components/ScheduleRow'
 import { Loading, ErrorState } from '../components/states'
 import { SectionTitle, Button, Card } from '../components/ui'
 import { useCapabilities, useEvent } from '../lib/queries'
-import { useScheduleItems, useCreateScheduleItem } from '../lib/queries'
+import {
+  useScheduleItems,
+  useCreateScheduleItem,
+  useUpdateScheduleItem,
+  useDeleteScheduleItem,
+} from '../lib/queries'
 import type { ApiScheduleItem } from '../lib/types'
 
 export default function CampaignBuilder() {
@@ -29,6 +44,8 @@ export default function CampaignBuilder() {
   const { data: e, isLoading: eventLoading, isError: eventError, error: eventErr } = useEvent(id)
   const { data: scheduleItems = [], isLoading: scheduleLoading } = useScheduleItems(id)
   const createMut = useCreateScheduleItem(id)
+  const updateMut = useUpdateScheduleItem(id)
+  const deleteMut = useDeleteScheduleItem(id)
 
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
@@ -71,25 +88,25 @@ export default function CampaignBuilder() {
 
         {scheduleItems.length === 0 && !adding && (
           <p className="text-[13px] text-graytext-light">
-            No schedule items yet. Add the first one below.
+            No schedule items yet. Use a preset to get started quickly.
           </p>
         )}
 
-        <ul className="space-y-2">
-          {(scheduleItems as ApiScheduleItem[]).map(item => (
-            <li
+        <div>
+          {(scheduleItems as ApiScheduleItem[]).map((item, i) => (
+            <ScheduleRow
               key={item.id}
-              className="flex items-start gap-3 rounded-lg border border-white/8 bg-white/4 px-4 py-3"
-            >
-              {item.timeBlock && (
-                <span className="shrink-0 text-[12px] font-medium text-teal mt-0.5 w-28">
-                  {item.timeBlock}
-                </span>
-              )}
-              <span className="text-[14px] text-offwhite">{item.title}</span>
-            </li>
+              item={item}
+              isFirst={i === 0}
+              isLast={i === scheduleItems.length - 1}
+              disabled={!canManage}
+              onUpdate={(itemId, patch) => updateMut.mutateAsync({ itemId, patch })}
+              onDelete={itemId => deleteMut.mutate(itemId)}
+              onMoveUp={itemId => updateMut.mutate({ itemId, patch: { position: i - 1 } })}
+              onMoveDown={itemId => updateMut.mutate({ itemId, patch: { position: i + 1 } })}
+            />
           ))}
-        </ul>
+        </div>
 
         {/* Add item — ghost button or inline form */}
         {canManage && !adding && (

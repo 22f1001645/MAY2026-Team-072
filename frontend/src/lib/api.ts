@@ -342,6 +342,18 @@ export function adaptBrandKit(k: ApiBrandKit): BrandKit {
 }
 
 /* -------------------------------- endpoints ------------------------------ */
+/** camelCase → wire name for a schedule-item patch (DESIGN-01). Keeping the map
+ *  here rather than inline keeps this module the only place that knows the wire
+ *  spelling of a schedule column. */
+const SCHEDULE_WIRE_KEYS: Record<string, string> = {
+  title: 'title',
+  timeBlock: 'time_block',
+  position: 'position',
+  notes: 'notes',
+  ownerId: 'owner_id',
+  ownerLabel: 'owner_label',
+}
+
 export const api = {
   // Auth (Phase 2 — cookie session)
   login: async (email: string, password: string) => {
@@ -628,17 +640,19 @@ export const api = {
     activityId: string,
     itemId: string,
     patch: { title?: string | null; timeBlock?: string | null; position?: number | null; notes?: string | null; ownerId?: string | null; ownerLabel?: string | null },
-  ) =>
-    request<any>(`/activities/${activityId}/schedule/${itemId}`, {
+  ) => {
+    // Only the keys the caller actually supplied reach the wire. The server
+    // treats a body carrying position alone as a reorder and leaves every other
+    // column untouched, so padding the body with nulls would turn every move
+    // into a full-row replace and let a blur-save in flight clobber it (T-05-30).
+    const wire: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(patch)) {
+      const wireKey = SCHEDULE_WIRE_KEYS[key]
+      if (wireKey && value !== undefined) wire[wireKey] = value
+    }
+    return request<any>(`/activities/${activityId}/schedule/${itemId}`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        title: patch.title ?? null,
-        time_block: patch.timeBlock ?? null,
-        position: patch.position ?? null,
-        notes: patch.notes ?? null,
-        owner_id: patch.ownerId ?? null,
-        owner_label: patch.ownerLabel ?? null,
-      }),
+      body: JSON.stringify(wire),
     }).then(i => ({
       id: i.id,
       activityId: i.activity_id,
@@ -648,7 +662,8 @@ export const api = {
       ownerId: i.owner_id,
       ownerLabel: i.owner_label,
       notes: i.notes,
-    })),
+    }))
+  },
   deleteScheduleItem: (activityId: string, itemId: string) =>
     request<void>(`/activities/${activityId}/schedule/${itemId}`, { method: 'DELETE' }),
 }

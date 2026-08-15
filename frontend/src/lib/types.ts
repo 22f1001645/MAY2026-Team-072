@@ -195,3 +195,15 @@ export interface TeamMember {
   added_by: string | null
 }
 
+/** One row of the event agenda (DESIGN-01). Snake→camelCase adaptation
+ *  happens once in api.ts; components always see this camelCase shape. */
+export interface ApiScheduleItem {
+  id: string
+  activityId: string
+  position: number
+  timeBlock: string | null
+  title: string
+  ownerId: string | null
+  ownerLabel: string | null
+  notes: string | null
+}

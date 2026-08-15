@@ -404,4 +404,73 @@ export const api = {
       `/activities/${activityId}/reassign-meetup-head`,
       { method: 'POST', body: JSON.stringify({ new_meetup_head_user_id: newUserId }) },
     ),
+
+  // Phase 5: Schedule CRUD (DESIGN-01)
+  // This module is the only place that knows the wire format: callers pass
+  // camelCase, the wrapper writes snake_case in the body and adapts responses
+  // back to camelCase. Follows the confirmAcademicStatus precedent.
+  scheduleItems: (activityId: string) =>
+    request<any[]>(`/activities/${activityId}/schedule`).then(items =>
+      items.map(i => ({
+        id: i.id,
+        activityId: i.activity_id,
+        position: i.position,
+        timeBlock: i.time_block,
+        title: i.title,
+        ownerId: i.owner_id,
+        ownerLabel: i.owner_label,
+        notes: i.notes,
+      }))
+    ),
+  createScheduleItem: (
+    activityId: string,
+    item: { title: string; timeBlock?: string | null; position?: number | null; notes?: string | null; ownerId?: string | null; ownerLabel?: string | null },
+  ) =>
+    request<any>(`/activities/${activityId}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: item.title,
+        time_block: item.timeBlock ?? null,
+        position: item.position ?? null,
+        notes: item.notes ?? null,
+        owner_id: item.ownerId ?? null,
+        owner_label: item.ownerLabel ?? null,
+      }),
+    }).then(i => ({
+      id: i.id,
+      activityId: i.activity_id,
+      position: i.position,
+      timeBlock: i.time_block,
+      title: i.title,
+      ownerId: i.owner_id,
+      ownerLabel: i.owner_label,
+      notes: i.notes,
+    })),
+  updateScheduleItem: (
+    activityId: string,
+    itemId: string,
+    patch: { title?: string | null; timeBlock?: string | null; position?: number | null; notes?: string | null; ownerId?: string | null; ownerLabel?: string | null },
+  ) =>
+    request<any>(`/activities/${activityId}/schedule/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: patch.title ?? null,
+        time_block: patch.timeBlock ?? null,
+        position: patch.position ?? null,
+        notes: patch.notes ?? null,
+        owner_id: patch.ownerId ?? null,
+        owner_label: patch.ownerLabel ?? null,
+      }),
+    }).then(i => ({
+      id: i.id,
+      activityId: i.activity_id,
+      position: i.position,
+      timeBlock: i.time_block,
+      title: i.title,
+      ownerId: i.owner_id,
+      ownerLabel: i.owner_label,
+      notes: i.notes,
+    })),
+  deleteScheduleItem: (activityId: string, itemId: string) =>
+    request<void>(`/activities/${activityId}/schedule/${itemId}`, { method: 'DELETE' }),
 }

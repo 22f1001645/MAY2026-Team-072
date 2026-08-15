@@ -1,4 +1,12 @@
-import type { Account, BrandKit, EkatvaEvent, OrgProfile, Organisation, Role } from './types'
+import type {
+  Account,
+  ApiSchedulePreset,
+  BrandKit,
+  EkatvaEvent,
+  OrgProfile,
+  Organisation,
+  Role,
+} from './types'
 
 /* ---------------------------------------------------------------------------
  * API client — Phase 2 (D-01, D-05, D-06, D-09).
@@ -666,4 +674,14 @@ export const api = {
   },
   deleteScheduleItem: (activityId: string, itemId: string) =>
     request<void>(`/activities/${activityId}/schedule/${itemId}`, { method: 'DELETE' }),
+
+  /** Static scale-appropriate agenda templates (DESIGN-01 / AC-07). An unknown
+   *  scale answers `[]` server-side rather than erroring. */
+  schedulePresets: (scale: string): Promise<ApiSchedulePreset[]> =>
+    request<any[]>(`/schedule-presets?scale=${encodeURIComponent(scale)}`).then(presets =>
+      presets.map(p => ({
+        name: p.name,
+        items: (p.items ?? []).map((i: any) => ({ timeBlock: i.time_block, title: i.title })),
+      })),
+    ),
 }

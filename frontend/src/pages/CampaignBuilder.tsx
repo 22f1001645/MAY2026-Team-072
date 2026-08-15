@@ -26,12 +26,14 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { PresetAccordion } from '../components/PresetAccordion'
 import { ScheduleRow } from '../components/ScheduleRow'
 import { Loading, ErrorState } from '../components/states'
 import { SectionTitle, Button, Card } from '../components/ui'
 import { useCapabilities, useEvent } from '../lib/queries'
 import {
   useScheduleItems,
+  useSchedulePresets,
   useCreateScheduleItem,
   useUpdateScheduleItem,
   useDeleteScheduleItem,
@@ -43,6 +45,7 @@ export default function CampaignBuilder() {
   const { data: capabilities } = useCapabilities()
   const { data: e, isLoading: eventLoading, isError: eventError, error: eventErr } = useEvent(id)
   const { data: scheduleItems = [], isLoading: scheduleLoading } = useScheduleItems(id)
+  const { data: presets } = useSchedulePresets(e?.scale)
   const createMut = useCreateScheduleItem(id)
   const updateMut = useUpdateScheduleItem(id)
   const deleteMut = useDeleteScheduleItem(id)
@@ -67,6 +70,15 @@ export default function CampaignBuilder() {
     })
   }
 
+  /** Post each preset item in order, awaiting each one so the server assigns
+   *  ascending positions. The rows are never assembled here — the list comes
+   *  back from the server, so its order is the server's. */
+  const handleApplyPreset = async (items: { timeBlock: string; title: string }[]) => {
+    for (const preset of items) {
+      await createMut.mutateAsync({ title: preset.title, timeBlock: preset.timeBlock })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Link
@@ -85,6 +97,8 @@ export default function CampaignBuilder() {
       {/* Schedule list */}
       <Card className="p-6 space-y-3">
         <h2 className="text-[15px] font-semibold text-offwhite">Event Schedule</h2>
+
+        {canManage && <PresetAccordion presets={presets ?? []} onApply={handleApplyPreset} />}
 
         {scheduleItems.length === 0 && !adding && (
           <p className="text-[13px] text-graytext-light">

@@ -7,7 +7,10 @@
  * - Saving indicator: "Saving…" fades out 800ms after resolve.
  * - On reject: restore lastSaved value + error toast "Failed to save".
  * - isFirst hides Move up; isLast hides Move down; disabled hides both + delete.
- * - No text-danger, no field-sizing, no refetchInterval.
+ * Token notes: the delete control uses text-red-300 (the Badge "danger" tone's
+ * actual colour — there is no danger text token in tailwind.config.js), and the
+ * notes field is sized with an explicit clamp because Tailwind 3.4 has no
+ * content-based field sizing utility.
  */
 import React, { useEffect, useRef, useState } from 'react'
 import { Input, Textarea } from './ui'

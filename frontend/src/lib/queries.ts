@@ -378,6 +378,16 @@ export const useScheduleItems = (activityId?: string) =>
     enabled: !!activityId,
   })
 
+/** Scale presets are static reference data — no refetch interval, and no
+ *  loading state worth rendering; the accordion simply is not there until the
+ *  catalogue arrives (DESIGN-01 / AC-07). */
+export const useSchedulePresets = (scale?: string) =>
+  useQuery({
+    queryKey: ['schedule-presets', scale],
+    queryFn: () => api.schedulePresets(scale!),
+    enabled: !!scale,
+  })
+
 export const useCreateScheduleItem = (activityId?: string) => {
   const qc = useQueryClient()
   return useMutation({

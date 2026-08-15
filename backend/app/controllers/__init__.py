@@ -12,6 +12,8 @@ from .misc_controller import misc_bp
 from .org_profile_controller import org_profile_bp
 from .settings_controller import settings_bp
 from .upload_controller import upload_bp
+from .schedule_controller import schedule_bp
+from .campaign_controller import campaign_bp
 
 ALL_BLUEPRINTS = [
     auth_bp,
@@ -30,4 +32,6 @@ ALL_BLUEPRINTS = [
     org_profile_bp,
     settings_bp,
     upload_bp,
+    schedule_bp,
+    campaign_bp,
 ]

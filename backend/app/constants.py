@@ -151,6 +151,63 @@ FORM_FIELD_TEXT = "text"
 FORM_FIELD_DROPDOWN = "dropdown"
 FORM_FIELD_TYPES = (FORM_FIELD_TEXT, FORM_FIELD_DROPDOWN)
 
+# --- Registration slug minting (CAMPAIGN-04) ---
+# String(64) leaves room for a 40-char title slug, a separator ("-") and a
+# 6-char secrets.token_urlsafe suffix.  SLUG_MAX_ATTEMPTS caps the retry loop;
+# exhausting it surfaces code=="slug_collision" at HTTP 503.
+SLUG_RANDOM_BYTES = 4     # secrets.token_urlsafe(4) → ~6 URL-safe chars
+SLUG_MAX_ATTEMPTS = 3
+SLUG_TITLE_MAX = 40
+
+# --- Schedule presets (DESIGN-01 / AC-07) ---
+# A dict rather than a table: presets are static reference data with no per-org
+# variation in v1. Keyed by ACTIVITY_SCALES values so an unknown scale is a
+# dict miss (returns []) rather than a KeyError.
+SCHEDULE_PRESETS = {
+    "local_meetup": [
+        {
+            "name": "Standard 2h City Meetup",
+            "items": [
+                {"time_block": "10:00 - 10:15", "title": "Arrival & icebreaker"},
+                {"time_block": "10:15 - 10:30", "title": "Introduction round"},
+                {"time_block": "10:30 - 11:15", "title": "Theme talk / keynote"},
+                {"time_block": "11:15 - 11:45", "title": "Open discussion"},
+                {"time_block": "11:45 - 12:00", "title": "Group photo & wrap-up"},
+            ],
+        },
+    ],
+    "regional_meetup": [
+        {
+            "name": "Standard 4h Regional Meetup",
+            "items": [
+                {"time_block": "09:30 - 10:00", "title": "Arrival & registration"},
+                {"time_block": "10:00 - 10:15", "title": "Introduction round"},
+                {"time_block": "10:15 - 11:00", "title": "Keynote talk"},
+                {"time_block": "11:00 - 11:15", "title": "Break"},
+                {"time_block": "11:15 - 12:00", "title": "Parallel track sessions"},
+                {"time_block": "12:00 - 12:30", "title": "Open discussion & Q&A"},
+                {"time_block": "12:30 - 12:45", "title": "Feedback round"},
+                {"time_block": "12:45 - 13:00", "title": "Group photo & wrap-up"},
+            ],
+        },
+    ],
+    "regional_fest": [
+        {
+            "name": "Standard Regional Fest",
+            "items": [
+                {"time_block": "09:00 - 09:30", "title": "Arrival & registration"},
+                {"time_block": "09:30 - 10:00", "title": "Opening ceremony"},
+                {"time_block": "10:00 - 11:00", "title": "Keynote address"},
+                {"time_block": "11:00 - 11:15", "title": "Break"},
+                {"time_block": "11:15 - 13:00", "title": "Workshop / competition sessions"},
+                {"time_block": "13:00 - 14:00", "title": "Lunch"},
+                {"time_block": "14:00 - 15:30", "title": "Panel discussion"},
+                {"time_block": "15:30 - 16:00", "title": "Award ceremony & closing"},
+            ],
+        },
+    ],
+}
+
 # --- Proposal state machine (FR-B3) ---
 PROPOSAL_DRAFT = "draft"
 PROPOSAL_SUBMITTED = "submitted"

@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
-status: planning
-stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 planning docs imported from origin/phase-5-planning (05-CONTEXT.md, 05-DISCUSSION-LOG.md, 05-SPEC.md, 05-UI-SPEC.md) — no PLAN.md yet
-last_updated: "2026-08-14T12:40:32.000Z"
-last_activity: 2026-08-14
-last_activity_desc: Imported Phase 05 planning docs (CONTEXT/DISCUSSION-LOG/SPEC/UI-SPEC) from origin/phase-5-planning
+status: executing
+stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 executed (05-01, 05-02, 05-06) from origin/phase-5-planning
+last_updated: "2026-08-15T00:00:00.000Z"
+last_activity: 2026-08-15
+last_activity_desc: "Merged origin/phase-5-planning into main: Phase 05 planning docs (11 plans, 7 waves) plus waves 1-2 implementation (05-01 schedule tracer, 05-02 campaign spine, 05-06 schedule UI)"
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 25
-  completed_plans: 25
-  percent: 50
+  total_plans: 36
+  completed_plans: 28
+  percent: 53
 ---
 
 # Project State
@@ -29,12 +29,12 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
-Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — PLANNING
-Plan: 9/9 (Phase 04); Phase 05 has no PLAN.md yet, only CONTEXT/DISCUSSION-LOG/SPEC/UI-SPEC
-Status: Phase 05 planning docs imported, not yet planned/executed
-Last activity: 2026-08-14 — Imported Phase 05 planning docs from origin/phase-5-planning
+Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
+Plan: 9/9 (Phase 04); 3/11 (Phase 05 — 05-01, 05-02, 05-06 executed; 05-03..05-05, 05-07..05-11 remain)
+Status: Phase 05 waves 1-2 merged from origin/phase-5-planning; wave 3 (05-03 checkpoint, 05-07) next
+Last activity: 2026-08-15 — Merged origin/phase-5-planning (11-plan spec + waves 1-2 implementation) into main
 
-Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 0%
+Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 27%
 
 ## Performance Metrics
 
@@ -173,8 +173,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-14T12:40:32.000Z
-Stopped at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 planning docs imported from origin/phase-5-planning, no PLAN.md yet
-Resume file: None
+Last session: 2026-08-15T00:00:00.000Z
+Stopped at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 (05-01, 05-02, 05-06) merged from origin/phase-5-planning
+Resume file: .planning/phases/05-post-acceptance-pipeline-design-campaign-live-workspace/05-03-PLAN.md
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`, then `/gsd:plan-phase` for Phase 05
+Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 3 (05-03 checkpoint, 05-07)

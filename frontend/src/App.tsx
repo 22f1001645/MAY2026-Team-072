@@ -21,6 +21,7 @@ import ProposalNew from './pages/ProposalNew'
 import ManageEvent from './pages/ManageEvent'
 import Expenses from './pages/Expenses'
 import CheckIn from './pages/CheckIn'
+import CampaignBuilder from './pages/CampaignBuilder'
 // Admin
 import ApprovalQueue from './pages/ApprovalQueue'
 import Reimbursements from './pages/Reimbursements'
@@ -117,6 +118,7 @@ function AppShell() {
         <Route path="/events/:id/manage" element={<ManageEvent />} />
         <Route path="/events/:id/expenses" element={<Expenses />} />
         <Route path="/events/:id/checkin" element={<CheckIn />} />
+        <Route path="/events/:id/campaign" element={<CampaignBuilder />} />
 
         {/* Admin */}
         <Route path="/admin/approvals" element={<ApprovalQueue />} />

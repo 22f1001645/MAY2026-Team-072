@@ -369,3 +369,37 @@ export const useAdminOverrideAcademicStatus = () => {
     }
   })
 }
+
+// Phase 5: Schedule hooks (DESIGN-01)
+export const useScheduleItems = (activityId?: string) =>
+  useQuery({
+    queryKey: ['schedule', activityId],
+    queryFn: () => api.scheduleItems(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useCreateScheduleItem = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (item: { title: string; timeBlock?: string | null; position?: number | null; notes?: string | null }) =>
+      api.createScheduleItem(activityId!, item),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', activityId] }),
+  })
+}
+
+export const useUpdateScheduleItem = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { itemId: string; patch: { title?: string | null; timeBlock?: string | null; position?: number | null; notes?: string | null } }) =>
+      api.updateScheduleItem(activityId!, v.itemId, v.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', activityId] }),
+  })
+}
+
+export const useDeleteScheduleItem = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (itemId: string) => api.deleteScheduleItem(activityId!, itemId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', activityId] }),
+  })
+}

@@ -11,6 +11,7 @@ from ..constants import (
     BRAND_KIT_SOURCES,
     COLLAB_ACCEPTED,
     COLLAB_DECLINED,
+    FORM_FIELD_TYPES,
     SOCIAL_PLATFORM_KEYS,
     TEAM_ROLES,
     UPLOAD_URL_PATTERN,
@@ -256,3 +257,57 @@ class ReassignMeetupHeadSchema(Schema):
     """PROPOSAL-05: reassign the Meetup Head role to a different user."""
     new_meetup_head_user_id = fields.String(required=True)
 
+
+class FormFieldSchema(Schema):
+    """CAMPAIGN-05: create one custom registration field.
+
+    `field_type` is validated against FORM_FIELD_TYPES imported from constants
+    — never a restated literal. A value outside that tuple returns 422 from the
+    Marshmallow central handler (never a 400 from hand-written code)."""
+
+    label = fields.Str(required=True, validate=validate.Length(min=1, max=120))
+    field_type = fields.Str(required=True, validate=validate.OneOf(FORM_FIELD_TYPES))
+    options = fields.List(
+        fields.Str(validate=validate.Length(min=1, max=120)),
+        load_default=list,
+    )
+    required = fields.Bool(load_default=False)
+    position = fields.Int(load_default=0, validate=validate.Range(min=0))
+
+
+class FormFieldPatchSchema(Schema):
+    """CAMPAIGN-05: partial update of one custom field.
+
+    Follows EditEventSchema's nullable-partial shape."""
+
+    label = fields.Str(load_default=None, allow_none=True, validate=validate.Length(min=1, max=120))
+    field_type = fields.Str(load_default=None, allow_none=True, validate=validate.OneOf(FORM_FIELD_TYPES))
+    options = fields.List(
+        fields.Str(validate=validate.Length(min=1, max=120)),
+        load_default=None,
+        allow_none=True,
+    )
+    required = fields.Bool(load_default=None, allow_none=True)
+    position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))
+
+
+class ScheduleItemSchema(Schema):
+    """DESIGN-01: create one row of the event agenda."""
+
+    time_block = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=60))
+    title = fields.Str(required=True, validate=validate.Length(min=1, max=200))
+    owner_id = fields.Str(load_default=None, allow_none=True)
+    owner_label = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=120))
+    notes = fields.Str(load_default=None, allow_none=True)
+    position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))
+
+
+class ScheduleItemPatchSchema(Schema):
+    """DESIGN-01: partial update of one agenda row."""
+
+    time_block = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=60))
+    title = fields.Str(load_default=None, allow_none=True, validate=validate.Length(min=1, max=200))
+    owner_id = fields.Str(load_default=None, allow_none=True)
+    owner_label = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=120))
+    notes = fields.Str(load_default=None, allow_none=True)
+    position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))

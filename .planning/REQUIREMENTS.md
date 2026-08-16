@@ -68,8 +68,8 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 - [ ] **TEAM-01**: Once the campaign is pushed live (CAMPAIGN-06), the team/task workspace (Kanban-style board) activates for the roster assembled at PROPOSAL-02
 - [ ] **TEAM-02**: Any team member can be assigned a task (description + deadline + status column), persisted server-side, replacing the current client-side mock array
-- [ ] **TEAM-03**: Team/role status on an Activity grants zero org-wide permissions by default — it is not a second authorization system (Meetup Head's campaign-approval authority per RBAC-03 is the sole named exception)
-- [ ] **TEAM-04**: Volunteer point awards require actual crew membership on the Activity (closes today's disconnect where `award_volunteer_points` has no real membership check)
+- [x] **TEAM-03**: Team/role status on an Activity grants zero org-wide permissions by default — it is not a second authorization system (Meetup Head's campaign-approval authority per RBAC-03 is the sole named exception)
+- [x] **TEAM-04**: Volunteer point awards require actual crew membership on the Activity (closes today's disconnect where `award_volunteer_points` has no real membership check)
 
 ### Event Timeline & Feedback
 
@@ -164,7 +164,8 @@ Populated during roadmap creation — see ROADMAP.md.
 | ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Complete (manual UAT deferred — see 04-09-SUMMARY.md) |
 | DESIGN-01 | Phase 5 | Pending |
 | CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06 | Phase 5 | Pending |
-| TEAM-01, TEAM-02, TEAM-03, TEAM-04 | Phase 5 | Pending |
+| TEAM-01, TEAM-02 | Phase 5 | Pending (backend done in 05-04; frontend board is 05-09) |
+| TEAM-03, TEAM-04 | Phase 5 | Complete |
 | QR-01, QR-02, QR-03, QR-04 | Phase 6 | Pending |
 | TIMELINE-01, TIMELINE-02, FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
 | REIMB-01, REIMB-02 | Phase 6 | Pending |

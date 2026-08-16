@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-08-16T07:31:24.387Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-08-16T09:05:00.000Z"
 last_activity: 2026-08-16
-last_activity_desc: "Completed 05-08: the campaign builder now shows five server-computed pipeline steps and gates publication behind a confirmed, role-explicit push-live control"
+last_activity_desc: "Completed 05-05: volunteer points now require a crew row on the activity, and crew membership is proven to grant nothing org-wide and to lapse the moment the row is deleted"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 32
-  percent: 89
+  completed_plans: 33
+  percent: 92
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 7/11 (Phase 05 — 05-01, 05-02, 05-03, 05-04, 05-06, 05-07, 05-08 complete; 05-05, 05-09..05-11 remain)
-Status: Phase 05 waves 1-3 complete; wave 4 done — 05-04 (Kanban task API) and 05-08 (PipelineStepper / PushLiveGate) both landed
-Last activity: 2026-08-16 — Completed 05-08: the campaign builder now shows five server-computed pipeline steps and gates publication behind a confirmed, role-explicit push-live control
+Plan: 9/9 (Phase 04); 8/11 (Phase 05 — 05-01..05-04, 05-05, 05-06, 05-07, 05-08 complete; 05-09..05-11 remain)
+Status: Phase 05 waves 1-4 complete; wave 5 started — 05-05 (crew authorization boundaries) landed
+Last activity: 2026-08-16 — Completed 05-05: volunteer points now require a crew row on the activity, and crew membership is proven to grant nothing org-wide and to lapse the moment the row is deleted
 
-Progress: [█████████░] 89% (32/36 plans across the milestone) — Phase 05: 64%
+Progress: [█████████░] 92% (33/36 plans across the milestone) — Phase 05: 73%
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Progress: [█████████░] 89% (32/36 plans across the milestone
 | Phase 05 P07 | 55min | 3 tasks | 15 files |
 | Phase 05 P04 | 30min | 2 tasks | 5 files |
 | Phase 05 P08 | 40min | 2 tasks | 8 files |
+| Phase 05 P05 | 40min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-08: the coherent-prefix rule lives in PipelineStepper, not in the caller — the server reports each step's completeness independently, so an organiser who writes the mail before adding a schedule item produces a genuinely incoherent set that a literal render would show as a complete step after a pending one
 - [Phase ?]: 05-08: api.pushLive returns the raw response instead of running it through adaptCampaign — the route answers with the campaign row alone, so adapting it would manufacture a campaign state whose completeness is all-false and whose isMeetupHead is false, wrong in exactly the two fields the page renders from
 - [Phase ?]: 05-08: the blocked push-live button uses aria-disabled rather than the disabled attribute, so it stays in the tab order and its tooltip stays reachable — a disabled button leaves a keyboard user exactly as uninformed as the hidden button D-07 rejected (T-05-42)
+- [Phase 5]: 05-05: TEAM-04's membership check lives in attendance_service, not on the route — organiser_required authorises the caller and cannot see the target user_id, and the route is one of the six frozen LEGACY_COARSE_ROUTES Phase 1 declined to retrofit, so the check has nowhere else to live
+- [Phase 5]: 05-05: the crew lookup sits before the first db.session.add, which makes "a refused award writes no ledger row" true by construction; the test asserts the ContributionPoint count, not only the 403
+- [Phase 5]: 05-05: AC-36's url_map walk is differential (crew user vs a plain no-POR student, identical statuses everywhere) rather than a flat 403, because GET /orgs/<org_id>/profile is deliberately any-authenticated-reader since 04-04 — the differential is TEAM-03's actual claim and needs no exemption list
+- [Phase 5]: 05-05: the PROB-P4 test reassigns the activity to the Meetup Head first, because _seed_activity makes the crew user the organiser and organiser_id is an independent grant in can_manage_activity — without that the deletion would have proven nothing
 
 ### Pending Todos
 
@@ -201,8 +206,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-16T07:31:24.342Z
-Stopped at: Completed 05-08-PLAN.md
+Last session: 2026-08-16T09:05:00.000Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`; execute 05-08 (PipelineStepper/PushLiveGate, reading the `useCampaign` query 05-07 introduced), then wave 5 — 05-05 extends `backend/tests/test_activity_tasks.py` and 05-09 retires the mock array against the task routes 05-04 shipped
+Next: finish Phase 04 manual UAT via `04-UAT.md`; then 05-09 (retire the mock array against the task routes 05-04 shipped), 05-10 and 05-11

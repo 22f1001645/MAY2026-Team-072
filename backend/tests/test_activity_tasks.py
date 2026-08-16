@@ -186,3 +186,97 @@ def test_task_title_too_long_422(client):
         headers=h,
     )
     assert res.status_code == 422, res.get_json()
+
+
+# --------------------------------------------------------------------------- #
+# AC-27 / AC-33: the workspace activates only after push-live                  #
+# --------------------------------------------------------------------------- #
+
+def test_tasks_403_when_campaign_not_live(client):
+    """Every task route is 403 code=campaign_not_live until publication.
+
+    Covers the absent-campaign case AND the draft case: a gate that only tested
+    for a missing row would let a half-built draft campaign open the workspace
+    (T-05-21).
+    """
+    h = _auth(client, "crew@ekatva.os", "crew12345")
+
+    for campaign_status in (None, CAMPAIGN_DRAFT):
+        activity = _seed_activity(
+            f"Unpublished {campaign_status}", campaign_status=campaign_status
+        )
+        aid = activity.id
+        # A real row to address, created behind the gate rather than through it.
+        task = ActivityTask(activity_id=aid, title="Invisible", created_by=None)
+        db.session.add(task)
+        db.session.commit()
+        tid = task.id
+
+        calls = [
+            client.get(f"/api/v1/activities/{aid}/tasks", headers=h),
+            client.post(
+                f"/api/v1/activities/{aid}/tasks", json={"title": "New"}, headers=h
+            ),
+            client.patch(
+                f"/api/v1/activities/{aid}/tasks/{tid}",
+                json={"status": "done"},
+                headers=h,
+            ),
+            client.delete(f"/api/v1/activities/{aid}/tasks/{tid}", headers=h),
+        ]
+        for res in calls:
+            assert res.status_code == 403, (campaign_status, res.get_json())
+            assert res.get_json()["code"] == "campaign_not_live"
+
+    # After push-live the same read succeeds.
+    live = _seed_activity("Published")
+    res = client.get(f"/api/v1/activities/{live.id}/tasks", headers=h)
+    assert res.status_code == 200, res.get_json()
+
+
+# --------------------------------------------------------------------------- #
+# AC-31 / AC-32: deterministic board order                                     #
+# --------------------------------------------------------------------------- #
+
+def test_task_ordering(client):
+    """Tasks come back in (position, created_at, id) order. (AC-31)"""
+    h = _auth(client, "crew@ekatva.os", "crew12345")
+    activity = _seed_activity()
+    aid = activity.id
+
+    for pos, title in [(2, "C"), (0, "A"), (1, "B")]:
+        res = client.post(
+            f"/api/v1/activities/{aid}/tasks",
+            json={"title": title, "position": pos},
+            headers=h,
+        )
+        assert res.status_code == 201, res.get_json()
+
+    res = client.get(f"/api/v1/activities/{aid}/tasks", headers=h)
+    assert [t["title"] for t in res.get_json()] == ["A", "B", "C"]
+
+
+def test_task_ordering_tiebreak_on_equal_position(client):
+    """Equal positions fall back to created_at, then id. (AC-32)
+
+    B is created FIRST and A second, both at position 0, so a position-only sort
+    would leave the pair in whatever order SQLite happened to return. Asserting
+    B first proves the backref's three-element order_by tuple is doing the work
+    — this test is the guard against a future service-side re-sort dropping it.
+    """
+    h = _auth(client, "crew@ekatva.os", "crew12345")
+    activity = _seed_activity()
+    aid = activity.id
+
+    for title in ("B", "A"):
+        res = client.post(
+            f"/api/v1/activities/{aid}/tasks",
+            json={"title": title, "position": 0},
+            headers=h,
+        )
+        assert res.status_code == 201, res.get_json()
+
+    res = client.get(f"/api/v1/activities/{aid}/tasks", headers=h)
+    rows = res.get_json()
+    assert [t["title"] for t in rows] == ["B", "A"]
+    assert [t["position"] for t in rows] == [0, 0]

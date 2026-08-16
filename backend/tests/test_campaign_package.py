@@ -484,3 +484,52 @@ def test_push_live_schedule_empty(client, seeds):
     assert r.status_code == 400, r.get_data(as_text=True)
     assert r.get_json()["code"] == "schedule_empty"
     assert _campaign(client, tok, aid)["status"] == "draft"
+
+
+# --------------------------------------------------------------------------- #
+# Plan 05-03 Task 3: the AC-25 negative control + is_meetup_head flag          #
+# --------------------------------------------------------------------------- #
+
+def test_push_live_non_meetup_head_403(client, seeds):
+    """Only the assigned Meetup Head may publish — not crew, not an admin (AC-25).
+
+    Both subjects pass ``can_manage_activity``: the crew member has a team row,
+    the admin has the role short-circuit. Only ``is_meetup_head`` separates them
+    from the organiser, which is exactly what this asserts.
+    """
+    aid = seeds["activity_id"]
+    _add_schedule_item(aid)
+
+    crew_tok = _token(client, "crew@test.com")
+    crew_resp = _push_live(client, crew_tok, aid)
+    assert crew_resp.status_code == 403, crew_resp.get_data(as_text=True)
+    assert crew_resp.get_json()["code"] == "forbidden"
+
+    admin_tok = _token(client, "admin@test.com")
+    admin_resp = _push_live(client, admin_tok, aid)
+    assert admin_resp.status_code == 403, admin_resp.get_data(as_text=True)
+    assert admin_resp.get_json()["code"] == "forbidden"
+
+    # The refusal must also have written nothing. A 403 that still stamped
+    # approved_by would pass a status-code-only assertion.
+    from app.models import CampaignPackage
+
+    row = CampaignPackage.query.filter_by(activity_id=aid).first()
+    assert row is None or (row.status == "draft" and row.approved_by is None)
+    assert _campaign(client, _token(client, "org@test.com"), aid)["status"] == "draft"
+
+
+def test_campaign_state_carries_is_meetup_head(client, seeds):
+    """The campaign payload answers "is this person the Meetup Head" server-side.
+
+    ``capabilities.manageableActivityIds`` — the frontend's only authorization
+    input — is true for every crew member and so cannot express Meetup Head
+    identity; D-07's disabled button needs this flag instead.
+    """
+    aid = seeds["activity_id"]
+
+    head = _campaign(client, _token(client, "org@test.com"), aid)
+    assert head["is_meetup_head"] is True
+
+    crew = _campaign(client, _token(client, "crew@test.com"), aid)
+    assert crew["is_meetup_head"] is False

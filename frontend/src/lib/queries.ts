@@ -435,6 +435,20 @@ export const useGenerateSlug = (activityId?: string) => {
   })
 }
 
+/** Publish the campaign (CAMPAIGN-06). Invalidates the task list as well as the
+ *  campaign: the workspace is gated on the campaign being live, so its 403 has
+ *  to be re-evaluated the moment publication succeeds. */
+export const usePushLive = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.pushLive(activityId!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaign', activityId] })
+      qc.invalidateQueries({ queryKey: ['tasks', activityId] })
+    },
+  })
+}
+
 export const useFormFields = (activityId?: string) =>
   useQuery({
     queryKey: ['form-fields', activityId],

@@ -32,11 +32,12 @@ import { Link, useParams } from 'react-router-dom'
 
 import { FormFieldRow } from '../components/FormFieldRow'
 import { PipelineStepper } from '../components/PipelineStepper'
+import { PushLiveGate } from '../components/PushLiveGate'
 import { PresetAccordion } from '../components/PresetAccordion'
 import { RegistrationLinkCard } from '../components/RegistrationLinkCard'
 import { ScheduleRow } from '../components/ScheduleRow'
 import { Loading, ErrorState } from '../components/states'
-import { SectionTitle, Button, Card } from '../components/ui'
+import { SectionTitle, Button, Card, useToast } from '../components/ui'
 import { useCapabilities, useEvent } from '../lib/queries'
 import {
   useScheduleItems,
@@ -50,6 +51,7 @@ import {
   useUpdateFormField,
   useDeleteFormField,
   useGenerateSlug,
+  usePushLive,
 } from '../lib/queries'
 import { CAMPAIGN_LIVE } from '../lib/types'
 import type { ApiFormField, ApiScheduleItem } from '../lib/types'
@@ -75,6 +77,8 @@ export default function CampaignBuilder() {
   const updateFieldMut = useUpdateFormField(id)
   const deleteFieldMut = useDeleteFormField(id)
   const generateSlugMut = useGenerateSlug(id)
+  const pushLiveMut = usePushLive(id)
+  const { addToast } = useToast()
 
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
@@ -126,6 +130,13 @@ export default function CampaignBuilder() {
     for (const preset of items) {
       await createMut.mutateAsync({ title: preset.title, timeBlock: preset.timeBlock })
     }
+  }
+
+  /** The gate reports its own failures — this only announces the success, and
+   *  lets the rejection through so the gate can read the 403 off it. */
+  const handlePushLive = async () => {
+    await pushLiveMut.mutateAsync()
+    addToast('Campaign is now live!', 'success')
   }
 
   /** A new field starts as the first type the server named — the browser has no
@@ -302,6 +313,16 @@ export default function CampaignBuilder() {
           </div>
         )}
       </Card>
+
+      {/* Publish (CAMPAIGN-06) — the gate is rendered for every crew member;
+          only the Meetup Head can operate it, and the server enforces that. */}
+      <PushLiveGate
+        status={campaign?.status ?? ''}
+        isMeetupHead={!!campaign?.isMeetupHead}
+        pushedLiveAt={campaign?.pushedLiveAt ?? null}
+        publishing={pushLiveMut.isPending}
+        onPushLive={handlePushLive}
+      />
     </div>
   )
 }

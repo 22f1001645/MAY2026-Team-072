@@ -743,6 +743,13 @@ export const api = {
       r => ({ registrationSlug: r.registration_slug, registrationUrl: r.registration_url }),
     ),
 
+  /** Publish the campaign (CAMPAIGN-06). The route answers with the campaign
+   *  row alone — no completeness, no is_meetup_head — so the response is not
+   *  adapted into a campaign state and is never written into the cache; the
+   *  caller refetches instead. */
+  pushLive: (activityId: string): Promise<unknown> =>
+    request<unknown>(`/activities/${activityId}/campaign/push-live`, { method: 'POST' }),
+
   formFields: (activityId: string): Promise<ApiFormField[]> =>
     request<any[]>(`/activities/${activityId}/form-fields`).then(rows =>
       rows.map(adaptFormField),

@@ -181,8 +181,15 @@ def test_post_event_report_flow(client, rc_headers, admin_headers, student_heade
 
 
 def test_award_volunteer_points_flow(client, rc_headers, admin_headers, student_headers):
+    # The student is on the event's crew roster: since TEAM-04 (plan 05-05),
+    # volunteer points may only be awarded to a member of this event's crew.
+    student_id = User.query.filter_by(email="arav@ekatva.os").first().id
     aid = client.post("/api/v1/activities",
-                      json=_activity_payload("Volunteer Test Event", "2026-11-15T10:00:00"),
+                      json=_activity_payload(
+                          "Volunteer Test Event", "2026-11-15T10:00:00",
+                          team=[{"user_id": _meetup_head_id(), "role": "Meetup Head"},
+                                {"user_id": student_id, "role": "Logistics"}],
+                      ),
                       headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
     student = User.query.filter_by(email="arav@ekatva.os").first()

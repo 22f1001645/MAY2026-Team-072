@@ -5,8 +5,10 @@ Covers: AC-27 / AC-33 (403 code=campaign_not_live until the campaign is live),
         AC-31 (position ordering), AC-32 (equal-position tiebreak on created_at then id),
         AC-34 (an unknown status is a 422 and never reaches a column).
 
-TEAM-03 and TEAM-04 (crew roster and per-member workload) land in plan 05-05,
-which extends this file rather than starting a second one.
+Plan 05-05 extended this file rather than starting a second one, adding
+        AC-36 (a crew row grants nothing org-wide, plus PROB-P4: deleting the row
+              revokes access on the very next request),
+        AC-37 / AC-38 (volunteer points require a crew row on this activity).
 
 Wire format: the error envelope is {"error": ..., "code": ...} — there is no
 "reason" key (see app/errors.py:19-23), so the SPEC's `reason="campaign_not_live"`

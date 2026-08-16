@@ -26,7 +26,14 @@ def test_leaderboard_and_points(client, app, student_headers, rc_headers, admin_
         "capacity": 50,
         "description": "Testing points logic",
         "budget": [{"label": "Snacks", "planned": 500}],
-        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        # The student sits on the crew roster because this test later awards them
+        # volunteer points, and TEAM-04 (plan 05-05) refuses an award to anyone
+        # without an ActivityTeamMember row on this activity.
+        "team": [
+            {"user_id": _meetup_head_id(), "role": "Meetup Head"},
+            {"user_id": User.query.filter_by(email="arav@ekatva.os").first().id,
+             "role": "Logistics"},
+        ],
         "collaborating_org_ids": [],
     }
 
@@ -51,7 +58,9 @@ def test_leaderboard_and_points(client, app, student_headers, rc_headers, admin_
 
     # RC awards volunteer points to student
     with app.app_context():
-        from app.models import User
+        # No local `from app.models import User` here: the module already imports
+        # it, and a function-local import makes the name local to the whole
+        # function, so the payload above could not use it.
         student_id = User.query.filter_by(email="arav@ekatva.os").first().id
 
     res = client.post(f"/api/v1/events/{activity_id}/volunteer",

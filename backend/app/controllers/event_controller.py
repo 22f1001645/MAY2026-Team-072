@@ -35,7 +35,7 @@ def detail(activity_id):
         return jsonify(activity.to_dict(detail=True)), 200
     # Anonymous preview — to_dict() base + description
     data = activity.to_dict()
-    data["description"] = activity.proposal.description if activity.proposal else None
+    data["description"] = activity.description
     return jsonify(data), 200
 
 

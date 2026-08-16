@@ -455,6 +455,43 @@ def test_slug_resolves_to_event(client, seeds):
     assert id_resp.status_code == 200
 
 
+def test_anonymous_preview_of_an_activity_that_has_a_proposal(client, seeds):
+    """The public preview survives an activity that actually has a Proposal row.
+
+    Regression: the anonymous branch used to read `activity.proposal.description`,
+    and Proposal has no such attribute — so every anonymous visit to a real event
+    raised AttributeError and answered 500. `test_slug_resolves_to_event` above
+    passed throughout, because `_seed_activity` deliberately creates an Activity
+    WITHOUT a Proposal and the old expression short-circuited to None before it
+    could touch the missing attribute. The proposal row here is the whole point
+    of this test; without it the bug is invisible again.
+
+    Description is now read from `activity.description`, the column the
+    authenticated `to_dict(detail=True)` already uses — one source for both
+    faces of the same event.
+    """
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    activity = Activity.query.get(aid)
+    activity.description = "An evening of chai and compilers."
+    _db.session.add(
+        Proposal(activity_id=aid, submitted_by=seeds["organiser_id"], status="approved")
+    )
+    _db.session.commit()
+
+    slug = client.post(
+        f"/api/v1/activities/{aid}/campaign/generate-slug", headers=_auth(tok)
+    ).get_json()["registration_slug"]
+
+    anon = client.get(f"/api/v1/events/{slug}")
+    assert anon.status_code == 200, anon.get_data(as_text=True)
+    body = anon.get_json()
+    assert body["description"] == "An evening of chai and compilers."
+    for k in ("budget", "collaborators", "team_members"):
+        assert k not in body, f"anonymous response must not include '{k}'"
+
+
 def test_slug_register_requires_login(client, seeds):
     """POST /events/{slug}/register with no auth returns 401."""
     tok = _token(client, "org@test.com")

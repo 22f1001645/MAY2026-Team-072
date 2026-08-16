@@ -211,7 +211,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 05-03-PLAN.md — [CHECKPOINT] Campaign state machine decision + Meetup Head push-live gate, its audit trail and the AC-25 negative control (CAMPAIGN-06)
+- [x] 05-03-PLAN.md — [CHECKPOINT] Campaign state machine decision + Meetup Head push-live gate, its audit trail and the AC-25 negative control (CAMPAIGN-06)
 - [ ] 05-07-PLAN.md — [CHECKPOINT] Frontend: `FormFieldRow`, `RegistrationLinkCard`, and the logged-out visitor path (CAMPAIGN-04, CAMPAIGN-05)
 
 **Wave 4** *(blocked on Wave 3)*

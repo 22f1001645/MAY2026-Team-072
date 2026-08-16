@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 complete (05-01, 05-02, 05-06 — 05-06 finished and summarised)
+stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 complete plus 05-03 (push-live gate) from wave 3
 last_updated: "2026-08-16T00:00:00.000Z"
 last_activity: 2026-08-16
-last_activity_desc: "Completed 05-06 (ScheduleRow spec + CampaignBuilder wiring + PresetAccordion) — the earlier session had committed a partial ScheduleRow with no spec, no wiring and no summary"
+last_activity_desc: "Completed 05-03 (CAMPAIGN-06): decision option-a two-state draft → live, push_live behind meetup_head_required, AC-25 negative control, server-computed is_meetup_head flag"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 28
-  percent: 53
+  completed_plans: 29
+  percent: 55
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 3/11 (Phase 05 — 05-01, 05-02, 05-06 complete; 05-03..05-05, 05-07..05-11 remain)
-Status: Phase 05 waves 1-2 complete (05-06 finished this session and summarised); wave 3 (05-03 checkpoint, 05-07) next
-Last activity: 2026-08-16 — Completed 05-06: ScheduleRow verified against spec and fixed, its spec written, CampaignBuilder wired, PresetAccordion built
+Plan: 9/9 (Phase 04); 4/11 (Phase 05 — 05-01, 05-02, 05-03, 05-06 complete; 05-04, 05-05, 05-07..05-11 remain)
+Status: Phase 05 waves 1-2 complete; wave 3 started — 05-03 (push-live gate) done, 05-07 next
+Last activity: 2026-08-16 — Completed 05-03: campaign push-live behind meetup_head_required, idempotent transition, AC-25 negative control, is_meetup_head flag
 
-Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 27%
+Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 36%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 2
 | Phase 04 P08 | 40min | 2 tasks | 8 files |
 | Phase 04 P09 | 35min | 3 tasks | 6 files |
 | Phase 05 P06 | 35min | 2 tasks | 6 files |
+| Phase 05 P03 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,10 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-06: isFirst/isLast/disabled REMOVE row controls rather than disable them — a permanently disabled arrow on row one is a control that never applies
 - [Phase 5]: 05-06: the Saving caption unmounts after its fade rather than sitting at opacity-0, so a saved row carries no invisible label for a screen reader
 - [Phase 5]: 05-06: ScheduleRow's disabled prop is sourced from manageableActivityIds, not campaign.status — 05-02 landed backend-only, and the server's 409 campaign_live is the real control (T-05-31)
+- [Phase 5]: 05-03: USER DECISION (Task 1 checkpoint, option-a) — Phase 5 ships the two-state campaign machine draft → live. CAMPAIGN_PENDING_APPROVAL stays declared-but-unused (the EXPENSE_DRAFT precedent) and is never written to a row; no submit-for-approval endpoint exists. One-way: status values persist, so reversing is a data migration
+- [Phase 5]: 05-03: push_live is idempotent by EARLY RETURN before any assignment, not by reassigning equal values — reassignment would look identical in a status assertion while silently moving approved_at forward on every replay (T-05-18)
+- [Phase 5]: 05-03: campaign_state gained a server-computed is_meetup_head key, because manageableActivityIds is true for every crew member and cannot express Meetup Head identity; the flag is advisory rendering data and meetup_head_required is the enforcement (T-05-16)
+- [Phase 5]: 05-03: the AC-25 negative control asserts the persisted CampaignPackage row after the 403, not only the status code — a refusal that still wrote approved_by would pass a status-only assertion; the admin case is asserted alongside crew to prove there is no admin short-circuit
 
 ### Pending Todos
 
@@ -179,7 +184,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-08-16T00:00:00.000Z
-Stopped at: Completed 05-06-PLAN.md (see 05-06-SUMMARY.md); Phase 05 waves 1-2 done
-Resume file: .planning/phases/05-post-acceptance-pipeline-design-campaign-live-workspace/05-03-PLAN.md
+Stopped at: Completed 05-03-PLAN.md (see 05-03-SUMMARY.md); Phase 05 waves 1-2 done plus 05-03
+Resume file: None
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 3 (05-03 checkpoint, 05-07)
+Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 3 remainder (05-07), then 05-04 — `assert_campaign_live` is now reachable because `campaign.status == "live"` can finally be produced

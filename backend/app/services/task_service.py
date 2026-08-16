@@ -8,15 +8,23 @@ Design decisions, mirroring schedule_service (plan 05-01):
   in two places.
 - Services are the only place ``db.session.commit()`` is called; controllers do
   not open a database session.
+- Every function starts with ``campaign_service.assert_campaign_live`` — the
+  inverse of the ``assert_editable`` chokepoint, defined once in plan 05-01
+  (AC-27, AC-33). The status comparison is deliberately not restated here: the
+  helper exists so that the next route added to this board cannot forget it,
+  including the read, since a workspace readable before publication is the
+  disclosure T-05-21 names.
 """
 from ..constants import TASK_TODO
 from ..errors import ApiError
 from ..extensions import db
 from ..models import ActivityTask
+from . import campaign_service
 
 
 def list_tasks(activity) -> list:
     """Return all tasks for *activity* in declared backref order."""
+    campaign_service.assert_campaign_live(activity)
     return [t.to_dict() for t in activity.tasks]
 
 
@@ -25,6 +33,8 @@ def create_task(activity, data: dict, actor) -> dict:
 
     Defaults ``status`` to TASK_TODO and ``position`` to ``len(activity.tasks)``
     when the payload omits them, so a new card lands at the end of the board."""
+    campaign_service.assert_campaign_live(activity)
+
     task = ActivityTask(
         activity_id=activity.id,
         created_by=actor.id,
@@ -59,6 +69,8 @@ def update_task(activity, task_id: str, data: dict, actor) -> dict:
     Applies only the keys whose loaded value is not ``None``, so a PATCH
     carrying just ``status`` cannot blank ``deadline`` or ``assignee_id``
     (T-05-24)."""
+    campaign_service.assert_campaign_live(activity)
+
     task = _task_for(activity, task_id)
 
     for key in ("title", "description", "assignee_id", "deadline", "status", "position"):
@@ -72,6 +84,8 @@ def update_task(activity, task_id: str, data: dict, actor) -> dict:
 
 def delete_task(activity, task_id: str, actor) -> None:
     """Delete one task. Returns None (controller responds 204)."""
+    campaign_service.assert_campaign_live(activity)
+
     task = _task_for(activity, task_id)
     db.session.delete(task)
     db.session.commit()

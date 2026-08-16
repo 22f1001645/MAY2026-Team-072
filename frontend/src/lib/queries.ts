@@ -24,8 +24,12 @@ export const useEvents = (city?: string) =>
 export const useEvent = (id?: string) =>
   useQuery({ queryKey: ['event', id], queryFn: () => api.event(id!), enabled: !!id })
 
-export const useMyRegistrations = () =>
-  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations })
+/** `enabled` exists for the one page a visitor can open without a session
+ *  (`/events/:slug`, OD-3). Firing this without one answers 401, which the
+ *  request pipeline reads as an expired session and redirects to /login —
+ *  so an unguarded call here would bounce the visitor off the public page. */
+export const useMyRegistrations = (enabled = true) =>
+  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled })
 
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
@@ -422,6 +426,14 @@ export const useCampaign = (activityId?: string) =>
     queryFn: () => api.campaign(activityId!),
     enabled: !!activityId,
   })
+
+export const useGenerateSlug = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.generateSlug(activityId!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
 
 export const useFormFields = (activityId?: string) =>
   useQuery({

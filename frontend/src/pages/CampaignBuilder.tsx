@@ -28,6 +28,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { FormFieldRow } from '../components/FormFieldRow'
 import { PresetAccordion } from '../components/PresetAccordion'
+import { RegistrationLinkCard } from '../components/RegistrationLinkCard'
 import { ScheduleRow } from '../components/ScheduleRow'
 import { Loading, ErrorState } from '../components/states'
 import { SectionTitle, Button, Card } from '../components/ui'
@@ -43,6 +44,7 @@ import {
   useCreateFormField,
   useUpdateFormField,
   useDeleteFormField,
+  useGenerateSlug,
 } from '../lib/queries'
 import type { ApiFormField, ApiScheduleItem } from '../lib/types'
 
@@ -61,6 +63,7 @@ export default function CampaignBuilder() {
   const createFieldMut = useCreateFormField(id)
   const updateFieldMut = useUpdateFormField(id)
   const deleteFieldMut = useDeleteFormField(id)
+  const generateSlugMut = useGenerateSlug(id)
 
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
@@ -257,6 +260,16 @@ export default function CampaignBuilder() {
           <p role="alert" className="text-caption text-red-300">
             {(createFieldMut.error as Error).message}
           </p>
+        )}
+
+        {canManage && (
+          <div className="pt-2">
+            <RegistrationLinkCard
+              registrationUrl={campaign?.registrationUrl ?? null}
+              generating={generateSlugMut.isPending}
+              onGenerate={() => generateSlugMut.mutateAsync()}
+            />
+          </div>
         )}
       </Card>
     </div>

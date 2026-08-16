@@ -101,6 +101,24 @@ def _title_slug(title: str, limit: int = SLUG_TITLE_MAX) -> str:
     return slug or "meetup"
 
 
+def _registration_url(slug: str | None) -> str | None:
+    """Assemble the public registration URL for *slug*, or None if unminted.
+
+    The single place the URL shape is written down. D-12 makes that shape a
+    published contract the moment a link is shared, so it is assembled here from
+    ``current_app.config`` and never in the browser — a client that built it
+    from ``window.location.origin`` would produce a different link on every host
+    it happened to be served from.
+    """
+    if not slug:
+        return None
+    public_base = current_app.config.get(
+        "PUBLIC_BASE_URL",
+        current_app.config["CORS_ORIGINS"][0],
+    )
+    return f"{public_base}/events/{slug}"
+
+
 def campaign_state(activity, actor=None) -> dict:
     """Return a campaign-state dict without creating a row.
 
@@ -146,6 +164,10 @@ def campaign_state(activity, actor=None) -> dict:
         "poster": has_poster,
         "registration": has_reg,
     }
+    # The card that copies the link reads this key. Returning the slug alone
+    # would leave the browser to assemble the URL, which is exactly what D-12
+    # forbids — so the read answers with the same URL the mint call returned.
+    base["registration_url"] = _registration_url(base["registration_slug"])
     base["is_meetup_head"] = is_meetup_head(actor, activity)
     # The allowed custom-field types travel with the campaign state so the
     # builder's type picker is populated from constants.FORM_FIELD_TYPES rather
@@ -189,13 +211,9 @@ def generate_slug(activity, actor) -> dict:
             503,
         )
 
-    public_base = current_app.config.get(
-        "PUBLIC_BASE_URL",
-        current_app.config["CORS_ORIGINS"][0],
-    )
     return {
         "registration_slug": campaign.registration_slug,
-        "registration_url": f"{public_base}/events/{campaign.registration_slug}",
+        "registration_url": _registration_url(campaign.registration_slug),
     }
 
 

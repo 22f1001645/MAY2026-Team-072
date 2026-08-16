@@ -31,6 +31,24 @@ import Orgs from './pages/Orgs'
 import OrgProfile from './pages/OrgProfile'
 import AdminSettings from './pages/AdminSettings'
 
+/**
+ * The one anonymously-renderable app path (OD-3, CAMPAIGN-04).
+ *
+ * A registration link is only shareable if a logged-out visitor can open it, so
+ * `/events/<slug>` renders without a session. The pattern matches ONE segment
+ * after `/events/` and nothing else: `/events/<id>/manage`, `/events/<id>/campaign`,
+ * `/events/<id>/checkin`, `/events/<id>/expenses` and anything added later keep
+ * the login redirect. Widening this to a prefix test would hand every organiser
+ * sub-page to anonymous visitors in a single character (T-05-34).
+ *
+ * This decides only what RENDERS. The server decides what is allowed: the
+ * anonymous detail payload omits budget, collaborators and team roster, and the
+ * register endpoint stays behind @auth_required.
+ */
+export function isPublicEventPath(pathname: string): boolean {
+  return /^\/events\/[^/]+$/.test(pathname)
+}
+
 // 3-tier loading: silent (0-600ms), spinner (>600ms), timeout (>8s)
 function useBootLoader(loading: boolean) {
   const [tier, setTier] = useState<0 | 1 | 2>(0)
@@ -93,6 +111,20 @@ function AppShell() {
       </div>
     )
   }
+
+  // A shared registration link renders for a visitor with no session. Minimal
+  // shell — no Layout, because the sidebar is a signed-in surface and its nav
+  // would offer routes this visitor cannot reach.
+  if (!currentUser && isPublicEventPath(location.pathname))
+    return (
+      <div className="min-h-screen bg-onyx px-6 py-8">
+        <div className="mx-auto max-w-6xl">
+          <Routes>
+            <Route path="/events/:id" element={<EventDetail />} />
+          </Routes>
+        </div>
+      </div>
+    )
 
   // Protected routes: no session → bounce to login (remember where we were)
   if (!currentUser)

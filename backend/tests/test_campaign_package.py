@@ -238,6 +238,27 @@ def test_generate_slug_creates_and_returns_url(client, seeds):
     assert body["registration_url"].endswith(slug)
 
 
+def test_campaign_read_carries_the_registration_url(client, seeds):
+    """The campaign read answers with the same URL the mint call returned.
+
+    The copy-link card renders and copies this value. If the read returned only
+    the slug, the browser would have to assemble the URL from its own origin,
+    which is the client-side URL construction D-12 rules out.
+    """
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    before = client.get(f"/api/v1/activities/{aid}/campaign", headers=_auth(tok)).get_json()
+    assert before["registration_url"] is None
+
+    minted = client.post(
+        f"/api/v1/activities/{aid}/campaign/generate-slug", headers=_auth(tok)
+    ).get_json()
+    after = client.get(f"/api/v1/activities/{aid}/campaign", headers=_auth(tok)).get_json()
+    assert after["registration_url"] == minted["registration_url"]
+    assert after["registration_url"].endswith(after["registration_slug"])
+
+
 def test_generate_slug_overwrites(client, seeds):
     """A second call overwrites the stored slug (AC-17)."""
     tok = _token(client, "org@test.com")

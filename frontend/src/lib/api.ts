@@ -735,6 +735,13 @@ export const api = {
   campaign: (activityId: string): Promise<ApiCampaignState> =>
     request<any>(`/activities/${activityId}/campaign`).then(adaptCampaign),
 
+  /** Mint a registration slug. Returns the server's assembled URL — the caller
+   *  copies that value verbatim and never rebuilds it (D-12). */
+  generateSlug: (activityId: string): Promise<{ registrationSlug: string; registrationUrl: string }> =>
+    request<any>(`/activities/${activityId}/campaign/generate-slug`, { method: 'POST' }).then(
+      r => ({ registrationSlug: r.registration_slug, registrationUrl: r.registration_url }),
+    ),
+
   formFields: (activityId: string): Promise<ApiFormField[]> =>
     request<any[]>(`/activities/${activityId}/form-fields`).then(rows =>
       rows.map(adaptFormField),

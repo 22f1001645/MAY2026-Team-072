@@ -212,7 +212,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2)*
 
 - [x] 05-03-PLAN.md — [CHECKPOINT] Campaign state machine decision + Meetup Head push-live gate, its audit trail and the AC-25 negative control (CAMPAIGN-06)
-- [ ] 05-07-PLAN.md — [CHECKPOINT] Frontend: `FormFieldRow`, `RegistrationLinkCard`, and the logged-out visitor path (CAMPAIGN-04, CAMPAIGN-05)
+- [x] 05-07-PLAN.md — [CHECKPOINT] Frontend: `FormFieldRow`, `RegistrationLinkCard`, and the logged-out visitor path (CAMPAIGN-04, CAMPAIGN-05)
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -293,7 +293,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
-| 5. Post-Acceptance Pipeline | 3/11 | In Progress | - |
+| 5. Post-Acceptance Pipeline | 5/11 | In Progress | - |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |
 | 7. Progression Gating | 0/TBD | Not started | - |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |

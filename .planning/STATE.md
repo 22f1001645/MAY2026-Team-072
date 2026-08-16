@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 complete plus 05-03 (push-live gate) from wave 3
+stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 complete plus 05-03 and 05-07 from wave 3
 last_updated: "2026-08-16T00:00:00.000Z"
 last_activity: 2026-08-16
-last_activity_desc: "Completed 05-03 (CAMPAIGN-06): decision option-a two-state draft → live, push_live behind meetup_head_required, AC-25 negative control, server-computed is_meetup_head flag"
+last_activity_desc: "Completed 05-07 (CAMPAIGN-04/05): FormFieldRow, RegistrationLinkCard, the logged-out visitor path; manual checkpoint found and fixed two bugs — a silent clipboard failure and a 500 on every anonymous event view"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 29
-  percent: 55
+  completed_plans: 30
+  percent: 57
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 4/11 (Phase 05 — 05-01, 05-02, 05-03, 05-06 complete; 05-04, 05-05, 05-07..05-11 remain)
-Status: Phase 05 waves 1-2 complete; wave 3 started — 05-03 (push-live gate) done, 05-07 next
-Last activity: 2026-08-16 — Completed 05-03: campaign push-live behind meetup_head_required, idempotent transition, AC-25 negative control, is_meetup_head flag
+Plan: 9/9 (Phase 04); 5/11 (Phase 05 — 05-01, 05-02, 05-03, 05-06, 05-07 complete; 05-04, 05-05, 05-08..05-11 remain)
+Status: Phase 05 waves 1-2 complete; wave 3 complete — 05-03 (push-live gate) and 05-07 (shareable registration link) done
+Last activity: 2026-08-16 — Completed 05-07: FormFieldRow, RegistrationLinkCard copying the server's registration_url, one anonymously renderable path; manual checkpoint fixed a silent clipboard failure and a 500 on every anonymous event view
 
-Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 36%
+Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 45%
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 3
 | Phase 04 P09 | 35min | 3 tasks | 6 files |
 | Phase 05 P06 | 35min | 2 tasks | 6 files |
 | Phase 05 P03 | 25min | 3 tasks | 3 files |
+| Phase 05 P07 | 55min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -166,10 +167,17 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-03: push_live is idempotent by EARLY RETURN before any assignment, not by reassigning equal values — reassignment would look identical in a status assertion while silently moving approved_at forward on every replay (T-05-18)
 - [Phase 5]: 05-03: campaign_state gained a server-computed is_meetup_head key, because manageableActivityIds is true for every crew member and cannot express Meetup Head identity; the flag is advisory rendering data and meetup_head_required is the enforcement (T-05-16)
 - [Phase 5]: 05-03: the AC-25 negative control asserts the persisted CampaignPackage row after the 403, not only the status code — a refusal that still wrote approved_by would pass a status-only assertion; the admin case is asserted alongside crew to prove there is no admin short-circuit
+- [Phase 5]: 05-07: campaign_state gained registration_url from the same _registration_url helper generate_slug uses — the read returned only the slug, which would have forced the browser to assemble the URL and broken D-12 on the first page load
+- [Phase 5]: 05-07: campaign_state gained form_field_types from constants.FORM_FIELD_TYPES so the type picker has a server source; a second client-side copy of the allowed set is the drift the no-por-literals gate exists to prevent
+- [Phase 5]: 05-07: duplicate_label renders inline under the offending input and does NOT revert the typed value; every other rejection reverts and toasts — a toast cannot say which row collided, and reverting deletes the text the organiser must edit
+- [Phase 5]: 05-07: session-only queries (useMyRegistrations, EventChat) are gated on a session — their 401 enters the shared refresh path, is read as expiry, and would have redirected the anonymous visitor off the public page the instant it rendered
+- [Phase 5]: 05-07: the anonymous event description reads activity.description, the same column authenticated to_dict(detail=True) uses — routing through Proposal 500'd on every real event since 76ca505, invisible because the test fixture seeds activities without a proposal row
+- [Phase 5]: 05-07: a refused clipboard write is reported to the organiser rather than swallowed — an unhandled rejection left them believing they held a link they did not have
 
 ### Pending Todos
 
 - **No `03-VERIFICATION.md`** — Phase 1 and Phase 2 both have one; Phase 3 does not. Worth writing once manual UAT closes out, for parity with the other phases.
+- **No regenerate affordance on `RegistrationLinkCard`** (surfaced by the 05-07 checkpoint, step 7). Once a slug exists the card renders only Copy — 05-07's acceptance criteria only covered the null-URL state, so the checkpoint script assumed a capability the task was never asked to build. The backend rotation is correct and verified at the API layer (second mint invalidates the first, old slug 404s). A future plan should add the button plus the "this breaks every link already shared" confirmation it needs.
 
 ### Blockers/Concerns
 
@@ -184,7 +192,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-08-16T00:00:00.000Z
-Stopped at: Completed 05-03-PLAN.md (see 05-03-SUMMARY.md); Phase 05 waves 1-2 done plus 05-03
+Stopped at: Completed 05-07-PLAN.md (see 05-07-SUMMARY.md); Phase 05 waves 1-3 done
 Resume file: None
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 3 remainder (05-07), then 05-04 — `assert_campaign_live` is now reachable because `campaign.status == "live"` can finally be produced
+Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 4 (05-04 Kanban task API — `assert_campaign_live` is reachable now that `campaign.status == "live"` can be produced, and 05-08 PipelineStepper/PushLiveGate, which reads the `useCampaign` query 05-07 introduced)

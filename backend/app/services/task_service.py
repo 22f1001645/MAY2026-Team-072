@@ -1,11 +1,11 @@
 """Task service — CRUD for the activity Kanban board (TEAM-02).
 
 Design decisions, mirroring schedule_service (plan 05-01):
-- ``list_tasks`` reads the ordered backref; no ``.order_by()`` is added here.
-  The ordering ``(position, created_at, id)`` is declared on the backref itself
-  (models/__init__.py:560-567). A second ``.order_by()`` here would shadow the
-  declared one, would drop the tiebreak, and would put AC-31/AC-32's correctness
-  in two places.
+- ``list_tasks`` reads the ordered backref and adds no sort of its own. The
+  ordering ``(position, created_at, id)`` is declared on the backref itself
+  (models/__init__.py:560-567). A second sort here would shadow the declared
+  one, would drop the tiebreak, and would put AC-31/AC-32's correctness in two
+  places.
 - Services are the only place ``db.session.commit()`` is called; controllers do
   not open a database session.
 - Every function starts with ``campaign_service.assert_campaign_live`` — the

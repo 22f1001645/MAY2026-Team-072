@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './api'
+import type { ApiFormField } from './types'
 
 /* TanStack Query hooks — server cache, retries, and invalidation on mutation
  * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
@@ -411,5 +412,46 @@ export const useDeleteScheduleItem = (activityId?: string) => {
   return useMutation({
     mutationFn: (itemId: string) => api.deleteScheduleItem(activityId!, itemId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', activityId] }),
+  })
+}
+
+// Phase 5: Campaign package + custom registration fields (CAMPAIGN-04/05)
+export const useCampaign = (activityId?: string) =>
+  useQuery({
+    queryKey: ['campaign', activityId],
+    queryFn: () => api.campaign(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useFormFields = (activityId?: string) =>
+  useQuery({
+    queryKey: ['form-fields', activityId],
+    queryFn: () => api.formFields(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useCreateFormField = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (field: { label: string; fieldType: string; options?: string[]; required?: boolean; position?: number }) =>
+      api.createFormField(activityId!, field),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
+  })
+}
+
+export const useUpdateFormField = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { fieldId: string; patch: Partial<ApiFormField> }) =>
+      api.updateFormField(activityId!, v.fieldId, v.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
+  })
+}
+
+export const useDeleteFormField = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (fieldId: string) => api.deleteFormField(activityId!, fieldId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
   })
 }

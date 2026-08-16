@@ -261,3 +261,38 @@ export interface ApiSchedulePreset {
   name: string
   items: Array<{ timeBlock: string; title: string }>
 }
+
+/** One organiser-defined custom registration field (CAMPAIGN-05). The wire
+ *  spelling `field_type` is adapted once in api.ts, as with every other type
+ *  in this module. */
+export interface ApiFormField {
+  id: string
+  activityId: string
+  label: string
+  fieldType: string
+  options: string[]
+  required: boolean
+  position: number
+}
+
+/** The campaign package's state as the server reports it (CAMPAIGN-04/06).
+ *  `registrationUrl` is the server's assembled link — the browser never builds
+ *  it, because the URL shape is a published contract (D-12). */
+export interface ApiCampaignState {
+  id: string | null
+  activityId: string
+  status: string
+  mailSubject: string | null
+  mailBody: string | null
+  posterName: string | null
+  registrationSlug: string | null
+  registrationUrl: string | null
+  isMeetupHead: boolean
+  formFieldTypes: string[]
+  completeness: {
+    schedule: boolean
+    mail: boolean
+    poster: boolean
+    registration: boolean
+  }
+}

@@ -377,18 +377,23 @@ export function Select({
   value,
   onChange,
   options,
-  className
+  className,
+  ariaLabel,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
   options: { label: string; value: string }[]
   className?: string
+  /** Accessible name for a select with no visible <label> — required wherever
+   *  the control sits in a repeating row (UI-SPEC §7). */
+  ariaLabel?: string
 }) {
   return (
     <div className={cx("relative", className)}>
       <select
         value={value}
         onChange={onChange}
+        aria-label={ariaLabel}
         className="w-full appearance-none rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 pr-10 text-[14px] text-offwhite focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40"
       >
         {options.map((opt) => (

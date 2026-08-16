@@ -21,6 +21,7 @@ from ..constants import (
     CAMPAIGN_DRAFT,
     CAMPAIGN_LIVE,
     FORM_FIELD_TEXT,
+    FORM_FIELD_TYPES,
     SLUG_MAX_ATTEMPTS,
     SLUG_RANDOM_BYTES,
     SLUG_TITLE_MAX,
@@ -146,6 +147,11 @@ def campaign_state(activity, actor=None) -> dict:
         "registration": has_reg,
     }
     base["is_meetup_head"] = is_meetup_head(actor, activity)
+    # The allowed custom-field types travel with the campaign state so the
+    # builder's type picker is populated from constants.FORM_FIELD_TYPES rather
+    # than from a second list living in the browser. FormFieldSchema validates
+    # against the same tuple, so the picker and the 422 cannot disagree.
+    base["form_field_types"] = list(FORM_FIELD_TYPES)
     return base
 
 

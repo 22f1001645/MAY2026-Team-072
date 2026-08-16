@@ -201,6 +201,23 @@ def test_campaign_read_returns_draft_without_creating_row(client, seeds):
     assert body["registration_slug"] is None
 
 
+def test_campaign_read_carries_the_allowed_form_field_types(client, seeds):
+    """The campaign payload names the allowed custom-field types.
+
+    The campaign builder's type picker is populated from this key. Without it
+    the browser would need its own copy of FORM_FIELD_TYPES, which is the kind
+    of second list that drifts away from the schema's 422 and is exactly what
+    the frontend's no-por-literals gate exists to prevent.
+    """
+    from app.constants import FORM_FIELD_TYPES
+
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    resp = client.get(f"/api/v1/activities/{aid}/campaign", headers=_auth(tok))
+    assert resp.status_code == 200
+    assert resp.get_json()["form_field_types"] == list(FORM_FIELD_TYPES)
+
+
 def test_generate_slug_creates_and_returns_url(client, seeds):
     """POST generate-slug stores a unique slug and returns registration_url (AC-15)."""
     tok = _token(client, "org@test.com")

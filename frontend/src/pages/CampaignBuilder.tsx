@@ -26,6 +26,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { FormFieldRow } from '../components/FormFieldRow'
 import { PresetAccordion } from '../components/PresetAccordion'
 import { ScheduleRow } from '../components/ScheduleRow'
 import { Loading, ErrorState } from '../components/states'
@@ -37,8 +38,13 @@ import {
   useCreateScheduleItem,
   useUpdateScheduleItem,
   useDeleteScheduleItem,
+  useCampaign,
+  useFormFields,
+  useCreateFormField,
+  useUpdateFormField,
+  useDeleteFormField,
 } from '../lib/queries'
-import type { ApiScheduleItem } from '../lib/types'
+import type { ApiFormField, ApiScheduleItem } from '../lib/types'
 
 export default function CampaignBuilder() {
   const { id } = useParams<{ id: string }>()
@@ -50,10 +56,22 @@ export default function CampaignBuilder() {
   const updateMut = useUpdateScheduleItem(id)
   const deleteMut = useDeleteScheduleItem(id)
 
+  const { data: campaign } = useCampaign(id)
+  const { data: formFields = [] } = useFormFields(id)
+  const createFieldMut = useCreateFormField(id)
+  const updateFieldMut = useUpdateFormField(id)
+  const deleteFieldMut = useDeleteFormField(id)
+
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
+  const [newFieldLabel, setNewFieldLabel] = useState('')
+  const [addingField, setAddingField] = useState(false)
 
   const canManage = capabilities?.manageableActivityIds?.includes(id!)
+  // Registration fields freeze once the campaign is published; the server's 409
+  // campaign_live is the actual control (assert_editable), this only removes
+  // the affordance.
+  const registrationLocked = !canManage || campaign?.status === 'live'
 
   if (eventLoading || scheduleLoading) return <Loading label="Loading campaign builder…" />
   if (eventError) return <ErrorState error={eventErr} />
@@ -77,6 +95,20 @@ export default function CampaignBuilder() {
     for (const preset of items) {
       await createMut.mutateAsync({ title: preset.title, timeBlock: preset.timeBlock })
     }
+  }
+
+  /** A new field starts as the first type the server named — the browser has no
+   *  opinion about which types exist, so it cannot have a default of its own. */
+  const handleAddField = () => {
+    const label = newFieldLabel.trim()
+    const fieldType = campaign?.formFieldTypes?.[0]
+    if (!label || !fieldType) return
+    createFieldMut.mutate({ label, fieldType, position: formFields.length }, {
+      onSuccess: () => {
+        setNewFieldLabel('')
+        setAddingField(false)
+      },
+    })
   }
 
   return (
@@ -159,6 +191,72 @@ export default function CampaignBuilder() {
               Cancel
             </Button>
           </div>
+        )}
+      </Card>
+
+      {/* Registration — custom form fields (CAMPAIGN-05) */}
+      <Card className="p-6 space-y-3">
+        <h2 className="text-[15px] font-semibold text-offwhite">Registration</h2>
+        <p className="text-[13px] text-graytext-light">
+          Full name and contact are always collected. Add anything else you need
+          from registrants below.
+        </p>
+
+        <div>
+          {(formFields as ApiFormField[]).map(field => (
+            <FormFieldRow
+              key={field.id}
+              field={field}
+              fieldTypes={campaign?.formFieldTypes ?? []}
+              disabled={registrationLocked}
+              onUpdate={(fieldId, patch) => updateFieldMut.mutateAsync({ fieldId, patch })}
+              onDelete={fieldId => deleteFieldMut.mutate(fieldId)}
+            />
+          ))}
+        </div>
+
+        {!registrationLocked && !addingField && (
+          <button
+            id="campaign-add-form-field"
+            onClick={() => setAddingField(true)}
+            className="mt-2 w-full rounded-lg border border-dashed border-white/20 py-2 text-[13px] text-graytext-mid hover:border-teal/50 hover:text-teal transition-colors"
+          >
+            + Add field
+          </button>
+        )}
+
+        {!registrationLocked && addingField && (
+          <div className="mt-2 flex gap-2">
+            <input
+              id="campaign-new-field-label"
+              autoFocus
+              value={newFieldLabel}
+              onChange={e => setNewFieldLabel(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddField()}
+              placeholder="Field label…"
+              className="flex-1 rounded-lg border border-white/15 bg-white/6 px-3 py-2 text-[13px] text-offwhite placeholder:text-graytext-mid outline-none focus:border-teal/50"
+            />
+            <Button
+              id="campaign-add-field-submit"
+              onClick={handleAddField}
+              disabled={createFieldMut.isPending}
+            >
+              Add
+            </Button>
+            <Button
+              variant="secondary"
+              id="campaign-add-field-cancel"
+              onClick={() => { setAddingField(false); setNewFieldLabel('') }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+
+        {createFieldMut.isError && (
+          <p role="alert" className="text-caption text-red-300">
+            {(createFieldMut.error as Error).message}
+          </p>
         )}
       </Card>
     </div>

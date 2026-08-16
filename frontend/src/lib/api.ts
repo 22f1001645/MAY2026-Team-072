@@ -1,5 +1,7 @@
 import type {
   Account,
+  ApiCampaignState,
+  ApiFormField,
   ApiSchedulePreset,
   BrandKit,
   EkatvaEvent,
@@ -362,6 +364,48 @@ const SCHEDULE_WIRE_KEYS: Record<string, string> = {
   ownerLabel: 'owner_label',
 }
 
+/** camelCase → wire name for a custom registration field (CAMPAIGN-05). */
+const FORM_FIELD_WIRE_KEYS: Record<string, string> = {
+  label: 'label',
+  fieldType: 'field_type',
+  options: 'options',
+  required: 'required',
+  position: 'position',
+}
+
+function adaptFormField(f: any): ApiFormField {
+  return {
+    id: f.id,
+    activityId: f.activity_id,
+    label: f.label,
+    fieldType: f.field_type,
+    options: f.options ?? [],
+    required: !!f.required,
+    position: f.position,
+  }
+}
+
+function adaptCampaign(c: any): ApiCampaignState {
+  return {
+    id: c.id ?? null,
+    activityId: c.activity_id,
+    status: c.status,
+    mailSubject: c.mail_subject ?? null,
+    mailBody: c.mail_body ?? null,
+    posterName: c.poster_name ?? null,
+    registrationSlug: c.registration_slug ?? null,
+    registrationUrl: c.registration_url ?? null,
+    isMeetupHead: !!c.is_meetup_head,
+    formFieldTypes: c.form_field_types ?? [],
+    completeness: {
+      schedule: !!c.completeness?.schedule,
+      mail: !!c.completeness?.mail,
+      poster: !!c.completeness?.poster,
+      registration: !!c.completeness?.registration,
+    },
+  }
+}
+
 export const api = {
   // Auth (Phase 2 — cookie session)
   login: async (email: string, password: string) => {
@@ -684,4 +728,49 @@ export const api = {
         items: (p.items ?? []).map((i: any) => ({ timeBlock: i.time_block, title: i.title })),
       })),
     ),
+
+  // Phase 5: Campaign package + custom registration fields (CAMPAIGN-04/05)
+  /** The campaign state. `registrationUrl` comes straight off this payload and
+   *  is never assembled here — the URL shape belongs to the server (D-12). */
+  campaign: (activityId: string): Promise<ApiCampaignState> =>
+    request<any>(`/activities/${activityId}/campaign`).then(adaptCampaign),
+
+  formFields: (activityId: string): Promise<ApiFormField[]> =>
+    request<any[]>(`/activities/${activityId}/form-fields`).then(rows =>
+      rows.map(adaptFormField),
+    ),
+  createFormField: (
+    activityId: string,
+    field: { label: string; fieldType: string; options?: string[]; required?: boolean; position?: number },
+  ): Promise<ApiFormField> =>
+    request<any>(`/activities/${activityId}/form-fields`, {
+      method: 'POST',
+      body: JSON.stringify({
+        label: field.label,
+        field_type: field.fieldType,
+        options: field.options ?? [],
+        required: field.required ?? false,
+        position: field.position ?? 0,
+      }),
+    }).then(adaptFormField),
+  /** Sends only the keys the caller supplied, for the same reason
+   *  updateScheduleItem does: a padded body turns every edit into a full-row
+   *  replace and lets a blur-save in flight clobber a concurrent change. */
+  updateFormField: (
+    activityId: string,
+    fieldId: string,
+    patch: Partial<Pick<ApiFormField, 'label' | 'fieldType' | 'options' | 'required' | 'position'>>,
+  ): Promise<ApiFormField> => {
+    const wire: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(patch)) {
+      const wireKey = FORM_FIELD_WIRE_KEYS[key]
+      if (wireKey && value !== undefined) wire[wireKey] = value
+    }
+    return request<any>(`/activities/${activityId}/form-fields/${fieldId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(wire),
+    }).then(adaptFormField)
+  },
+  deleteFormField: (activityId: string, fieldId: string) =>
+    request<void>(`/activities/${activityId}/form-fields/${fieldId}`, { method: 'DELETE' }),
 }

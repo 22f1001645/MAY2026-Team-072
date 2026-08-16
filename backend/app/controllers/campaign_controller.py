@@ -23,8 +23,12 @@ campaign_bp = Blueprint("campaign", __name__, url_prefix="/api/v1")
 @campaign_bp.get("/activities/<activity_id>/campaign")
 @can_manage_activity_required
 def get_campaign(activity_id):
-    """Return the campaign state without creating a row."""
-    return jsonify(campaign_service.campaign_state(g.activity)), 200
+    """Return the campaign state without creating a row.
+
+    Passes the acting user so the payload can carry a server-computed
+    ``is_meetup_head`` — the flag D-07's disabled push-live button renders from.
+    """
+    return jsonify(campaign_service.campaign_state(g.activity, g.current_user)), 200
 
 
 @campaign_bp.post("/activities/<activity_id>/campaign/generate-slug")

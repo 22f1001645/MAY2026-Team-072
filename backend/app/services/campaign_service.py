@@ -28,6 +28,7 @@ from ..constants import (
 from ..errors import ApiError
 from ..extensions import db
 from ..models import CampaignPackage, RegistrationFormField
+from ..rbac import is_meetup_head
 from ..repositories.repos import AuditRepository
 
 
@@ -99,13 +100,21 @@ def _title_slug(title: str, limit: int = SLUG_TITLE_MAX) -> str:
     return slug or "meetup"
 
 
-def campaign_state(activity) -> dict:
+def campaign_state(activity, actor=None) -> dict:
     """Return a campaign-state dict without creating a row.
 
     When no campaign row exists, returns a synthetic dict with the same keys,
     ``status`` set to ``CAMPAIGN_DRAFT``, every other value ``None``, and a
     ``completeness`` sub-dict. This is what plan 05-08's stepper reads, so the
     completeness rule lives on the server and is not recomputed in the browser.
+
+    ``is_meetup_head`` is computed here from the same ``rbac.is_meetup_head``
+    predicate that backs the push-live route guard, so the button's disabled
+    state and the server's 403 cannot disagree. The frontend has no way to
+    derive it: ``capabilities.manageableActivityIds`` answers "may this person
+    manage this activity", which is true for every crew member. The flag is a
+    rendering convenience only — ``meetup_head_required`` is the enforcement,
+    and it refuses regardless of what the client believes (threat T-05-16).
     """
     campaign = activity.campaign
     if campaign is not None:
@@ -136,6 +145,7 @@ def campaign_state(activity) -> dict:
         "poster": has_poster,
         "registration": has_reg,
     }
+    base["is_meetup_head"] = is_meetup_head(actor, activity)
     return base
 
 

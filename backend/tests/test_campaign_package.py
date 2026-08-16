@@ -37,6 +37,16 @@ def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def _add_schedule_item(activity_id, title="Arrival & icebreaker"):
+    """Give an activity one schedule item so push-live's unlock check passes."""
+    from app.models import EventScheduleItem
+
+    item = EventScheduleItem(activity_id=activity_id, position=0, title=title)
+    _db.session.add(item)
+    _db.session.commit()
+    return item
+
+
 def _seed_activity(db_session, org, organiser):
     """Create a minimal Activity directly without a Proposal row."""
     from datetime import datetime, UTC, timedelta
@@ -127,13 +137,46 @@ def seeds(app):
             role="student",
         )
         _db.session.add(student)
+
+        # A crew member on the SAME activity who is NOT the Meetup Head. This is
+        # AC-25's subject: can_manage_activity says yes (there is a team row), so
+        # every campaign route except push-live is open to them. Only
+        # is_meetup_head separates them from the organiser above.
+        crew = User(
+            name="Crew",
+            email="crew@test.com",
+            password_hash=generate_password_hash("testpass"),
+            role="student",
+        )
+        # An admin who is deliberately NOT on the team. can_manage_activity has an
+        # admin short-circuit; is_meetup_head has none, and this user proves it.
+        admin = User(
+            name="Admin",
+            email="admin@test.com",
+            password_hash=generate_password_hash("testpass"),
+            role="admin",
+        )
+        _db.session.add_all([crew, admin])
+        _db.session.flush()
+
+        _db.session.add(
+            ActivityTeamMember(
+                activity_id=activity.id,
+                user_id=crew.id,
+                role="Designer",
+                added_by=organiser.id,
+            )
+        )
         _db.session.commit()
 
         yield {
             "organiser": organiser,
+            "organiser_id": organiser.id,
             "activity_id": activity.id,
             "org": org,
             "student": student,
+            "crew": crew,
+            "admin": admin,
         }
 
 
@@ -383,3 +426,61 @@ def test_slug_register_requires_login(client, seeds):
 
     r2 = client.post(f"/api/v1/events/{slug}/register", json={})
     assert r2.status_code == 401
+
+
+# --------------------------------------------------------------------------- #
+# Plan 05-03 Task 2: push-live (CAMPAIGN-06, AC-24 / AC-26)                    #
+# --------------------------------------------------------------------------- #
+
+def _push_live(client, token, activity_id):
+    return client.post(
+        f"/api/v1/activities/{activity_id}/campaign/push-live", headers=_auth(token)
+    )
+
+
+def _campaign(client, token, activity_id):
+    return client.get(
+        f"/api/v1/activities/{activity_id}/campaign", headers=_auth(token)
+    ).get_json()
+
+
+def test_push_live_sets_audit_fields(client, seeds):
+    """The Meetup Head publishes: status live plus all three approval fields (AC-24)."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    _add_schedule_item(aid)
+
+    r = _push_live(client, tok, aid)
+    assert r.status_code == 200, r.get_data(as_text=True)
+    body = r.get_json()
+    assert body["status"] == "live"
+    assert body["approved_by"] == seeds["organiser_id"]
+    assert body["approved_at"] is not None
+    assert body["pushed_live_at"] is not None
+
+
+def test_push_live_idempotent(client, seeds):
+    """A second push-live is a no-op: 200, still live, timestamps unchanged (AC-26)."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    _add_schedule_item(aid)
+
+    first = _push_live(client, tok, aid).get_json()
+    second_resp = _push_live(client, tok, aid)
+    assert second_resp.status_code == 200
+    second = second_resp.get_json()
+    assert second["status"] == "live"
+    assert second["approved_at"] == first["approved_at"]
+    assert second["pushed_live_at"] == first["pushed_live_at"]
+    assert second["approved_by"] == first["approved_by"]
+
+
+def test_push_live_schedule_empty(client, seeds):
+    """No schedule items → 400/schedule_empty and the campaign stays draft."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    r = _push_live(client, tok, aid)
+    assert r.status_code == 400, r.get_data(as_text=True)
+    assert r.get_json()["code"] == "schedule_empty"
+    assert _campaign(client, tok, aid)["status"] == "draft"

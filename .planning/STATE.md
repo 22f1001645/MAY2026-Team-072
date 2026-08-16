@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-2 complete plus 05-03 and 05-07 from wave 3
-last_updated: "2026-08-16T00:00:00.000Z"
+stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-3 complete plus 05-04 from wave 4
+last_updated: "2026-08-16T12:00:00.000Z"
 last_activity: 2026-08-16
-last_activity_desc: "Completed 05-07 (CAMPAIGN-04/05): FormFieldRow, RegistrationLinkCard, the logged-out visitor path; manual checkpoint found and fixed two bugs — a silent clipboard failure and a 500 on every anonymous event view"
+last_activity_desc: "Completed 05-04 (TEAM-01/02): server-persisted Kanban task board behind can_manage_activity, gated on assert_campaign_live for reads as well as writes, with the equal-position ordering tiebreak proved against the model backref"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 30
-  percent: 57
+  completed_plans: 31
+  percent: 59
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 5/11 (Phase 05 — 05-01, 05-02, 05-03, 05-06, 05-07 complete; 05-04, 05-05, 05-08..05-11 remain)
-Status: Phase 05 waves 1-2 complete; wave 3 complete — 05-03 (push-live gate) and 05-07 (shareable registration link) done
-Last activity: 2026-08-16 — Completed 05-07: FormFieldRow, RegistrationLinkCard copying the server's registration_url, one anonymously renderable path; manual checkpoint fixed a silent clipboard failure and a 500 on every anonymous event view
+Plan: 9/9 (Phase 04); 6/11 (Phase 05 — 05-01, 05-02, 05-03, 05-04, 05-06, 05-07 complete; 05-05, 05-08..05-11 remain)
+Status: Phase 05 waves 1-3 complete; wave 4 in progress — 05-04 (Kanban task API) done, 05-08 remains
+Last activity: 2026-08-16 — Completed 05-04: task_service/task_controller/TaskSchema behind can_manage_activity, every function gated on assert_campaign_live, and backend/tests/test_activity_tasks.py as the file 05-05 extends
 
-Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 45%
+Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 55%
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 4
 | Phase 05 P06 | 35min | 2 tasks | 6 files |
 | Phase 05 P03 | 25min | 3 tasks | 3 files |
 | Phase 05 P07 | 55min | 3 tasks | 15 files |
+| Phase 05 P04 | 30min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,11 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-07: session-only queries (useMyRegistrations, EventChat) are gated on a session — their 401 enters the shared refresh path, is read as expiry, and would have redirected the anonymous visitor off the public page the instant it rendered
 - [Phase 5]: 05-07: the anonymous event description reads activity.description, the same column authenticated to_dict(detail=True) uses — routing through Proposal 500'd on every real event since 76ca505, invisible because the test fixture seeds activities without a proposal row
 - [Phase 5]: 05-07: a refused clipboard write is reported to the organiser rather than swallowed — an unhandled rejection left them believing they held a link they did not have
+- [Phase 5]: 05-04: assert_campaign_live guards the task READ as well as the three writes — a workspace readable before publication is the disclosure T-05-21 names, and a write-only gate would still have passed a status-code assertion
+- [Phase 5]: 05-04: TaskPatchSchema subclasses TaskSchema and overrides only `title`, so the create and patch paths cannot drift about which statuses are legal
+- [Phase 5]: 05-04: the equal-position tiebreak test inserts B before A at the same position, the order a position-only sort gets wrong — it proves the model backref's three-element order_by tuple rather than any code 05-04 wrote
+- [Phase 5]: 05-04: the invalid-status test asserts the persisted row after the 422, not only the status code; a response-only assertion passes even when the bad value was written and echoed back
+- [Phase 5]: 05-04: task CRUD writes no AuditLog rows — the audit table records state-changing governance actions, and a card moving between columns is ordinary crew working state that would bury the approval trail
 
 ### Pending Todos
 
@@ -191,8 +197,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-16T00:00:00.000Z
-Stopped at: Completed 05-07-PLAN.md (see 05-07-SUMMARY.md); Phase 05 waves 1-3 done
+Last session: 2026-08-16T12:00:00.000Z
+Stopped at: Completed 05-04-PLAN.md (see 05-04-SUMMARY.md); Phase 05 waves 1-3 done plus 05-04 from wave 4
 Resume file: None
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`; execute Phase 05 wave 4 (05-04 Kanban task API — `assert_campaign_live` is reachable now that `campaign.status == "live"` can be produced, and 05-08 PipelineStepper/PushLiveGate, which reads the `useCampaign` query 05-07 introduced)
+Next: finish Phase 04 manual UAT via `04-UAT.md`; execute 05-08 (PipelineStepper/PushLiveGate, reading the `useCampaign` query 05-07 introduced), then wave 5 — 05-05 extends `backend/tests/test_activity_tasks.py` and 05-09 retires the mock array against the task routes 05-04 shipped

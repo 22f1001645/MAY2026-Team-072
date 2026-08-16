@@ -216,7 +216,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 05-04-PLAN.md — Kanban task API: CRUD, the `assert_campaign_live` gate, and the deterministic ordering tiebreak (TEAM-01, TEAM-02)
+- [x] 05-04-PLAN.md — Kanban task API: CRUD, the `assert_campaign_live` gate, and the deterministic ordering tiebreak (TEAM-01, TEAM-02)
 - [ ] 05-08-PLAN.md — Frontend: `PipelineStepper` + `PushLiveGate` with the server-supplied Meetup Head flag (CAMPAIGN-06)
 
 **Wave 5** *(blocked on Wave 4)*

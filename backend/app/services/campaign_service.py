@@ -7,9 +7,12 @@ writing an inline ``campaign.status`` comparison — there would be no pattern
 to copy and the test for the first guard would immediately fail.
 
 Extended by plan 05-02: slug minting, campaign singleton accessor, custom
-form-field CRUD, and the registration form shape (CAMPAIGN-04, CAMPAIGN-05)."""
+form-field CRUD, and the registration form shape (CAMPAIGN-04, CAMPAIGN-05).
+
+Extended by plan 05-03: ``push_live`` — the draft → live transition (CAMPAIGN-06)."""
 import re
 import secrets
+from datetime import UTC, datetime
 
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
@@ -25,6 +28,7 @@ from ..constants import (
 from ..errors import ApiError
 from ..extensions import db
 from ..models import CampaignPackage, RegistrationFormField
+from ..repositories.repos import AuditRepository
 
 
 # --------------------------------------------------------------------------- #
@@ -274,3 +278,50 @@ def registration_form(activity) -> dict:
         ],
         "custom_fields": list_form_fields(activity),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Plan 05-03: push live (CAMPAIGN-06)                                         #
+# --------------------------------------------------------------------------- #
+
+def push_live(activity, actor) -> dict:
+    """Publish *activity*'s campaign: draft → live, once and for all (AC-24).
+
+    Phase 5 ships a two-state machine, ``draft → live``. ``CAMPAIGN_PENDING_APPROVAL``
+    stays declared-but-unused (as ``EXPENSE_DRAFT`` already is) and is never
+    written to a row — no acceptance criterion makes it reachable, and campaign
+    status values persist, so an unused value costs nothing while an unreachable
+    one written into rows would cost a data migration to remove.
+
+    The Meetup Head gate is the route decorator ``meetup_head_required``, not a
+    check here: this function trusts its caller's authorization exactly as every
+    other service in this module does.
+
+    Idempotent by early return (AC-26). An already-live campaign is returned
+    untouched and uncommitted, so replaying the call cannot re-stamp the approval
+    trail with a later time or a different approver (threat T-05-18).
+
+    Emptiness is ``schedule_service.assert_schedule_non_empty`` — the same helper
+    the unlock-check route calls, so AC-04's rule keeps exactly one definition.
+    """
+    from . import schedule_service  # local: schedule_service imports this module
+
+    schedule_service.assert_schedule_non_empty(activity)
+    campaign = _get_or_create_campaign(activity)
+
+    if campaign.status == CAMPAIGN_LIVE:
+        return campaign.to_dict()
+
+    # datetime.now(UTC), not the deprecated utcnow() — the same aware-UTC value
+    # models._utcnow already stamps every created_at with.
+    now = datetime.now(UTC)
+    campaign.status = CAMPAIGN_LIVE
+    campaign.approved_by = actor.id
+    campaign.approved_at = now
+    campaign.pushed_live_at = now
+    AuditRepository.record(
+        "campaign", campaign.id, "campaign_pushed_live", actor,
+        note=activity.id,
+    )
+    db.session.commit()
+    return campaign.to_dict()

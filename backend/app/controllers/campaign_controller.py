@@ -9,7 +9,7 @@ Route shape follows schedule_controller.py (plan 05-01):
 """
 from flask import Blueprint, g, jsonify, request
 
-from ..rbac import auth_required, can_manage_activity_required
+from ..rbac import auth_required, can_manage_activity_required, meetup_head_required
 from ..schemas import FormFieldPatchSchema, FormFieldSchema
 from ..services import campaign_service
 
@@ -32,6 +32,27 @@ def get_campaign(activity_id):
 def generate_slug(activity_id):
     """Mint a unique registration slug and return it with the full URL (AC-15)."""
     result = campaign_service.generate_slug(g.activity, g.current_user)
+    return jsonify(result), 200
+
+
+# --------------------------------------------------------------------------- #
+# Push live (CAMPAIGN-06)                                                     #
+# --------------------------------------------------------------------------- #
+
+@campaign_bp.post("/activities/<activity_id>/campaign/push-live")
+@meetup_head_required
+def push_live(activity_id):
+    """Publish the campaign — the only route in Phase 5 behind this guard (AC-24).
+
+    ``meetup_head_required`` is ``activity_scoped(is_meetup_head)``. It carries
+    no admin short-circuit and no ``can_manage_activity`` fallback, and neither
+    should ever be added here as a convenience: an admin's power is to REASSIGN
+    the Meetup Head (PROPOSAL-05), which is a different power from acting as one.
+    Every other campaign route in this module is deliberately the looser
+    ``can_manage_activity_required`` — any crew member may build the package;
+    only the one accountable person may ship it.
+    """
+    result = campaign_service.push_live(g.activity, g.current_user)
     return jsonify(result), 200
 
 

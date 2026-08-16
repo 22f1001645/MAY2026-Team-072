@@ -100,6 +100,29 @@ describe('RegistrationLinkCard', () => {
     expect(await screen.findByText('Link copied!')).toBeInTheDocument()
   })
 
+  /* A clipboard write can be refused — insecure context, browser policy, a
+   * revoked permission, a headless browser. Before this was caught the promise
+   * rejected into nothing: no success toast, no error toast, no sign at all
+   * that the click had failed. The organiser walks away believing they hold a
+   * link they do not have, which is the worst outcome this card can produce. */
+  it('says so when the browser refuses the clipboard write', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.fn().mockRejectedValue(new Error('NotAllowedError'))
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    })
+    renderCard()
+
+    await user.click(screen.getByLabelText('Copy registration link'))
+
+    expect(
+      await screen.findByText('Could not copy automatically. Select and copy the link manually.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Link copied!')).not.toBeInTheDocument()
+  })
+
   /* Source-level: the component may not rebuild the URL it was handed. A
    * client-assembled link is right on localhost and wrong everywhere else, and
    * the failure only shows up after the link has already been shared (D-12). */

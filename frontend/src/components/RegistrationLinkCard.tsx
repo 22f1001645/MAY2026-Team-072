@@ -37,8 +37,12 @@ export function RegistrationLinkCard({
 
   const handleCopy = async () => {
     if (!registrationUrl) return
-    await navigator.clipboard.writeText(registrationUrl)
-    addToast('Link copied!', 'success')
+    try {
+      await navigator.clipboard.writeText(registrationUrl)
+      addToast('Link copied!', 'success')
+    } catch {
+      addToast('Could not copy automatically. Select and copy the link manually.', 'error')
+    }
   }
 
   const handleGenerate = async () => {

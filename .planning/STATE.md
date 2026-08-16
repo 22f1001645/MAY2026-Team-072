@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Phase 04 complete, manual UAT deferred (04-UAT.md); Phase 05 waves 1-3 complete plus 05-04 from wave 4
-last_updated: "2026-08-16T12:00:00.000Z"
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-08-16T07:31:24.387Z"
 last_activity: 2026-08-16
-last_activity_desc: "Completed 05-04 (TEAM-01/02): server-persisted Kanban task board behind can_manage_activity, gated on assert_campaign_live for reads as well as writes, with the equal-position ordering tiebreak proved against the model backref"
+last_activity_desc: "Completed 05-08: the campaign builder now shows five server-computed pipeline steps and gates publication behind a confirmed, role-explicit push-live control"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 31
-  percent: 59
+  completed_plans: 32
+  percent: 89
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 6/11 (Phase 05 — 05-01, 05-02, 05-03, 05-04, 05-06, 05-07 complete; 05-05, 05-08..05-11 remain)
-Status: Phase 05 waves 1-3 complete; wave 4 in progress — 05-04 (Kanban task API) done, 05-08 remains
-Last activity: 2026-08-16 — Completed 05-04: task_service/task_controller/TaskSchema behind can_manage_activity, every function gated on assert_campaign_live, and backend/tests/test_activity_tasks.py as the file 05-05 extends
+Plan: 9/9 (Phase 04); 7/11 (Phase 05 — 05-01, 05-02, 05-03, 05-04, 05-06, 05-07, 05-08 complete; 05-05, 05-09..05-11 remain)
+Status: Phase 05 waves 1-3 complete; wave 4 done — 05-04 (Kanban task API) and 05-08 (PipelineStepper / PushLiveGate) both landed
+Last activity: 2026-08-16 — Completed 05-08: the campaign builder now shows five server-computed pipeline steps and gates publication behind a confirmed, role-explicit push-live control
 
-Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 55%
+Progress: [█████████░] 89% (32/36 plans across the milestone) — Phase 05: 64%
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Progress: [██████████] 100% (Phase 04 plans) — Phase 05: 5
 | Phase 05 P03 | 25min | 3 tasks | 3 files |
 | Phase 05 P07 | 55min | 3 tasks | 15 files |
 | Phase 05 P04 | 30min | 2 tasks | 5 files |
+| Phase 05 P08 | 40min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -179,6 +180,9 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-04: the equal-position tiebreak test inserts B before A at the same position, the order a position-only sort gets wrong — it proves the model backref's three-element order_by tuple rather than any code 05-04 wrote
 - [Phase 5]: 05-04: the invalid-status test asserts the persisted row after the 422, not only the status code; a response-only assertion passes even when the bad value was written and echoed back
 - [Phase 5]: 05-04: task CRUD writes no AuditLog rows — the audit table records state-changing governance actions, and a card moving between columns is ordinary crew working state that would bury the approval trail
+- [Phase ?]: 05-08: the coherent-prefix rule lives in PipelineStepper, not in the caller — the server reports each step's completeness independently, so an organiser who writes the mail before adding a schedule item produces a genuinely incoherent set that a literal render would show as a complete step after a pending one
+- [Phase ?]: 05-08: api.pushLive returns the raw response instead of running it through adaptCampaign — the route answers with the campaign row alone, so adapting it would manufacture a campaign state whose completeness is all-false and whose isMeetupHead is false, wrong in exactly the two fields the page renders from
+- [Phase ?]: 05-08: the blocked push-live button uses aria-disabled rather than the disabled attribute, so it stays in the tab order and its tooltip stays reachable — a disabled button leaves a keyboard user exactly as uninformed as the hidden button D-07 rejected (T-05-42)
 
 ### Pending Todos
 
@@ -197,8 +201,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-16T12:00:00.000Z
-Stopped at: Completed 05-04-PLAN.md (see 05-04-SUMMARY.md); Phase 05 waves 1-3 done plus 05-04 from wave 4
+Last session: 2026-08-16T07:31:24.342Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None
 
 Next: finish Phase 04 manual UAT via `04-UAT.md`; execute 05-08 (PipelineStepper/PushLiveGate, reading the `useCampaign` query 05-07 introduced), then wave 5 — 05-05 extends `backend/tests/test_activity_tasks.py` and 05-09 retires the mock array against the task routes 05-04 shipped

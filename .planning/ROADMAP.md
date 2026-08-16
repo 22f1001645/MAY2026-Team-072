@@ -196,7 +196,7 @@ Plans:
   4. Nothing reaches students until the assigned Meetup Head explicitly approves the full package; a non-Meetup-Head team member's push-live attempt is rejected server-side.
   5. Once live, the roster assembled at proposal time sees a Kanban board whose tasks (assignee, deadline, status) survive a hard reload and are visible to another team member on another device; volunteer points can only be awarded to actual crew members, and crew membership grants no org-wide permission anywhere else.
 
-**Plans**: 11 plans
+**Plans**: 7/11 plans executed
 **UI hint**: yes
 
 Plans:
@@ -217,7 +217,7 @@ Plans:
 **Wave 4** *(blocked on Wave 3)*
 
 - [x] 05-04-PLAN.md — Kanban task API: CRUD, the `assert_campaign_live` gate, and the deterministic ordering tiebreak (TEAM-01, TEAM-02)
-- [ ] 05-08-PLAN.md — Frontend: `PipelineStepper` + `PushLiveGate` with the server-supplied Meetup Head flag (CAMPAIGN-06)
+- [x] 05-08-PLAN.md — Frontend: `PipelineStepper` + `PushLiveGate` with the server-supplied Meetup Head flag (CAMPAIGN-06)
 
 **Wave 5** *(blocked on Wave 4)*
 
@@ -293,7 +293,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 2. Identity, Session & Dashboard Shell | 7/7 | Complete    | 2026-08-12 |
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
-| 5. Post-Acceptance Pipeline | 5/11 | In Progress | - |
+| 5. Post-Acceptance Pipeline | 7/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 0/TBD | Not started | - |
 | 7. Progression Gating | 0/TBD | Not started | - |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |

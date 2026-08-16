@@ -55,7 +55,7 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 - [ ] **CAMPAIGN-03**: Organiser can upload a poster image for their event
 - [x] **CAMPAIGN-04**: Organiser can generate/copy a shareable registration link for their event (works independently of AI provider availability)
 - [x] **CAMPAIGN-05**: Registration form uses a fixed core field set (name, contact) plus up to a handful of organiser-defined optional custom fields (text/dropdown) per meetup — not a full dynamic form-builder
-- [ ] **CAMPAIGN-06**: The full campaign package (mail template, poster, registration form) requires the assigned Meetup Head's explicit review and approval before it is pushed live to students — never auto-published
+- [x] **CAMPAIGN-06**: The full campaign package (mail template, poster, registration form) requires the assigned Meetup Head's explicit review and approval before it is pushed live to students — never auto-published
 
 ### Organisation Profile & Brand Kit
 

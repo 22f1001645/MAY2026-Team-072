@@ -395,6 +395,7 @@ function adaptCampaign(c: any): ApiCampaignState {
     posterName: c.poster_name ?? null,
     registrationSlug: c.registration_slug ?? null,
     registrationUrl: c.registration_url ?? null,
+    pushedLiveAt: c.pushed_live_at ?? null,
     isMeetupHead: !!c.is_meetup_head,
     formFieldTypes: c.form_field_types ?? [],
     completeness: {

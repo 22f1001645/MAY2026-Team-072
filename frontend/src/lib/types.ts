@@ -275,6 +275,11 @@ export interface ApiFormField {
   position: number
 }
 
+/** The published campaign status, mirroring backend constants.CAMPAIGN_LIVE.
+ *  Both the stepper's last step and the push-live gate read it, so it is named
+ *  once rather than spelled as a literal at each comparison. */
+export const CAMPAIGN_LIVE = 'live'
+
 /** The campaign package's state as the server reports it (CAMPAIGN-04/06).
  *  `registrationUrl` is the server's assembled link — the browser never builds
  *  it, because the URL shape is a published contract (D-12). */
@@ -287,6 +292,7 @@ export interface ApiCampaignState {
   posterName: string | null
   registrationSlug: string | null
   registrationUrl: string | null
+  pushedLiveAt: string | null
   isMeetupHead: boolean
   formFieldTypes: string[]
   completeness: {

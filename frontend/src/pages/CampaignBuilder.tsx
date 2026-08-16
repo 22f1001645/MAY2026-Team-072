@@ -5,7 +5,11 @@
  * - Reads schedule items from the server via useScheduleItems (not local state).
  * - Renders each item as a ScheduleRow: blur-save, arrow reorder, delete.
  * - Provides a "+ Add item" ghost button that calls useCreateScheduleItem.
- * - PipelineStepper arrives in a later plan.
+ *
+ * Plan 05-08 (CAMPAIGN-06) adds the PipelineStepper above the sections. Its
+ * five steps read the campaign payload's server-computed `completeness`, so
+ * "done" keeps one definition; a failed campaign query fails the whole page
+ * rather than rendering a stepper from data that never arrived.
  *
  * `disabled` is sourced from the manage capability, not from the campaign's
  * live status: there is no campaign query on the client yet, and the server's
@@ -27,6 +31,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { FormFieldRow } from '../components/FormFieldRow'
+import { PipelineStepper } from '../components/PipelineStepper'
 import { PresetAccordion } from '../components/PresetAccordion'
 import { RegistrationLinkCard } from '../components/RegistrationLinkCard'
 import { ScheduleRow } from '../components/ScheduleRow'
@@ -46,6 +51,7 @@ import {
   useDeleteFormField,
   useGenerateSlug,
 } from '../lib/queries'
+import { CAMPAIGN_LIVE } from '../lib/types'
 import type { ApiFormField, ApiScheduleItem } from '../lib/types'
 
 export default function CampaignBuilder() {
@@ -58,7 +64,12 @@ export default function CampaignBuilder() {
   const updateMut = useUpdateScheduleItem(id)
   const deleteMut = useDeleteScheduleItem(id)
 
-  const { data: campaign } = useCampaign(id)
+  const {
+    data: campaign,
+    isLoading: campaignLoading,
+    isError: campaignError,
+    error: campaignErr,
+  } = useCampaign(id)
   const { data: formFields = [] } = useFormFields(id)
   const createFieldMut = useCreateFormField(id)
   const updateFieldMut = useUpdateFormField(id)
@@ -74,11 +85,28 @@ export default function CampaignBuilder() {
   // Registration fields freeze once the campaign is published; the server's 409
   // campaign_live is the actual control (assert_editable), this only removes
   // the affordance.
-  const registrationLocked = !canManage || campaign?.status === 'live'
+  const registrationLocked = !canManage || campaign?.status === CAMPAIGN_LIVE
 
-  if (eventLoading || scheduleLoading) return <Loading label="Loading campaign builder…" />
+  if (eventLoading || scheduleLoading || campaignLoading)
+    return <Loading label="Loading campaign builder…" />
   if (eventError) return <ErrorState error={eventErr} />
+  // A stepper drawn from a campaign payload that never arrived would show an
+  // empty prefix as though it were the truth (E1 backstop, T-05-41), so the
+  // whole page fails rather than part of it.
+  if (campaignError) return <ErrorState error={campaignErr} />
   if (!e) return <div className="p-8 text-center text-graytext-light">Event not found</div>
+
+  /* The five pipeline steps, straight off the server's completeness object.
+   * Recomputing them here from the schedule and form-field queries would be a
+   * second definition of "done" that drifts the first time a rule changes. */
+  const steps = [
+    { id: 'schedule', label: 'Schedule', complete: !!campaign?.completeness.schedule },
+    { id: 'mail', label: 'Mail Template', complete: !!campaign?.completeness.mail },
+    { id: 'poster', label: 'Poster', complete: !!campaign?.completeness.poster },
+    { id: 'registration', label: 'Registration', complete: !!campaign?.completeness.registration },
+    { id: 'push-live', label: 'Push Live', complete: campaign?.status === CAMPAIGN_LIVE },
+  ]
+  const currentStep = (steps.find(s => !s.complete) ?? steps[steps.length - 1]).id
 
   const handleAddItem = () => {
     const title = newTitle.trim()
@@ -128,6 +156,8 @@ export default function CampaignBuilder() {
         title="Campaign Builder"
         sub={`Design the agenda and campaign details for "${e.title}".`}
       />
+
+      <PipelineStepper steps={steps} currentStep={currentStep} />
 
       {/* Schedule list */}
       <Card className="p-6 space-y-3">

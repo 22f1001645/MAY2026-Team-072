@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNotifications, useMarkNotificationsRead } from '../lib/queries'
 import { Badge } from './ui'
+import InvitationCard from './InvitationCard'
 import { cx } from '../lib/format'
 
 const TONE: Record<string, { tone: any; icon: string; label: string }> = {
@@ -8,6 +9,7 @@ const TONE: Record<string, { tone: any; icon: string; label: string }> = {
   update: { tone: 'gold', icon: '📣', label: 'Update' },
   approval: { tone: 'success', icon: '✓', label: 'Confirmed' },
   points: { tone: 'gold', icon: '★', label: 'Points' },
+  collaboration_invite: { tone: 'gold', icon: '🤝', label: 'Invite' },
 }
 
 function ago(iso?: string) {
@@ -76,6 +78,16 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
           </div>
         ) : (
           filteredItems.map((n: any) => {
+            if (n.type === 'collaboration_invite' && n.activity_id) {
+              return (
+                <InvitationCard
+                  key={n.id}
+                  activityId={n.activity_id}
+                  activityTitle={n.activity_title ?? n.title}
+                  onNavigate={onClose}
+                />
+              )
+            }
             const t = TONE[n.type] ?? TONE.update
             const isExpanded = expandedId === n.id
             return (

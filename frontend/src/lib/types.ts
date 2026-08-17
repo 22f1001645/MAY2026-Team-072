@@ -3,6 +3,36 @@
 
 export type Role = 'student' | 'organiser' | 'admin'
 
+/* Session identity (D-10, D-11). The backend is the single source of truth for
+ * capabilities; these are the camelCase shapes components render, adapted once
+ * in lib/api.ts (`adaptMe`). Capabilities are render-only — nothing here grants
+ * a client any authority, every mutating call is still authorised server-side. */
+
+export interface Capabilities {
+  isOrganiser: boolean
+  manageableOrgIds: string[]
+  manageableActivityIds: string[]
+}
+
+export interface PorSummary {
+  porType: string
+  org?: string
+}
+
+export interface Account {
+  id: string
+  name: string
+  email: string
+  role: Role
+  city: string
+  por?: string
+  pors?: PorSummary[]
+  academicLevel?: string
+  academicStatus?: string
+  academicStatusStale?: boolean
+  capabilities: Capabilities
+}
+
 export type ActivityScale = 'local_meetup' | 'regional_meetup' | 'regional_fest'
 
 export type ProposalStatus =
@@ -28,6 +58,54 @@ export interface Organisation {
   name: string
   type: 'house' | 'society' | 'region' | 'council'
   city: string
+  /** Phase 4 (ORG-01). `null` until a manager writes one — never `undefined`,
+   *  because the adapter always supplies a value. */
+  bio: string | null
+  /** An **absolute** URL. The server serves `/api/v1/uploads/<uuid>.<ext>`;
+   *  `adaptOrganisation` in lib/api.ts is the one place that path is resolved
+   *  against the API base, so no component ever concatenates one. */
+  logoUrl: string | null
+  /** ORG-02: the organisation's own site. A distinct field, never a seventh
+   *  social platform — the model's honesty here is what makes ROADMAP criterion
+   *  2 literally true of every social-link row. */
+  website: string | null
+}
+
+/* ── Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ─────────────── */
+
+export interface SocialLink {
+  /** One of the six allowlisted platform keys. Never `website`. */
+  platform: string
+  /** Already filtered by the server's read gate — still passed through
+   *  `safeExternalHref` before it reaches an `href` (ORG-02 layer 3). */
+  url: string
+}
+
+/** `GET /orgs/{id}/profile`. Carries no editability hint on purpose: the Edit
+ *  gate is `capabilities.manageableOrgIds`, and a second source for it would be
+ *  a second, weaker authorization system. */
+export interface OrgProfile extends Organisation {
+  socialLinks: SocialLink[]
+  /** Platform keys only — never the URL and never a reason. A row the read
+   *  filter refused is listed here so the editor can say it was saved earlier,
+   *  without putting the offending string back in the DOM. */
+  withheldPlatforms: string[]
+}
+
+export interface BrandKit {
+  voiceTone: string | null
+  /** Six-digit lowercase hex, up to six entries. */
+  palette: string[]
+  samplePhrases: string[]
+  /** Provenance, not approval state: `ai_draft` means a human reviewed a draft
+   *  and kept it. */
+  source: 'manual' | 'ai_draft'
+  /** `false` when the organisation has never saved a kit. The read never
+   *  creates a row, so this is the only way to tell absence from an empty kit. */
+  hasKit: boolean
+  /** A server feature flag, not a capability — it reports whether AI drafting
+   *  is configured on this server. */
+  aiAvailable: boolean
 }
 
 export interface BudgetLine {
@@ -67,7 +145,13 @@ export interface EkatvaEvent {
   tags: string[]
   budget: BudgetLine[]
   expenses: Expense[]
+  // Phase 3 (PROPOSAL-03, PROPOSAL-04)
+  isMegaMeetup?: boolean
+  collaborators?: Collaborator[]
+  teamMembers?: TeamMember[]
 }
+
+
 
 export interface AuditEntry {
   at: string
@@ -103,11 +187,13 @@ export interface LedgerEntry {
 
 export interface NotificationItem {
   id: string
-  type: 'reminder' | 'update' | 'approval' | 'points'
+  type: 'reminder' | 'update' | 'approval' | 'points' | 'collaboration_invite'
   title: string
   body: string
   at: string
   read: boolean
+  activity_id?: string | null
+  activity_title?: string | null
 }
 
 export interface Task {
@@ -132,4 +218,46 @@ export interface AnnouncementMessage {
   content: string
   createdAt: string
   isImportant?: boolean
+}
+
+// ── Phase 3: Collaboration & Team Roster ─────────────────────────────────────
+
+export type CollabStatus = 'pending' | 'accepted' | 'declined'
+
+export interface Collaborator {
+  id: string
+  activity_id: string
+  org_id: string
+  org: string | null
+  is_primary: boolean
+  status: CollabStatus
+  responded_at: string | null
+}
+
+export interface TeamMember {
+  id: string
+  activity_id: string
+  user_id: string
+  member: string | null
+  role: string
+  added_by: string | null
+}
+
+/** One row of the event agenda (DESIGN-01). Snake→camelCase adaptation
+ *  happens once in api.ts; components always see this camelCase shape. */
+export interface ApiScheduleItem {
+  id: string
+  activityId: string
+  position: number
+  timeBlock: string | null
+  title: string
+  ownerId: string | null
+  ownerLabel: string | null
+  notes: string | null
+}
+
+/** One scale-appropriate schedule preset (DESIGN-01 / AC-07). */
+export interface ApiSchedulePreset {
+  name: string
+  items: Array<{ timeBlock: string; title: string }>
 }

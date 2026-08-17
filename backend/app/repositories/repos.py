@@ -1,6 +1,9 @@
 """Concrete repositories. Grouped in one module for a compact v1; each class
 owns queries for one aggregate (Milestone 2 §3 — Repository layer)."""
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, UTC, timedelta
+
+from sqlalchemy.orm import joinedload
 
 from ..extensions import db
 from ..models import (
@@ -15,6 +18,8 @@ from ..models import (
     PORAssignment,
     Proposal,
     Registration,
+    Term,
+    RefreshTokenBlocklist,
     User,
 )
 
@@ -83,10 +88,50 @@ class OrgRepository:
         return Membership.query.filter_by(user_id=user_id, org_id=org_id).first()
 
 
+class PORRepository:
+    @staticmethod
+    def unrecognised_por_types(recognised):
+        """POR assignments whose `por_type` is in none of the recognised sets.
+
+        Which types count as recognised is a business rule and is decided by the
+        service; this only asks the database. Filtered with `notin_` rather than
+        fetched-and-sifted in Python so the audit stays cheap as the table grows,
+        and eager-loads the membership chain `to_dict()` walks (member name and
+        organisation name) so the result does not fan out into a query per row."""
+        return (
+            PORAssignment.query.filter(PORAssignment.por_type.notin_(list(recognised)))
+            .options(
+                joinedload(PORAssignment.membership).joinedload(Membership.user),
+                joinedload(PORAssignment.membership).joinedload(Membership.org),
+                joinedload(PORAssignment.region),
+            )
+            .all()
+        )
+
+
 class ActivityRepository:
     @staticmethod
     def by_id(aid):
         return Activity.query.get(aid)
+
+    @staticmethod
+    def by_slug_or_id(value):
+        """Resolve an activity by primary key or registration slug.
+
+        Tries the primary key first so existing id links keep their
+        single-query cost; slug resolution is the fallback, not the default.
+        Returns None when neither matches."""
+        from ..models import CampaignPackage
+        activity = Activity.query.get(value)
+        if activity:
+            return activity
+        # Fall back to slug join
+        return (
+            Activity.query
+            .join(CampaignPackage, CampaignPackage.activity_id == Activity.id)
+            .filter(CampaignPackage.registration_slug == value)
+            .first()
+        )
 
     @staticmethod
     def published_feed(city=None, scale=None, date_range=None):
@@ -106,12 +151,23 @@ class ActivityRepository:
 
     @staticmethod
     def proposals_by_status(status=None):
+        from ..models import ActivityCollaborator, ActivityTeamMember
         q = Activity.query.join(Proposal)
         if status == "pending":
             q = q.filter(Proposal.status.in_(["submitted", "changes_requested"]))
         elif status:
             q = q.filter(Proposal.status == status)
-        return q.order_by(Activity.created_at.desc()).all()
+        return (
+            q.options(
+                joinedload(Activity.proposal),
+                joinedload(Activity.collaborators),
+                joinedload(Activity.team_members),
+                joinedload(Activity.budget_lines),
+            )
+            .order_by(Activity.created_at.desc())
+            .all()
+        )
+
 
     @staticmethod
     def by_organiser(user_id):
@@ -168,6 +224,10 @@ class ActivityRepository:
 
 
 class RegistrationRepository:
+    @staticmethod
+    def by_id(reg_id):
+        return Registration.query.get(reg_id)
+
     @staticmethod
     def find(activity_id, student_id):
         return Registration.query.filter_by(activity_id=activity_id, student_id=student_id).first()
@@ -259,3 +319,70 @@ class AuditRepository:
         )
         db.session.add(entry)
         return entry
+
+class TermRepository:
+    @staticmethod
+    def current_term():
+        return Term.query.filter_by(is_current=True).first()
+
+
+class BlocklistRepository:
+    @staticmethod
+    def is_jti_blocked(jti: str) -> bool:
+        """True when this exact token has been revoked. Runs on every refresh
+        token decode via the JWT blocklist loader, so it stays a boolean probe."""
+        if not jti:
+            return False
+        return RefreshTokenBlocklist.query.filter_by(jti=jti).first() is not None
+
+    @staticmethod
+    def family_revoked(family_id: str) -> bool:
+        if not family_id:
+            return False
+        # A family is revoked when it has a row whose reason is anything other
+        # than "rotated" — rotation blocklists the spent token without ending
+        # the session, while "logout" and "reuse_detected" end the whole family.
+        token = RefreshTokenBlocklist.query.filter(
+            RefreshTokenBlocklist.family_id == family_id,
+            RefreshTokenBlocklist.reason != "rotated"
+        ).first()
+        return token is not None
+
+    @staticmethod
+    def by_jti(jti: str):
+        return RefreshTokenBlocklist.query.filter_by(jti=jti).first()
+
+    @staticmethod
+    def add_entry(jti: str, user_id: str, family_id: str, reason: str, expires_at: datetime):
+        entry = RefreshTokenBlocklist(
+            jti=jti,
+            user_id=user_id,
+            family_id=family_id,
+            reason=reason,
+            # Naive UTC, deliberately: auth_service compares this against
+            # datetime.now(UTC).replace(tzinfo=None). Both sides must stay in the
+            # same representation or the grace-window comparison raises.
+            revoked_at=datetime.now(UTC).replace(tzinfo=None),
+            expires_at=expires_at
+        )
+        db.session.add(entry)
+        return entry
+
+    @staticmethod
+    def revoke_family(user_id: str, family_id: str, reason: str, expires_at: datetime):
+        """Write a family-scoped tombstone that ends the whole session family.
+
+        The row is not a real token, but `jti` is unique and not nullable, so it
+        needs *some* value. That value is made collision-free by construction (a
+        fresh uuid suffix) rather than by catching IntegrityError: detecting reuse
+        twice on one family, or logging out twice, must not turn into a 500.
+        Extra rows are harmless — `family_revoked` only asks whether *any*
+        non-rotated row exists — and they leave a truthful audit trail of how many
+        times revocation was triggered."""
+        return BlocklistRepository.add_entry(
+            jti=f"{reason}_{family_id}_{uuid.uuid4().hex}",
+            user_id=user_id,
+            family_id=family_id,
+            reason=reason,
+            expires_at=expires_at,
+        )

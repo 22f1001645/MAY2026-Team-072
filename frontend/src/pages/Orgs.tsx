@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor } from '../lib/queries'
+import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor, useAdminOverrideAcademicStatus } from '../lib/queries'
 import { api } from '../lib/api'
-import { Badge, Button, Card, Input, SectionTitle, useToast } from '../components/ui'
+import { Badge, Button, Card, Input, SectionTitle, useToast, Dialog, Select } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
-import { cx } from '../lib/format'
+import { cx, safeExternalHref } from '../lib/format'
 import { IndiaMap } from '../components/IndiaMap'
+import { OrgLogo } from '../components/OrgLogo'
 
 const ORG_TONE: Record<string, any> = {
   house: 'gold',
@@ -15,8 +17,13 @@ const ORG_TONE: Record<string, any> = {
   council: 'warn',
 }
 
-// 12 Forest Houses with national park metadata
-const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
+// 12 Forest Houses with national park metadata.
+//
+// Exported, not deleted (04-07 P-04). From Phase 4 it is the data behind rungs
+// 2 and 3 of `components/OrgLogo.tsx`'s fallback ladder, and `OrgLogo` is the
+// only component that reads it. Twelve seeded Houses have visual identity that
+// exists nowhere else — an upload wins, but nothing here is thrown away.
+export const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
   'Bandipur House':    { park: 'Bandipur National Park',    state: 'Karnataka',    color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
   'Corbett House':     { park: 'Jim Corbett National Park', state: 'Uttarakhand',  color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
   'Gir House':         { park: 'Gir Forest National Park',  state: 'Gujarat',      color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
@@ -52,7 +59,8 @@ const REGIONS = [
 ]
 
 export default function Orgs() {
-  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities'>('houses')
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities' | 'members'>('houses')
   const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
 
   const [userSearch, setUserSearch] = useState('')
@@ -61,6 +69,7 @@ export default function Orgs() {
   const { data: cities = [] } = useCities()
   const { data: pors = [] } = usePors()
   const { data: users = [] } = useUsers(userSearch.trim())
+  const { data: allUsers = [] } = useUsers() // for the members tab
   const { data: houses = [] } = useQuery({ queryKey: ['houses'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'house')) })
   const { data: regions = [] } = useQuery({ queryKey: ['regions'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'region')) })
 
@@ -106,6 +115,14 @@ export default function Orgs() {
   const [porRegionFilter, setPorRegionFilter] = useState('')
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
   const confirmPor = pors.find((p: any) => p.id === confirmDeactivateId)
+
+  // Members / Academic Status state
+  const [memberSearch, setMemberSearch] = useState('')
+  const [overrideUser, setOverrideUser] = useState<any>(null)
+  const [overrideLevel, setOverrideLevel] = useState('foundation')
+  const [overrideStatus, setOverrideStatus] = useState('active')
+  const [overrideReason, setOverrideReason] = useState('')
+  const overrideMutation = useAdminOverrideAcademicStatus()
 
   const qc = useQueryClient()
 
@@ -177,6 +194,7 @@ export default function Orgs() {
     ['orgs', `Societies & Councils (${filteredOrgs.length})`],
     ['cities', `Regions & Cities`],
     ['pors', `POR Directory (${pors.length})`],
+    ['members', `Members`],
   ] as const
 
   const selectedUserObj = users.find((u: any) => u.id === userId || u.email === userId)
@@ -229,16 +247,7 @@ export default function Orgs() {
               return (
                 <Card key={h.id} hover className="p-5" onClick={() => setViewingHouseId(h.id)}>
                   <div className="mb-3 flex items-start justify-between gap-2">
-                    <div
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[18px] overflow-hidden"
-                      style={{ background: `${meta.color}18`, color: meta.color }}
-                    >
-                      {meta.imageLogo ? (
-                        <img src={meta.imageLogo} alt={`${h.name} logo`} className="h-full w-full object-cover" />
-                      ) : (
-                        meta.logo
-                      )}
-                    </div>
+                    <OrgLogo org={h} size={40} />
                     <Badge tone="gold">{meta.state}</Badge>
                   </div>
                   <div className="text-[15px] font-bold text-offwhite">{h.name}</div>
@@ -460,6 +469,130 @@ export default function Orgs() {
           </div>
         </div>
       )}
+
+      {/* ---- MEMBERS TAB ---- */}
+      {tab === 'members' && (
+        <div>
+          <div className="mb-4 flex flex-wrap gap-3">
+            <Input
+              placeholder="Search members by name or email…"
+              value={memberSearch}
+              onChange={e => setMemberSearch(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <Card className="overflow-hidden">
+            <table className="w-full text-[14px]">
+              <thead>
+                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
+                  <th className="px-5 py-3 text-left">Member</th>
+                  <th className="px-5 py-3 text-left">Email</th>
+                  <th className="px-5 py-3 text-left">Role</th>
+                  <th className="px-5 py-3 text-left">Academic Status</th>
+                  <th className="px-5 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allUsers
+                  .filter((u: any) => !memberSearch || u.name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
+                  .map((u: any) => (
+                    <tr key={u.id} className="border-b border-white/5 last:border-0">
+                      <td className="px-5 py-3.5 text-offwhite font-semibold">{u.name}</td>
+                      <td className="px-5 py-3.5 text-graytext-light">{u.email}</td>
+                      <td className="px-5 py-3.5 capitalize text-graytext-light">{u.role}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="text-offwhite capitalize">{u.academic_level || 'N/A'}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] text-graytext-mid capitalize">{u.academic_status || 'N/A'}</span>
+                          {u.academic_confirmed_at && (
+                            <Badge tone="neutral">
+                              Overridden {new Date(u.academic_confirmed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Button size="sm" variant="secondary" onClick={() => {
+                          setOverrideUser(u)
+                          setOverrideLevel(u.academic_level || 'foundation')
+                          setOverrideStatus(u.academic_status || 'active')
+                          setOverrideReason('')
+                        }}>
+                          Override Status
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {/* ---- ADMIN OVERRIDE MODAL ---- */}
+      <Dialog
+        open={!!overrideUser}
+        onClose={() => setOverrideUser(null)}
+        title="Override Academic Status"
+      >
+        {overrideUser && (
+          <>
+            <p className="mb-4 text-caption text-graytext-light">
+              Updating status for <strong className="text-offwhite">{overrideUser.name}</strong>. This action will be audited.
+            </p>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              overrideMutation.mutate({
+                userId: overrideUser.id,
+                academicLevel: overrideLevel,
+                academicStatus: overrideStatus,
+                reason: overrideReason
+              }, {
+                onSuccess: () => {
+                  setOverrideUser(null)
+                  addToast('Status overridden successfully.')
+                },
+                onError: (err: any) => addToast(err.message || 'Failed to override status', 'error')
+              })
+            }} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Level</label>
+                <Select
+                  value={overrideLevel}
+                  onChange={(e) => setOverrideLevel(e.target.value)}
+                  options={[
+                    { label: 'Foundation', value: 'foundation' },
+                    { label: 'Diploma', value: 'diploma' },
+                    { label: 'Degree', value: 'degree' }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Status</label>
+                <Select
+                  value={overrideStatus}
+                  onChange={(e) => setOverrideStatus(e.target.value)}
+                  options={[
+                    { label: 'Active', value: 'active' },
+                    { label: 'On Break', value: 'on_break' },
+                    { label: 'Withdrawn', value: 'withdrawn' }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Reason</label>
+                <Input placeholder="e.g. Student requested manual update" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} required />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setOverrideUser(null)}>Cancel</Button>
+                <Button type="submit" disabled={overrideMutation.isPending}>
+                  {overrideMutation.isPending ? 'Saving…' : 'Override Status'}
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
+      </Dialog>
 
       {/* ---- REGIONS & CITIES TAB ---- */}
       {tab === 'cities' && (
@@ -791,6 +924,10 @@ export default function Orgs() {
               const h = orgs.find((o: any) => o.id === viewingHouseId)
               if (!h) return null
               const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9', logo: '🌿' }
+              // Real data wins, and both paths go through the same gate. A
+              // second rendering path for "trusted" seeded URLs is how the safe
+              // path becomes the special case.
+              const websiteHref = safeExternalHref(h.website ?? HOUSE_META[h.name]?.website)
               const secretary = pors.find((p: any) => p.org === h.name && p.por_type === 'House Secretary' && p.active)
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
               const webAdmin = pors.find((p: any) => p.org === h.name && p.por_type === 'Web Admin' && p.active)
@@ -804,26 +941,21 @@ export default function Orgs() {
                     </button>
                   </div>
                   <div className="mb-8 flex items-center gap-5">
-                    <div
-                      className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-[36px] shadow-lg overflow-hidden"
-                      style={{ background: `${meta.color}20`, color: meta.color, border: `1px solid ${meta.color}40` }}
-                    >
-                      {meta.imageLogo ? (
-                        <img src={meta.imageLogo} alt={`${h.name} logo`} className="h-full w-full object-cover" />
-                      ) : (
-                        meta.logo
-                      )}
-                    </div>
+                    <OrgLogo org={h} size={80} />
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="text-[28px] font-bold text-offwhite tracking-tight">{h.name}</h2>
                         <Badge tone="gold">{meta.state}</Badge>
-                        {meta.website && (
-                          <a href={meta.website} target="_blank" rel="noreferrer" className="ml-2 flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[13px] font-semibold text-graytext-mid transition-colors hover:bg-white/10 hover:text-offwhite">
+                        {websiteHref && (
+                          <a href={websiteHref} target="_blank" rel="noopener noreferrer" className="ml-2 flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[13px] font-semibold text-graytext-mid transition-colors hover:bg-white/10 hover:text-offwhite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                             Website
                           </a>
                         )}
+                        {/* The organisation profile's second entry point. */}
+                        <Button size="sm" variant="secondary" onClick={() => navigate(`/orgs/${h.id}`)}>
+                          Open organisation profile
+                        </Button>
                       </div>
                       <p className="mt-1 text-[15px] text-graytext-light flex items-center gap-2">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>

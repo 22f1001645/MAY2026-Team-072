@@ -8,6 +8,9 @@ from ..models import (
     Proposal,
     Registration,
     User,
+    Membership,
+    PORAssignment,
+    ActivityTeamMember,
 )
 
 
@@ -68,3 +71,28 @@ def community_analytics() -> dict:
         "totals": {**tot, "fee_util_pct": fee_util_pct, "repeat_rate_pct": repeat_rate},
         "by_city": per_city,
     }
+
+
+def organiser_analytics() -> list:
+    """Returns activity metrics for users holding active PORs."""
+    users = User.query.join(Membership).join(PORAssignment).filter(PORAssignment.active == True).all()
+    users = list(set(users))  # deduplicate
+    
+    res = []
+    for u in users:
+        proposals_count = Proposal.query.filter_by(submitted_by=u.id).count()
+        team_count = ActivityTeamMember.query.filter_by(user_id=u.id).count()
+        pors = [p.por_type for m in u.memberships for p in m.pors if p.active]
+        res.append({
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "city": u.city,
+            "pors": pors,
+            "proposals_count": proposals_count,
+            "team_count": team_count,
+            "is_active": proposals_count > 0 or team_count > 0
+        })
+    # Sort by activity (active first) then by name
+    res.sort(key=lambda x: (not x["is_active"], x["name"]))
+    return res

@@ -1,8 +1,8 @@
-"""Initial schema
+"""baseline: existing 18-table schema
 
-Revision ID: 4b77e7d9a185
+Revision ID: 312ea9fc2c96
 Revises: 
-Create Date: 2026-08-11 15:23:51.537634
+Create Date: 2026-08-05 23:34:49.816994
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '4b77e7d9a185'
+revision = '312ea9fc2c96'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -37,26 +37,11 @@ def upgrade():
     sa.Column('name', sa.String(length=150), nullable=False),
     sa.Column('type', sa.String(length=20), nullable=False),
     sa.Column('city', sa.String(length=80), nullable=True),
-    sa.Column('bio', sa.Text(), nullable=True),
-    sa.Column('logo_url', sa.String(length=300), nullable=True),
-    sa.Column('voice_descriptors', sa.JSON(), nullable=True),
-    sa.Column('color_palette', sa.JSON(), nullable=True),
-    sa.Column('sample_phrases', sa.JSON(), nullable=True),
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_organisations'))
     )
-    op.create_table('token_blocklist',
-    sa.Column('jti', sa.String(length=36), nullable=False),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_token_blocklist'))
-    )
-    with op.batch_alter_table('token_blocklist', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_token_blocklist_jti'), ['jti'], unique=False)
-
     op.create_table('cities',
     sa.Column('name', sa.String(length=80), nullable=False),
     sa.Column('region_id', sa.String(length=32), nullable=True),
@@ -68,19 +53,6 @@ def upgrade():
     )
     with op.batch_alter_table('cities', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_cities_region_id'), ['region_id'], unique=False)
-
-    op.create_table('organisation_social_links',
-    sa.Column('org_id', sa.String(length=32), nullable=False),
-    sa.Column('platform', sa.String(length=50), nullable=False),
-    sa.Column('url', sa.String(length=300), nullable=False),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['org_id'], ['organisations.id'], name=op.f('fk_organisation_social_links_org_id_organisations')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_organisation_social_links'))
-    )
-    with op.batch_alter_table('organisation_social_links', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_organisation_social_links_org_id'), ['org_id'], unique=False)
 
     op.create_table('users',
     sa.Column('email', sa.String(length=255), nullable=False),
@@ -111,8 +83,6 @@ def upgrade():
     sa.Column('status', sa.String(length=20), nullable=True),
     sa.Column('organiser_id', sa.String(length=32), nullable=True),
     sa.Column('tags', sa.JSON(), nullable=True),
-    sa.Column('mail_template', sa.Text(), nullable=True),
-    sa.Column('poster_url', sa.String(length=300), nullable=True),
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -154,38 +124,6 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_memberships_org_id'), ['org_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_memberships_user_id'), ['user_id'], unique=False)
 
-    op.create_table('activity_tasks',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('title', sa.String(length=200), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('deadline', sa.DateTime(), nullable=True),
-    sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('assignee_id', sa.String(length=32), nullable=True),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_activity_tasks_activity_id_activities')),
-    sa.ForeignKeyConstraint(['assignee_id'], ['users.id'], name=op.f('fk_activity_tasks_assignee_id_users')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_activity_tasks'))
-    )
-    with op.batch_alter_table('activity_tasks', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_activity_tasks_activity_id'), ['activity_id'], unique=False)
-
-    op.create_table('activity_team_members',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('user_id', sa.String(length=32), nullable=False),
-    sa.Column('role', sa.String(length=80), nullable=False),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_activity_team_members_activity_id_activities')),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_activity_team_members_user_id_users')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_activity_team_members'))
-    )
-    with op.batch_alter_table('activity_team_members', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_activity_team_members_activity_id'), ['activity_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_activity_team_members_user_id'), ['user_id'], unique=False)
-
     op.create_table('announcements',
     sa.Column('activity_id', sa.String(length=32), nullable=False),
     sa.Column('sender_id', sa.String(length=32), nullable=True),
@@ -200,23 +138,6 @@ def upgrade():
     )
     with op.batch_alter_table('announcements', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_announcements_activity_id'), ['activity_id'], unique=False)
-
-    op.create_table('attendee_feedback',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('student_id', sa.String(length=32), nullable=False),
-    sa.Column('rating', sa.Integer(), nullable=False),
-    sa.Column('comments', sa.Text(), nullable=True),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_attendee_feedback_activity_id_activities')),
-    sa.ForeignKeyConstraint(['student_id'], ['users.id'], name=op.f('fk_attendee_feedback_student_id_users')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_attendee_feedback')),
-    sa.UniqueConstraint('activity_id', 'student_id', name='uq_feedback')
-    )
-    with op.batch_alter_table('attendee_feedback', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_attendee_feedback_activity_id'), ['activity_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_attendee_feedback_student_id'), ['student_id'], unique=False)
 
     op.create_table('budget_lines',
     sa.Column('activity_id', sa.String(length=32), nullable=False),
@@ -246,21 +167,6 @@ def upgrade():
     with op.batch_alter_table('contribution_points', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_contribution_points_user_id'), ['user_id'], unique=False)
 
-    op.create_table('custom_registration_fields',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('label', sa.String(length=150), nullable=False),
-    sa.Column('type', sa.String(length=20), nullable=False),
-    sa.Column('options', sa.JSON(), nullable=True),
-    sa.Column('required', sa.Boolean(), nullable=True),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_custom_registration_fields_activity_id_activities')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_custom_registration_fields'))
-    )
-    with op.batch_alter_table('custom_registration_fields', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_custom_registration_fields_activity_id'), ['activity_id'], unique=False)
-
     op.create_table('documents',
     sa.Column('activity_id', sa.String(length=32), nullable=True),
     sa.Column('url', sa.String(length=300), nullable=True),
@@ -271,52 +177,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_documents_activity_id_activities')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_documents'))
     )
-    op.create_table('event_polls',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('title', sa.String(length=200), nullable=False),
-    sa.Column('options', sa.JSON(), nullable=False),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_event_polls_activity_id_activities')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_event_polls'))
-    )
-    with op.batch_alter_table('event_polls', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_event_polls_activity_id'), ['activity_id'], unique=False)
-
-    op.create_table('event_queries',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('submitter_id', sa.String(length=32), nullable=False),
-    sa.Column('query_text', sa.Text(), nullable=False),
-    sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('response_text', sa.Text(), nullable=True),
-    sa.Column('responder_id', sa.String(length=32), nullable=True),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_event_queries_activity_id_activities')),
-    sa.ForeignKeyConstraint(['responder_id'], ['users.id'], name=op.f('fk_event_queries_responder_id_users')),
-    sa.ForeignKeyConstraint(['submitter_id'], ['users.id'], name=op.f('fk_event_queries_submitter_id_users')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_event_queries'))
-    )
-    with op.batch_alter_table('event_queries', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_event_queries_activity_id'), ['activity_id'], unique=False)
-
-    op.create_table('event_schedules',
-    sa.Column('activity_id', sa.String(length=32), nullable=False),
-    sa.Column('title', sa.String(length=200), nullable=False),
-    sa.Column('start_time', sa.DateTime(), nullable=False),
-    sa.Column('end_time', sa.DateTime(), nullable=False),
-    sa.Column('owner', sa.String(length=120), nullable=True),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_event_schedules_activity_id_activities')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_event_schedules'))
-    )
-    with op.batch_alter_table('event_schedules', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_event_schedules_activity_id'), ['activity_id'], unique=False)
-
     op.create_table('notifications',
     sa.Column('user_id', sa.String(length=32), nullable=False),
     sa.Column('activity_id', sa.String(length=32), nullable=True),
@@ -367,15 +227,13 @@ def upgrade():
     sa.Column('activity_id', sa.String(length=32), nullable=False),
     sa.Column('student_id', sa.String(length=32), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('qr_token', sa.String(length=32), nullable=False),
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_registrations_activity_id_activities')),
     sa.ForeignKeyConstraint(['student_id'], ['users.id'], name=op.f('fk_registrations_student_id_users')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_registrations')),
-    sa.UniqueConstraint('activity_id', 'student_id', name='uq_reg'),
-    sa.UniqueConstraint('qr_token', name=op.f('uq_registrations_qr_token'))
+    sa.UniqueConstraint('activity_id', 'student_id', name='uq_reg')
     )
     with op.batch_alter_table('registrations', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_registrations_activity_id'), ['activity_id'], unique=False)
@@ -402,22 +260,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id', name=op.f('pk_attendance')),
     sa.UniqueConstraint('registration_id', name=op.f('uq_attendance_registration_id'))
     )
-    op.create_table('event_poll_votes',
-    sa.Column('poll_id', sa.String(length=32), nullable=False),
-    sa.Column('voter_id', sa.String(length=32), nullable=False),
-    sa.Column('option_index', sa.Integer(), nullable=False),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['poll_id'], ['event_polls.id'], name=op.f('fk_event_poll_votes_poll_id_event_polls')),
-    sa.ForeignKeyConstraint(['voter_id'], ['users.id'], name=op.f('fk_event_poll_votes_voter_id_users')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_event_poll_votes')),
-    sa.UniqueConstraint('poll_id', 'voter_id', name='uq_poll_vote')
-    )
-    with op.batch_alter_table('event_poll_votes', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_event_poll_votes_poll_id'), ['poll_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_event_poll_votes_voter_id'), ['voter_id'], unique=False)
-
     op.create_table('expenses',
     sa.Column('activity_id', sa.String(length=32), nullable=False),
     sa.Column('budget_line_id', sa.String(length=32), nullable=True),
@@ -437,40 +279,15 @@ def upgrade():
     with op.batch_alter_table('expenses', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_expenses_activity_id'), ['activity_id'], unique=False)
 
-    op.create_table('proposal_collaborators',
-    sa.Column('proposal_id', sa.String(length=32), nullable=False),
-    sa.Column('org_id', sa.String(length=32), nullable=False),
-    sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['org_id'], ['organisations.id'], name=op.f('fk_proposal_collaborators_org_id_organisations')),
-    sa.ForeignKeyConstraint(['proposal_id'], ['proposals.id'], name=op.f('fk_proposal_collaborators_proposal_id_proposals')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_proposal_collaborators'))
-    )
-    with op.batch_alter_table('proposal_collaborators', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_proposal_collaborators_org_id'), ['org_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_proposal_collaborators_proposal_id'), ['proposal_id'], unique=False)
-
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
-    with op.batch_alter_table('proposal_collaborators', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_proposal_collaborators_proposal_id'))
-        batch_op.drop_index(batch_op.f('ix_proposal_collaborators_org_id'))
-
-    op.drop_table('proposal_collaborators')
     with op.batch_alter_table('expenses', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_expenses_activity_id'))
 
     op.drop_table('expenses')
-    with op.batch_alter_table('event_poll_votes', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_event_poll_votes_voter_id'))
-        batch_op.drop_index(batch_op.f('ix_event_poll_votes_poll_id'))
-
-    op.drop_table('event_poll_votes')
     op.drop_table('attendance')
     op.drop_table('reports')
     with op.batch_alter_table('registrations', schema=None) as batch_op:
@@ -487,23 +304,7 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_notifications_user_id'))
 
     op.drop_table('notifications')
-    with op.batch_alter_table('event_schedules', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_event_schedules_activity_id'))
-
-    op.drop_table('event_schedules')
-    with op.batch_alter_table('event_queries', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_event_queries_activity_id'))
-
-    op.drop_table('event_queries')
-    with op.batch_alter_table('event_polls', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_event_polls_activity_id'))
-
-    op.drop_table('event_polls')
     op.drop_table('documents')
-    with op.batch_alter_table('custom_registration_fields', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_custom_registration_fields_activity_id'))
-
-    op.drop_table('custom_registration_fields')
     with op.batch_alter_table('contribution_points', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_contribution_points_user_id'))
 
@@ -512,24 +313,10 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_budget_lines_activity_id'))
 
     op.drop_table('budget_lines')
-    with op.batch_alter_table('attendee_feedback', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_attendee_feedback_student_id'))
-        batch_op.drop_index(batch_op.f('ix_attendee_feedback_activity_id'))
-
-    op.drop_table('attendee_feedback')
     with op.batch_alter_table('announcements', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_announcements_activity_id'))
 
     op.drop_table('announcements')
-    with op.batch_alter_table('activity_team_members', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_activity_team_members_user_id'))
-        batch_op.drop_index(batch_op.f('ix_activity_team_members_activity_id'))
-
-    op.drop_table('activity_team_members')
-    with op.batch_alter_table('activity_tasks', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_activity_tasks_activity_id'))
-
-    op.drop_table('activity_tasks')
     with op.batch_alter_table('memberships', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_memberships_user_id'))
         batch_op.drop_index(batch_op.f('ix_memberships_org_id'))
@@ -549,18 +336,10 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_users_email'))
 
     op.drop_table('users')
-    with op.batch_alter_table('organisation_social_links', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_organisation_social_links_org_id'))
-
-    op.drop_table('organisation_social_links')
     with op.batch_alter_table('cities', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_cities_region_id'))
 
     op.drop_table('cities')
-    with op.batch_alter_table('token_blocklist', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_token_blocklist_jti'))
-
-    op.drop_table('token_blocklist')
     op.drop_table('organisations')
     with op.batch_alter_table('audit_log', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_audit_log_entity_id'))

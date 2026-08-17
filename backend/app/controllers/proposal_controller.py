@@ -1,9 +1,22 @@
 from flask import Blueprint, g, jsonify, request
 
 from ..errors import ApiError
-from ..rbac import admin_required, auth_required, organiser_required
-from ..repositories.repos import ActivityRepository
-from ..schemas import DecisionSchema, ProposalSchema, ReportSchema
+from ..models import ActivityCollaborator
+from ..rbac import (
+    admin_required,
+    auth_required,
+    can_manage_activity_required,
+    can_manage_org,
+    organiser_required,
+)
+from ..repositories.repos import ActivityRepository, OrgRepository
+from ..schemas import (
+    CollabRespondSchema,
+    DecisionSchema,
+    ProposalSchema,
+    ReassignMeetupHeadSchema,
+    ReportSchema,
+)
 from ..services import proposal_service
 
 proposal_bp = Blueprint("proposals", __name__, url_prefix="/api/v1")
@@ -12,7 +25,7 @@ proposal_bp = Blueprint("proposals", __name__, url_prefix="/api/v1")
 @proposal_bp.post("/activities")
 @organiser_required
 def submit():
-    """FR-B1 — submit a proposal (+ line-item budget)."""
+    """FR-B1 — submit a proposal (+ line-item budget + team roster + collaborators)."""
     data = ProposalSchema().load(request.get_json() or {})
     activity = proposal_service.submit_proposal(data, g.current_user)
     return jsonify(activity.to_dict(detail=True)), 201
@@ -72,3 +85,46 @@ def submit_report(activity_id):
 def get_report(activity_id):
     report = proposal_service.get_report(activity_id)
     return jsonify(report.to_dict()), 200
+
+
+@proposal_bp.post("/activities/<activity_id>/collaborators/<collab_id>/respond")
+@auth_required
+def respond_collab(activity_id, collab_id):
+    """PROPOSAL-06 — accept or decline a collaboration invite.
+
+    Guard: the acting user must hold can_manage_org authority over the collaborating
+    organisation. We do NOT use @can_manage_org_required here because the URL param
+    is collab_id (the invite row's id), not org_id — org_scoped() reads from URL
+    kwargs, so we load the collab row first and check inline."""
+    collab = ActivityCollaborator.query.filter_by(
+        id=collab_id, activity_id=activity_id
+    ).first()
+    if not collab:
+        raise ApiError("Collaboration invite not found", "not_found", 404)
+
+    collab_org = OrgRepository.by_id(collab.org_id)
+    if not can_manage_org(g.current_user, collab_org):
+        raise ApiError(
+            "Authority over the collaborating organisation is required",
+            "forbidden",
+            403,
+        )
+
+    data = CollabRespondSchema().load(request.get_json() or {})
+    updated = proposal_service.respond_collab(collab, data["status"])
+    return jsonify(updated.to_dict()), 200
+
+
+@proposal_bp.post("/activities/<activity_id>/reassign-meetup-head")
+@can_manage_activity_required
+def reassign_meetup_head(activity_id):
+    """PROPOSAL-05: reassign Meetup Head to any user, by proposer or admin.
+
+    Guard: can_manage_activity covers the proposer (organiser_id), all team members,
+    org POR holders, and admin — the full set of people who legitimately manage the
+    event. The campaign-live gate in the service is a Phase 5 stub."""
+    data = ReassignMeetupHeadSchema().load(request.get_json() or {})
+    result = proposal_service.reassign_meetup_head(
+        g.activity, data["new_meetup_head_user_id"], g.current_user
+    )
+    return jsonify(result), 200

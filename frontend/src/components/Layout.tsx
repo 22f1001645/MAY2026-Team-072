@@ -1,14 +1,16 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
-import { useNotifications } from '../lib/queries'
+import { useNotifications, useUpdateProfile } from '../lib/queries'
 import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
-import { Mandala } from './ui'
+import { Button, Card, Input, Mandala } from './ui'
 import NotificationsDropdown from './NotificationsDropdown'
+import ViewSwitcher from './ViewSwitcher'
+import AcademicStatusBanner from './AcademicStatusBanner'
 
 interface NavItem {
   to: string
@@ -35,7 +37,9 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/approvals', label: 'Approval Queue', icon: <Icon d="m9 11 3 3 8-8M4 12v6a2 2 0 0 0 2 2h12" /> },
     { to: '/admin/reimbursements', label: 'Reimbursements', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
     { to: '/admin/analytics', label: 'Community Analytics', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
+    { to: '/admin/organiser-analytics', label: 'Organiser Analytics', icon: <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" /> },
     { to: '/admin/orgs', label: 'Orgs, PORs & Cities', icon: <Icon d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" /> },
+    { to: '/admin/settings', label: 'System Settings', icon: <Icon d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /> },
   ],
 }
 
@@ -63,12 +67,34 @@ const ROLE_LABEL: Record<Role, string> = {
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { role, name, city } = useSession()
-  const { currentUser, logout } = useAuth()
+  const { role, name, city, capabilities } = useSession()
+  const { currentUser, logout, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [editCityOpen, setEditCityOpen] = useState(false)
   const location = useLocation()
-  const nav = NAV[role]
+
+  // The first data-derived nav entry in this file. `NAV` stays a static
+  // Record<Role, NavItem[]>; the organisation-profile entry is appended from
+  // the capability the server computed, not from a new static role key —
+  // whether it renders is a fact about this user, not about their login role.
+  const manageableOrgIds = capabilities?.manageableOrgIds
+  const nav = useMemo(() => {
+    const base = NAV[role]
+    if (!manageableOrgIds?.length) return base
+    return [
+      ...base,
+      {
+        to: `/orgs/${manageableOrgIds[0]}`,
+        label: 'Organisation profile',
+        icon: <Icon d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M9 8h2M9 12h2M9 16h2" />,
+      },
+    ]
+  }, [role, manageableOrgIds])
+
+  // The two home routes, and only those. 02-UI-SPEC S4 keeps the academic
+  // status nudge off deep pages entirely; it is not a header strip.
+  const isHomeRoute = location.pathname === '/discover' || location.pathname === '/organiser'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -156,6 +182,9 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* Center: Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-2 absolute left-1/2 -translate-x-1/2 z-10">
+          <div className="empty:hidden">
+            <ViewSwitcher />
+          </div>
           {nav.map(item => (
             <NavLink 
               key={item.to} 
@@ -438,7 +467,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <main className="relative flex-1 px-5 py-7 lg:px-8 lg:py-9">
-        <div className="mx-auto max-w-7xl animate-fade-up">{children}</div>
+        <div className="mx-auto max-w-7xl animate-fade-up">
+          {isHomeRoute && <AcademicStatusBanner />}
+          {children}
+        </div>
       </main>
 
       {/* Footer */}
@@ -446,6 +478,64 @@ export default function Layout({ children }: { children: ReactNode }) {
         Ekatva OS · CodeCrafters Team-072 · A community operating system for the
         IIT Madras BS ecosystem — <span className="text-gold">Unite. Inspire. Celebrate.</span>
       </footer>
+
+      {editCityOpen && (
+        <EditCityModal
+          currentCity={city}
+          onClose={() => setEditCityOpen(false)}
+          onSaved={refreshUser}
+        />
+      )}
+    </div>
+  )
+}
+
+function EditCityModal({
+  currentCity,
+  onClose,
+  onSaved,
+}: {
+  currentCity: string
+  onClose: () => void
+  onSaved: () => Promise<void>
+}) {
+  const [city, setCity] = useState(currentCity)
+  const updateMutation = useUpdateProfile()
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!city.trim()) return
+    updateMutation.mutate(
+      { city },
+      {
+        onSuccess: async () => {
+          await onSaved()
+          onClose()
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <Card className="relative w-full max-w-sm p-6 border-teal/20">
+        <h2 className="mb-4 text-h3 font-bold text-offwhite">Edit city</h2>
+        <form onSubmit={submit} className="space-y-4">
+          <Input value={city} onChange={(e: any) => setCity(e.target.value)} disabled={updateMutation.isPending} />
+          {updateMutation.isError && (
+            <p className="text-caption text-red-300">{(updateMutation.error as Error).message}</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" type="button" onClick={onClose} disabled={updateMutation.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }

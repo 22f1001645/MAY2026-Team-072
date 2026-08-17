@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeCanvas } from 'qrcode.react'
 import { useMyPoints, useMyRegistrations, useUpdateProfile, useCities } from '../lib/queries'
-import { Badge, Button, Card, Input } from '../components/ui'
+import { Badge, Button, Card, Input, SectionTitle, StatCard, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { coverForScale, daysUntil, formatDate, formatTime, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import { useSession } from '../lib/session'
@@ -12,22 +12,41 @@ export default function MyRegistrations() {
   const { data: regs = [], isLoading, isError, error } = useMyRegistrations()
   const { data: points } = useMyPoints()
   const { id: currentUserId, name: userName, city: userCity, role } = useSession()
-  const { updateCurrentUser } = useAuth()
+  const { updateCurrentUser, currentUser } = useAuth()
   const { data: allCities = [] } = useCities()
+  const { addToast } = useToast()
 
   const [q, setQ] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'waitlisted'>('all')
   const [timelineFilter, setTimelineFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
-  
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [editCity, setEditCity] = useState(userCity)
-  const [tick, setTick] = useState(0)
+  const [, forceCalendarRerender] = useState(0)
   const updateProfile = useUpdateProfile()
+
 
   useEffect(() => {
     setEditCity(userCity)
   }, [userCity])
+
+  const addToCalendar = (a: { id: string; title: string; starts_at: string; venue: string }) => {
+    const isAdded = localStorage.getItem('cal_' + a.id) === '1'
+    const url = isAdded
+      ? googleCalendarDayLink(a.starts_at)
+      : googleCalendarLink({ title: a.title, startsAt: a.starts_at, venue: a.venue })
+    window.open(url, '_blank', 'noopener,noreferrer')
+    if (!isAdded) {
+      localStorage.setItem('cal_' + a.id, '1')
+      forceCalendarRerender((t) => t + 1)
+    }
+  }
+
+  const copyInviteLink = (activityId: string) => {
+    const inviteUrl = `${window.location.origin}/events/${activityId}?ref=${currentUser?.id ?? currentUserId ?? ''}`
+    navigator.clipboard.writeText(inviteUrl)
+    addToast('Invite link copied! Earn points for every friend who registers.', 'success')
+  }
 
   const upcoming = regs.filter((r: any) => r.activity?.status === 'upcoming')
   const attended = regs.filter((r: any) => r.attended).length
@@ -99,6 +118,7 @@ export default function MyRegistrations() {
               </div>
             </div>
           </div>
+
           
           <div className="flex gap-4 sm:gap-8 bg-black/30 p-6 rounded-xl border border-white/5 w-full md:w-auto overflow-x-auto">
             <div className="text-center min-w-[80px]">
@@ -292,23 +312,18 @@ export default function MyRegistrations() {
                       </button>
                     </Link>
                     {a.status === 'upcoming' && !isWaitlisted && (
-                      <a 
-                        href={localStorage.getItem('cal_' + a.id) === '1' ? googleCalendarDayLink(a.starts_at) : googleCalendarLink({ title: a.title, startsAt: a.starts_at, venue: a.venue })} 
-                        onClick={(e) => {
-                          e.preventDefault()
-                          const isAdded = localStorage.getItem('cal_' + a.id) === '1'
-                          const url = isAdded ? googleCalendarDayLink(a.starts_at) : googleCalendarLink({ title: a.title, startsAt: a.starts_at, venue: a.venue })
-                          window.open(url, '_blank', 'noopener,noreferrer')
-                          if (!isAdded) {
-                            localStorage.setItem('cal_' + a.id, '1')
-                            setTick(t => t + 1)
-                          }
-                        }}
+                      <button 
+                        onClick={() => addToCalendar(a)}
+                        className="h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-gold hover:bg-gold hover:text-onyx transition-colors" 
+                        title={localStorage.getItem('cal_' + a.id) === '1' ? 'Added to Calendar' : 'Add to Calendar'}
                       >
-                        <button className="h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-gold hover:bg-gold hover:text-onyx transition-colors" title={localStorage.getItem('cal_' + a.id) === '1' ? 'Added to Calendar' : 'Add to Calendar'}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        </button>
-                      </a>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </button>
                     )}
                   </div>
                   
@@ -404,31 +419,11 @@ export default function MyRegistrations() {
                 </div>
               </div>
 
-              {/* Share Link Area */}
-              <div className="mt-6">
-                <button
-                  onClick={() => {
-                    const inviteUrl = `${window.location.origin}/events/${selectedTicket.activity?.id}?ref=${currentUserId || ''}`
-                    navigator.clipboard.writeText(inviteUrl)
-                    alert('Invite link copied! Earn 50 points for every friend who registers.')
-                  }}
-                  className="w-full rounded-xl bg-teal/10 py-3 text-[13px] font-bold text-teal hover:bg-teal/20 transition-colors flex items-center justify-center gap-2 border border-teal/20"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                  </svg>
-                  Share Invite Link
-                </button>
-              </div>
             </div>
-            
           </div>
         </div>
       )}
+
     </div>
   )
 }

@@ -9,26 +9,26 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Schema Foundation
 
-- [ ] **SCHEMA-01**: Backend adopts Flask-Migrate with a metadata naming convention landed before the first migration is generated
-- [ ] **SCHEMA-02**: All new tables/columns for this milestone (collaborating orgs, team/roles, tasks, event-design schedule, registration form fields, org profile, social links, brand kit, campaign content, feedback, chat, polls, refresh-token blocklist) are declared in one batch, not per-feature
-- [ ] **SCHEMA-03**: `seed.py` is split into a destructive-reset function and an idempotent-reference-data function, and refuses to run its destructive path against a non-dev `DATABASE_URL`
+- [x] **SCHEMA-01**: Backend adopts Flask-Migrate with a metadata naming convention landed before the first migration is generated
+- [x] **SCHEMA-02**: All new tables/columns for this milestone (collaborating orgs, team/roles, tasks, event-design schedule, registration form fields, org profile, social links, brand kit, campaign content, feedback, chat, polls, refresh-token blocklist) are declared in one batch, not per-feature
+- [x] **SCHEMA-03**: `seed.py` is split into a destructive-reset function and an idempotent-reference-data function, and refuses to run its destructive path against a non-dev `DATABASE_URL`
 
 ### Authorization
 
-- [ ] **RBAC-01**: Backend exposes `can_manage_activity(user, activity)`, `can_participate_in_activity(user, activity)`, and `can_manage_org(user, org)` predicates in `rbac.py`
-- [ ] **RBAC-02**: All new Activity/Org-scoped endpoints (team, tasks, campaign, chat, polls, QR check-in, org profile) are guarded by these predicates, not the coarse existing `organiser_required`
-- [ ] **RBAC-03**: A distinct `is_meetup_head(user, activity)` check gates campaign-approval actions specifically — Meetup Head is a per-activity authority, separate from general `can_manage_activity`
+- [x] **RBAC-01**: Backend exposes `can_manage_activity(user, activity)`, `can_participate_in_activity(user, activity)`, and `can_manage_org(user, org)` predicates in `rbac.py`
+- [x] **RBAC-02**: All new Activity/Org-scoped endpoints (team, tasks, campaign, chat, polls, QR check-in, org profile) are guarded by these predicates, not the coarse existing `organiser_required`
+- [x] **RBAC-03**: A distinct `is_meetup_head(user, activity)` check gates campaign-approval actions specifically — Meetup Head is a per-activity authority, separate from general `can_manage_activity`
 
 ### Auth & Session
 
-- [ ] **AUTH-01**: User's session persists via a short-lived access token + long-lived refresh token, with a single-flight client-side refresh interceptor (no forced re-login, no concurrent-refresh race)
-- [ ] **AUTH-02**: `/auth/me` returns server-computed capabilities (effective organiser status) instead of the frontend deriving it from a second, independently-maintained POR-type list
-- [ ] **AUTH-03**: POR taxonomy in `constants.py` adds `Society Deputy Secretary` and `Coordinator` (Core Committee role) at House/Society/Region/Council scope, closing the gap confirmed against the IITM BS Students' Constitution
-- [ ] **AUTH-04**: User has an academic-status field (level: foundation/diploma/degree; status: active/on-break/withdrawn) with a termly self-confirmation nudge and admin override, fully decoupled from session/login behavior
+- [x] **AUTH-01**: User's session persists via a short-lived access token + long-lived refresh token, with a single-flight client-side refresh interceptor (no forced re-login, no concurrent-refresh race)
+- [x] **AUTH-02**: `/auth/me` returns server-computed capabilities (effective organiser status) instead of the frontend deriving it from a second, independently-maintained POR-type list
+- [x] **AUTH-03**: POR taxonomy in `constants.py` adds `Society Deputy Secretary` and `Coordinator` (Core Committee role) at House/Society/Region/Council scope, closing the gap confirmed against the IITM BS Students' Constitution
+- [x] **AUTH-04**: User has an academic-status field (level: foundation/diploma/degree; status: active/on-break/withdrawn) with a termly self-confirmation nudge and admin override, fully decoupled from session/login behavior
 
 ### Dashboard
 
-- [ ] **DASH-01**: A user holding an organiser POR can switch between their Student view and Organiser view from the nav, without it affecting any authorization decision (view state only, never sent to the API as an auth input)
+- [x] **DASH-01**: A user holding an organiser POR can switch between their Student view and Organiser view from the nav, without it affecting any authorization decision (view state only, never sent to the API as an auth input)
 
 ### Proposal & Collaboration
 
@@ -59,10 +59,10 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Organisation Profile & Brand Kit
 
-- [ ] **ORG-01**: Secretary/Deputy Secretary can edit their organisation's profile (bio, logo) and social links, across all four org types (house/society/region/council)
-- [ ] **ORG-02**: Social links are validated server-side against an http/https scheme + host allowlist (stored-XSS / open-redirect prevention)
-- [ ] **ORG-03**: Secretary/Deputy Secretary can define a brand kit (voice/tone descriptors, color palette, sample phrases) for their organisation, feeding CAMPAIGN-02
-- [ ] **ORG-04**: An optional AI-assist button drafts a starting brand kit for organisations that don't have one yet, fully editable before saving — never auto-applied without review
+- [x] **ORG-01**: Secretary/Deputy Secretary can edit their organisation's profile (bio, logo) and social links, across all four org types (house/society/region/council)
+- [x] **ORG-02**: Social links are validated server-side against an http/https scheme + host allowlist (stored-XSS / open-redirect prevention)
+- [x] **ORG-03**: Secretary/Deputy Secretary can define a brand kit (voice/tone descriptors, color palette, sample phrases) for their organisation, feeding CAMPAIGN-02
+- [x] **ORG-04**: An optional AI-assist button drafts a starting brand kit for organisations that don't have one yet, fully editable before saving — never auto-applied without review
 
 ### Activity Teams & Tasks
 
@@ -155,13 +155,13 @@ Populated during roadmap creation — see ROADMAP.md.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Pending |
-| RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Pending |
-| AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Pending |
-| DASH-01 | Phase 2 | Pending |
+| SCHEMA-01, SCHEMA-02, SCHEMA-03 | Phase 1 | Complete |
+| RBAC-01, RBAC-02, RBAC-03 | Phase 1 | Complete |
+| AUTH-01, AUTH-02, AUTH-03, AUTH-04 | Phase 2 | Complete |
+| DASH-01 | Phase 2 | Complete |
 | PROPOSAL-00, PROPOSAL-01, PROPOSAL-02, PROPOSAL-03, PROPOSAL-04, PROPOSAL-05, PROPOSAL-06 | Phase 3 | Pending |
 | BUDGET-01 | Phase 3 | Pending |
-| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Pending |
+| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 4 | Complete (manual UAT deferred — see 04-09-SUMMARY.md) |
 | DESIGN-01 | Phase 5 | Pending |
 | CAMPAIGN-01, CAMPAIGN-02, CAMPAIGN-03, CAMPAIGN-04, CAMPAIGN-05, CAMPAIGN-06 | Phase 5 | Pending |
 | TEAM-01, TEAM-02, TEAM-03, TEAM-04 | Phase 5 | Pending |
@@ -172,6 +172,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 52 total (corrected — `PROPOSAL-00` was added after the original 51-count was written; see ROADMAP.md's note)
 - Mapped to phases: 52
 - Unmapped: 0 ✓

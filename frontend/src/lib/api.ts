@@ -1,20 +1,18 @@
-import type { EkatvaEvent } from './types'
+import type { Account, BrandKit, EkatvaEvent, OrgProfile, Organisation, Role } from './types'
 
 /* ---------------------------------------------------------------------------
- * API client — a thin fetch wrapper that adds the base URL + JWT, and parses
- * the backend's { error, code } envelope. Mirrors Milestone 2 §7 (src/lib).
+ * API client — Phase 2 (D-01, D-05, D-06, D-09).
+ *
+ * Access tokens live in memory only (never localStorage). The refresh token
+ * lives in an httpOnly cookie managed by the server. On every 401 response a
+ * single-flight refresh is attempted; if that also fails, the registered
+ * session-expiry callback fires (D-06).
  * ------------------------------------------------------------------------- */
 
-const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api/v1'
-const TOKEN_KEY = 'ekatva_token'
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-export function setToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
-}
+// In-memory access token storage
+let _accessToken: string | null = null
 
 export class ApiError extends Error {
   code: string
@@ -28,17 +26,83 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// --------------------------------------------------------------------------- #
+// Single-flight refresh state (D-06)
+// --------------------------------------------------------------------------- #
+
+let _refreshPromise: Promise<void> | null = null
+let _onSessionExpired: (() => void) | null = null
+
+/** Register a callback invoked when a refresh attempt fails (e.g. redirect to /login). */
+export function setOnSessionExpired(cb: () => void) {
+  _onSessionExpired = cb
+}
+
+/** Obtain a new access token using the httpOnly refresh cookie.
+ *
+ *  The expiry callback fires from here — the *shared* failure path — and never
+ *  from the individual rejected callers. Ten requests queued behind one failed
+ *  refresh are one expired session, so they produce one toast and one redirect
+ *  (D-06, D-07). Firing per caller is what produced a stack of ten. */
+async function _doRefresh() {
+  if (!_refreshPromise) {
+    _refreshPromise = (async () => {
+      try {
+        const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+        _accessToken = res.access_token
+      } catch (err) {
+        _accessToken = null
+        _onSessionExpired?.()
+        throw err
+      } finally {
+        _refreshPromise = null
+      }
+    })()
+  }
+  return _refreshPromise
+}
+
+// --------------------------------------------------------------------------- #
+// Core Request Pipeline
+// --------------------------------------------------------------------------- #
+
+async function _rawRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(
+    (options.method ?? 'GET').toUpperCase()
+  )
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(_accessToken ? { 'Authorization': `Bearer ${_accessToken}` } : {}),
     ...(options.headers as Record<string, string>),
   }
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
+
+  // A multipart upload must carry the browser's own Content-Type, because only
+  // the browser knows the boundary token it generated. Spreading an explicit
+  // `undefined` into the literal above would not remove the key, so the delete
+  // is the fix.
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type']
+  }
+
+  // Double-submit CSRF for cookie-based auth (D-05)
+  if (isMutation) {
+    // Flask-JWT-Extended puts the CSRF token value in the access-token cookie's
+    // sibling csrf_refresh_token cookie — readable by JS since it is NOT httpOnly.
+    const csrfCookie = document.cookie
+      .split(';')
+      .find(c => c.trim().startsWith('csrf_refresh_token='))
+    if (csrfCookie) {
+      headers['X-CSRF-TOKEN'] = csrfCookie.split('=')[1]?.trim() ?? ''
+    }
+  }
 
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}`, { ...options, headers })
+    res = await fetch(`${BASE}${path}`, {
+      ...options,
+      headers,
+      credentials: 'include', // D-05: send cookies on every request
+    })
   } catch {
     throw new ApiError(
       'Cannot reach the Ekatva OS API. Is the backend running on :5000?',
@@ -47,8 +111,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     )
   }
 
+  // Not every error body is JSON. Flask raises 413 from MAX_CONTENT_LENGTH
+  // before the body is buffered and answers with HTML, and any proxy or
+  // dev-server error page does the same. An unguarded parse throws a raw
+  // SyntaxError — which is not an ApiError, so the 401 refresh branch below
+  // never sees it and the caller renders a parser error instead of a message.
+  // Falling back to `null` is enough: every `body?.` read below already
+  // tolerates it, and the status line alone makes a readable message.
   const text = await res.text()
-  const body = text ? JSON.parse(text) : null
+  let body: any = null
+  if (text) {
+    try {
+      body = JSON.parse(text)
+    } catch {
+      body = null
+    }
+  }
 
   if (!res.ok) {
     const msg = body?.error || `Request failed (${res.status})`
@@ -57,10 +135,24 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T
 }
 
-/* -------------------------------- adapters ------------------------------- */
-// The backend returns snake_case; the pages render the camelCase shapes in
-// types.ts. Adapt once, here, so page code stays unchanged.
+/** Public fetch wrapper with single-flight 401 → refresh → retry (D-06). */
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  try {
+    return await _rawRequest<T>(path, options)
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401 && path !== '/auth/refresh') {
+      try {
+        await _doRefresh()
+        return await _rawRequest<T>(path, options) // retry once
+      } catch {
+        throw err // re-throw the original 401; _doRefresh already signalled expiry
+      }
+    }
+    throw err
+  }
+}
 
+/* -------------------------------- adapters ------------------------------- */
 const COVER_BY_SCALE: Record<string, string[]> = {
   regional_fest: ['fest'],
   regional_meetup: ['trek', 'studio'],
@@ -71,6 +163,12 @@ function coverFor(scale: string, seed: string): string {
   const h = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0)
   return opts[h % opts.length]
 }
+const TAGS_BY_SCALE: Record<string, string[]> = {
+  regional_fest: ['Fest'],
+  regional_meetup: ['Regional'],
+  local_meetup: ['Local'],
+}
+
 export interface ApiActivity {
   id: string
   title: string
@@ -85,9 +183,11 @@ export interface ApiActivity {
   registered: number
   attended: number
   organiser: string
+  is_mega_meetup: boolean
   description?: string
   budget?: { id: string; label: string; planned: number; actual: number }[]
-  tags?: string[]
+  collaborators?: { id: string; activity_id: string; org_id: string; org: string | null; is_primary: boolean; status: string; responded_at: string | null }[]
+  team_members?: { id: string; activity_id: string; user_id: string; member: string | null; role: string; added_by: string | null }[]
 }
 
 export function adaptEvent(a: ApiActivity): EkatvaEvent {
@@ -107,7 +207,10 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     attended: a.attended,
     cover: coverFor(a.scale, a.id),
     organiser: a.organiser,
-    tags: a.tags ?? [],
+    tags: TAGS_BY_SCALE[a.scale] ?? [],
+    isMegaMeetup: a.is_mega_meetup ?? false,
+    collaborators: (a.collaborators ?? []) as EkatvaEvent['collaborators'],
+    teamMembers: a.team_members ?? [],
     budget: (a.budget ?? []).map((b) => ({
       id: b.id,
       label: b.label,
@@ -118,25 +221,185 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
   }
 }
 
+/** Wire shape of GET /auth/me — User.to_dict() plus the two computed keys the
+ *  controller adds. This module is the only place the snake_case is allowed. */
+export interface ApiMe {
+  id: string
+  name: string
+  email: string
+  role: string
+  city: string
+  por?: string | null
+  pors?: { por_type: string; org?: string | null }[]
+  academic_level?: string | null
+  academic_status?: string | null
+  academic_status_stale?: boolean
+  capabilities?: {
+    is_organiser?: boolean
+    manageable_org_ids?: string[]
+    manageable_activity_ids?: string[]
+  }
+}
+
+export function adaptMe(u: ApiMe): Account {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role as Role,
+    city: u.city,
+    por: u.por ?? undefined,
+    pors: (u.pors ?? []).map((p) => ({ porType: p.por_type, org: p.org ?? undefined })),
+    academicLevel: u.academic_level ?? undefined,
+    academicStatus: u.academic_status ?? undefined,
+    academicStatusStale: u.academic_status_stale ?? false,
+    capabilities: {
+      isOrganiser: u.capabilities?.is_organiser ?? false,
+      manageableOrgIds: u.capabilities?.manageable_org_ids ?? [],
+      manageableActivityIds: u.capabilities?.manageable_activity_ids ?? [],
+    },
+  }
+}
+
+/* ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ---------- */
+
+/** Wire shape of an organisation row — `GET /orgs` and the profile routes. */
+export interface ApiOrganisation {
+  id: string
+  name: string
+  type: string
+  city: string
+  bio?: string | null
+  logo_url?: string | null
+  website?: string | null
+}
+
+export interface ApiOrgProfile extends ApiOrganisation {
+  social_links?: { platform: string; url: string }[]
+  withheld_platforms?: string[]
+}
+
+export interface ApiBrandKit {
+  voice_tone?: string | null
+  palette?: string[]
+  sample_phrases?: string[]
+  source?: string
+  has_kit?: boolean
+  ai_available?: boolean
+}
+
+/** Resolve a served upload path to an absolute URL, **exactly once**.
+ *
+ *  `logo_url` arrives as `/api/v1/uploads/<uuid>.<ext>`, and the API lives on a
+ *  different origin from the dev server, so a bare path in an `<img src>` would
+ *  point at :5173 and 404. Resolving it here rather than in a component is the
+ *  same "the adapter is the only place" rule this module already states for
+ *  snake_case: a second call site is a second base URL to keep in step.
+ *
+ *  A failure returns `null`, not the raw path — `OrgLogo`'s fallback ladder
+ *  produces a real mark from null, whereas a garbage `src` produces a broken
+ *  image, which the ladder promises is never a state of that component. */
+function absoluteUploadUrl(path?: string | null): string | null {
+  if (!path) return null
+  try {
+    return new URL(path, new URL(BASE, window.location.href)).href
+  } catch {
+    return null
+  }
+}
+
+/** Every optional lands on a non-`undefined` value, following `adaptMe`, so no
+ *  page needs a `?.` chain for a field the server always sends. */
+export function adaptOrganisation(o: ApiOrganisation): Organisation {
+  return {
+    id: o.id,
+    name: o.name,
+    type: o.type as Organisation['type'],
+    city: o.city,
+    bio: o.bio ?? null,
+    logoUrl: absoluteUploadUrl(o.logo_url),
+    website: o.website ?? null,
+  }
+}
+
+export function adaptOrgProfile(p: ApiOrgProfile): OrgProfile {
+  return {
+    ...adaptOrganisation(p),
+    socialLinks: (p.social_links ?? []).map((l) => ({ platform: l.platform, url: l.url })),
+    withheldPlatforms: p.withheld_platforms ?? [],
+  }
+}
+
+export function adaptBrandKit(k: ApiBrandKit): BrandKit {
+  return {
+    voiceTone: k.voice_tone ?? null,
+    palette: k.palette ?? [],
+    samplePhrases: k.sample_phrases ?? [],
+    source: (k.source ?? 'manual') as BrandKit['source'],
+    hasKit: k.has_kit ?? false,
+    aiAvailable: k.ai_available ?? false,
+  }
+}
+
 /* -------------------------------- endpoints ------------------------------ */
 export const api = {
-  // Auth (module A)
-  login: (email: string, password: string) =>
-    request<{ access_token: string; user: any }>('/auth/login', {
+  // Auth (Phase 2 — cookie session)
+  login: async (email: string, password: string) => {
+    const res = await request<{ access_token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
-  register: (data: { name: string; email: string; password: string; region_id: string; city?: string }) =>
-    request<{ access_token: string; user: any }>('/auth/register', {
+    })
+    _accessToken = res.access_token
+    return res
+  },
+  register: async (data: { name: string; email: string; password: string; region_id: string; city?: string }) => {
+    const res = await request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
-  me: () => request<any>('/auth/me'),
+    })
+    _accessToken = res.access_token
+    return res
+  },
+  me: (): Promise<Account> => request<ApiMe>('/auth/me').then(adaptMe),
   updateProfile: (data: { city?: string }) =>
-    request<any>('/auth/me/profile', {
+    request('/auth/me/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+  /** Rotate the refresh cookie and obtain a new access token. */
+  refresh: async () => {
+    const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+    _accessToken = res.access_token
+    return res
+  },
+  /** Revoke this device's session and clear the cookie. */
+  logout: async () => {
+    const res = await request<{ message: string }>('/auth/logout', { method: 'POST' })
+    _accessToken = null
+    return res
+  },
+  /** User self-confirms their academic level + status (AUTH-04).
+   *  Callers pass camelCase; this wrapper is the only module that knows the
+   *  wire format, in the request direction as well as the response one. */
+  confirmAcademicStatus: (academicLevel: string, academicStatus: string) =>
+    request<any>('/auth/academic-status', {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ academic_level: academicLevel, academic_status: academicStatus }),
     }),
+  /** Admin override of a user's academic status (D-22). */
+  adminOverrideAcademicStatus: (
+    userId: string,
+    academicLevel: string,
+    academicStatus: string,
+    reason?: string,
+  ) =>
+    request<any>(`/admin/users/${userId}/academic-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        academic_level: academicLevel,
+        academic_status: academicStatus,
+        reason,
+      }),
+    }),
+    
+  porAudit: () => request<any[]>('/auth/por-audit'),
 
   // Community (A)
   cities: () => request<{ id: string; name: string; region_id: string | null; region: string | null }[]>('/cities'),
@@ -149,7 +412,11 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ name }) }
     ),
   houses: () => request<any[]>('/houses'),
-  orgs: () => request<any[]>('/orgs'),
+  /** Adapted, not raw: `/admin/orgs` renders logos from these same rows, and a
+   *  second shape for an organisation would mean a second place a logo path is
+   *  resolved. */
+  orgs: (): Promise<Organisation[]> =>
+    request<ApiOrganisation[]>('/orgs').then((rows) => rows.map(adaptOrganisation)),
   pors: () => request<any[]>('/pors'),
   users: (q?: string) =>
     request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
@@ -189,9 +456,10 @@ export const api = {
       body: JSON.stringify({ registration_ids }),
     }),
   scanQr: (id: string, qr_token: string) =>
-    request<{ status: string; student_name: string; student_id: string; message?: string }>(`/events/${id}/scan`, {
+    request<{ status: string; student_name: string; student_id?: string; message?: string }>(`/events/${id}/scan`, {
       method: 'POST',
-      body: JSON.stringify({ qr_token }),
+      body: JSON.stringify({ qr_token, registration_id: qr_token }),
+
     }),
   broadcast: (id: string, title: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title, body }) }),
@@ -228,7 +496,165 @@ export const api = {
 
   // Analytics (H)
   analytics: () => request<any>('/analytics'),
+  organiserAnalytics: () => request<any>('/analytics/organisers'),
 
   // Dashboard (F)
   dashboard: () => request<any>('/dashboard'),
+  
+  // Settings (System)
+  adminSettingsPoints: () => request<any>('/admin/settings/points'),
+  adminUpdateSettingsPoints: (data: any) => request<any>('/admin/settings/points', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Phase 3: Collaboration (PROPOSAL-06) & Team Roster (PROPOSAL-05)
+  respondCollab: (activityId: string, collabId: string, status: 'accepted' | 'declined') =>
+    request<any>(`/activities/${activityId}/collaborators/${collabId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
+  reassignMeetupHead: (activityId: string, newUserId: string) =>
+    request<{ activity_id: string; new_meetup_head_user_id: string }>(
+      `/activities/${activityId}/reassign-meetup-head`,
+      { method: 'POST', body: JSON.stringify({ new_meetup_head_user_id: newUserId }) },
+    ),
+
+  // Phase 4: Organisation profile (ORG-01, ORG-02) & brand kit (ORG-03, ORG-04).
+  // No capability value is ever added to any of these requests — not a header,
+  // not a query parameter, not a body field. `manageableOrgIds` decides what
+  // renders; `can_manage_org` on the server decides what is permitted (P-10).
+
+  /** The profile: org fields, the social links the server vouches for, and the
+   *  platform keys it withheld. Readable by anyone signed in. */
+  orgProfile: (orgId: string): Promise<OrgProfile> =>
+    request<ApiOrgProfile>(`/orgs/${orgId}/profile`).then(adaptOrgProfile),
+  /** Bio and logo. Pass `logo_url: null` to clear the logo — there is no delete
+   *  endpoint. Returns the same payload GET does, so the caller re-renders from
+   *  the server's normalised values rather than its own form state. */
+  updateOrgProfile: (orgId: string, payload: { bio?: string; logo_url?: string | null }) =>
+    request<ApiOrgProfile>(`/orgs/${orgId}/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }).then(adaptOrgProfile),
+  /** Replace the whole social section in one write. An omitted platform is a
+   *  removed link. Also returns the profile payload.
+   *
+   *  The wire keys are `links` and `website` — `SocialLinksReplaceSchema` names
+   *  them, and it rejects an unknown key, so a payload under any other name is
+   *  a 422 rather than a save. `website` is absent-means-unchanged on the
+   *  server; the editor owns the field and always sends it, and a blank string
+   *  clears it. */
+  replaceSocialLinks: (
+    orgId: string,
+    payload: { links: { platform: string; url: string }[]; website?: string | null },
+  ) =>
+    request<ApiOrgProfile>(`/orgs/${orgId}/social-links`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }).then(adaptOrgProfile),
+  /** Multipart upload. The request helper drops the JSON content type for a
+   *  FormData body so the browser sets its own boundary. */
+  uploadOrgLogo: (orgId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<ApiOrgProfile>(`/orgs/${orgId}/logo`, { method: 'POST', body: form }).then(
+      adaptOrgProfile,
+    )
+  },
+  /** `can_manage_org_required` — a non-manager gets a 403, so the caller gates
+   *  this request rather than issuing it and swallowing the error. */
+  brandKit: (orgId: string): Promise<BrandKit> =>
+    request<ApiBrandKit>(`/orgs/${orgId}/brand-kit`).then(adaptBrandKit),
+  /** Upsert — the only writer of a brand kit. */
+  saveBrandKit: (
+    orgId: string,
+    payload: {
+      voice_tone?: string | null
+      palette?: string[]
+      sample_phrases?: string[]
+      /** Provenance, never authorization (the server treats it as metadata).
+       *  `ai_draft` records that a human reviewed a draft and kept it, which is
+       *  what the read view's chip reports. Omitted, the server stores
+       *  `manual`. */
+      source?: 'manual' | 'ai_draft'
+    },
+  ) =>
+    request<ApiBrandKit>(`/orgs/${orgId}/brand-kit`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }).then(adaptBrandKit),
+  /** An AI-drafted starting kit. Writes nothing — the draft only reaches the
+   *  server if the user presses Save. Takes an `AbortSignal` so the caller can
+   *  impose its own timeout on what is an LLM round trip. */
+  draftBrandKit: (orgId: string, signal?: AbortSignal): Promise<BrandKit> =>
+    request<ApiBrandKit>(`/orgs/${orgId}/brand-kit/draft`, { method: 'POST', signal }).then(
+      adaptBrandKit,
+    ),
+
+  // Phase 5: Schedule CRUD (DESIGN-01)
+  // This module is the only place that knows the wire format: callers pass
+  // camelCase, the wrapper writes snake_case in the body and adapts responses
+  // back to camelCase. Follows the confirmAcademicStatus precedent.
+  scheduleItems: (activityId: string) =>
+    request<any[]>(`/activities/${activityId}/schedule`).then(items =>
+      items.map(i => ({
+        id: i.id,
+        activityId: i.activity_id,
+        position: i.position,
+        timeBlock: i.time_block,
+        title: i.title,
+        ownerId: i.owner_id,
+        ownerLabel: i.owner_label,
+        notes: i.notes,
+      }))
+    ),
+  createScheduleItem: (
+    activityId: string,
+    item: { title: string; timeBlock?: string | null; position?: number | null; notes?: string | null; ownerId?: string | null; ownerLabel?: string | null },
+  ) =>
+    request<any>(`/activities/${activityId}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: item.title,
+        time_block: item.timeBlock ?? null,
+        position: item.position ?? null,
+        notes: item.notes ?? null,
+        owner_id: item.ownerId ?? null,
+        owner_label: item.ownerLabel ?? null,
+      }),
+    }).then(i => ({
+      id: i.id,
+      activityId: i.activity_id,
+      position: i.position,
+      timeBlock: i.time_block,
+      title: i.title,
+      ownerId: i.owner_id,
+      ownerLabel: i.owner_label,
+      notes: i.notes,
+    })),
+  updateScheduleItem: (
+    activityId: string,
+    itemId: string,
+    patch: { title?: string | null; timeBlock?: string | null; position?: number | null; notes?: string | null; ownerId?: string | null; ownerLabel?: string | null },
+  ) =>
+    request<any>(`/activities/${activityId}/schedule/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: patch.title ?? null,
+        time_block: patch.timeBlock ?? null,
+        position: patch.position ?? null,
+        notes: patch.notes ?? null,
+        owner_id: patch.ownerId ?? null,
+        owner_label: patch.ownerLabel ?? null,
+      }),
+    }).then(i => ({
+      id: i.id,
+      activityId: i.activity_id,
+      position: i.position,
+      timeBlock: i.time_block,
+      title: i.title,
+      ownerId: i.owner_id,
+      ownerLabel: i.owner_label,
+      notes: i.notes,
+    })),
+  deleteScheduleItem: (activityId: string, itemId: string) =>
+    request<void>(`/activities/${activityId}/schedule/${itemId}`, { method: 'DELETE' }),
 }

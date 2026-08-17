@@ -4,6 +4,7 @@ import { useAudit, useDecision, useProposals } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
+import CollabStatus from '../components/CollabStatus'
 
 // FR-B3/B4: admin approves / requests changes / rejects, with an audit trail
 export default function ApprovalQueue() {
@@ -140,7 +141,50 @@ export default function ApprovalQueue() {
                 </div>
               </Card>
 
+              {/* Collaborating Orgs (PROPOSAL-04) */}
+              {current.collaborators && current.collaborators.length > 0 && (
+                <Card className="p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                      Collaborating organisations
+                    </div>
+                    {current.isMegaMeetup && (
+                      <Badge tone="gold">⭐ Mega Meetup</Badge>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {current.collaborators.map((c: any) => (
+                      <div key={c.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.02]">
+                        <span className="flex-1 text-[14px] text-offwhite">{c.org || c.org_id}</span>
+                        {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                        <CollabStatus status={c.status} />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Team Roster (PROPOSAL-04) */}
+              {current.teamMembers && current.teamMembers.length > 0 && (
+                <Card className="p-5">
+                  <div className="mb-3 text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                    Event team
+                  </div>
+                  <div className="space-y-1.5">
+                    {current.teamMembers.map((t: any) => (
+                      <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.02]">
+                        <span className="flex-1 text-[14px] text-offwhite">{t.member || t.user_id}</span>
+                        <span className={`text-caption font-semibold ${t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid'}`}>
+                          {t.role}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
               {/* Decision panel */}
+
               <Card className="p-6">
                 <label className="mb-2 block text-caption font-semibold uppercase tracking-wider text-graytext-light">
                   Decision comment

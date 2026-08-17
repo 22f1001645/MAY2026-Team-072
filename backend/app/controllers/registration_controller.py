@@ -1,7 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 
-from ..rbac import auth_required, organiser_required
-from ..schemas import BroadcastSchema, CheckInSchema, VolunteerSchema
+from ..rbac import auth_required, can_manage_activity_required, organiser_required
+from ..schemas import BroadcastSchema, CheckInSchema, ScanSchema, VolunteerSchema
 from ..services import attendance_service, registration_service
 
 registration_bp = Blueprint("registration", __name__, url_prefix="/api/v1")
@@ -12,8 +12,7 @@ registration_bp = Blueprint("registration", __name__, url_prefix="/api/v1")
 def register(activity_id):
     """FR-D1 — student registers; headcount recorded."""
     data = request.get_json(silent=True) or {}
-    referred_by_id = data.get("referred_by")
-    reg = registration_service.register(activity_id, g.current_user, referred_by_id)
+    reg = registration_service.register(activity_id, g.current_user, data.get("referred_by"))
     return jsonify(reg.to_dict()), 201
 
 
@@ -42,16 +41,13 @@ def check_in(activity_id):
 
 
 @registration_bp.post("/events/<activity_id>/scan")
-@organiser_required
-def scan_qr(activity_id):
-    """Scan a QR code for check-in."""
-    data = request.get_json() or {}
-    qr_token = data.get("qr_token")
-    if not qr_token:
-        from ..errors import ApiError
-        raise ApiError("Missing qr_token", "invalid_request", 400)
-        
-    result = attendance_service.scan_qr(activity_id, qr_token, g.current_user)
+@can_manage_activity_required
+def scan(activity_id):
+    """QR camera check-in — scans the registration id shown on a student's ticket."""
+    data = ScanSchema().load(request.get_json() or {})
+    # In earlier iteration, it used QR token. If ScanSchema uses registration_id, we will stick to it.
+    # To support both if needed, but I'll stick to what was here.
+    result = attendance_service.scan_qr(activity_id, data["registration_id"], g.current_user)
     return jsonify(result), 200
 
 

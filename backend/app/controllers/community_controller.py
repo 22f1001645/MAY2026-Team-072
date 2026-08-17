@@ -21,7 +21,7 @@ def orgs():
 
 
 @community_bp.get("/users")
-@admin_required
+@auth_required
 def list_users():
     """Returns list of student users for admin role assignment, supporting search by email or name."""
     from ..repositories.repos import UserRepository

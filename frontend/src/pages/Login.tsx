@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { DEMO_ACCOUNTS, homeFor, useAuth } from '../lib/auth'
 import { Button } from '../components/ui'
 import { cx } from '../lib/format'
@@ -8,6 +8,16 @@ import AuthShell from './AuthShell'
 export default function Login() {
   const { login } = useAuth()
   const nav = useNavigate()
+  const location = useLocation()
+  
+  // Router state, not a query param: a query param survives a bookmark and
+  // would show an expiry notice to someone whose session never expired
+  // (02-UI-SPEC S3). `from` is the route the bounce came off, set by both
+  // App.tsx's protected-route guard and the session-expiry callback.
+  const navState = location.state as { from?: string; expired?: boolean } | null
+  const isExpired = navState?.expired === true
+  const goHome = (role: Parameters<typeof homeFor>[0]) => nav(navState?.from ?? homeFor(role))
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
@@ -24,7 +34,7 @@ export default function Login() {
       setError(res.error || 'Login failed.')
       return
     }
-    nav(homeFor(res.role!))
+    goHome(res.role!)
   }
 
   const quickLogin = async (em: string, pw: string) => {
@@ -34,7 +44,7 @@ export default function Login() {
     setLoading(true)
     const res = await login(em, pw)
     setLoading(false)
-    if (res.ok) nav(homeFor(res.role!))
+    if (res.ok) goHome(res.role!)
     else setError(res.error || 'Login failed.')
   }
 
@@ -49,6 +59,12 @@ export default function Login() {
       <p className="mt-1 text-body text-graytext-light">
         Sign in to your Ekatva OS dashboard.
       </p>
+
+      {isExpired && (
+        <div className="mt-6 rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-[14px] text-amber-300">
+          Your session expired. Sign in to continue.
+        </div>
+      )}
 
       <form onSubmit={submit} className="mt-8 space-y-4">
         <Field label="Email">

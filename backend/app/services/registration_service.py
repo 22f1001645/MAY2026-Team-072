@@ -1,13 +1,17 @@
-from ..constants import PROPOSAL_APPROVED
+from ..constants import PROPOSAL_APPROVED, EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Notification, Registration, Announcement, ContributionPoint, User
 from ..repositories.repos import ActivityRepository, RegistrationRepository
+import secrets
 
 def register(activity_id: str, student, referred_by_id: str = None) -> Registration:
     activity = ActivityRepository.by_id(activity_id)
     if not activity or not activity.proposal or activity.proposal.status != PROPOSAL_APPROVED:
         raise ApiError("Event not found or not published", "event_not_found", 404)
+
+    if activity.status == EVENT_CANCELLED:
+        raise ApiError("This event has been cancelled", "event_cancelled", 400)
 
     if RegistrationRepository.find(activity_id, student.id):
         raise ApiError("You are already registered for this event", "already_registered", 409)
@@ -17,7 +21,8 @@ def register(activity_id: str, student, referred_by_id: str = None) -> Registrat
     is_waitlisted = activity.registered_count() >= activity.capacity
     reg_status = "waitlisted" if is_waitlisted else "confirmed"
 
-    reg = Registration(activity_id=activity_id, student_id=student.id, status=reg_status, referred_by_id=referred_by_id)
+    qr_token = secrets.token_urlsafe(32)
+    reg = Registration(activity_id=activity_id, student_id=student.id, status=reg_status, referred_by_id=referred_by_id, qr_token=qr_token)
     db.session.add(reg)
 
     if is_waitlisted:
@@ -45,10 +50,10 @@ def unregister(activity_id: str, student) -> None:
     reg = RegistrationRepository.find(activity_id, student.id)
     if not reg:
         raise ApiError("You are not registered", "not_registered", 404)
+    activity_title = reg.activity.title
     
     # Delete student's chat history for this event
     Announcement.query.filter_by(activity_id=activity_id, sender_id=student.id).delete()
-    
     was_confirmed = (reg.status == "confirmed")
     db.session.delete(reg)
     db.session.flush()
@@ -78,7 +83,7 @@ def unregister(activity_id: str, student) -> None:
             activity_id=activity_id,
             type="update",
             title="Registration Cancelled",
-            body=f"Your registration for '{reg.activity.title}' has been successfully cancelled.",
+            body=f"Your registration for '{activity_title}' has been successfully cancelled.",
         )
     )
 

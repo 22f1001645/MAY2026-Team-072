@@ -3,7 +3,7 @@ import { Card, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
 
-// FR-H: descriptive community analytics + the ₹100 activity-fee utilisation wedge
+// FR-H: descriptive community analytics + the ₹200 activity-fee utilisation wedge
 export default function Analytics() {
   const { data, isLoading, isError, error } = useAnalytics()
 
@@ -21,7 +21,7 @@ export default function Analytics() {
       <SectionTitle
         eyebrow="Admin · Intelligence"
         title="Community Analytics"
-        sub="Who's showing up, who's coming back, and whether the ₹100 activity fee is doing its job — by city, this term."
+        sub="Who's showing up, who's coming back, and whether the ₹200 activity fee is doing its job — by city, this term."
       />
 
       {/* KPI row */}
@@ -29,7 +29,7 @@ export default function Analytics() {
         <StatCard label="Meetups run" value={totals.meetups ?? 0} hint={`across ${byCity.length} cities`} />
         <StatCard label="Total attendance" value={totals.attendance ?? 0} tone="gold" hint={`${totals.unique ?? 0} unique students`} />
         <StatCard label="Repeat rate" value={`${repeatRate}%`} hint="attended more than once" />
-        <StatCard label="Fee utilisation" value={`${feeUtil}%`} tone="gold" hint="used their ₹100 this term" />
+        <StatCard label="Fee utilisation" value={`${feeUtil}%`} tone="gold" hint="used their ₹200 this term" />
       </div>
 
       {byCity.length === 0 ? (
@@ -96,7 +96,7 @@ export default function Analytics() {
 
           {/* Fee utilisation donut */}
           <Card className="p-6">
-            <h3 className="mb-1 text-h3 font-semibold text-gold">₹100 activity-fee utilisation</h3>
+            <h3 className="mb-1 text-h3 font-semibold text-gold">₹200 activity-fee utilisation</h3>
             <p className="mb-5 text-caption text-graytext-mid">
               % of fee-paying students who attended ≥1 activity
             </p>

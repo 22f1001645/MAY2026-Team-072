@@ -25,7 +25,10 @@
     "text_mode": false,
     "research_before_questions": false,
     "discuss_mode": "discuss",
-    "skip_discuss": false
+    "skip_discuss": false,
+    "_auto_chain_active": false,
+    "test_command": "cd backend && . .venv/Scripts/activate && python -m pytest -q --tb=short && cd ../frontend && npm run build",
+    "test_gate_timeout": 600
   },
   "hooks": {
     "context_warnings": true

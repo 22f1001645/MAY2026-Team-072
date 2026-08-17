@@ -7,14 +7,15 @@ import { Loading, ErrorState } from '../components/states'
 import type { LeaderRow, LedgerEntry } from '../lib/types'
 import { cx } from '../lib/format'
 
-// Gamification Tiers
+// Gamification tiers — a computed lens over the same points total, no separate store.
 function getTierInfo(points: number) {
-  if (points >= 600) return { name: 'Diamond', icon: '💎', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', next: null }
-  if (points >= 300) return { name: 'Gold', icon: '🥇', color: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/30', next: { name: 'Diamond', points: 600 } }
-  if (points >= 100) return { name: 'Silver', icon: '🥈', color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/30', next: { name: 'Gold', points: 300 } }
-  return { name: 'Bronze', icon: '🥉', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30', next: { name: 'Silver', points: 100 } }
+  if (points >= 600) return { name: 'Diamond', icon: '💎', tone: 'teal' as const, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', next: null as { name: string; points: number } | null }
+  if (points >= 300) return { name: 'Gold', icon: '🥇', tone: 'gold' as const, color: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/30', next: { name: 'Diamond', points: 600 } }
+  if (points >= 100) return { name: 'Silver', icon: '🥈', tone: 'neutral' as const, color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/30', next: { name: 'Gold', points: 300 } }
+  return { name: 'Bronze', icon: '🥉', tone: 'neutral' as const, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30', next: { name: 'Silver', points: 100 } }
 }
 
+// Recognition — points + leaderboard, computed over attendance data (FR-G5)
 export default function Leaderboard() {
   const { name } = useSession()
   const [scope, setScope] = useState('Overall')
@@ -26,7 +27,6 @@ export default function Leaderboard() {
   const ranked = rows.map((r: LeaderRow) => ({ ...r, isMe: r.name === name }))
   const me = ranked.find((r: LeaderRow) => r.isMe)
   const totalPoints = points?.total ?? 0
-  
   const myTier = getTierInfo(totalPoints)
   
   // Calculate milestone to next rank
@@ -218,6 +218,11 @@ export default function Leaderboard() {
                   <div className={cx("text-h3 font-bold flex items-center gap-2", myTier.color)}>
                     <span>{myTier.icon}</span> {myTier.name}
                   </div>
+                  <div className="mt-1 text-caption text-graytext-mid">
+                    {me
+                      ? `Rank #${me.rank} ${scope === 'Overall' ? 'Overall' : `in ${scope}`}`
+                      : `No rank in ${scope} yet`}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] uppercase tracking-widest text-graytext-light mb-1">Lifetime Pts</div>
@@ -251,6 +256,16 @@ export default function Leaderboard() {
                     You are <strong className="text-offwhite">{nextRankTarget.points - totalPoints + 1} points</strong> away from overtaking <strong className="text-offwhite">{nextRankTarget.name}</strong> for Rank #{nextRankTarget.rank}!
                   </div>
                 </div>
+              )}
+            </div>
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <Badge tone={myTier.tone}>
+                {myTier.icon} {myTier.name} tier
+              </Badge>
+              {myTier.next && (
+                <span className="text-caption text-graytext-mid">
+                  {myTier.next.points - totalPoints} pts to {myTier.next.name}
+                </span>
               )}
             </div>
           </Card>

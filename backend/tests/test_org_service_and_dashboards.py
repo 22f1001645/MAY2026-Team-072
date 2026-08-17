@@ -3,6 +3,26 @@ and registration edge cases (capacity, unregistering, broadcasting)."""
 from app.models import User, Organisation, Activity, Registration, PORAssignment
 
 
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
+
+
+def _activity_payload(title, starts_at, capacity=10, scale="local_meetup", **extra):
+    """Minimal payload satisfying Phase 3 team-roster validation."""
+    return {
+        "title": title,
+        "org_id": Organisation.query.filter_by(type="region").first().id,
+        "city": "Hyderabad",
+        "scale": scale,
+        "venue": "Test Venue",
+        "starts_at": starts_at,
+        "capacity": capacity,
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
+        **extra,
+    }
+
+
 def test_create_org_by_admin(client, admin_headers):
     res = client.post(
         "/api/v1/orgs",
@@ -82,16 +102,9 @@ def test_dashboard_surfaces(client, student_headers, rc_headers, admin_headers):
 
 def test_unregister_flow(client, student_headers, rc_headers, admin_headers):
     # Create and approve an event
-    payload = {
-        "title": "Unregister Test Event",
-        "org_id": Organisation.query.first().id,
-        "city": "Hyderabad",
-        "scale": "local_meetup",
-        "venue": "Test Venue",
-        "starts_at": "2026-11-01T10:00:00",
-        "capacity": 10,
-    }
-    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    aid = client.post("/api/v1/activities",
+                      json=_activity_payload("Unregister Test Event", "2026-11-01T10:00:00"),
+                      headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
 
     # Register
@@ -108,16 +121,9 @@ def test_unregister_flow(client, student_headers, rc_headers, admin_headers):
 
 
 def test_broadcast_notifications(client, rc_headers, admin_headers, student_headers):
-    payload = {
-        "title": "Broadcast Test Event",
-        "org_id": Organisation.query.first().id,
-        "city": "Hyderabad",
-        "scale": "local_meetup",
-        "venue": "Test Venue",
-        "starts_at": "2026-11-05T10:00:00",
-        "capacity": 10,
-    }
-    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    aid = client.post("/api/v1/activities",
+                      json=_activity_payload("Broadcast Test Event", "2026-11-05T10:00:00"),
+                      headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
     client.post(f"/api/v1/events/{aid}/register", headers=student_headers)
 
@@ -137,16 +143,10 @@ def test_broadcast_notifications(client, rc_headers, admin_headers, student_head
 
 
 def test_registration_capacity_limit(client, rc_headers, admin_headers, student_headers):
-    payload = {
-        "title": "Tiny Event",
-        "org_id": Organisation.query.first().id,
-        "city": "Hyderabad",
-        "scale": "local_meetup",
-        "venue": "Small Room",
-        "starts_at": "2026-12-01T10:00:00",
-        "capacity": 1,
-    }
-    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    aid = client.post("/api/v1/activities",
+                      json=_activity_payload("Tiny Event", "2026-12-01T10:00:00", capacity=1,
+                                            venue="Small Room"),
+                      headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
 
     # First registration succeeds
@@ -160,16 +160,9 @@ def test_registration_capacity_limit(client, rc_headers, admin_headers, student_
 
 
 def test_post_event_report_flow(client, rc_headers, admin_headers, student_headers):
-    payload = {
-        "title": "Report Test Event",
-        "org_id": Organisation.query.first().id,
-        "city": "Hyderabad",
-        "scale": "local_meetup",
-        "venue": "Venue",
-        "starts_at": "2026-11-10T10:00:00",
-        "capacity": 10,
-    }
-    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    aid = client.post("/api/v1/activities",
+                      json=_activity_payload("Report Test Event", "2026-11-10T10:00:00"),
+                      headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
 
     # Organiser files report
@@ -188,16 +181,9 @@ def test_post_event_report_flow(client, rc_headers, admin_headers, student_heade
 
 
 def test_award_volunteer_points_flow(client, rc_headers, admin_headers, student_headers):
-    payload = {
-        "title": "Volunteer Test Event",
-        "org_id": Organisation.query.first().id,
-        "city": "Hyderabad",
-        "scale": "local_meetup",
-        "venue": "Venue",
-        "starts_at": "2026-11-15T10:00:00",
-        "capacity": 10,
-    }
-    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    aid = client.post("/api/v1/activities",
+                      json=_activity_payload("Volunteer Test Event", "2026-11-15T10:00:00"),
+                      headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
     student = User.query.filter_by(email="arav@ekatva.os").first()
 
@@ -229,16 +215,9 @@ def test_deactivate_por(client, admin_headers):
 
 
 def test_bulk_verify_expenses(client, rc_headers, admin_headers):
-    payload = {
-        "title": "Bulk Verify Event",
-        "org_id": Organisation.query.first().id,
-        "city": "Hyderabad",
-        "scale": "local_meetup",
-        "venue": "Venue",
-        "starts_at": "2026-11-20T10:00:00",
-        "capacity": 10,
-    }
-    aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
+    aid = client.post("/api/v1/activities",
+                      json=_activity_payload("Bulk Verify Event", "2026-11-20T10:00:00"),
+                      headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision", json={"decision": "approve", "note": ""}, headers=admin_headers)
 
     # Submit 2 expenses

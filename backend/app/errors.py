@@ -30,6 +30,7 @@ def register_error_handlers(app):
 
     @app.errorhandler(ValidationError)
     def _validation(e: ValidationError):
+        app.logger.error(f"Validation Error: {e.messages}")
         return envelope("Validation failed", "validation_error", 422, e.messages)
 
     @app.errorhandler(HTTPException)

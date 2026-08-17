@@ -21,9 +21,12 @@ def create_app(config_object=Config):
 
     # Extensions
     db.init_app(app)
-    migrate.init_app(app, db, render_as_batch=True)
+    # render_as_batch is what makes ALTER/DROP COLUMN possible on SQLite at all
+    # (Alembic rewrites them as a table copy); compare_type makes autogenerate
+    # notice column type changes rather than silently ignoring them.
+    migrate.init_app(app, db, render_as_batch=True, compare_type=True)
     jwt.init_app(app)
-    CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+    CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
 
     # JWT error responses use the same envelope shape
     @jwt.unauthorized_loader
@@ -37,6 +40,15 @@ def create_app(config_object=Config):
     @jwt.expired_token_loader
     def _expired_token(header, payload):
         return jsonify({"error": "Token has expired", "code": "token_expired"}), 401
+
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
+        # Short-circuit on access tokens (never hits DB)
+        if jwt_payload.get("type") == "access":
+            return False
+            
+        from .repositories.repos import BlocklistRepository
+        return BlocklistRepository.is_jti_blocked(jwt_payload["jti"])
 
     # Blueprints (one per PRD module)
     for bp in ALL_BLUEPRINTS:

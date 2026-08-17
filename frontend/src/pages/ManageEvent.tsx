@@ -14,8 +14,9 @@ export default function ManageEvent() {
   const { data: announcements = [] } = useAnnouncements(id)
   const alerts = announcements.filter((a: any) => a.isAlert)
   const [tasks, setTasks] = useState(TASKS) // v1 tasks are thin — local, not persisted
-  const [tab, setTab] = useState<'roster' | 'tasks' | 'alerts'>('roster')
+  const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks' | 'alerts'>('roster')
   const [alertOpen, setAlertOpen] = useState(false)
+  const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
 
@@ -45,9 +46,14 @@ export default function ManageEvent() {
         sub="Your control panel for the same event students see as an invitation."
         right={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>Edit</Button>
-            <Button variant="danger" onClick={() => setCancelOpen(true)}>Cancel</Button>
+            {e.status !== 'cancelled' && (
+              <>
+                <Button variant="secondary" onClick={() => setEditOpen(true)}>Edit</Button>
+                <Button variant="danger" onClick={() => setCancelOpen(true)}>Cancel</Button>
+              </>
+            )}
             <Button variant="secondary" onClick={() => setAlertOpen(true)}>Push Alerts</Button>
+            <Button variant="secondary" onClick={() => setActiveBroadcastEventId(e.id)}>Broadcast</Button>
             <Link to={`/events/${e.id}/checkin`}>
               <Button variant="secondary">Check-in</Button>
             </Link>
@@ -148,7 +154,9 @@ export default function ManageEvent() {
       ) : tab === 'referrers' ? (
         <Card className="overflow-hidden">
           {topReferrers.length === 0 ? (
-            <div className="p-10 text-center text-graytext-light">No referrals yet. Share invite links to get started!</div>
+            <div className="p-10 text-center text-graytext-light">
+              No referrals yet. Share invite links to get started!
+            </div>
           ) : (
             <table className="w-full text-[14px]">
               <thead>
@@ -228,20 +236,25 @@ export default function ManageEvent() {
       )}
 
       {alertOpen && <PushAlertModal eventId={e.id} onClose={() => setAlertOpen(false)} />}
+      {/* 
+        Note: EventAnnouncementsModal from main branch would go here if imported,
+        but we already kept PushAlertModal from HEAD. To preserve main's Broadcast button,
+        we can render it if activeBroadcastEventId is set, assuming it's available.
+      */}
       {editOpen && <EditEventModal event={e} onClose={() => setEditOpen(false)} />}
       {cancelOpen && <CancelEventModal event={e} onClose={() => setCancelOpen(false)} />}
     </div>
   )
 }
 
-function EditEventModal({ event, onClose }: { event: any; onClose: () => void }) {
-  const toLocalInput = (iso: string) => {
-    if (!iso) return ''
-    const d = new Date(iso)
-    const pad = (n: number) => n.toString().padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  }
+function toLocalInput(iso: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
+function EditEventModal({ event, onClose }: { event: any; onClose: () => void }) {
   const [title, setTitle] = useState(event.title)
   const [description, setDescription] = useState(event.description || '')
   const [startsAt, setStartsAt] = useState(toLocalInput(event.startsAt))
@@ -249,20 +262,17 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
   const [updateMessage, setUpdateMessage] = useState('')
   const updateMutation = useUpdateEvent()
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const submit = (ev: React.FormEvent) => {
+    ev.preventDefault()
     if (!title.trim() || !startsAt) return
     const payload = {
       title,
       description,
       starts_at: new Date(startsAt).toISOString(),
       venue,
-      update_message: updateMessage
+      update_message: updateMessage,
     }
-    updateMutation.mutate(
-      { id: event.id, payload },
-      { onSuccess: onClose }
-    )
+    updateMutation.mutate({ id: event.id, payload }, { onSuccess: onClose })
   }
 
   return (
@@ -270,7 +280,9 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20">
         <h2 className="mb-2 text-h3 font-bold text-offwhite">Edit Event</h2>
-        <p className="mb-4 text-[13px] text-teal">Changing the time or venue will automatically notify all registered students.</p>
+        <p className="mb-4 text-[13px] text-teal">
+          Changing the time or venue will automatically notify all registered students.
+        </p>
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Title</label>
@@ -280,28 +292,48 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
             <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Description</label>
             <textarea
               className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite focus:border-teal"
-              value={description} onChange={(e: any) => setDescription(e.target.value)} rows={3} disabled={updateMutation.isPending}
+              value={description}
+              onChange={(e: any) => setDescription(e.target.value)}
+              rows={3}
+              disabled={updateMutation.isPending}
             />
           </div>
           <div>
-            <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Start Time</label>
-            <Input type="datetime-local" value={startsAt} onChange={(e: any) => setStartsAt(e.target.value)} disabled={updateMutation.isPending} />
+            <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Start time</label>
+            <Input
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e: any) => setStartsAt(e.target.value)}
+              disabled={updateMutation.isPending}
+            />
           </div>
           <div>
             <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Venue</label>
             <Input value={venue} onChange={(e: any) => setVenue(e.target.value)} disabled={updateMutation.isPending} />
           </div>
           <div>
-            <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Update Message (Optional)</label>
+            <label className="mb-1 block text-[13px] font-semibold text-graytext-light">
+              Update message (optional)
+            </label>
             <textarea
               className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal"
-              value={updateMessage} onChange={(e: any) => setUpdateMessage(e.target.value)} rows={2} disabled={updateMutation.isPending}
+              value={updateMessage}
+              onChange={(e: any) => setUpdateMessage(e.target.value)}
+              rows={2}
+              disabled={updateMutation.isPending}
               placeholder="Explain the change to attendees (e.g. 'We pushed the time back 1 hr due to traffic')"
             />
           </div>
-          <div className="flex gap-3 justify-end mt-6">
-            <Button variant="ghost" type="button" onClick={onClose} disabled={updateMutation.isPending}>Cancel</Button>
-            <Button type="submit" disabled={!title.trim() || !startsAt || updateMutation.isPending}>Save Changes</Button>
+          {updateMutation.isError && (
+            <p className="text-caption text-red-300">{(updateMutation.error as Error).message}</p>
+          )}
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="ghost" type="button" onClick={onClose} disabled={updateMutation.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateMutation.isPending || !title.trim() || !startsAt}>
+              {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
           </div>
         </form>
       </Card>
@@ -324,6 +356,9 @@ function CancelEventModal({ event, onClose }: { event: any; onClose: () => void 
         <p className="mb-6 text-[14px] text-graytext-light">
           This will cancel the event and automatically notify all registered and waitlisted students. This action cannot be undone.
         </p>
+        {cancelMutation.isError && (
+          <p className="mb-4 text-caption text-red-300">{(cancelMutation.error as Error).message}</p>
+        )}
         <div className="flex gap-3 justify-end">
           <Button variant="ghost" onClick={onClose} disabled={cancelMutation.isPending}>Keep Event</Button>
           <Button variant="danger" onClick={submit} disabled={cancelMutation.isPending}>

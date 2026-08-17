@@ -1,13 +1,40 @@
 """Seed the database with the same world the frontend prototype shows:
 the pre-provisioned admin, an RC organiser, students, cities, orgs, a couple
 of approved events with registrations/attendance, and one closed activity with
-expenses. Run: `python seed.py` (drops and recreates all tables)."""
+expenses.
+
+Two modes, and only one of them destroys anything:
+
+    python seed.py                    DESTRUCTIVE. Drops every table, rebuilds
+                                      the schema through the migration chain,
+                                      then seeds reference + demo data. Refuses
+                                      to run against anything but a local SQLite
+                                      development file.
+
+    python seed.py --reference-only   Safe and idempotent. Houses, Regions and
+                                      Cities only — no accounts, nothing
+                                      dropped, re-runnable against any
+                                      environment including a real deployment.
+
+Since the milestone schema landed as a single Alembic revision, the destructive
+path is no longer how you pick up a schema change. `flask db upgrade` is.
+This script is for building a demo world from nothing.
+
+These functions do no concurrent work and are meant to be run by one operator
+at a time from a terminal; they claim no locking guarantee and need none.
+"""
+import argparse
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from flask_migrate import upgrade as alembic_upgrade
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from werkzeug.security import generate_password_hash
 
 from app import create_app
@@ -27,14 +54,127 @@ from app.models import (
     PORAssignment,
     Proposal,
     Registration,
+    Term,
     User,
+    SystemSetting,
 )
 
 TERM = "May 2026"
 
+BACKEND_ROOT = Path(__file__).resolve().parent
+MIGRATIONS_DIR = str(BACKEND_ROOT / "migrations")
 
-def reset_db():
-    app = create_app()
+# --- Key cities scoped to their Regions (reference data) ---------------------
+REGION_CITIES = {
+    "Delhi (Delhi-NCR)": ["Delhi", "Noida", "Gurgaon", "Ghaziabad", "Faridabad"],
+    "Chennai (Tamil Nadu)": ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem"],
+    "Bengaluru (Karnataka, Kerala)": ["Bengaluru", "Mysuru", "Kochi", "Trivandrum", "Mangaluru"],
+    "Hyderabad (AP & Telangana)": ["Hyderabad", "Visakhapatnam", "Vijayawada", "Warangal", "Tirupati"],
+    "Mumbai (Maharashtra, Gujarat)": ["Mumbai", "Pune", "Nashik", "Ahmedabad", "Surat"],
+    "Kolkata (WB, NE, Odisha)": ["Kolkata", "Bhubaneswar", "Guwahati", "Siliguri", "Shillong"],
+    "Patna (Bihar, Jharkhand, Chhattisgarh)": ["Patna", "Ranchi", "Raipur", "Dhanbad", "Bokaro"],
+    "Chandigarh (Punjab, HP, RJ, J&K)": ["Chandigarh", "Jaipur", "Amritsar", "Shimla", "Jammu"],
+    "Lucknow (UP, Gwalior)": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Gwalior"],
+    "International": ["International"],
+}
+
+
+def _refuse(reason):
+    """Print why the destructive path is being refused, then exit non-zero."""
+    print("REFUSING to reset this database.", file=sys.stderr)
+    print(f"  Reason: {reason}", file=sys.stderr)
+    print(
+        "  Only a local SQLite file inside backend/ may be reset destructively.",
+        file=sys.stderr,
+    )
+    print(
+        "  To change the schema of a real database, write a forward migration"
+        " and run `flask db upgrade`.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+def _is_absolute_path(raw):
+    """True when `raw` is absolute in EITHER path convention.
+
+    `Path.is_absolute()` alone is not enough: on Windows it reports False for
+    '/var/lib/prod.db' because that string carries no drive letter. Relying on
+    it would mean the containment check below silently stops running whenever a
+    developer is on Windows and the URI uses POSIX form — a guard that quietly
+    disables itself on one platform is worse than no guard, because it still
+    reads like protection.
+    """
+    return (
+        raw.startswith("/")
+        or raw.startswith("\\")
+        or PureWindowsPath(raw).drive != ""
+        or PurePosixPath(raw).is_absolute()
+    )
+
+
+def require_dev_database(app):
+    """Refuse to destroy anything that is not a local SQLite development file.
+
+    This reads `app.config["SQLALCHEMY_DATABASE_URI"]` and nothing else, and it
+    takes no override argument and honours no override variable — on purpose.
+
+    A production Postgres URL and a dev SQLite file are one `export DATABASE_URL`
+    apart, which is exactly how a scratch reset becomes a wiped deployment. A
+    guard that some variable can switch off is not a guard: that variable would
+    be set in precisely the environment where the mistake happens. So there is
+    deliberately no debug flag, no environment-name check, and no allow-override
+    escape hatch here, and `tests/test_seed_guard.py` asserts that none appears
+    later — including by asserting an invented override name has no effect.
+
+    Returns None when the database is safe to reset. Never returns otherwise.
+    """
+    uri = app.config["SQLALCHEMY_DATABASE_URI"]
+
+    try:
+        url = make_url(uri)
+    except Exception:
+        _refuse("the configured database URI could not be parsed")
+
+    backend = url.get_backend_name()
+    if backend != "sqlite":
+        _refuse(f"the configured database is {backend!r}, not sqlite")
+
+    # A SQLite URI can still point outside the project — sqlite:////var/lib/prod.db
+    # is a local file too. Every path is resolved to a real location and then
+    # required to live inside backend/, rather than only checking the ones that
+    # look absolute: a relative path can escape just as well via '../..'.
+    database = url.database
+    if database and database != ":memory:":
+        if _is_absolute_path(database):
+            resolved = Path(database).resolve()
+        else:
+            # Flask resolves a relative SQLite path into the instance folder.
+            resolved = (Path(app.instance_path) / database).resolve()
+        if resolved != BACKEND_ROOT and BACKEND_ROOT not in resolved.parents:
+            _refuse(f"the SQLite file {resolved} is outside the backend/ directory")
+
+    return None
+
+
+def reset_destructive(app):
+    """Drop everything, then rebuild the schema through the migration chain.
+
+    The order here is the single most breakable thing in this file:
+
+    1. `db.drop_all()` removes the application tables but NOT `alembic_version`
+       — that table is not in `db.metadata`, so drop_all() never sees it.
+    2. `alembic_version` is therefore dropped explicitly. Skipping this leaves a
+       version marker pointing at a head whose tables no longer exist.
+    3. The schema is rebuilt with `flask_migrate.upgrade()`, NOT `db.create_all()`.
+       create_all() would produce the tables with no version marker at all.
+
+    Either mistake is completely invisible here and surfaces days later, on
+    someone else's machine, as a `flask db upgrade` that fails with a confusing
+    error — because their database claims a version its schema does not match.
+    """
+    require_dev_database(app)
+
     with app.app_context():
         db_url = app.config.get("SQLALCHEMY_DATABASE_URI", "")
         if not (db_url.startswith("sqlite://") or "localhost" in db_url or "127.0.0.1" in db_url):
@@ -42,34 +182,108 @@ def reset_db():
         print("Dropping all tables...")
         # drop_all doesn't drop alembic_version, so we must drop it manually or use create_all+stamp
         db.drop_all()
-        db.session.execute(db.text("DROP TABLE IF EXISTS alembic_version"))
+        db.session.execute(text("DROP TABLE IF EXISTS alembic_version"))
         db.session.commit()
-        from flask_migrate import upgrade
-        print("Running migrations...")
-        upgrade()
-        print("Schema recreated.")
+        alembic_upgrade(directory=MIGRATIONS_DIR)
+
+def _get_or_create_org(name, org_type, city):
+    """Fetch an Organisation by its natural key, creating it only if absent.
+
+    `Organisation.name` carries no unique constraint, so nothing in the database
+    would reject a second identical row — re-running this without the lookup
+    would simply produce 24 Houses.
+    """
+    existing = Organisation.query.filter_by(name=name, type=org_type).first()
+    if existing is not None:
+        return existing, False
+    org = Organisation(name=name, type=org_type, city=city)
+    db.session.add(org)
+    return org, True
 
 
 def seed_reference_data():
-    app = create_app()
+    """Seed the 12 Houses, 10 Regions and 46 Cities. Idempotent, and unguarded.
+
+    Deliberately does NOT consult the destructive-database guard: this creates
+    no accounts, destroys nothing, and ROADMAP Phase 1 requires reference data
+    to be seedable against any environment, including a real deployment. Running
+    it twice leaves identical counts.
+
+    Must be called inside an application context.
+    """
+    created = {"houses": 0, "regions": 0, "cities": 0, "terms": 0}
+    existing = {"houses": 0, "regions": 0, "cities": 0, "terms": 0}
+
+    # --- Terms ---
+    found_term = Term.query.filter_by(name=TERM).first()
+    if found_term is None:
+        db.session.add(Term(name=TERM, start_date=datetime(2026, 5, 1).date(), end_date=datetime(2026, 8, 31).date(), is_current=True))
+        created["terms"] += 1
+    else:
+        existing["terms"] += 1
+
+    # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
+    for name in HOUSES:
+        _, is_new = _get_or_create_org(name, "house", "Pan-India")
+        created["houses"] += is_new
+        existing["houses"] += not is_new
+
+    # --- 10 Geographic Regions (IIT Madras BS Non-Academic Guidelines A.2) ---
+    region_orgs = {}
+    for name in REGIONS:
+        org, is_new = _get_or_create_org(name, "region", name.split(" ")[0])
+        region_orgs[name] = org
+        created["regions"] += is_new
+        existing["regions"] += not is_new
+    db.session.flush()
+
+    # --- Cities, scoped to their Region ---
+    for region_name, cities in REGION_CITIES.items():
+        region = region_orgs[region_name]
+        for city_name in cities:
+            found = City.query.filter_by(name=city_name, region_id=region.id).first()
+            if found is None:
+                db.session.add(City(name=city_name, region_id=region.id))
+                created["cities"] += 1
+            else:
+                existing["cities"] += 1
+
+    # --- System Settings (Phase 9) ---
+    setting = SystemSetting.query.filter_by(key="recognition_points").first()
+    if setting is None:
+        db.session.add(SystemSetting(key="recognition_points", value_json={"attended": 30, "organised": 50, "volunteered": 20}))
+    
+    db.session.commit()
+
+    print(
+        "Reference data: "
+        f"houses +{created['houses']} ({existing['houses']} already present), "
+        f"regions +{created['regions']} ({existing['regions']} already present), "
+        f"cities +{created['cities']} ({existing['cities']} already present), "
+        f"terms +{created['terms']} ({existing['terms']} already present)"
+    )
+    return {"created": created, "existing": existing}
+
+
+def seed_demo_data(app):
+    """Seed the demo world: accounts, PORs, three activities and their history.
+
+    Guarded, unlike `seed_reference_data`: this creates accounts whose passwords
+    are published in the README, which must never exist outside development.
+    """
+    require_dev_database(app)
+
     with app.app_context():
-        # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
-        house_orgs = {}
-        for name in HOUSES:
-            h = Organisation(name=name, type="house", city="Pan-India")
-            db.session.add(h)
-            house_orgs[name] = h
-        db.session.flush()
+        house_orgs = {
+            org.name: org
+            for org in Organisation.query.filter_by(type="house").all()
+        }
+        region_orgs = {
+            org.name: org
+            for org in Organisation.query.filter_by(type="region").all()
+        }
 
-        # --- 10 Geographic Regions (IIT Madras BS Non-Academic Guidelines A.2) ---
-        region_orgs = {}
-        for name in REGIONS:
-            r = Organisation(name=name, type="region", city=name.split(" ")[0])
-            db.session.add(r)
-            region_orgs[name] = r
-        db.session.flush()
-
-        # --- Legacy org aliases (used by seeded activities) ---
+        # --- Demo-only orgs that host the seeded activities ---
         orgs = {
             "hyd_region": region_orgs["Hyderabad (AP & Telangana)"],
             "blr_region": region_orgs["Bengaluru (Karnataka, Kerala)"],
@@ -79,28 +293,6 @@ def seed_reference_data():
         }
         db.session.add(orgs["rhythm"])
         db.session.add(orgs["sec"])
-        db.session.flush()
-
-        # --- Seed key cities scoped to their Regions ---
-        REGION_CITIES = {
-            "Delhi (Delhi-NCR)": ["Delhi", "Noida", "Gurgaon", "Ghaziabad", "Faridabad"],
-            "Chennai (Tamil Nadu)": ["Chennai", "Coimbatore", "Madurai", "Trichy", "Salem"],
-            "Bengaluru (Karnataka, Kerala)": ["Bengaluru", "Mysuru", "Kochi", "Trivandrum", "Mangaluru"],
-            "Hyderabad (AP & Telangana)": ["Hyderabad", "Visakhapatnam", "Vijayawada", "Warangal", "Tirupati"],
-            "Mumbai (Maharashtra, Gujarat)": ["Mumbai", "Pune", "Nashik", "Ahmedabad", "Surat"],
-            "Kolkata (WB, NE, Odisha)": ["Kolkata", "Bhubaneswar", "Guwahati", "Siliguri", "Shillong"],
-            "Patna (Bihar, Jharkhand, Chhattisgarh)": ["Patna", "Ranchi", "Raipur", "Dhanbad", "Bokaro"],
-            "Chandigarh (Punjab, HP, RJ, J&K)": ["Chandigarh", "Jaipur", "Amritsar", "Shimla", "Jammu"],
-            "Lucknow (UP, Gwalior)": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Gwalior"],
-            "International": ["International"],
-        }
-        city_objs = {}  # (region_name, city_name) → City
-        for region_name, cities in REGION_CITIES.items():
-            r_org = region_orgs[region_name]
-            for city_name in cities:
-                c = City(name=city_name, region_id=r_org.id)
-                db.session.add(c)
-                city_objs[(region_name, city_name)] = c
         db.session.flush()
 
         # --- Users (passwords match the frontend demo accounts) ---
@@ -136,7 +328,7 @@ def seed_reference_data():
 
         students = [saiteja, arav, *extras]
 
-        # --- Activity fee records: everyone paid the Rs 100 term fee ---
+        # --- Activity fee records: everyone paid the term fee ---
         for u in students:
             db.session.add(ActivityFeeRecord(user_id=u.id, term=TERM, paid=True))
 
@@ -264,6 +456,43 @@ def seed_reference_data():
         print("  Student:         arav@ds.study.iitm.ac.in / student123")
 
 
+def _database_label(app):
+    """A human-readable name for the database about to be rebuilt."""
+    url = make_url(app.config["SQLALCHEMY_DATABASE_URI"])
+    if url.get_backend_name() == "sqlite" and url.database:
+        path = Path(url.database)
+        if not path.is_absolute():
+            path = Path(app.instance_path) / path
+        return str(path)
+    return str(url)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Seed the Ekatva OS database.",
+        epilog="Without --reference-only this DROPS EVERY TABLE and rebuilds it.",
+    )
+    parser.add_argument(
+        "--reference-only",
+        action="store_true",
+        help="seed Houses, Regions and Cities only — idempotent, destroys nothing,"
+             " and safe to run against any environment",
+    )
+    args = parser.parse_args()
+
+    app = create_app()
+
+    if args.reference_only:
+        with app.app_context():
+            seed_reference_data()
+        return
+
+    print(f"DESTRUCTIVE RESET — rebuilding {_database_label(app)}")
+    reset_destructive(app)
+    with app.app_context():
+        seed_reference_data()
+    seed_demo_data(app)
+
+
 if __name__ == "__main__":
-    reset_db()
-    seed_reference_data()
+    main()

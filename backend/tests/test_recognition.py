@@ -1,5 +1,10 @@
 from app.extensions import db
-from app.models import Activity, Registration
+from app.models import Activity, Registration, User
+
+
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
+
 
 def test_leaderboard_and_points(client, app, student_headers, rc_headers, admin_headers):
     # Fetch initial points before doing anything
@@ -21,7 +26,10 @@ def test_leaderboard_and_points(client, app, student_headers, rc_headers, admin_
         "capacity": 50,
         "description": "Testing points logic",
         "budget": [{"label": "Snacks", "planned": 500}],
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
+
     res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
     activity_id = res.get_json()["id"]
 

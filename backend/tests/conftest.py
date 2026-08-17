@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 from werkzeug.security import generate_password_hash
 
@@ -13,8 +15,15 @@ from app.models import (
     Organisation,
     PORAssignment,
     Proposal,
+    Term,
     User,
 )
+
+
+# The house the Phase 4 organisation-profile fixtures manage. Named rather than
+# positional because _seed_minimal now holds two houses — see the comment beside
+# the row itself for why the first one is deliberately left alone.
+SECRETARY_HOUSE = "Kanha House"
 
 
 @pytest.fixture
@@ -40,6 +49,34 @@ def _seed_minimal():
     db.session.add_all([org, house])
     db.session.flush()
 
+    # "Org B" for the cross-org authorization tests (01-05). Appended after the
+    # two originals so Organisation.query.first() still returns the region org,
+    # which several existing tests rely on. Deliberately a different type, name
+    # and city from both, so a cross-org denial can only be about id identity.
+    society = Organisation(name="Shutterbugs Society", type="society", city="Bengaluru")
+    db.session.add(society)
+    db.session.flush()
+
+    # A SECOND house, for the Phase 4 profile fixtures (ORG-01). Nilgiri cannot
+    # host them: org_service.assign_por allows exactly one active House Secretary
+    # per House, and three existing tests assign that role to
+    # `filter_by(type="house").first()`. A seeded secretary there would fill the
+    # slot those tests need free, so the Phase 4 POR holders live here instead
+    # and Nilgiri stays untouched. Fetch this one by name (SECRETARY_HOUSE), not
+    # by position — there are two houses now.
+    profile_house = Organisation(name=SECRETARY_HOUSE, type="house", city="Pune")
+    db.session.add(profile_house)
+    db.session.flush()
+
+    # The fourth organisation type (Phase 4, ORG-01). ROADMAP Phase 4 criterion 1
+    # asks for all four types editable through one code path, and without this
+    # row `council` would be the only one the polymorphic path never sees. Its
+    # city is distinct from all three above, so a cross-org denial can only ever
+    # be about id identity.
+    council = Organisation(name="Student Executive Council", type="council", city="Chennai")
+    db.session.add(council)
+    db.session.flush()
+
     # City scoped to the Hyderabad region
     db.session.add(City(name="Hyderabad", region_id=org.id))
 
@@ -54,7 +91,51 @@ def _seed_minimal():
     db.session.add_all([admin, rc, student])
     db.session.flush()
 
+    # Two users holding NO POR at all (01-05). Their only route to authority is
+    # an ActivityTeamMember row, which is what makes them the right subjects for
+    # testing that team membership is Activity-scoped and nothing more (TEAM-03).
+    # region_id is left unset so they never shift a regional analytics count.
+    crew = User(name="Divya", email="crew@ekatva.os",
+                password_hash=generate_password_hash("crew12345"), role="student",
+                city="Hyderabad")
+    head = User(name="Nikhil", email="head@ekatva.os",
+                password_hash=generate_password_hash("head12345"), role="student",
+                city="Hyderabad")
+    db.session.add_all([crew, head])
+    db.session.flush()
+
+    # Organisation-profile POR holders (Phase 4, ORG-01). Their POR rows are
+    # constructed directly rather than through org_service.assign_por, whose
+    # HOUSE_ONLY_POR_TYPES guardrail would 400 the non-house assignments this
+    # phase needs. region_id is left unset for the same reason as crew/head
+    # above — a profile-editing fixture must not shift a regional analytics count.
+    secretary = User(name="Meera", email="secretary@ekatva.os",
+                     password_hash=generate_password_hash("sec12345"), role="student",
+                     city="Hyderabad")
+    deputy = User(name="Rohan", email="deputy@ekatva.os",
+                  password_hash=generate_password_hash("dep12345"), role="student",
+                  city="Bengaluru")
+    coordinator = User(name="Ananya", email="coordinator@ekatva.os",
+                       password_hash=generate_password_hash("coord12345"), role="student",
+                       city="Chennai")
+    db.session.add_all([secretary, deputy, coordinator])
+    db.session.flush()
+
     db.session.add(ActivityFeeRecord(user_id=student.id, term="May 2026", paid=True))
+
+    for user, org_row, por_type in (
+        (secretary, profile_house, "House Secretary"),
+        (deputy, society, "Society Deputy Secretary"),
+        # AUTH-03 defines Coordinator as a House/Society/Region/Council-scoped
+        # Core Committee role, and it is already in ORG_MANAGER_PORS, so the
+        # council needs no new POR constant of its own.
+        (coordinator, council, "Coordinator"),
+    ):
+        membership = Membership(user_id=user.id, org_id=org_row.id)
+        db.session.add(membership)
+        db.session.flush()
+        db.session.add(PORAssignment(membership_id=membership.id, por_type=por_type,
+                                     term="May 2026", active=True))
 
     # Give rc an organiser POR
     m = Membership(user_id=rc.id, org_id=org.id)
@@ -85,5 +166,172 @@ def student_headers(client):
     return {"Authorization": f"Bearer {_token(client, 'arav@ekatva.os', 'student123')}"}
 
 
+@pytest.fixture
+def crew_headers(client):
+    return {"Authorization": f"Bearer {_token(client, 'crew@ekatva.os', 'crew12345')}"}
+
+
+@pytest.fixture
+def meetup_head_headers(client):
+    return {"Authorization": f"Bearer {_token(client, 'head@ekatva.os', 'head12345')}"}
+
+
+@pytest.fixture
+def house_secretary_headers(client):
+    """A House Secretary of the SECRETARY_HOUSE org — ORG-01's first subject."""
+    return {"Authorization": f"Bearer {_token(client, 'secretary@ekatva.os', 'sec12345')}"}
+
+
+@pytest.fixture
+def society_deputy_headers(client):
+    """A Society Deputy Secretary of the society org (ORG-01, AUTH-03)."""
+    return {"Authorization": f"Bearer {_token(client, 'deputy@ekatva.os', 'dep12345')}"}
+
+
+@pytest.fixture
+def council_coordinator_headers(client):
+    """A Coordinator of the council org — the fourth organisation type."""
+    return {"Authorization": f"Bearer {_token(client, 'coordinator@ekatva.os', 'coord12345')}"}
+
+
+@pytest.fixture
+def second_org(app):
+    """The society organisation — "org B" in the cross-org authorization tests."""
+    return other_org()
+
+
 def org_id():
     return Organisation.query.first().id
+
+
+# --- Lookup helpers for the seeded rows (01-05) -----------------------------
+# Fetch by email or type rather than by insertion position, so a later addition
+# to _seed_minimal cannot silently repoint one of these at a different row.
+
+
+def admin_user():
+    return User.query.filter_by(email="admin@ekatva.os").first()
+
+
+def rc_user():
+    return User.query.filter_by(email="rc@ekatva.os").first()
+
+
+def student_user():
+    return User.query.filter_by(email="arav@ekatva.os").first()
+
+
+def crew_user():
+    return User.query.filter_by(email="crew@ekatva.os").first()
+
+
+def meetup_head_user():
+    return User.query.filter_by(email="head@ekatva.os").first()
+
+
+def region_org():
+    return Organisation.query.filter_by(type="region").first()
+
+
+def other_org():
+    return Organisation.query.filter_by(type="society").first()
+
+
+def house_org():
+    """The house the Phase 4 House Secretary fixture manages.
+
+    By name, not `filter_by(type="house").first()`: there are two houses, and
+    the first one's House Secretary slot is deliberately kept free for
+    org_service.assign_por's uniqueness tests."""
+    return Organisation.query.filter_by(name=SECRETARY_HOUSE).first()
+
+
+def council_org():
+    return Organisation.query.filter_by(type="council").first()
+
+
+def secretary_user():
+    return User.query.filter_by(email="secretary@ekatva.os").first()
+
+
+# --- Cookie-aware session fixtures (02-01) ----------------------------------
+# The refresh flow is cookie-borne, so the header-only fixtures above cannot
+# drive it. Flask's test_client() already persists cookies across calls within
+# one instance; this wrapper adds the two things every session test needs — the
+# current csrf_refresh_token value and a one-line login — so that no test has to
+# hand-roll cookie parsing.
+
+
+class CookieClient:
+    """A cookie-retaining test client with CSRF and login helpers.
+
+    One instance is one browser: separate instances have separate cookie jars,
+    which is what makes them two devices for the D-04 logout-scope test."""
+
+    REFRESH_COOKIE = "refresh_token_cookie"
+    CSRF_COOKIE = "csrf_refresh_token"
+
+    def __init__(self, client):
+        self.client = client
+
+    def __getattr__(self, name):
+        # Anything not defined here falls through to the real test client.
+        return getattr(self.client, name)
+
+    def cookie(self, name):
+        """Current value of a cookie in this client's jar, or None."""
+        found = self.client.get_cookie(name)
+        return found.value if found else None
+
+    @property
+    def csrf_token(self):
+        return self.cookie(self.CSRF_COOKIE)
+
+    @property
+    def refresh_cookie(self):
+        return self.cookie(self.REFRESH_COOKIE)
+
+    def csrf_headers(self, extra=None):
+        headers = {"X-CSRF-TOKEN": self.csrf_token or ""}
+        if extra:
+            headers.update(extra)
+        return headers
+
+    def login_as(self, email, password):
+        return self.client.post(
+            "/api/v1/auth/login", json={"email": email, "password": password}
+        )
+
+    def post_refresh(self, extra_headers=None):
+        return self.client.post(
+            "/api/v1/auth/refresh", headers=self.csrf_headers(extra_headers)
+        )
+
+    def post_logout(self, extra_headers=None):
+        return self.client.post(
+            "/api/v1/auth/logout", headers=self.csrf_headers(extra_headers)
+        )
+
+
+@pytest.fixture
+def cookie_client(app):
+    return CookieClient(app.test_client())
+
+
+@pytest.fixture
+def current_term(app):
+    """One current Term row whose window contains now.
+
+    _seed_minimal creates no terms, and auth_service.is_academic_status_stale
+    returns False when no current term exists — so every staleness assertion
+    needs this row to be meaningful at all."""
+    now = datetime.now()
+    term = Term(
+        name="May 2026",
+        start_date=now - timedelta(days=30),
+        end_date=now + timedelta(days=120),
+        is_current=True,
+    )
+    db.session.add(term)
+    db.session.commit()
+    return term

@@ -1,8 +1,8 @@
 """add referred_by_id to registrations
 
-Revision ID: f26e264d3a60
-Revises: 4b77e7d9a185
-Create Date: 2026-08-12 02:44:08.050519
+Revision ID: 60ec9bdbcde9
+Revises: 6c8abb840122
+Create Date: 2026-08-12 20:08:08.656973
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f26e264d3a60'
-down_revision = '4b77e7d9a185'
+revision = '60ec9bdbcde9'
+down_revision = '6c8abb840122'
 branch_labels = None
 depends_on = None
 

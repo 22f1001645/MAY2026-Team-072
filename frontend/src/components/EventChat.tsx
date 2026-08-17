@@ -15,7 +15,7 @@ export default function EventChat({
   const { currentUser } = useAuth()
   const { data: messages = [], isLoading } = useAnnouncements(eventId)
   const postMutation = usePostAnnouncement()
-  
+
   const [text, setText] = useState('')
   const [showPicker, setShowPicker] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -65,15 +65,15 @@ export default function EventChat({
             const isImportant = m.senderRole === 'Organiser' || m.senderRole === 'Admin'
 
             return (
-              <div 
-                key={m.id} 
+              <div
+                key={m.id}
                 className={cx(
                   "flex flex-col gap-1 w-full animate-fade-up",
                   isMyMessage ? "items-end" : "items-start"
                 )}
               >
                 <div className={cx(
-                  "flex items-center gap-2", 
+                  "flex items-center gap-2",
                   isMyMessage && "flex-row-reverse"
                 )}>
                   <span className="text-[12px] font-semibold text-offwhite/80">{isMyMessage ? "You" : m.senderName}</span>
@@ -86,7 +86,7 @@ export default function EventChat({
                     {formatDate(m.createdAt)} {formatTime(m.createdAt)}
                   </span>
                 </div>
-                
+
                 <div className={cx(
                   "px-4 py-2.5 text-[14px] text-graytext-light border max-w-[85%]",
                   isImportant
@@ -110,17 +110,17 @@ export default function EventChat({
           <form onSubmit={handleSend} className="flex flex-col gap-2 relative">
             {showPicker && (
               <div className="absolute bottom-[60px] left-0 z-50 shadow-2xl">
-                <EmojiPicker 
-                  onEmojiClick={handleEmojiClick} 
-                  theme={Theme.DARK} 
+                <EmojiPicker
+                  onEmojiClick={handleEmojiClick}
+                  theme={Theme.DARK}
                   width={320}
                   height={350}
                 />
               </div>
             )}
             <div className="flex items-center gap-2">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowPicker(!showPicker)}
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-graytext-mid hover:bg-white/10 hover:text-white transition-colors"
                 title="Add Emoji"

@@ -2,25 +2,28 @@ from app.models import Organisation, User, Registration, Attendance
 from app.extensions import db
 
 
-def _org_id():
-    return Organisation.query.first().id
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
 
 
 def _make_approved_activity(client, rc_headers, admin_headers):
     payload = {
         "title": "Reimbursement Test Meetup",
-        "org_id": _org_id(),
+        "org_id": Organisation.query.filter_by(type="region").first().id,
         "city": "Hyderabad",
         "scale": "local_meetup",
         "venue": "Somewhere",
         "starts_at": "2026-10-05T17:30:00",
         "capacity": 30,
         "budget": [{"label": "Snacks", "planned": 5000}],
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
     aid = client.post("/api/v1/activities", json=payload, headers=rc_headers).get_json()["id"]
     client.post(f"/api/v1/proposals/{aid}/decision",
                 json={"decision": "approve", "note": ""}, headers=admin_headers)
     return aid
+
 
 
 def test_reimbursement_pipeline_advances_in_order(client, rc_headers, admin_headers):

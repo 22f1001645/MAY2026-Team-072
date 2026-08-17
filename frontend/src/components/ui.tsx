@@ -288,6 +288,26 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   )
 }
 
+/** The multi-line sibling of `Input`.
+ *
+ *  The base string is lifted verbatim from the `<textarea>` in
+ *  `pages/ProposalNew.tsx` — four hand-rolled textareas with three different
+ *  class strings already exist, and this phase needed two more. Lifting rather
+ *  than authoring keeps the new primitive visually identical to the call sites
+ *  it exists to unify; only the global focus ring is appended. Migrating the
+ *  four existing call sites is deliberately out of scope (04-UI-SPEC.md). */
+export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={cx(
+        'w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Mandala({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg
@@ -308,5 +328,80 @@ export function Mandala({ size = 28, className }: { size?: number; className?: s
       </g>
       <circle cx="32" cy="32" r="4" fill="#FFCF96" />
     </svg>
+  )
+}
+
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+  className
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  children: ReactNode
+  className?: string
+}) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-up">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className={cx("relative w-full max-w-md rounded-2xl border border-white/10 bg-onyx shadow-2xl overflow-hidden", className)}>
+        <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
+          <h2 className="text-[18px] font-bold text-offwhite">{title}</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 text-graytext-mid hover:bg-white/5 hover:text-offwhite transition">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 py-5">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+export function Select({
+  value,
+  onChange,
+  options,
+  className
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  options: { label: string; value: string }[]
+  className?: string
+}) {
+  return (
+    <div className={cx("relative", className)}>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full appearance-none rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 pr-10 text-[14px] text-offwhite focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-graytext-mid">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
   )
 }

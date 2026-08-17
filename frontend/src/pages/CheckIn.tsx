@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
-import { useCheckIn, useScanQr, useEvent, useRoster } from '../lib/queries'
+import { useCheckIn, useEvent, useRoster, useScanQr } from '../lib/queries'
 import { Badge, Button, Card, Progress, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
@@ -15,56 +15,48 @@ export default function CheckIn() {
   
   const checkInMut = useCheckIn()
   const scanQrMut = useScanQr()
-  
   const [q, setQ] = useState('')
-  const [scanResult, setScanResult] = useState<{ status: 'success' | 'duplicate' | 'error', message: string } | null>(null)
-  
-  // Keep track of the last scanned code to debounce duplicate scans quickly
-  const lastScannedToken = useRef<string | null>(null)
+  const [scanResult, setScanResult] = useState<{ status: 'success' | 'duplicate' | 'error'; message: string } | null>(null)
+  const lastScannedId = useRef<string | null>(null)
 
   useEffect(() => {
     if (!id || !e) return
 
     const scanner = new Html5QrcodeScanner(
-      "reader",
-      { 
-        fps: 10, 
-        qrbox: 250,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-      },
-      false
+      'qr-reader',
+      { fps: 10, qrbox: 250, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] },
+      false,
     )
-    
+
     scanner.render(
       (decodedText) => {
-        // Prevent spamming the API with the same code in quick succession
-        if (decodedText === lastScannedToken.current || scanQrMut.isPending) return
-        lastScannedToken.current = decodedText
-        
-        scanQrMut.mutate({ id, qr_token: decodedText }, {
-          onSuccess: (res: any) => {
-            if (res.status === 'success') {
-              setScanResult({ status: 'success', message: `Successfully checked in ${res.student_name}` })
-            } else if (res.status === 'duplicate') {
-              setScanResult({ status: 'duplicate', message: res.message || `${res.student_name} already checked in` })
-            }
-            setTimeout(() => setScanResult(null), 3000)
-            setTimeout(() => { lastScannedToken.current = null }, 3000)
+        if (decodedText === lastScannedId.current || scanQrMut.isPending) return
+        lastScannedId.current = decodedText
+
+        scanQrMut.mutate(
+          { id, registration_id: decodedText },
+          {
+            onSuccess: (res: any) => {
+              setScanResult({
+                status: res.status,
+                message: res.status === 'success' ? `Checked in ${res.student_name}` : res.message || `${res.student_name} already checked in`,
+              })
+              setTimeout(() => setScanResult(null), 3000)
+              setTimeout(() => { lastScannedId.current = null }, 3000)
+            },
+            onError: (err: any) => {
+              setScanResult({ status: 'error', message: err.message || 'Invalid QR code' })
+              setTimeout(() => setScanResult(null), 3000)
+              setTimeout(() => { lastScannedId.current = null }, 3000)
+            },
           },
-          onError: (err: any) => {
-            setScanResult({ status: 'error', message: err.message || 'Invalid QR code' })
-            setTimeout(() => setScanResult(null), 3000)
-            setTimeout(() => { lastScannedToken.current = null }, 3000)
-          }
-        })
+        )
       },
-      (error) => {
-        // Ignore continuous scanning errors
-      }
+      () => {}, // ignore continuous scan-frame errors — expected between reads
     )
-    
+
     return () => {
-      scanner.clear().catch(console.error)
+      scanner.clear().catch(() => {})
     }
   }, [id, e])
 
@@ -112,46 +104,29 @@ export default function CheckIn() {
         </div>
       </Card>
 
-      {/* Scanner Section */}
-      <Card className="mb-8 overflow-hidden relative border-teal/20">
-        <div className="bg-onyx p-4 text-center border-b border-white/5">
-          <h3 className="font-semibold text-offwhite flex items-center justify-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"/>
-            </svg>
-            Scan QR Pass
-          </h3>
+      <Card className="relative mb-8 overflow-hidden border-teal/20">
+        <div className="border-b border-white/5 bg-onyx p-4 text-center">
+          <h3 className="text-[14px] font-semibold text-offwhite">Scan QR ticket</h3>
         </div>
-        
-        {/* html5-qrcode attaches here */}
-        <div id="reader" className="w-full bg-black min-h-[300px]"></div>
-
-        {/* Scan Result Overlay */}
+        <div id="qr-reader" className="min-h-[300px] w-full bg-black" />
         {scanResult && (
-          <div className={cx(
-            "absolute inset-x-0 bottom-0 p-4 text-center font-medium shadow-lg transition-transform animate-[fadeUp_0.2s_ease-out]",
-            scanResult.status === 'success' ? 'bg-teal text-onyx' : 
-            scanResult.status === 'duplicate' ? 'bg-gold text-onyx' : 
-            'bg-red-500 text-white'
-          )}>
-            <div className="flex items-center justify-center gap-2">
-              {scanResult.status === 'success' && (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m5 12 4 4L19 6" /></svg>
-              )}
-              {scanResult.status === 'duplicate' && (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              )}
-              {scanResult.message}
-            </div>
+          <div
+            className={cx(
+              'absolute inset-x-0 bottom-0 p-4 text-center text-[14px] font-medium shadow-lg',
+              scanResult.status === 'success' && 'bg-teal text-onyx',
+              scanResult.status === 'duplicate' && 'bg-gold text-onyx',
+              scanResult.status === 'error' && 'bg-red-500 text-white',
+            )}
+          >
+            {scanResult.message}
           </div>
         )}
       </Card>
 
       <div className="flex items-center gap-4 mb-4">
-        <div className="h-px bg-white/10 flex-1"></div>
-        <div className="text-caption uppercase tracking-wider text-graytext-mid font-medium">Manual Fallback</div>
-        <div className="h-px bg-white/10 flex-1"></div>
+        <div className="h-px flex-1 bg-white/10" />
+        <div className="text-caption font-medium uppercase tracking-wider text-graytext-mid">Manual fallback</div>
+        <div className="h-px flex-1 bg-white/10" />
       </div>
 
       <div className="relative mb-4">

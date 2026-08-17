@@ -1,5 +1,10 @@
 from app.extensions import db
-from app.models import Activity, Proposal, User, Registration
+from app.models import Activity, Proposal, User, Registration, Organisation
+
+
+def _meetup_head_id():
+    return User.query.filter_by(email="head@ekatva.os").first().id
+
 
 def _setup_approved_event(client, rc_headers, admin_headers, org_id):
     # Organiser proposes an event
@@ -8,14 +13,21 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id):
         "scale": "local_meetup",
         "city": "Hyderabad",
         "org_id": org_id,
-        "starts_at": "2026-08-15T10:00:00",
+        "starts_at": "2026-09-15T10:00:00",
         "venue": "Test Venue",
         "capacity": 1,
         "description": "Testing waitlist logic",
-        "budget": [{"label": "Snacks", "planned": 500}],
+        "budget": [{"label": "Snacks", "planned": 200}],
+        "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
+        "collaborating_org_ids": [],
     }
+
     res = client.post("/api/v1/activities", json=payload, headers=rc_headers)
+    if res.status_code != 201:
+        print("ERROR CODE:", res.get_json().get("code"))
+        print("ERROR MSG:", str(res.get_json().get("message")).encode('utf-8'))
     assert res.status_code == 201
+
     activity_id = res.get_json()["id"]
 
     # Admin approves it
@@ -88,6 +100,39 @@ def test_registration_and_waitlist_flow(client, app, student_headers, rc_headers
     # Student 2 should have "You're on the waitlist", "Update" (broadcast), and "You're in!"
     titles = [n["title"] for n in notifications]
     assert "You're in!" in titles
+
+
+def test_unregister_sends_cancellation_notification(client, app, student_headers, rc_headers, admin_headers):
+    with app.app_context():
+        from tests.conftest import org_id
+        o_id = org_id()
+
+    activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
+
+    res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
+    assert res.status_code == 201
+
+    res = client.delete(f"/api/v1/events/{activity_id}/register", headers=student_headers)
+    assert res.status_code == 200
+
+    res = client.get("/api/v1/notifications", headers=student_headers)
+    titles = [n["title"] for n in res.get_json()]
+    assert "Registration Cancelled" in titles
+
+
+def test_register_rejects_cancelled_event(client, app, student_headers, rc_headers, admin_headers):
+    with app.app_context():
+        from tests.conftest import org_id
+        o_id = org_id()
+
+    activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
+
+    res = client.delete(f"/api/v1/events/{activity_id}", headers=rc_headers)
+    assert res.status_code == 200
+
+    res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
+    assert res.status_code == 400
+    assert res.get_json()["code"] == "event_cancelled"
 
 
 def test_event_tags_fetching(client, app, rc_headers, admin_headers):

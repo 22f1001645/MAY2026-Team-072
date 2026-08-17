@@ -46,7 +46,7 @@ npm run dev                     # → http://localhost:5173
 
 - **Full v1 spine, end to end:** propose → admin approve (audit trail) →
   auto-publish → city discovery feed → register → attendance check-in →
-  points & leaderboard → reimbursement pipeline → community analytics + ₹100
+  points & leaderboard → reimbursement pipeline → community analytics + ₹200
   fee-utilisation.
 - **Three role surfaces** (Student · Organiser · Admin), POR-driven — a student
   holding a Regional-Coordinator POR sees the organiser surfaces (PRD P3).

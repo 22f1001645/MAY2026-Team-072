@@ -6,6 +6,19 @@ portable across SQLite (dev) and PostgreSQL 15 (prod)."""
 import uuid
 from datetime import datetime, UTC, timezone
 
+from ..constants import (
+    ATTENDANCE_METHOD_MANUAL,
+    BRAND_KIT_MANUAL,
+    CAMPAIGN_DRAFT,
+    COLLAB_ACCEPTED,
+    COLLAB_PENDING,
+    MEGA_MEETUP_THRESHOLD,
+    POLL_OPEN,
+    QUERY_OPEN,
+    REPORT_SUBMITTED,
+    TASK_TODO,
+    TEAM_ROLE_MEETUP_HEAD,
+)
 from ..extensions import db
 
 
@@ -54,6 +67,17 @@ class User(Base):
     city = db.Column(db.String(80))          # free-text specific city (e.g. Warangal)
     region_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=True)  # official Region
     interests = db.Column(db.JSON, default=list)
+    # Academic self-declaration (AUTH-04). All three are nullable because the
+    # field is self-declared and every user who already exists has declared
+    # nothing yet, so NULL genuinely means "not yet declared" rather than a
+    # guess. AUTH-04 also requires these to stay decoupled from auth: no login,
+    # token issue or token refresh may branch on them, so an out-of-date
+    # declaration can never lock anyone out. Values come from ACADEMIC_LEVELS
+    # and ACADEMIC_STATUSES; the termly re-confirmation nudge and the admin
+    # override are Phase 2 service rules.
+    academic_level = db.Column(db.String(20), nullable=True)
+    academic_status = db.Column(db.String(20), nullable=True)
+    academic_confirmed_at = db.Column(db.DateTime, nullable=True)
 
     memberships = db.relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     registrations = db.relationship("Registration", back_populates="student", foreign_keys="Registration.student_id")
@@ -69,6 +93,11 @@ class User(Base):
             "region": self.region.name if self.region else None,
             "region_id": self.region_id,
             "pors": [p.to_dict() for m in self.memberships for p in m.pors if p.active],
+            # Data on the payload only. Nothing in the auth path may read these
+            # keys to decide whether a session is valid (AUTH-04).
+            "academic_level": self.academic_level,
+            "academic_status": self.academic_status,
+            "academic_confirmed_at": _iso(self.academic_confirmed_at),
         }
 
 
@@ -94,18 +123,113 @@ class Organisation(Base):
     name = db.Column(db.String(150), nullable=False)
     type = db.Column(db.String(20), nullable=False)  # house|society|region|council
     city = db.Column(db.String(80))
-    bio = db.Column(db.Text)
-    logo_url = db.Column(db.String(300))
-    voice_descriptors = db.Column(db.JSON, default=list)
-    color_palette = db.Column(db.JSON, default=list)
-    sample_phrases = db.Column(db.JSON, default=list)
+    # Entity profile (ORG-01). Both nullable: every organisation that already
+    # exists was seeded without a profile, and an empty profile is a truthful
+    # state rather than something to invent a default for. Applies to all four
+    # org types, replacing the Houses-only HOUSE_META precedent.
+    bio = db.Column(db.Text, nullable=True)
+    logo_url = db.Column(db.String(300), nullable=True)
+    # The organisation's own site (ORG-02, decision D-03). A DISTINCT field, not
+    # a `platform` row on organisation_social_links: modelling it here is what
+    # keeps "a social link with a non-allowlisted host is rejected" true of every
+    # social-link row with no carve-out. It is the one deliberate narrowing of
+    # the host allowlist and keeps every other control (scheme, userinfo, ASCII
+    # host, private-range, re-serialisation) — see app/url_safety.py.
+    website = db.Column(db.String(300), nullable=True)
 
     activities = db.relationship("Activity", back_populates="org")
     memberships = db.relationship("Membership", back_populates="org")
     social_links = db.relationship("OrganisationSocialLink", back_populates="org", cascade="all, delete-orphan")
+    brand_kit = db.relationship("BrandKit", back_populates="org", uselist=False, cascade="all, delete-orphan")
+
+    def to_dict(self, detail=False):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+            "city": self.city,
+            "bio": self.bio,
+            "logo_url": self.logo_url,
+            "website": self.website,
+        }
+        if detail:
+            # The declared home for the two profile pieces that cannot be read
+            # off this row: `social_links` (04-02) and `brand_kit` (04-04) both
+            # need a filtered query. Nothing to add yet, but the branch exists
+            # so those plans widen the detail payload here rather than inventing
+            # a second, competing serialiser.
+            pass
+        return data
+
+
+# --------------------------------------------------------------------------- #
+# Module A — Organisation identity & brand (v1.1 milestone)
+# --------------------------------------------------------------------------- #
+class OrganisationSocialLink(Base):
+    """One social handle belonging to an Organisation (ORG-01/ORG-02).
+
+    `url` is free text supplied by a Secretary or Deputy Secretary and is stored
+    unvalidated by this layer on purpose. ORG-02 owns the server-side gate in
+    Phase 4: an http/https scheme check plus a host allowlist, applied at the
+    service boundary before the row is written. Until that lands, the column is
+    inert - nothing in Phases 1-3 reads or renders it anywhere, so a hostile
+    value has no path to a browser (threat T-01-12).
+
+    One row per (org, platform), so an entity cannot list two conflicting
+    Instagram handles and leave a reader guessing which is current."""
+
+    __tablename__ = "organisation_social_links"
+    __table_args__ = (
+        db.UniqueConstraint("org_id", "platform", name="uq_org_social_platform"),
+    )
+
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
+    platform = db.Column(db.String(40), nullable=False)   # instagram|linkedin|x|...
+    url = db.Column(db.String(300), nullable=False)
+
+    org = db.relationship(
+        "Organisation", back_populates="social_links"
+    )
 
     def to_dict(self):
-        return {"id": self.id, "name": self.name, "type": self.type, "city": self.city}
+        return {
+            "id": self.id,
+            "org_id": self.org_id,
+            "platform": self.platform,
+            "url": self.url,
+        }
+
+
+class BrandKit(Base):
+    """The one brand kit per Organisation, driving campaign generation (ORG-03).
+
+    `source` records provenance, not approval state: an AI-assisted draft is
+    never applied without an explicit save by a human (ORG-04), so a row marked
+    BRAND_KIT_AI_DRAFT is content someone reviewed and kept, not something
+    pending review. The AI-assist call itself is a Phase 4 service concern."""
+
+    __tablename__ = "brand_kits"
+
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), unique=True, nullable=False)
+    voice_tone = db.Column(db.Text)
+    palette = db.Column(db.JSON, default=list)          # hex strings
+    sample_phrases = db.Column(db.JSON, default=list)
+    source = db.Column(db.String(20), nullable=False, default=BRAND_KIT_MANUAL)
+
+    org = db.relationship(
+        "Organisation",
+        back_populates="brand_kit",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "org_id": self.org_id,
+            "voice_tone": self.voice_tone,
+            "palette": self.palette,
+            "sample_phrases": self.sample_phrases,
+            "source": self.source,
+        }
 
 
 class Membership(Base):
@@ -157,6 +281,27 @@ class PORAssignment(Base):
         }
 
 
+class Term(Base):
+    """An academic term (e.g. 'Jan 2026', 'May 2026').
+
+    Used for scoping PORs and triggering academic status re-confirmation."""
+    __tablename__ = "terms"
+
+    name = db.Column(db.String(40), nullable=False, unique=True)
+    start_date = db.Column(db.DateTime, nullable=False, index=True)
+    end_date = db.Column(db.DateTime, nullable=False, index=True)
+    is_current = db.Column(db.Boolean, nullable=False, default=False, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "start_date": _iso(self.start_date),
+            "end_date": _iso(self.end_date),
+            "is_current": self.is_current,
+        }
+
+
 # --------------------------------------------------------------------------- #
 # Module B/C — Events: activity, proposal, budget
 # --------------------------------------------------------------------------- #
@@ -187,17 +332,32 @@ class Activity(Base):
     registrations = db.relationship("Registration", back_populates="activity", cascade="all, delete-orphan")
     expenses = db.relationship("Expense", back_populates="activity", cascade="all, delete-orphan")
     team_members = db.relationship("ActivityTeamMember", back_populates="activity", cascade="all, delete-orphan")
-    tasks = db.relationship("ActivityTask", back_populates="activity", cascade="all, delete-orphan")
-    schedule = db.relationship("EventSchedule", back_populates="activity", cascade="all, delete-orphan")
-    custom_fields = db.relationship("CustomRegistrationField", back_populates="activity", cascade="all, delete-orphan")
+    tasks = db.relationship("ActivityTask", back_populates="activity", cascade="all, delete-orphan", order_by="(ActivityTask.position, ActivityTask.created_at, ActivityTask.id)")
+    schedule_items = db.relationship("EventScheduleItem", back_populates="activity", cascade="all, delete-orphan", order_by="(EventScheduleItem.position, EventScheduleItem.created_at, EventScheduleItem.id)")
+    form_fields = db.relationship("RegistrationFormField", back_populates="activity", cascade="all, delete-orphan", order_by="(RegistrationFormField.position, RegistrationFormField.created_at, RegistrationFormField.id)")
     queries = db.relationship("EventQuery", back_populates="activity", cascade="all, delete-orphan")
     polls = db.relationship("EventPoll", back_populates="activity", cascade="all, delete-orphan")
-
+    reimbursement_request = db.relationship("ReimbursementRequest", back_populates="activity", uselist=False, cascade="all, delete-orphan")
+    collaborators = db.relationship("ActivityCollaborator", back_populates="activity", cascade="all, delete-orphan")
+    campaign = db.relationship("CampaignPackage", back_populates="activity", uselist=False, cascade="all, delete-orphan")
+    announcements = db.relationship("Announcement", back_populates="activity", cascade="all, delete-orphan", order_by="(Announcement.created_at, Announcement.id)")
+    feedback = db.relationship("EventFeedback", back_populates="activity", cascade="all, delete-orphan")
     def registered_count(self):
         return sum(1 for r in self.registrations if r.status == "confirmed")
 
     def attended_count(self):
         return sum(1 for r in self.registrations if r.attendance is not None)
+
+    @property
+    def is_mega_meetup(self) -> bool:
+        """PROPOSAL-03: True when >=3 collaborating orgs have accepted the invite.
+
+        Computed dynamically so it tracks real-time accept/decline state without
+        a stored flag that would drift. MEGA_MEETUP_THRESHOLD = 3 (constants.py)."""
+        return (
+            sum(1 for c in self.collaborators if c.status == COLLAB_ACCEPTED)
+            >= MEGA_MEETUP_THRESHOLD
+        )
 
     def to_dict(self, detail=False):
         d = {
@@ -215,10 +375,13 @@ class Activity(Base):
             "attended": self.attended_count(),
             "organiser": self.organiser.name if self.organiser else None,
             "proposal_status": self.proposal.status if self.proposal else None,
+            "is_mega_meetup": self.is_mega_meetup,  # PROPOSAL-03
         }
         if detail:
             d["description"] = self.description
             d["budget"] = [b.to_dict() for b in self.budget_lines]
+            d["collaborators"] = [c.to_dict() for c in self.collaborators]   # PROPOSAL-04
+            d["team_members"] = [t.to_dict() for t in self.team_members]     # PROPOSAL-04
         return d
 
 
@@ -226,12 +389,18 @@ class Announcement(Base):
     """A broadcast message sent to all registrants of an activity."""
 
     __tablename__ = "announcements"
+    # CHAT-04 polls the event channel with a cursor: "announcements for this
+    # activity created after X, newest first". This composite index matches that
+    # query shape so the poll walks an index instead of scanning the table on
+    # every tick.
+    __table_args__ = (db.Index("ix_announcement_cursor", "activity_id", "created_at"),)
+
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     sender_id = db.Column(db.String(32), db.ForeignKey("users.id"))
     title = db.Column(db.String(200))
     body = db.Column(db.Text)
 
-    activity = db.relationship("Activity", backref=db.backref("announcements", cascade="all, delete-orphan"))
+    activity = db.relationship("Activity", back_populates="announcements")
     sender = db.relationship("User")
 
     def to_dict(self):
@@ -265,7 +434,7 @@ class Proposal(Base):
     status = db.Column(db.String(30), default="submitted")
 
     activity = db.relationship("Activity", back_populates="proposal")
-    collaborators = db.relationship("ProposalCollaborator", back_populates="proposal", cascade="all, delete-orphan")
+
 
     def to_dict(self):
         return {"id": self.id, "activity_id": self.activity_id, "status": self.status}
@@ -288,6 +457,296 @@ class BudgetLine(Base):
 
 
 # --------------------------------------------------------------------------- #
+# Module B/C — Collaboration, team, design & campaign (v1.1 milestone)
+# --------------------------------------------------------------------------- #
+class ActivityCollaborator(Base):
+    """An Organisation running an Activity, with its own consent state.
+
+    This table — not `activities.org_id` — is the source of truth for "which
+    organisations are running this activity". `activities.org_id` survives as a
+    denormalised pointer that must always equal the org_id of the row where
+    is_primary is true; Phase 3 (PROPOSAL-01) writes both sides.
+
+    Only rows with status `accepted` count toward the Mega Meetup label
+    (PROPOSAL-03) or the regional-fest collaborator minimum (PROG-02); those
+    thresholds are Phase 3 / Phase 7 rules, not schema constraints."""
+
+    __tablename__ = "activity_collaborators"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "org_id", name="uq_activity_collaborator"),
+        # Exactly one primary organisation per activity, enforced by the database
+        # so `can_manage_activity` can never face two owners (threat T-01-07).
+        db.Index(
+            "uq_activity_primary_org",
+            "activity_id",
+            unique=True,
+            sqlite_where=db.text("is_primary = 1"),
+            postgresql_where=db.text("is_primary"),
+        ),
+    )
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
+    is_primary = db.Column(db.Boolean, nullable=False, default=False)
+    status = db.Column(db.String(20), nullable=False, default=COLLAB_PENDING)
+    invited_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    responded_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    responded_at = db.Column(db.DateTime)
+
+    activity = db.relationship(
+        "Activity", back_populates="collaborators"
+    )
+    org = db.relationship("Organisation")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "org_id": self.org_id,
+            "org": self.org.name if self.org else None,
+            "is_primary": self.is_primary,
+            "status": self.status,
+            "responded_at": _iso(self.responded_at),
+        }
+
+
+class ActivityTeamMember(Base):
+    """A person holding one team role on ONE Activity.
+
+    Team membership is Activity-scoped and grants zero org-wide permission —
+    org-wide authority stays with PORAssignment (TEAM-03). The single exception
+    is TEAM_ROLE_MEETUP_HEAD, which carries sole campaign-approval authority
+    (RBAC-03) for its own Activity and nothing beyond it.
+
+    The Meetup Head singleton is a database constraint, not a service check: two
+    concurrent Meetup Heads would make campaign-approval authority ambiguous
+    (threat T-01-06)."""
+
+    __tablename__ = "activity_team_members"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "user_id", "role", name="uq_team_member_role"),
+        # A partial-index predicate must be static SQL, so the role literal is
+        # written out here rather than bound from TEAM_ROLE_MEETUP_HEAD.
+        db.Index(
+            "uq_team_meetup_head",
+            "activity_id",
+            unique=True,
+            sqlite_where=db.text("role = 'Meetup Head'"),
+            postgresql_where=db.text("role = 'Meetup Head'"),
+        ),
+    )
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    role = db.Column(db.String(40), nullable=False)  # a value from TEAM_ROLES
+    added_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+
+    activity = db.relationship(
+        "Activity", back_populates="team_members"
+    )
+    user = db.relationship("User", foreign_keys=[user_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "user_id": self.user_id,
+            "member": self.user.name if self.user else None,
+            "role": self.role,
+            "added_by": self.added_by,
+        }
+
+
+# uq_team_meetup_head hard-codes the role as static SQL because a partial-index
+# predicate cannot take a bound parameter. This guard fails loudly at import time
+# if the constant is ever edited without updating that literal — otherwise the
+# index would silently stop enforcing the RBAC-03 singleton (threat T-01-06).
+assert TEAM_ROLE_MEETUP_HEAD == "Meetup Head", (
+    "TEAM_ROLE_MEETUP_HEAD changed — update the uq_team_meetup_head predicate in "
+    "ActivityTeamMember.__table_args__ to match, and emit a migration for it."
+)
+
+
+class ActivityTask(Base):
+    """A card on the activity's Kanban board (TEAM-02).
+
+    Replaces the client-side mock array in frontend/src/lib/mock.ts, which was
+    never persisted."""
+
+    __tablename__ = "activity_tasks"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    assignee_id = db.Column(db.String(32), db.ForeignKey("users.id"), index=True)
+    deadline = db.Column(db.DateTime)
+    status = db.Column(db.String(20), nullable=False, default=TASK_TODO)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    created_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+
+    activity = db.relationship("Activity", back_populates="tasks")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "title": self.title,
+            "description": self.description,
+            "assignee_id": self.assignee_id,
+            "deadline": _iso(self.deadline),
+            "status": self.status,
+            "position": self.position,
+        }
+
+
+class EventScheduleItem(Base):
+    """One ordered row of the event-design agenda (DESIGN-01)."""
+
+    __tablename__ = "event_schedule_items"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    time_block = db.Column(db.String(60))       # human label, e.g. "10:00 - 10:30"
+    title = db.Column(db.String(200), nullable=False)
+    owner_id = db.Column(db.String(32), db.ForeignKey("users.id"))
+    owner_label = db.Column(db.String(120))     # for an owner who is not a platform user
+    notes = db.Column(db.Text)
+
+    activity = db.relationship("Activity", back_populates="schedule_items")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "position": self.position,
+            "time_block": self.time_block,
+            "title": self.title,
+            "owner_id": self.owner_id,
+            "owner_label": self.owner_label,
+            "notes": self.notes,
+        }
+
+
+class RegistrationFormField(Base):
+    """One organiser-defined custom field on an activity's registration form.
+
+    How many custom fields an organiser may add is a Phase 5 service rule, not a
+    schema constraint — the cap is deliberately absent here (CAMPAIGN-05)."""
+
+    __tablename__ = "registration_form_fields"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "label", name="uq_form_field_label"),
+    )
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    label = db.Column(db.String(120), nullable=False)
+    field_type = db.Column(db.String(20), nullable=False)  # a value from FORM_FIELD_TYPES
+    options = db.Column(db.JSON, default=list)             # used only when field_type is dropdown
+    required = db.Column(db.Boolean, nullable=False, default=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+
+    activity = db.relationship("Activity", back_populates="form_fields")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "label": self.label,
+            "field_type": self.field_type,
+            "options": self.options,
+            "required": self.required,
+            "position": self.position,
+        }
+
+
+class RegistrationFieldResponse(Base):
+    """One student's answer to one custom registration field (CAMPAIGN-05).
+
+    Without this table the form would collect answers with nowhere to store
+    them, forcing a second destructive reset in Phase 5 — which ROADMAP Phase 1
+    success criterion 3 forbids."""
+
+    __tablename__ = "registration_field_responses"
+    __table_args__ = (
+        db.UniqueConstraint("registration_id", "field_id", name="uq_field_response"),
+    )
+
+    registration_id = db.Column(db.String(32), db.ForeignKey("registrations.id"), nullable=False, index=True)
+    # The FK carries an explicit name because the convention-derived one,
+    # fk_registration_field_responses_field_id_registration_form_fields, is 65
+    # characters — over PostgreSQL's 63-byte identifier limit, which would
+    # silently truncate it on the production store and leave Alembic unable to
+    # address the constraint by name later. It is the only such name in the
+    # schema, and naming it here is free only while the table is unmigrated.
+    field_id = db.Column(
+        db.String(32),
+        db.ForeignKey(
+            "registration_form_fields.id", name="fk_registration_field_responses_field_id"
+        ),
+        nullable=False,
+        index=True,
+    )
+    value = db.Column(db.Text)
+
+    registration = db.relationship(
+        "Registration", back_populates="field_responses"
+    )
+    field = db.relationship("RegistrationFormField")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "registration_id": self.registration_id,
+            "field_id": self.field_id,
+            "label": self.field.label if self.field else None,
+            "value": self.value,
+        }
+
+
+class CampaignPackage(Base):
+    """The one campaign package per Activity (CAMPAIGN-01/02/03/04/06).
+
+    `poster_name` stores a filename, following the existing Expense.bill_name
+    precedent — no blob storage exists in this architecture yet and choosing one
+    is a Phase 5 decision, so the column deliberately holds a name, not bytes.
+
+    `approved_by`/`approved_at` are kept separate from `pushed_live_at` so
+    CAMPAIGN-06's Meetup Head gate stays auditable after the fact; the runtime
+    gate itself is meetup_head_required from plan 01-05 (threat T-01-09)."""
+
+    __tablename__ = "campaign_packages"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), unique=True, nullable=False)
+    mail_subject = db.Column(db.String(200))
+    mail_body = db.Column(db.Text)
+    poster_name = db.Column(db.String(200))
+    registration_slug = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    status = db.Column(db.String(30), nullable=False, default=CAMPAIGN_DRAFT)
+    approved_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    approved_at = db.Column(db.DateTime)
+    pushed_live_at = db.Column(db.DateTime)
+
+    activity = db.relationship(
+        "Activity",
+        back_populates="campaign",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "mail_subject": self.mail_subject,
+            "mail_body": self.mail_body,
+            "poster_name": self.poster_name,
+            "registration_slug": self.registration_slug,
+            "status": self.status,
+            "approved_by": self.approved_by,
+            "approved_at": _iso(self.approved_at),
+            "pushed_live_at": _iso(self.pushed_live_at),
+        }
+
+
+# --------------------------------------------------------------------------- #
 # Module D — Registration, attendance, notifications
 # --------------------------------------------------------------------------- #
 class Registration(Base):
@@ -297,13 +756,15 @@ class Registration(Base):
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     status = db.Column(db.String(20), default="confirmed")  # confirmed|waitlisted
-    qr_token = db.Column(db.String(32), unique=True, default=_uuid, nullable=False)
+    qr_token = db.Column(db.String(64), unique=True, index=True, nullable=True)
+
     referred_by_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
 
     activity = db.relationship("Activity", back_populates="registrations")
     student = db.relationship("User", back_populates="registrations", foreign_keys=[student_id])
     referred_by = db.relationship("User", foreign_keys=[referred_by_id])
     attendance = db.relationship("Attendance", back_populates="registration", uselist=False, cascade="all, delete-orphan")
+    field_responses = db.relationship("RegistrationFieldResponse", back_populates="registration", cascade="all, delete-orphan")
 
     def to_dict(self):
         a = self.activity
@@ -313,9 +774,9 @@ class Registration(Base):
             "student_id": self.student_id,
             "student": self.student.name if self.student else None,
             "status": self.status,
-            "qr_token": self.qr_token,
             "attended": self.attendance is not None,
             "referrer": self.referred_by.name if self.referred_by else None,
+            "qr_token": self.qr_token,
             "referred_by_id": self.referred_by_id,
             # Embedded activity summary so the student's list renders without a join
             "activity": {
@@ -338,6 +799,17 @@ class Attendance(Base):
     __tablename__ = "attendance"
     registration_id = db.Column(db.String(32), db.ForeignKey("registrations.id"), unique=True, nullable=False)
     checked_in_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    # How the check-in happened (QR-01/QR-03). The server_default backfills every
+    # row that already exists to `manual`, which is accurate: QR scanning does
+    # not exist yet, so every check-in so far came from the tap-based roster
+    # flow. QR-04 counts every Attendance row as authoritative regardless of
+    # method - this column records the route, it does not weight the count.
+    method = db.Column(
+        db.String(20),
+        nullable=False,
+        default=ATTENDANCE_METHOD_MANUAL,
+        server_default="manual",
+    )
 
     registration = db.relationship("Registration", back_populates="attendance")
 
@@ -360,6 +832,7 @@ class Notification(Base):
             "title": self.title,
             "body": self.body,
             "read": self.read,
+            "activity_id": self.activity_id,
             "activity_title": self.activity.title if self.activity else None,
             "at": _iso(self.created_at),
         }
@@ -434,10 +907,39 @@ class ActivityFeeRecord(Base):
 # Module F / cross-cutting — reports, documents, audit
 # --------------------------------------------------------------------------- #
 class Report(Base):
+    """The post-event report (FEEDBACK-01).
+
+    Any team member may draft one; only the assigned Meetup Head may move it to
+    `submitted`. That rule needs both `status` and `submitted_by` to be
+    representable at all, and `submitted_at` to make the action auditable after
+    the fact (threat T-01-16). The runtime gate is meetup_head_required from
+    plan 01-05."""
+
     __tablename__ = "reports"
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"))
     summary = db.Column(db.Text)
     deleted_at = db.Column(db.DateTime)  # soft-delete
+    # Organiser reflection, both nullable: an existing report has neither, and a
+    # blank reflection is honest where an invented one would not be.
+    challenges = db.Column(db.Text, nullable=True)
+    learnings = db.Column(db.Text, nullable=True)
+    # The server_default is load-bearing, not decoration. Every Report row that
+    # exists today was in fact submitted - drafts had nowhere to live before this
+    # column - so backfilling them to `submitted` records what actually happened.
+    # Leaving them NULL would make the draft/submitted distinction ambiguous for
+    # exactly the rows nobody can go back and check.
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default=REPORT_SUBMITTED,
+        server_default="submitted",
+    )
+    submitted_by = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
+    # Distinct from created_at, which is when the draft was first written.
+    # Historic rows carry NULL here because their true submission time is
+    # unknowable; the `submitted_at` key in to_dict() keeps reporting created_at
+    # so no existing API consumer changes meaning under this migration.
+    submitted_at = db.Column(db.DateTime, nullable=True)
 
     def to_dict(self):
         return {
@@ -445,6 +947,10 @@ class Report(Base):
             "activity_id": self.activity_id,
             "summary": self.summary,
             "submitted_at": _iso(self.created_at),
+            "challenges": self.challenges,
+            "learnings": self.learnings,
+            "status": self.status,
+            "submitted_by": self.submitted_by,
         }
 
 
@@ -482,122 +988,252 @@ class AuditLog(Base):
             "at": _iso(self.created_at),
         }
 
+
+
 # --------------------------------------------------------------------------- #
-# Milestone 3 - New Phase 1 Tables
+# Close-out, event channel, session & progression (v1.1 milestone)
 # --------------------------------------------------------------------------- #
-class ProposalCollaborator(Base):
-    __tablename__ = "proposal_collaborators"
-    proposal_id = db.Column(db.String(32), db.ForeignKey("proposals.id"), nullable=False, index=True)
-    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
-    status = db.Column(db.String(20), default="pending")  # pending|accepted|declined
+class EventFeedback(Base):
+    """One attendee's rating of one event (FEEDBACK-02).
 
-    proposal = db.relationship("Proposal", back_populates="collaborators")
-    org = db.relationship("Organisation")
+    The unique constraint is what makes a rating mean something: without it the
+    same person could submit ten rows and move the average on their own (threat
+    T-01-15). FEEDBACK-02's "only attendees may rate" rule is a Phase 6 service
+    check layered on top of this, not a replacement for it."""
 
+    __tablename__ = "event_feedback"
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "user_id", name="uq_event_feedback"),
+    )
 
-class ActivityTeamMember(Base):
-    __tablename__ = "activity_team_members"
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
-    role = db.Column(db.String(80), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
 
-    activity = db.relationship("Activity", back_populates="team_members")
-    user = db.relationship("User")
+    activity = db.relationship(
+        "Activity", back_populates="feedback"
+    )
 
-
-class ActivityTask(Base):
-    __tablename__ = "activity_tasks"
-    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    deadline = db.Column(db.DateTime)
-    status = db.Column(db.String(20), default="todo")  # todo|in_progress|done
-    assignee_id = db.Column(db.String(32), db.ForeignKey("users.id"))
-
-    activity = db.relationship("Activity", back_populates="tasks")
-    assignee = db.relationship("User")
-
-
-class EventSchedule(Base):
-    __tablename__ = "event_schedules"
-    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
-    title = db.Column(db.String(200), nullable=False)
-    start_time = db.Column(db.DateTime, nullable=False)
-    end_time = db.Column(db.DateTime, nullable=False)
-    owner = db.Column(db.String(120))
-
-    activity = db.relationship("Activity", back_populates="schedule")
-
-
-class CustomRegistrationField(Base):
-    __tablename__ = "custom_registration_fields"
-    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
-    label = db.Column(db.String(150), nullable=False)
-    type = db.Column(db.String(20), nullable=False, default="text")  # text|dropdown
-    options = db.Column(db.JSON, default=list)
-    required = db.Column(db.Boolean, default=False)
-
-    activity = db.relationship("Activity", back_populates="custom_fields")
-
-
-class OrganisationSocialLink(Base):
-    __tablename__ = "organisation_social_links"
-    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
-    platform = db.Column(db.String(50), nullable=False)
-    url = db.Column(db.String(300), nullable=False)
-
-    org = db.relationship("Organisation", back_populates="social_links")
-
-
-class EventQuery(Base):
-    __tablename__ = "event_queries"
-    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
-    submitter_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
-    query_text = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default="open")  # open|answered
-    response_text = db.Column(db.Text)
-    responder_id = db.Column(db.String(32), db.ForeignKey("users.id"))
-
-    activity = db.relationship("Activity", back_populates="queries")
-    submitter = db.relationship("User", foreign_keys=[submitter_id])
-    responder = db.relationship("User", foreign_keys=[responder_id])
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "user_id": self.user_id,
+            "rating": self.rating,
+            "comment": self.comment,
+            "at": _iso(self.created_at),
+        }
 
 
 class EventPoll(Base):
-    __tablename__ = "event_polls"
-    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
-    title = db.Column(db.String(200), nullable=False)
-    options = db.Column(db.JSON, nullable=False)  # list of strings
+    """A poll the organising team runs inside an event's channel (CHAT-01).
 
-    activity = db.relationship("Activity", back_populates="polls")
+    Polls are organiser-authored broadcast, matching the channel's whole design:
+    the team asks, registrants answer, and there is no peer-to-peer thread."""
+
+    __tablename__ = "event_polls"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
+    question = db.Column(db.String(300), nullable=False)
+    options = db.Column(db.JSON, nullable=False, default=list)
+    status = db.Column(db.String(20), nullable=False, default=POLL_OPEN)
+    closes_at = db.Column(db.DateTime, nullable=True)
+    created_by = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
+
+    activity = db.relationship(
+        "Activity", back_populates="polls"
+    )
     votes = db.relationship("EventPollVote", back_populates="poll", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "question": self.question,
+            "options": self.options,
+            "status": self.status,
+            "closes_at": _iso(self.closes_at),
+        }
 
 
 class EventPollVote(Base):
+    """One registrant's answer to one poll (CHAT-01).
+
+    `uq_poll_vote` is the entire implementation of "each registrant votes once":
+    a second vote is physically impossible rather than merely refused by a
+    service that could be raced or bypassed (threat T-01-14)."""
+
     __tablename__ = "event_poll_votes"
-    __table_args__ = (db.UniqueConstraint("poll_id", "voter_id", name="uq_poll_vote"),)
+    __table_args__ = (
+        db.UniqueConstraint("poll_id", "user_id", name="uq_poll_vote"),
+    )
 
     poll_id = db.Column(db.String(32), db.ForeignKey("event_polls.id"), nullable=False, index=True)
-    voter_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     option_index = db.Column(db.Integer, nullable=False)
 
-    poll = db.relationship("EventPoll", back_populates="votes")
-    voter = db.relationship("User")
+    poll = db.relationship(
+        "EventPoll", back_populates="votes"
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "poll_id": self.poll_id,
+            "user_id": self.user_id,
+            "option_index": self.option_index,
+        }
 
 
-class AttendeeFeedback(Base):
-    __tablename__ = "attendee_feedback"
-    __table_args__ = (db.UniqueConstraint("activity_id", "student_id", name="uq_feedback"),)
+class EventQuery(Base):
+    """A registrant's question to the organising team (CHAT-02/CHAT-03).
+
+    CHAT-02 draws a hard boundary: inside an event's channel a registrant may
+    submit a query and cancel their registration, and nothing else. There is
+    deliberately no peer-to-peer reply column here - open chat was rejected as
+    an anti-feature given the moderation burden, so only the team answers, via
+    `response_body`/`responded_by`.
+
+    Rate limiting on submissions is CHAT-03's Phase 8 concern, not a schema
+    constraint."""
+
+    __tablename__ = "event_queries"
+    __table_args__ = (
+        # CHAT-04 polls "queries for this activity since cursor X".
+        db.Index("ix_event_query_cursor", "activity_id", "created_at"),
+    )
 
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
-    student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
-    rating = db.Column(db.Integer, nullable=False)
-    comments = db.Column(db.Text)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
+    body = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default=QUERY_OPEN)
+    response_body = db.Column(db.Text, nullable=True)
+    responded_by = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
+    responded_at = db.Column(db.DateTime, nullable=True)
 
-    activity = db.relationship("Activity")
-    student = db.relationship("User")
+    activity = db.relationship(
+        "Activity", back_populates="queries"
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "user_id": self.user_id,
+            "body": self.body,
+            "status": self.status,
+            "response_body": self.response_body,
+            "responded_by": self.responded_by,
+            "responded_at": _iso(self.responded_at),
+            "at": _iso(self.created_at),
+        }
 
 
-class TokenBlocklist(Base):
-    __tablename__ = "token_blocklist"
-    jti = db.Column(db.String(36), nullable=False, index=True)
+class RefreshTokenBlocklist(Base):
+    """Revoked refresh tokens, by JWT id (AUTH-01).
+
+    Without this table a long-lived refresh token cannot be revoked at all: a
+    stolen one would stay valid for its full lifetime (threat T-01-13). `jti` is
+    unique and indexed because the revocation check runs on every single refresh,
+    and `expires_at` is indexed so expired rows can be pruned by range instead of
+    scanning what becomes the hottest table in the auth flow. Phase 2 is the
+    consumer."""
+
+    __tablename__ = "refresh_token_blocklist"
+
+    jti = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True, index=True)
+    family_id = db.Column(db.String(32), nullable=True, index=True)
+    reason = db.Column(db.String(32), nullable=True)
+    revoked_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "jti": self.jti,
+            "user_id": self.user_id,
+            "revoked_at": _iso(self.revoked_at),
+            "expires_at": _iso(self.expires_at),
+        }
+
+
+class OrgProgressionUnlock(Base):
+    """The one-way record that an org reached fest tier in a city (PROG-03).
+
+    This table is NOT the eligibility source. PROG-01 eligibility stays computed
+    server-side from the org's completed activities in that city, and PROG-04's
+    403 gate computes it too rather than reading a stored flag - otherwise a
+    stale or forged row here would grant fest-proposal rights the activity
+    history does not support (threat T-01-18). What this records is only the
+    downstream "sponsorship and outreach tooling is unlocked" marker, which
+    PROG-03 asks for and which stays a flag this milestone."""
+
+    __tablename__ = "org_progression_unlocks"
+    __table_args__ = (
+        db.UniqueConstraint("org_id", "city", name="uq_org_progression"),
+    )
+
+    org_id = db.Column(db.String(32), db.ForeignKey("organisations.id"), nullable=False, index=True)
+    city = db.Column(db.String(80), nullable=False)
+    unlocked_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "org_id": self.org_id,
+            "city": self.city,
+            "unlocked_at": _iso(self.unlocked_at),
+        }
+
+
+class ReimbursementRequest(Base):
+    """The one reimbursement request per Activity (REIMB-01/REIMB-02).
+
+    `social_post_link` is supplementary context for the admin's review only.
+    REIMB-02 is explicit that the QR-verified Attendance count remains the sole
+    authoritative number, because a photo can show any crowd while a scan cannot.
+
+    `submitted_by`/`submitted_at` make the single-submitter rule auditable: any
+    team member drafts, only the Meetup Head submits (threat T-01-16)."""
+
+    __tablename__ = "reimbursement_requests"
+
+    activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), unique=True, nullable=False)
+    social_post_link = db.Column(db.String(500), nullable=False)
+    submitted_by = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
+    submitted_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    note = db.Column(db.Text, nullable=True)
+
+    activity = db.relationship("Activity", back_populates="reimbursement_request")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "social_post_link": self.social_post_link,
+            "submitted_by": self.submitted_by,
+            "submitted_at": _iso(self.submitted_at),
+            "note": self.note,
+        }
+
+
+# --------------------------------------------------------------------------- #
+# System Configuration (Phase 9)
+# --------------------------------------------------------------------------- #
+class SystemSetting(Base):
+    """Dynamic configuration (RECOG-01)."""
+
+    __tablename__ = "system_settings"
+
+    key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    value_json = db.Column(db.JSON, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "key": self.key,
+            "value": self.value_json,
+            "updated_at": _iso(self.updated_at),
+        }

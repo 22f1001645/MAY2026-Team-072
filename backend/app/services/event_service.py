@@ -4,11 +4,10 @@ from ..constants import EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Activity, Notification, Registration
-from ..repositories.repos import ActivityRepository, AuditRepository
+from ..repositories.repos import ActivityRepository, AuditRepository, RegistrationRepository
 
 def _notify_registrants(activity_id, title, body):
-    registrations = Registration.query.filter_by(activity_id=activity_id).all()
-    for reg in registrations:
+    for reg in RegistrationRepository.for_activity(activity_id):
         db.session.add(
             Notification(
                 user_id=reg.student_id,
@@ -83,7 +82,6 @@ def edit_event(activity_id: str, data: dict, current_user) -> Activity:
             body = f"The venue or time has been updated: {change_text}. Please check the event details."
             
         _notify_registrants(activity.id, title, body)
-        
     AuditRepository.record("activity", activity.id, "Edited event", current_user)
     db.session.commit()
     return activity
@@ -104,7 +102,6 @@ def cancel_event(activity_id: str, current_user):
     title = f"Event Cancelled: {activity.title}"
     body = f"This event has been cancelled by the organiser. Your registration is no longer active."
     _notify_registrants(activity.id, title, body)
-    
     AuditRepository.record("activity", activity.id, "Cancelled event", current_user)
     db.session.commit()
     return activity

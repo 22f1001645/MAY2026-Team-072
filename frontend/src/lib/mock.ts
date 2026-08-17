@@ -267,14 +267,14 @@ export const AUDIT: Record<string, AuditEntry[]> = {
 }
 
 export const LEADERBOARD: LeaderRow[] = [
-  { rank: 1, name: 'Sai Teja', city: 'Hyderabad', points: 480, attended: 9, organised: 4 },
-  { rank: 2, name: 'Madhavi', city: 'Chennai', points: 415, attended: 11, organised: 3 },
-  { rank: 3, name: 'Ayush', city: 'Bangalore', points: 390, attended: 7, organised: 4 },
-  { rank: 4, name: 'Arav Mehta', city: 'Hyderabad', points: 250, attended: 8, organised: 0, isMe: true },
-  { rank: 5, name: 'Tanu', city: 'Chennai', points: 220, attended: 6, organised: 1 },
-  { rank: 6, name: 'Ritika', city: 'Mumbai', points: 180, attended: 5, organised: 1 },
-  { rank: 7, name: 'Karan', city: 'Pune', points: 150, attended: 4, organised: 1 },
-  { rank: 8, name: 'Neha S', city: 'Hyderabad', points: 120, attended: 5, organised: 0 },
+  { userId: 'u1', rank: 1, name: 'Sai Teja', city: 'Hyderabad', points: 480, attended: 9, organised: 4, isOrganiser: true },
+  { userId: 'u2', rank: 2, name: 'Madhavi', city: 'Chennai', points: 415, attended: 11, organised: 3, isOrganiser: true },
+  { userId: 'u3', rank: 3, name: 'Ayush', city: 'Bangalore', points: 390, attended: 7, organised: 4, isOrganiser: true },
+  { userId: 'u4', rank: 4, name: 'Arav Mehta', city: 'Hyderabad', points: 250, attended: 8, organised: 0, isMe: true },
+  { userId: 'u5', rank: 5, name: 'Tanu', city: 'Chennai', points: 220, attended: 6, organised: 1, isOrganiser: true },
+  { userId: 'u6', rank: 6, name: 'Ritika', city: 'Mumbai', points: 180, attended: 5, organised: 1, isOrganiser: true },
+  { userId: 'u7', rank: 7, name: 'Karan', city: 'Pune', points: 150, attended: 4, organised: 1, isOrganiser: true },
+  { userId: 'u8', rank: 8, name: 'Neha S', city: 'Hyderabad', points: 120, attended: 5, organised: 0 },
 ]
 
 export const MY_LEDGER: LedgerEntry[] = [

@@ -52,8 +52,14 @@ export default function ManageEvent() {
                 <Button variant="danger" onClick={() => setCancelOpen(true)}>Cancel</Button>
               </>
             )}
-            <Button variant="secondary" onClick={() => setAlertOpen(true)}>Push Alerts</Button>
-            <Button variant="secondary" onClick={() => setActiveBroadcastEventId(e.id)}>Broadcast</Button>
+            {e.status !== 'completed' && (
+              <>
+                <Button variant="secondary" onClick={() => setAlertOpen(true)}>Push Alerts</Button>
+                <Link to={`/events/${e.id}`} state={{ openChat: true }}>
+                  <Button variant="secondary">Broadcast</Button>
+                </Link>
+              </>
+            )}
             <Link to={`/events/${e.id}/checkin`}>
               <Button variant="secondary">Check-in</Button>
             </Link>

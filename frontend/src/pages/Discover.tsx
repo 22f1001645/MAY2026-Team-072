@@ -6,6 +6,7 @@ import { Loading, ErrorState } from '../components/states'
 import { cover, scaleLabel, daysUntil, cx, formatDate, formatTime } from '../lib/format'
 import { EkatvaEvent } from '../lib/types'
 import { useSession } from '../lib/session'
+import CitySelector from '../components/CitySelector'
 
 export default function Discover() {
   const { data: events = [], isLoading, isError, error } = useEvents()
@@ -34,10 +35,10 @@ export default function Discover() {
   
   const trendingElsewhere = useMemo(() => {
     return [...events]
-      .filter((e) => e.status === 'upcoming' && e.city !== activeCity)
+      .filter((e) => e.status === 'upcoming' && e.city !== activeCity && !regs.some((r: any) => r.activity?.id === e.id))
       .sort((a, b) => b.registered - a.registered)
       .slice(0, 4)
-  }, [events, activeCity])
+  }, [events, activeCity, regs])
 
   const upcomingGlobally = useMemo(() => {
     return events.filter((e) => e.status === 'upcoming').length
@@ -91,22 +92,11 @@ export default function Discover() {
       )}
 
       {/* City chips */}
-      <div className="mb-8 flex flex-wrap gap-2">
-        {['All', ...CITIES.map((c: any) => c.name)].map((c) => (
-          <button
-            key={c}
-            onClick={() => setActiveCity(c)}
-            className={cx(
-              'rounded-full border px-4 py-1.5 text-[13px] font-medium transition-all duration-300 ease-material',
-              activeCity === c
-                ? 'border-teal bg-teal text-onyx'
-                : 'border-white/10 bg-white/5 text-graytext-light hover:border-teal/40 hover:text-offwhite',
-            )}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
+      <CitySelector
+        cities={CITIES.map((c: any) => c.name)}
+        activeCity={activeCity}
+        setActiveCity={setActiveCity}
+      />
 
       {/* Live states */}
       {isLoading && <Loading label="Loading events near you…" />}
@@ -176,11 +166,14 @@ export default function Discover() {
                 <h3 className="text-h3 font-semibold text-graytext-mid">Meanwhile, trending elsewhere...</h3>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {trendingElsewhere.map(e => (
-                  <Link key={e.id} to={`/events/${e.id}`}>
-                    <EventCard e={e} compact />
-                  </Link>
-                ))}
+                {trendingElsewhere.map(e => {
+                  const isRegistered = regs.some((r: any) => r.activity?.id === e.id)
+                  return (
+                    <Link key={e.id} to={`/events/${e.id}`}>
+                      <EventCard e={e} isRegistered={isRegistered} compact />
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -207,7 +200,7 @@ function FeaturedCarousel({ events }: { events: EkatvaEvent[] }) {
 
   return (
     <section 
-      className="relative mb-9 overflow-hidden rounded-xl2 border border-white/5 flex flex-col items-center justify-center text-center p-10 min-h-[360px]"
+      className="relative mb-9 overflow-hidden rounded-xl2 border border-white/5 flex flex-col items-center justify-center text-center p-10 h-[420px]"
       style={{ background: cover(e.cover) }}
     >
       <div className="absolute inset-0 bg-onyx/60 backdrop-blur-sm transition-all duration-1000" />
@@ -217,7 +210,7 @@ function FeaturedCarousel({ events }: { events: EkatvaEvent[] }) {
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-teal/25 bg-onyx/50 backdrop-blur-md px-3 py-1 text-caption font-semibold text-teal">
           <Mandala size={16} /> Featured Event
         </div>
-        <h1 className="text-[36px] font-bold leading-tight text-offwhite md:text-[48px] mb-4 drop-shadow-md transition-all duration-500">
+        <h1 className="text-[36px] font-bold leading-tight text-offwhite md:text-[48px] mb-4 drop-shadow-md transition-all duration-500 line-clamp-2">
           {e.title}
         </h1>
         <p className="max-w-[560px] text-body text-graytext-light line-clamp-2 mb-8 drop-shadow-sm">
@@ -311,16 +304,14 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
             </svg>
             {formatDate(e.startsAt)}
           </div>
-          {!compact && (
-            <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
-              <SocialProof count={e.registered} />
-              {isRegistered ? (
-                <Badge tone="success">Registered</Badge>
-              ) : (
-                <span className="text-caption font-semibold text-teal">Register +</span>
-              )}
-            </div>
-          )}
+          <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
+            <SocialProof count={e.registered} />
+            {isRegistered ? (
+              <Badge tone="success">Registered</Badge>
+            ) : (
+              <span className="text-caption font-semibold text-teal">Register +</span>
+            )}
+          </div>
         </div>
       </div>
     </Card>

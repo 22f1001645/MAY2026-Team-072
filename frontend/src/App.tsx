@@ -13,6 +13,7 @@ import Register from './pages/Register'
 import Discover from './pages/Discover'
 import EventDetail from './pages/EventDetail'
 import MyRegistrations from './pages/MyRegistrations'
+import Profile from './pages/Profile'
 import Leaderboard from './pages/Leaderboard'
 // Organiser
 import OrganiserDashboard from './pages/OrganiserDashboard'
@@ -104,6 +105,7 @@ function AppShell() {
         <Route path="/discover" element={<Discover />} />
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/me" element={<MyRegistrations />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         {/* Readable by anyone signed in; the editing surface inside it is gated
             on capabilities.manageableOrgIds. Registering it here rather than

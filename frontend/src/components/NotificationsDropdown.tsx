@@ -35,7 +35,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
   const filteredItems = items.filter((n: any) => filter === 'all' || n.type === filter)
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx p-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 animate-fade-up">
+    <div className="absolute right-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-black p-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 animate-fade-up">
       <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-white/5">
         <h3 className="text-[13px] font-bold text-offwhite uppercase tracking-wider">Notifications</h3>
         <button 

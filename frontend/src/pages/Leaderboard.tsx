@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { CITIES } from '../lib/mock'
-import { useLeaderboard, useMyPoints } from '../lib/queries'
+import { Gem, Star, Zap, Medal, Crown, Ticket, Mic, Gift, Target, Sprout } from 'lucide-react'
+
+import { useLeaderboard, useMyPoints, useCities } from '../lib/queries'
 import { useSession } from '../lib/session'
+import CitySelector from '../components/CitySelector'
 import { Badge, Card, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import type { LeaderRow, LedgerEntry } from '../lib/types'
@@ -9,22 +11,23 @@ import { cx } from '../lib/format'
 
 // Gamification tiers — a computed lens over the same points total, no separate store.
 function getTierInfo(points: number) {
-  if (points >= 600) return { name: 'Diamond', icon: '💎', tone: 'teal' as const, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', next: null as { name: string; points: number } | null }
-  if (points >= 300) return { name: 'Gold', icon: '🥇', tone: 'gold' as const, color: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/30', next: { name: 'Diamond', points: 600 } }
-  if (points >= 100) return { name: 'Silver', icon: '🥈', tone: 'neutral' as const, color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/30', next: { name: 'Gold', points: 300 } }
-  return { name: 'Bronze', icon: '🥉', tone: 'neutral' as const, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30', next: { name: 'Silver', points: 100 } }
+  if (points >= 600) return { name: 'Diamond', icon: <Gem size={14} />, tone: 'teal' as const, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', next: null as { name: string; points: number } | null }
+  if (points >= 300) return { name: 'Platinum', icon: <Star size={14} />, tone: 'neutral' as const, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30', next: { name: 'Diamond', points: 600 } }
+  if (points >= 100) return { name: 'Elite', icon: <Zap size={14} />, tone: 'neutral' as const, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30', next: { name: 'Platinum', points: 300 } }
+  return { name: 'Starter', icon: <Sprout size={14} />, tone: 'neutral' as const, color: 'text-slate-400', bg: 'bg-slate-400/10', border: 'border-slate-400/30', next: { name: 'Elite', points: 100 } }
 }
 
 // Recognition — points + leaderboard, computed over attendance data (FR-G5)
 export default function Leaderboard() {
-  const { name } = useSession()
+  const { name, id: sessionId } = useSession()
   const [scope, setScope] = useState('Overall')
   const { data: rows = [], isLoading, isError, error } = useLeaderboard(
     scope === 'Overall' ? undefined : scope,
   )
   const { data: points } = useMyPoints()
+  const { data: CITIES = [] } = useCities()
 
-  const ranked = rows.map((r: LeaderRow) => ({ ...r, isMe: r.name === name }))
+  const ranked = rows.map((r: LeaderRow) => ({ ...r, isMe: r.userId === sessionId }))
   const me = ranked.find((r: LeaderRow) => r.isMe)
   const totalPoints = points?.total ?? 0
   const myTier = getTierInfo(totalPoints)
@@ -37,78 +40,142 @@ export default function Leaderboard() {
 
   return (
     <div className="pb-12">
-      <SectionTitle
-        eyebrow="Recognition"
-        title="Leaderboard"
-        sub="Every contribution leaves a durable, creditable trace. Attend, organise, volunteer — it all counts."
-      />
+      {/* Personalized Hero Banner */}
+      {me ? (
+        <div className="mb-10 relative overflow-hidden rounded-3xl border border-teal/20 bg-gradient-to-br from-teal/10 via-black/40 to-black p-8 shadow-[0_0_40px_rgba(63,212,182,0.1)] backdrop-blur-xl animate-fade-in">
+          <div className="absolute -top-10 -right-10 p-12 opacity-10 pointer-events-none text-teal">
+            <Crown size={200} strokeWidth={1} />
+          </div>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="text-teal font-semibold tracking-widest uppercase text-[12px] mb-2 flex items-center gap-2">
+                <Crown size={14} /> Global Leaderboard
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black text-offwhite mb-3">
+                {me.rank === 1 ? "You're #1! Keep it up!" : `You are Rank #${me.rank}!`}
+              </h1>
+              <p className="text-graytext-mid max-w-md text-[14px]">
+                You are in the Top {Math.max(1, Math.round((me.rank / ranked.length) * 100))}% of students {scope !== 'Overall' ? `in ${scope}` : 'overall'}. Every contribution leaves a durable, creditable trace.
+              </p>
+            </div>
+            {nextRankTarget && (
+              <div className="bg-black/50 border border-white/10 rounded-2xl p-5 min-w-[220px] backdrop-blur-md">
+                <div className="text-[11px] uppercase tracking-widest text-graytext-mid font-semibold mb-2">Target to Beat</div>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[12px] font-bold text-slate-300">
+                    {nextRankTarget.rank}
+                  </div>
+                  <div>
+                    <div className="text-offwhite font-bold text-[14px] leading-tight">{nextRankTarget.name}</div>
+                    <div className="text-gold text-[13px] font-black">{nextRankTarget.points} pts</div>
+                  </div>
+                </div>
+                <div className="text-[13px] text-teal font-semibold mt-3 pt-3 border-t border-white/5">
+                  Only {nextRankTarget.points - me.points + 1} points away!
+                </div>
+              </div>
+            )}
+            {!nextRankTarget && me.rank === 1 && (
+              <div className="bg-gold/10 border border-gold/30 rounded-2xl p-5 min-w-[220px] backdrop-blur-md">
+                 <div className="text-[11px] uppercase tracking-widest text-gold/70 font-semibold mb-1">Current Status</div>
+                 <div className="text-gold font-bold text-lg">Undisputed Champion</div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : sessionId ? (
+        <div className="mb-10 relative overflow-hidden rounded-3xl border border-teal/20 bg-gradient-to-br from-teal/10 via-black/40 to-black p-8 shadow-[0_0_40px_rgba(63,212,182,0.1)] backdrop-blur-xl animate-fade-in">
+          <div className="absolute -top-10 -right-10 p-12 opacity-10 pointer-events-none text-teal">
+            <Crown size={200} strokeWidth={1} />
+          </div>
+          <div className="relative z-10">
+            <div className="text-teal font-semibold tracking-widest uppercase text-[12px] mb-2 flex items-center gap-2">
+              <Crown size={14} /> Global Leaderboard
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black text-offwhite mb-3">
+              You haven't ranked {scope !== 'Overall' ? `in ${scope}` : 'overall'} yet!
+            </h1>
+            <p className="text-graytext-mid max-w-md text-[14px]">
+              Attend, organise, or volunteer at events {scope !== 'Overall' ? `in ${scope}` : ''} to get your name on the board. Every contribution leaves a durable, creditable trace.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-10">
+          <SectionTitle
+            eyebrow="Recognition"
+            title="Leaderboard"
+            sub="Every contribution leaves a durable, creditable trace. Attend, organise, volunteer — it all counts."
+          />
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         {/* Main Column */}
-        <div>
+        <div className="min-w-0">
           {/* Scope Filters */}
-          <div className="mb-8 flex flex-wrap gap-2">
-            {['Overall', ...CITIES.map((c) => c.name)].map((c) => (
-              <button
-                key={c}
-                onClick={() => setScope(c)}
-                className={cx(
-                  'rounded-full border px-5 py-2 text-[13px] font-semibold transition-all duration-300 uppercase tracking-widest',
-                  scope === c
-                    ? 'border-teal/50 bg-teal/20 text-teal shadow-[0_0_15px_rgba(63,212,182,0.15)]'
-                    : 'border-white/5 bg-transparent text-graytext-mid hover:text-offwhite hover:border-white/10 hover:bg-white/5',
-                )}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <CitySelector
+            cities={CITIES.map((c: any) => c.name)}
+            activeCity={scope}
+            setActiveCity={setScope}
+            allowAll={true}
+            allLabel="Overall"
+          />
 
           {isLoading && <Loading label="Tallying points…" />}
           {isError && <ErrorState error={error} />}
 
           {!isLoading && !isError && (
             <>
-              {/* Podium */}
+              {/* Highlight Cards for Top 3 */}
               {ranked.length > 0 && (
-                <div className="mb-10 flex justify-center items-end gap-3 sm:gap-6 mt-12 px-4">
+                <div className="mb-12 flex justify-center items-stretch gap-4 px-4 pt-4">
                   {[ranked[1], ranked[0], ranked[2]].map((r: LeaderRow | undefined, i: number) => {
                     if (!r) return null;
                     const order = [1, 0, 2][i]
                     
-                    const heights = ['h-28', 'h-40', 'h-24']
-                    const crowns = ['🥈', '👑', '🥉']
-                    const colors = [
-                      'from-slate-300/30 to-slate-300/5 border-slate-300/40 text-slate-300 shadow-[0_0_30px_rgba(203,213,225,0.15)]', // 2nd
-                      'from-gold/40 to-gold/5 border-gold/50 text-gold shadow-[0_0_40px_rgba(255,215,0,0.25)]', // 1st
-                      'from-amber-600/30 to-amber-600/5 border-amber-600/40 text-amber-500 shadow-[0_0_30px_rgba(217,119,6,0.15)]' // 3rd
+                    const isFirst = order === 0
+                    const crowns = [
+                      <Medal className="w-8 h-8 text-slate-300" strokeWidth={1.5} />, 
+                      <Crown className="w-10 h-10 text-gold" strokeWidth={1.5} />, 
+                      <Medal className="w-8 h-8 text-amber-500" strokeWidth={1.5} />
                     ]
+                    const cardStyles = [
+                      'border-white/10 bg-white/5 hover:bg-white/10 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(203,213,225,0.2)] text-slate-300 cursor-default', // 2nd
+                      'border-gold/30 bg-gradient-to-b from-gold/10 to-gold/5 shadow-[0_0_40px_rgba(255,215,0,0.15)] scale-110 z-10 text-gold hover:-translate-y-2 hover:shadow-[0_20px_50px_-12px_rgba(255,215,0,0.4)] cursor-default', // 1st
+                      'border-white/10 bg-white/5 hover:bg-white/10 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.25)] text-amber-500 cursor-default' // 3rd
+                    ]
+                    const rankText = ['2nd', '1st', '3rd']
                     
                     return (
-                      <div key={r.name} className="text-center flex-1 max-w-[140px] relative animate-fade-up" style={{ animationDelay: `${order * 150}ms` }}>
-                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-4xl filter drop-shadow-lg z-10 animate-bounce-slow">
+                      <div 
+                        key={r.name} 
+                        className={cx(
+                          "flex-1 max-w-[180px] p-5 rounded-2xl border backdrop-blur-md flex flex-col items-center relative overflow-hidden transition-all duration-500 animate-fade-up",
+                          cardStyles[i]
+                        )} 
+                        style={{ animationDelay: `${order * 150}ms` }}
+                      >
+                        {/* Inner glow line for 1st place */}
+                        {isFirst && <div className="absolute top-0 left-0 right-0 h-[1px] bg-gold/40" />}
+                        
+                        <div className="mb-4">
                           {crowns[i]}
                         </div>
                         
-                        <div className="mb-3 relative z-10 px-2">
-                          <div className="truncate text-[14px] font-bold text-offwhite">{r.name}</div>
-                          <div className={cx("text-[13px] font-black", order === 0 ? "text-gold" : order === 1 ? "text-slate-300" : "text-amber-500")}>
+                        <div className="text-center relative z-10 w-full">
+                          <div className={cx("text-[11px] uppercase tracking-widest font-semibold mb-1", isFirst ? "text-gold/70" : "text-graytext-mid")}>
+                            {rankText[i]} Place
+                          </div>
+                          <div className="truncate text-[15px] font-bold text-offwhite mb-1">{r.name}</div>
+                          <div className="text-[14px] font-black">
                             {r.points} pts
                           </div>
                         </div>
                         
-                        <div
-                          className={cx(
-                            'rounded-t-2xl border-x border-t bg-gradient-to-b backdrop-blur-sm relative overflow-hidden transition-all duration-500',
-                            heights[i],
-                            colors[i]
-                          )}
-                        >
-                          {/* Inner glow line */}
-                          <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/40" />
-                          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[40px] font-black opacity-20">
-                            {order + 1}
-                          </div>
+                        {/* Subtle watermark */}
+                        <div className="absolute -bottom-4 -right-4 text-[80px] font-black opacity-[0.03] select-none pointer-events-none">
+                          {order + 1}
                         </div>
                       </div>
                     )
@@ -171,11 +238,13 @@ export default function Leaderboard() {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="text-[12px] text-graytext-light">
-                                <span className="font-semibold text-offwhite">{r.attended}</span> attended
+                                <span className="font-semibold text-offwhite">{r.attended}</span> Attended
                               </div>
-                              <div className="text-[12px] text-graytext-light mt-0.5">
-                                <span className="font-semibold text-offwhite">{r.organised}</span> org
-                              </div>
+                              {(r.organised > 0 || r.isOrganiser) && (
+                                <div className="text-[12px] text-graytext-light mt-0.5">
+                                  <span className="font-semibold text-offwhite">{r.organised}</span> Organised
+                                </div>
+                              )}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <span className={cx(
@@ -251,7 +320,7 @@ export default function Leaderboard() {
               {/* Rank Overtake Callout */}
               {nextRankTarget && (
                 <div className="mt-5 p-3 rounded-xl bg-black/40 border border-white/5 text-[13px] text-graytext-light flex items-start gap-3">
-                  <div className="mt-0.5">🎯</div>
+                  <div className="mt-0.5 text-rose-500"><Target size={16} /></div>
                   <div>
                     You are <strong className="text-offwhite">{nextRankTarget.points - totalPoints + 1} points</strong> away from overtaking <strong className="text-offwhite">{nextRankTarget.name}</strong> for Rank #{nextRankTarget.rank}!
                   </div>
@@ -278,7 +347,7 @@ export default function Leaderboard() {
                 {points.entries.map((l: LedgerEntry) => (
                   <div key={l.id} className="flex items-center justify-between gap-4 group">
                     <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/5 text-[14px] group-hover:bg-teal/10 transition-colors">
-                      {l.action === 'attended' ? '🎟️' : l.action === 'organised' ? '🎤' : '🎁'}
+                      {l.action === 'attended' ? <Ticket size={14} className="text-graytext-mid group-hover:text-teal transition-colors" /> : l.action === 'organised' ? <Mic size={14} className="text-graytext-mid group-hover:text-teal transition-colors" /> : <Gift size={14} className="text-graytext-mid group-hover:text-teal transition-colors" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13px] font-semibold text-offwhite group-hover:text-teal transition-colors">
@@ -292,13 +361,40 @@ export default function Leaderboard() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <div className="text-3xl mb-2 opacity-50">🌱</div>
+                <div className="flex justify-center mb-3 opacity-50 text-teal"><Sprout size={32} /></div>
                 <p className="text-[13px] text-graytext-mid">
                   No points yet. Earn them by attending or organising events!
                 </p>
               </div>
             )}
           </Card>
+        </div>
+      </div>
+
+      {/* Tier Guide Banner */}
+      <div className="mt-16 pt-12 border-t border-white/5 animate-fade-in">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-offwhite mb-2">How Tiers Work</h2>
+          <p className="text-graytext-mid text-[14px]">
+            Earn points by attending or organising events to climb the ranks and unlock higher tiers.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { name: 'Diamond', points: '600+ pts', icon: <Gem size={24} />, bg: 'bg-cyan-400/10', color: 'text-cyan-400', border: 'border-cyan-400/30' },
+            { name: 'Platinum', points: '300+ pts', icon: <Star size={24} />, bg: 'bg-purple-400/10', color: 'text-purple-400', border: 'border-purple-400/30' },
+            { name: 'Elite', points: '100+ pts', icon: <Zap size={24} />, bg: 'bg-emerald-400/10', color: 'text-emerald-400', border: 'border-emerald-400/30' },
+            { name: 'Starter', points: '0+ pts', icon: <Sprout size={24} />, bg: 'bg-slate-400/10', color: 'text-slate-400', border: 'border-slate-400/30' },
+          ].map(tier => (
+            <div key={tier.name} className={cx("p-6 rounded-2xl border backdrop-blur-sm flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-default", tier.bg, tier.border)}>
+              <div className={cx("mb-3 p-3 rounded-xl bg-black/20 shadow-inner", tier.color)}>
+                {tier.icon}
+              </div>
+              <div className={cx("font-bold text-[16px] mb-1", tier.color)}>{tier.name}</div>
+              <div className="text-[13px] font-semibold text-offwhite">{tier.points}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

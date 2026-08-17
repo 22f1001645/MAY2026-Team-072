@@ -13,9 +13,10 @@ import ViewSwitcher from './ViewSwitcher'
 import AcademicStatusBanner from './AcademicStatusBanner'
 
 interface NavItem {
-  to: string
+  to?: string
   label: string
-  icon: ReactNode
+  icon?: ReactNode
+  subItems?: { to: string; label: string; icon: ReactNode }[]
 }
 
 // Navigation is a function of the POR, not the login (PRD P3 / §15 IA)
@@ -23,14 +24,20 @@ const NAV: Record<Role, NavItem[]> = {
   student: [
     { to: '/discover', label: 'Discover', icon: <Icon d="M12 2 4 7v10l8 5 8-5V7z" /> },
     { to: '/me', label: 'My Registrations', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
+    { to: '/profile', label: 'Profile', icon: <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" /> },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
   ],
   organiser: [
     { to: '/organiser', label: 'Dashboard', icon: <Icon d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z" /> },
     { to: '/proposals/new', label: 'New Proposal', icon: <Icon d="M12 5v14M5 12h14" /> },
-    { to: '/events/ev-ekatva-hyd/manage', label: 'Registrations & Tasks', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
-    { to: '/events/ev-hyd-coffee/expenses', label: 'Reimbursement', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
-    { to: '/events/ev-ekatva-hyd/checkin', label: 'Check-in', icon: <Icon d="m5 12 4 4L19 6" /> },
+    {
+      label: 'Organiser Hub',
+      subItems: [
+        { to: '/events/ev-ekatva-hyd/manage', label: 'Registrations & Tasks', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
+        { to: '/events/ev-hyd-coffee/expenses', label: 'Reimbursement', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
+        { to: '/events/ev-ekatva-hyd/checkin', label: 'Check-in', icon: <Icon d="m5 12 4 4L19 6" /> },
+      ]
+    },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
   ],
   admin: [
@@ -66,6 +73,63 @@ const ROLE_LABEL: Record<Role, string> = {
   admin: 'Admin',
 }
 
+function NavDropdown({ item }: { item: NavItem }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const isActive = item.subItems?.some(s => location.pathname === s.to)
+
+  return (
+    <div className="relative" ref={ref}>
+      <button 
+        onClick={() => setOpen(!open)}
+        className={cx("whitespace-nowrap flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 focus:outline-none", 
+          isActive 
+            ? "bg-white/10 text-offwhite shadow-[0_2px_10px_rgba(0,0,0,0.1)]" 
+            : "text-graytext-light hover:text-offwhite hover:bg-white/5",
+          open && "text-offwhite bg-white/5"
+        )}
+      >
+        {item.label}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cx("transition-transform duration-200", open && "rotate-180")}>
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 rounded-2xl border border-white/10 bg-black p-2 shadow-2xl z-50 animate-fade-down origin-top">
+          {item.subItems?.map(sub => (
+            <Link
+              key={sub.to}
+              to={sub.to}
+              onClick={() => setOpen(false)}
+              className={cx("whitespace-nowrap flex items-center gap-3 rounded-xl p-2.5 text-[13px] font-medium transition-colors focus:outline-none", 
+                location.pathname === sub.to
+                  ? "bg-teal/10 text-teal"
+                  : "text-graytext-light hover:bg-white/5 hover:text-offwhite"
+              )}
+            >
+              <div className="text-graytext-mid">{sub.icon}</div>
+              {sub.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 export default function Layout({ children }: { children: ReactNode }) {
   const { role, name, city, capabilities } = useSession()
   const { currentUser, logout, refreshUser } = useAuth()
@@ -81,14 +145,14 @@ export default function Layout({ children }: { children: ReactNode }) {
   const manageableOrgIds = capabilities?.manageableOrgIds
   const nav = useMemo(() => {
     const base = NAV[role]
-    if (!manageableOrgIds?.length) return base
+    if (!manageableOrgIds?.length || role === 'student') return base
     return [
       ...base,
       {
         to: `/orgs/${manageableOrgIds[0]}`,
         label: 'Organisation profile',
         icon: <Icon d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M9 8h2M9 12h2M9 16h2" />,
-      },
+      } as NavItem,
     ]
   }, [role, manageableOrgIds])
 
@@ -181,29 +245,39 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Center: Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-2 absolute left-1/2 -translate-x-1/2 z-10">
-          <div className="empty:hidden">
+        <nav className="hidden lg:flex flex-1 justify-center items-center gap-2 z-10 px-4">
+          <div className="empty:hidden flex items-center">
             <ViewSwitcher />
+            {capabilities?.isOrganiser && (
+              <div className="w-px h-6 bg-white/10 ml-3 mr-1" />
+            )}
           </div>
-          {nav.map(item => (
-            <NavLink 
-              key={item.to} 
-              to={item.to}
-              className={({ isActive }) => 
-                cx("px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 focus:outline-none", 
-                  isActive || location.pathname === item.to 
-                    ? "bg-white/10 text-offwhite shadow-[0_2px_10px_rgba(0,0,0,0.1)]" 
-                    : "text-graytext-light hover:text-offwhite hover:bg-white/5"
-                )
-              }
-            >
-              {item.label}
-            </NavLink>
+          {nav.filter(item => !item.subItems).map(item => (
+              <NavLink 
+                key={item.to!} 
+                to={item.to!}
+                className={({ isActive }) => 
+                  cx("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 focus:outline-none", 
+                    isActive || location.pathname === item.to 
+                      ? "bg-white/10 text-offwhite shadow-[0_2px_10px_rgba(0,0,0,0.1)]" 
+                      : "text-graytext-light hover:text-offwhite hover:bg-white/5"
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
           ))}
         </nav>
 
         {/* Right: Tools & Profile */}
         <div className="flex items-center gap-3 z-20">
+
+          {/* Nav Dropdowns (Organiser Hub) */}
+          <div className="hidden lg:flex items-center gap-2">
+            {nav.filter(item => item.subItems).map(item => (
+              <NavDropdown key={item.label} item={item} />
+            ))}
+          </div>
           
           {/* Global Search */}
           <div ref={searchRef} className="relative hidden md:block">
@@ -238,7 +312,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             {/* Global Search Dropdown */}
             {searchOpen && searchQuery.trim().length >= 1 && (
-              <div className="absolute right-0 top-full mt-3 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx/95 p-3 shadow-2xl backdrop-blur-xl z-50 max-h-[70vh] overflow-y-auto space-y-3 animate-fade-down origin-top-right">
+              <div className="absolute right-0 top-full mt-3 w-80 md:w-96 rounded-2xl border border-white/10 bg-black p-3 shadow-2xl z-50 max-h-[70vh] overflow-y-auto space-y-3 animate-fade-down origin-top-right">
                 {/* Events Section */}
                 {filteredEvents.length > 0 && (
                   <div>
@@ -369,7 +443,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               {name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-3 w-60 rounded-2xl border border-white/10 bg-onyx/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-fade-down origin-top-right">
+              <div className="absolute right-0 top-full mt-3 w-60 rounded-2xl border border-white/10 bg-black p-2 shadow-2xl z-50 animate-fade-down origin-top-right">
                 <div className="p-3 mb-1 border-b border-white/5">
                   <div className="truncate text-[14px] font-semibold text-offwhite">{name}</div>
                   <div className="truncate text-[12px] text-graytext-light mt-0.5">
@@ -418,21 +492,44 @@ export default function Layout({ children }: { children: ReactNode }) {
           
           <nav className="flex-1 overflow-y-auto p-5 space-y-2">
             {nav.map(item => (
-              <NavLink 
-                key={item.to} 
-                to={item.to} 
-                onClick={() => setMobileOpen(false)} 
-                className={({ isActive }) => 
-                  cx(
-                    'flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition duration-200 focus:outline-none',
-                    isActive || location.pathname === item.to
-                      ? 'bg-teal/10 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
-                      : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
-                  )
-                }
-              >
-                {item.icon} {item.label}
-              </NavLink>
+              item.subItems ? (
+                <div key={item.label} className="space-y-1">
+                  <div className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-graytext-mid mt-2">{item.label}</div>
+                  {item.subItems.map(sub => (
+                    <NavLink 
+                      key={sub.to} 
+                      to={sub.to} 
+                      onClick={() => setMobileOpen(false)} 
+                      className={({ isActive }) => 
+                        cx(
+                          'flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition duration-200 focus:outline-none',
+                          isActive || location.pathname === sub.to
+                            ? 'bg-teal/10 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
+                            : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
+                        )
+                      }
+                    >
+                      {sub.icon} {sub.label}
+                    </NavLink>
+                  ))}
+                </div>
+              ) : (
+                <NavLink 
+                  key={item.to!} 
+                  to={item.to!} 
+                  onClick={() => setMobileOpen(false)} 
+                  className={({ isActive }) => 
+                    cx(
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition duration-200 focus:outline-none',
+                      isActive || location.pathname === item.to
+                        ? 'bg-teal/10 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
+                        : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
+                    )
+                  }
+                >
+                  {item.icon} {item.label}
+                </NavLink>
+              )
             ))}
           </nav>
           
@@ -490,7 +587,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   )
 }
 
-function EditCityModal({
+export function EditCityModal({
   currentCity,
   onClose,
   onSaved,

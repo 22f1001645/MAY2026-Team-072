@@ -370,7 +370,7 @@ def seed_demo_data(app):
             council_tier=COUNCIL_UPPER_HOUSE,
         ))
 
-        now = datetime(2026, 7, 23, 10, 0, 0)
+        now = datetime.utcnow()
 
         def make_activity(org, title, city, scale, days, venue, desc, cap, organiser, status,
                           budget, approved=True):
@@ -441,10 +441,7 @@ def seed_demo_data(app):
                                label="Private room booking", amount=5000, status="approved",
                                bill_name="venue-receipt.jpg", submitted_by=saiteja.id))
 
-        # A welcome notification for Arav
-        db.session.add(Notification(user_id=arav.id, activity_id=fest.id, type="reminder",
-                                    title="Tomorrow: Bangalore Board-Game Night",
-                                    body="5:30 PM at Cubbon Park Reads. Bring a friend."))
+
 
         db.session.commit()
 

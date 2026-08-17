@@ -168,6 +168,7 @@ export interface Registration {
 }
 
 export interface LeaderRow {
+  userId: string
   rank: number
   name: string
   city: string
@@ -175,6 +176,7 @@ export interface LeaderRow {
   attended: number
   organised: number
   isMe?: boolean
+  isOrganiser?: boolean
 }
 
 export interface LedgerEntry {

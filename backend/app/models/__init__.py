@@ -786,7 +786,7 @@ class Registration(Base):
                 "scale": a.scale,
                 "venue": a.venue,
                 "status": a.status,
-                "starts_at": _iso(a.starts_at),
+                "startsAt": _iso(a.starts_at),
             }
             if a
             else None,

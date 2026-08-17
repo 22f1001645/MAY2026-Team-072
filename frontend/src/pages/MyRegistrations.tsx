@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeCanvas } from 'qrcode.react'
-import { useMyPoints, useMyRegistrations, useUpdateProfile, useCities } from '../lib/queries'
+import { useMyPoints, useMyRegistrations, useCities } from '../lib/queries'
 import { Badge, Button, Card, Input, SectionTitle, StatCard, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { coverForScale, daysUntil, formatDate, formatTime, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
@@ -12,7 +12,7 @@ export default function MyRegistrations() {
   const { data: regs = [], isLoading, isError, error } = useMyRegistrations()
   const { data: points } = useMyPoints()
   const { id: currentUserId, name: userName, city: userCity, role } = useSession()
-  const { updateCurrentUser, currentUser } = useAuth()
+  const { refreshUser, updateCurrentUser, currentUser } = useAuth()
   const { data: allCities = [] } = useCities()
   const { addToast } = useToast()
 
@@ -20,21 +20,13 @@ export default function MyRegistrations() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'waitlisted'>('all')
   const [timelineFilter, setTimelineFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
-  const [prefsOpen, setPrefsOpen] = useState(false)
-  const [editCity, setEditCity] = useState(userCity)
   const [, forceCalendarRerender] = useState(0)
-  const updateProfile = useUpdateProfile()
 
-
-  useEffect(() => {
-    setEditCity(userCity)
-  }, [userCity])
-
-  const addToCalendar = (a: { id: string; title: string; starts_at: string; venue: string }) => {
+  const addToCalendar = (a: { id: string; title: string; startsAt: string; venue: string }) => {
     const isAdded = localStorage.getItem('cal_' + a.id) === '1'
     const url = isAdded
-      ? googleCalendarDayLink(a.starts_at)
-      : googleCalendarLink({ title: a.title, startsAt: a.starts_at, venue: a.venue })
+      ? googleCalendarDayLink(a.startsAt)
+      : googleCalendarLink({ title: a.title, startsAt: a.startsAt, venue: a.venue })
     window.open(url, '_blank', 'noopener,noreferrer')
     if (!isAdded) {
       localStorage.setItem('cal_' + a.id, '1')
@@ -51,15 +43,7 @@ export default function MyRegistrations() {
   const upcoming = regs.filter((r: any) => r.activity?.status === 'upcoming')
   const attended = regs.filter((r: any) => r.attended).length
 
-  const handleSavePrefs = async () => {
-    try {
-      await updateProfile.mutateAsync({ city: editCity })
-      updateCurrentUser({ city: editCity })
-      setPrefsOpen(false)
-    } catch (e) {
-      alert("Failed to update profile")
-    }
-  }
+
 
   const filteredRegs = useMemo(() => {
     return regs.filter((r: any) => {
@@ -86,89 +70,58 @@ export default function MyRegistrations() {
   if (isLoading) return <Loading label="Loading your registrations…" />
   if (isError) return <ErrorState error={error} />
 
-  const initials = userName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'ST'
+  const nextEvent = [...upcoming].sort((a, b) => new Date(a.activity.startsAt).getTime() - new Date(b.activity.startsAt).getTime())[0]
 
   return (
-    <div className="pb-12">
-      {/* Unified Profile Banner */}
-      <section className="relative mb-10 overflow-hidden rounded-xl2 border border-white/5 bg-onyx/80">
-        <div className="grain absolute inset-0 rounded-xl2 mix-blend-overlay opacity-30" />
-        <div className="relative p-6 sm:p-10 flex flex-col md:flex-row items-center gap-8 justify-between">
-          <div className="flex items-center gap-6 text-left">
-            <div className="h-24 w-24 shrink-0 rounded-full bg-gradient-to-br from-teal to-emerald p-[3px] shadow-glow-teal">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-onyx text-h1 font-bold text-offwhite">
-                {initials}
+    <div className="pb-12 max-w-5xl mx-auto">
+      {/* Registrations Hero */}
+      {nextEvent ? (
+        <section className="mb-10 relative overflow-hidden rounded-3xl border border-teal/20 bg-gradient-to-r from-onyx via-black to-onyx p-8 shadow-[0_0_40px_rgba(63,212,182,0.05)] mt-8">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-teal/10 blur-3xl rounded-full pointer-events-none translate-x-1/4 -translate-y-1/4" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 justify-between">
+            <div className="flex flex-col gap-2 text-center md:text-left">
+              <div className="text-[12px] uppercase tracking-widest text-teal font-semibold flex items-center justify-center md:justify-start gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                Next Up in your Calendar
               </div>
-            </div>
-            <div>
-              <div className="mb-1 text-caption uppercase tracking-wider text-teal font-semibold">
-                {role === 'organiser' ? 'Organiser Profile' : 'Student Profile'}
-              </div>
-              <h1 className="text-h1 font-bold text-offwhite leading-tight">{userName}</h1>
-              <div className="mt-2 flex items-center gap-3 text-graytext-light">
-                <span className="flex items-center gap-1.5">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                  {userCity}
+              <h1 className="text-3xl md:text-4xl font-black text-offwhite leading-tight">{nextEvent.activity.title}</h1>
+              <div className="flex items-center justify-center md:justify-start gap-4 text-graytext-light mt-1">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {formatDate(nextEvent.activity.startsAt)} at {formatTime(nextEvent.activity.startsAt)}
                 </span>
-                <span className="text-white/20">•</span>
-                <button onClick={() => setPrefsOpen(true)} className="text-teal hover:text-teal-accent hover:underline transition-colors flex items-center gap-1">
-                  Edit Profile
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                </button>
+                <span className="hidden sm:inline text-white/20">•</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                  {nextEvent.activity.venue}
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-center justify-center bg-black/50 p-6 rounded-2xl border border-white/10 min-w-[140px] backdrop-blur-md shadow-inner text-center">
+              <div className="text-3xl font-black text-teal drop-shadow-md leading-none">
+                {daysUntil(nextEvent.activity.startsAt).replace('In ', '').replace(' days', '')}
+              </div>
+              <div className="text-[11px] text-graytext-mid uppercase tracking-widest font-semibold mt-2">
+                {daysUntil(nextEvent.activity.startsAt).includes('days') ? 'Days Away' : 'Event'}
               </div>
             </div>
           </div>
-
-          
-          <div className="flex gap-4 sm:gap-8 bg-black/30 p-6 rounded-xl border border-white/5 w-full md:w-auto overflow-x-auto">
-            <div className="text-center min-w-[80px]">
-              <div className="text-h2 font-bold text-offwhite">{upcoming.length}</div>
-              <div className="text-caption text-graytext-mid uppercase tracking-wider mt-1">Upcoming</div>
-            </div>
-            <div className="w-px bg-white/10" />
-            <div className="text-center min-w-[80px]">
-              <div className="text-h2 font-bold text-gold">{attended}</div>
-              <div className="text-caption text-graytext-mid uppercase tracking-wider mt-1">Attended</div>
-            </div>
-            <div className="w-px bg-white/10" />
-            <div className="text-center min-w-[80px]">
-              <div className="text-h2 font-bold text-teal">{points?.total ?? 0}</div>
-              <div className="text-caption text-graytext-mid uppercase tracking-wider mt-1">Points</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Edit Profile Modal */}
-      {prefsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-          <div className="absolute inset-0" onClick={() => setPrefsOpen(false)} />
-          <div className="relative w-full max-w-sm rounded-xl2 border border-white/10 bg-onyx shadow-2xl p-6 overflow-hidden scale-100 animate-[fadeUp_0.3s_ease-out]">
-            <h2 className="text-h3 font-bold text-offwhite mb-4">Edit Profile</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-caption font-medium text-graytext-mid">Home City</label>
-                <select
-                  value={editCity}
-                  onChange={(e) => setEditCity(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[14px] text-offwhite focus:border-teal focus:outline-none appearance-none"
-                  style={{ background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23a1a1aa\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E") no-repeat right 0.75rem center/12px 12px, rgba(0, 0, 0, 0.4)' }}
-                >
-                  <option value="" disabled className="bg-onyx">Select your city</option>
-                  {allCities.map((c) => (
-                    <option key={c.id} value={c.name} className="bg-onyx">
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3 justify-end mt-6">
-                <Button variant="ghost" onClick={() => setPrefsOpen(false)}>Cancel</Button>
-                <Button disabled={updateProfile.isPending} onClick={handleSavePrefs}>Save Changes</Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
+      ) : (
+        <section className="mb-10 relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-onyx to-black p-8 text-center mt-8">
+           <div className="grain absolute inset-0 mix-blend-overlay opacity-20 pointer-events-none" />
+           <div className="relative z-10">
+             <div className="mx-auto h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-graytext-light mb-4 shadow-inner">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+             </div>
+             <h2 className="text-2xl font-bold text-offwhite mb-2">Your schedule is clear</h2>
+             <p className="text-graytext-mid max-w-md mx-auto mb-6">You don't have any upcoming events right now. Discover new communities and build your tech network.</p>
+             <Link to="/discover">
+               <Button variant="primary">Discover Events</Button>
+             </Link>
+           </div>
+        </section>
       )}
 
       {/* Filters */}
@@ -274,7 +227,7 @@ export default function MyRegistrations() {
                   ) : a.status === 'completed' ? (
                     <Badge tone="neutral">Missed</Badge>
                   ) : (
-                    <Badge tone="teal">{daysUntil(a.starts_at)}</Badge>
+                    <Badge tone="teal">{daysUntil(a.startsAt)}</Badge>
                   )}
                 </div>
               </div>
@@ -295,8 +248,8 @@ export default function MyRegistrations() {
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-graytext-mid mb-0.5">Date & Time</div>
-                    <div className="text-[13px] font-medium text-offwhite">{formatDate(a.starts_at)}</div>
-                    <div className="text-[12px] text-graytext-light">{formatTime(a.starts_at)}</div>
+                    <div className="text-[13px] font-medium text-offwhite">{formatDate(a.startsAt)}</div>
+                    <div className="text-[12px] text-graytext-light">{formatTime(a.startsAt)}</div>
                   </div>
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-graytext-mid mb-0.5">Location</div>
@@ -306,11 +259,13 @@ export default function MyRegistrations() {
 
                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
                   <div className="flex gap-2">
-                    <Link to={`/events/${a.id}`} state={{ openChat: true }}>
-                      <button className="h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-teal hover:bg-teal hover:text-onyx transition-colors" title="Event Chat">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                      </button>
-                    </Link>
+                    {a.status !== 'completed' && (
+                      <Link to={`/events/${a.id}`} state={{ openChat: true }}>
+                        <button className="h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-teal hover:bg-teal hover:text-onyx transition-colors" title="Event Chat">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        </button>
+                      </Link>
+                    )}
                     {a.status === 'upcoming' && !isWaitlisted && (
                       <button 
                         onClick={() => addToCalendar(a)}
@@ -385,18 +340,20 @@ export default function MyRegistrations() {
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Status</div>
-                  <div className="text-[14px] font-bold text-teal flex items-center gap-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                    Confirmed
+                  <div className={cx("text-[14px] font-bold flex items-center gap-1 capitalize", selectedTicket.status === 'confirmed' ? 'text-teal' : 'text-amber-500')}>
+                    {selectedTicket.status === 'confirmed' && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    )}
+                    {selectedTicket.status}
                   </div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Date</div>
-                  <div className="text-[14px] font-bold text-gray-900">{formatDate(selectedTicket.activity?.starts_at)}</div>
+                  <div className="text-[14px] font-bold text-gray-900">{formatDate(selectedTicket.activity?.startsAt)}</div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Time</div>
-                  <div className="text-[14px] font-bold text-gray-900">{formatTime(selectedTicket.activity?.starts_at)}</div>
+                  <div className="text-[14px] font-bold text-gray-900">{formatTime(selectedTicket.activity?.startsAt)}</div>
                 </div>
               </div>
 

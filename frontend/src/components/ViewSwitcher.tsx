@@ -83,8 +83,14 @@ export default function ViewSwitcher() {
       role="radiogroup"
       aria-label="Dashboard view"
       onKeyDown={onKeyDown}
-      className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-black/20 p-1"
+      className="relative flex items-center rounded-full border border-white/5 bg-[#0a0a0a] p-1 shadow-inner"
     >
+      <div
+        className={cx(
+          "absolute top-1 bottom-1 w-[90px] rounded-full bg-teal shadow-[0_0_12px_rgba(63,212,182,0.3)] transition-transform duration-300 ease-out",
+          current === 'organiser' ? "translate-x-[90px]" : "translate-x-0"
+        )}
+      />
       {SEGMENTS.map(({ view, label }) => {
         const active = view === current
         return (
@@ -96,10 +102,10 @@ export default function ViewSwitcher() {
             tabIndex={active ? 0 : -1}
             onClick={() => activate(view)}
             className={cx(
-              'rounded-full px-3 py-1.5 text-[14px] font-medium transition duration-200 ease-material focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
+              'relative z-10 w-[90px] rounded-full py-1.5 text-[13px] font-bold tracking-wide transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
               active
-                ? 'bg-teal/12 text-teal font-semibold shadow-[inset_0_0_0_1px_rgba(92,230,201,0.35)]'
-                : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
+                ? 'text-onyx'
+                : 'text-graytext-mid hover:text-offwhite',
             )}
           >
             {label}

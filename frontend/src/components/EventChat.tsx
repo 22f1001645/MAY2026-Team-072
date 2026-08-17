@@ -8,9 +8,11 @@ import { formatDate, formatTime, cx } from '../lib/format'
 export default function EventChat({
   eventId,
   isRegistered,
+  canManage = false,
 }: {
   eventId: string
   isRegistered: boolean
+  canManage?: boolean
 }) {
   const { currentUser } = useAuth()
   const { data: messages = [], isLoading } = useAnnouncements(eventId)
@@ -20,8 +22,7 @@ export default function EventChat({
   const [showPicker, setShowPicker] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const isOrganiser = currentUser?.role === 'admin' || currentUser?.role === 'organiser'
-  const canPost = isRegistered || isOrganiser
+  const canPost = isRegistered || canManage
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

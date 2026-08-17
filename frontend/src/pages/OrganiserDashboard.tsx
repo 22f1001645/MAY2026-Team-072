@@ -121,7 +121,7 @@ export default function OrganiserDashboard() {
                       <Link to={`/events/${e.id}/checkin`}>
                         <Button variant="secondary" size="sm">Check-in</Button>
                       </Link>
-                      <Link to={`/events/${e.id}`}>
+                      <Link to={`/events/${e.id}`} state={{ openChat: true }}>
                         <Button variant="secondary" size="sm">Broadcast</Button>
                       </Link>
                     </>

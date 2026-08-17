@@ -37,6 +37,9 @@ class Base(db.Model):
         db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # --------------------------------------------------------------------------- #
 # Module A — Community: identity, orgs, memberships, PORs

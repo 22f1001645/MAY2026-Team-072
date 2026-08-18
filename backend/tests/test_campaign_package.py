@@ -12,6 +12,9 @@ Extended by plan 05-10: poster upload (CAMPAIGN-03, AC-12/AC-13/AC-14).
 """
 import base64
 import io
+import sys
+from contextlib import contextmanager
+from types import ModuleType, SimpleNamespace
 
 import pytest
 from werkzeug.security import generate_password_hash
@@ -819,3 +822,322 @@ def test_poster_upload_forbidden_for_a_non_manager(client, seeds, uploads):
         PNG_1X1, "a.png", "image/png",
     )
     assert resp.status_code == 403, resp.status_code
+
+
+# --------------------------------------------------------------------------- #
+# Plan 05-11: mail generation (CAMPAIGN-01 / CAMPAIGN-02, AC-08…AC-11)         #
+# --------------------------------------------------------------------------- #
+
+# Nothing below reaches the provider. The whole battery runs with GEMINI_API_KEY
+# unset and with google-genai uninstalled, which is the state of every machine on
+# this team and of every grading run.
+
+# The nonsense the fake model returns. It shares not one character with a date, a
+# venue, a fee or a capacity, so when those values turn up in the assembled body
+# the only possible explanation is that the SERVER wrote them (PROB-P1). A
+# realistic-sounding stand-in could have contained a plausible number and made the
+# assertion pass for the wrong reason.
+LOREM = "lorem ipsum"
+
+# The vendor's exception text. If any of this reaches the client, provider
+# internals have leaked (T-05-57).
+VENDOR_TOKEN = "quota_exceeded_for_project_1234567890"
+
+
+@contextmanager
+def _fake_sdk(reply=None, error=None):
+    """Stand a fake `google.genai` in `sys.modules` for the duration of a test.
+
+    Injected rather than `mock.patch`ed onto the real package, for the reason
+    Phase 4's brand-kit battery records: the real package is genuinely absent on
+    most machines here, and patching an attribute of something that cannot be
+    imported fails before it can patch anything. `_llm_narrative` imports the SDK
+    lazily inside the function, so by the time the import runs this fake is what
+    it finds.
+
+    Yields the list of calls the service made, so a test can assert on what was
+    SENT — the prompt assertions are then real rather than assumed.
+    """
+    calls = []
+
+    class _Models:
+        def __init__(self, api_key):
+            self._api_key = api_key
+
+        def generate_content(self, model, contents, config):
+            calls.append(
+                {"api_key": self._api_key, "model": model,
+                 "contents": contents, "config": config}
+            )
+            if error is not None:
+                raise error
+            return SimpleNamespace(text=reply)
+
+    class _Client:
+        def __init__(self, api_key=None, **kwargs):
+            self.models = _Models(api_key)
+
+    fake_genai = ModuleType("google.genai")
+    fake_genai.Client = _Client
+    fake_types = ModuleType("google.genai.types")
+    fake_types.GenerateContentConfig = lambda **kwargs: SimpleNamespace(**kwargs)
+    fake_genai.types = fake_types
+    fake_google = ModuleType("google")
+    fake_google.genai = fake_genai
+
+    saved = {
+        name: module for name, module in sys.modules.items()
+        if name == "google" or name.startswith("google.")
+    }
+    for name in saved:
+        del sys.modules[name]
+    sys.modules["google"] = fake_google
+    sys.modules["google.genai"] = fake_genai
+    sys.modules["google.genai.types"] = fake_types
+    try:
+        yield calls
+    finally:
+        for name in ("google", "google.genai", "google.genai.types"):
+            sys.modules.pop(name, None)
+        sys.modules.update(saved)
+
+
+def _generate_mail(client, token, activity_id):
+    return client.post(
+        f"/api/v1/activities/{activity_id}/campaign/generate-mail",
+        headers=_auth(token),
+    )
+
+
+def _save_mail(client, token, activity_id, payload):
+    return client.patch(
+        f"/api/v1/activities/{activity_id}/campaign/mail",
+        headers=_auth(token),
+        json=payload,
+    )
+
+
+def _with_key(app, key="test-key-not-a-real-one"):
+    """Turn the AI path on for one test. Unset is the project's steady state."""
+    app.config["GEMINI_API_KEY"] = key
+
+
+def _brand_kit(org_id, voice_tone, sample_phrases):
+    from app.models import BrandKit
+
+    kit = BrandKit(org_id=org_id, voice_tone=voice_tone, sample_phrases=sample_phrases)
+    _db.session.add(kit)
+    _db.session.commit()
+    return kit
+
+
+def _collaborators(activity_id, invited_by):
+    """Three accepted collaborating orgs plus one pending and one declined.
+
+    The pending and the declined rows are the negative control for AC-11 and for
+    T-05-60: an organisation that has not consented must not have its name or its
+    logo on a mail that goes out to students.
+    """
+    from app.constants import COLLAB_ACCEPTED, COLLAB_DECLINED, COLLAB_PENDING
+    from app.models import ActivityCollaborator, Organisation
+
+    made = {}
+    for name, status in [
+        ("Accepted Alpha", COLLAB_ACCEPTED),
+        ("Accepted Bravo", COLLAB_ACCEPTED),
+        ("Accepted Charlie", COLLAB_ACCEPTED),
+        ("Pending Delta", COLLAB_PENDING),
+        ("Declined Echo", COLLAB_DECLINED),
+    ]:
+        org = Organisation(
+            name=name,
+            type="house",
+            city="Hyderabad",
+            logo_url=f"/api/v1/uploads/{name.split()[-1].lower()}.png",
+        )
+        _db.session.add(org)
+        _db.session.flush()
+        _db.session.add(
+            ActivityCollaborator(
+                activity_id=activity_id,
+                org_id=org.id,
+                is_primary=False,
+                status=status,
+                invited_by=invited_by,
+            )
+        )
+        made.setdefault(status, []).append(org)
+    _db.session.commit()
+    return made
+
+
+def test_mail_facts_are_server_interpolated(client, app, seeds):
+    """AC-08 / PROB-P1: the facts are in the body because the SERVER put them there.
+
+    The model returns two words of nonsense. Every factual field still appears,
+    which can only be true if the fact block is concatenated onto the model's
+    output rather than passed through it. Reverse the assembly order and this
+    test fails — that is the whole point of asserting it against a model that
+    said nothing useful.
+    """
+    from app.constants import ACTIVITY_FEE_INR
+    from app.models import Activity
+
+    _with_key(app)
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    activity = Activity.query.get(aid)
+    expected_date = activity.starts_at.strftime("%d %b %Y")
+
+    with _fake_sdk(reply=LOREM):
+        resp = _generate_mail(client, tok, aid)
+
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    body = resp.get_json()
+    assert body["degraded"] is False
+    mail = body["mail_body"]
+    assert LOREM in mail, "the model's narrative is missing from the body"
+    assert str(ACTIVITY_FEE_INR) in mail
+    assert "Room A" in mail
+    assert expected_date in mail
+    assert "30" in mail                       # capacity
+    assert body["mail_subject"]
+    # And it was persisted, not merely returned.
+    assert _campaign(client, tok, aid)["mail_body"] == mail
+    assert _campaign(client, tok, aid)["completeness"]["mail"] is True
+
+
+def test_mail_degrades_not_empty(client, app, seeds):
+    """The pipeline never blocks on AI availability (T-05-59), and never leaks (T-05-57).
+
+    Three ways for the model to be unavailable — no key, no SDK, a raising
+    client — and all three answer 200 with a usable draft. The raising leg also
+    asserts the vendor's exception text is nowhere in the response.
+    """
+    from app.constants import ACTIVITY_FEE_INR
+
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    # 1. No key configured — the project's steady state.
+    app.config["GEMINI_API_KEY"] = None
+    no_key = _generate_mail(client, tok, aid)
+    assert no_key.status_code == 200, no_key.get_data(as_text=True)
+    assert no_key.get_json()["degraded"] is True
+    assert no_key.get_json()["mail_body"].strip()
+    assert str(ACTIVITY_FEE_INR) in no_key.get_json()["mail_body"]
+
+    # 2. Key set, SDK raising — the vendor's words must not travel.
+    _with_key(app)
+    with _fake_sdk(error=RuntimeError(VENDOR_TOKEN)):
+        raised = _generate_mail(client, tok, aid)
+
+    assert raised.status_code == 200, raised.get_data(as_text=True)
+    payload = raised.get_json()
+    assert payload["degraded"] is True
+    assert payload["mail_body"].strip()
+    assert VENDOR_TOKEN not in raised.get_data(as_text=True)
+    assert "RuntimeError" not in raised.get_data(as_text=True)
+
+    # 3. Key set, model answering with nothing usable — still a draft, not a blank.
+    with _fake_sdk(reply="   "):
+        empty = _generate_mail(client, tok, aid)
+    assert empty.status_code == 200
+    assert empty.get_json()["degraded"] is True
+    assert empty.get_json()["mail_body"].strip()
+
+
+def test_mail_regenerate_overwrites(client, app, seeds):
+    """AC-10: a second generation replaces the stored body — last write wins."""
+    _with_key(app)
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    with _fake_sdk(reply="first narrative from the model"):
+        first = _generate_mail(client, tok, aid).get_json()["mail_body"]
+    with _fake_sdk(reply="second narrative from the model"):
+        second_resp = _generate_mail(client, tok, aid)
+
+    assert second_resp.status_code == 200
+    second = second_resp.get_json()["mail_body"]
+    assert second != first
+    assert "second narrative from the model" in second
+    assert "first narrative from the model" not in second
+    assert _campaign(client, tok, aid)["mail_body"] == second
+
+
+def test_mail_mega_meetup_logos(client, app, seeds):
+    """AC-11 / T-05-60: accepted collaborators appear; pending and declined do not.
+
+    Asserted on both legs — the prompt the model was handed and the body the
+    organiser gets — because a collaborator excluded from one but not the other
+    would still be a leak.
+    """
+    _with_key(app)
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    made = _collaborators(aid, seeds["organiser_id"])
+
+    with _fake_sdk(reply=LOREM) as calls:
+        resp = _generate_mail(client, tok, aid)
+
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    mail = resp.get_json()["mail_body"]
+    sent = calls[0]["contents"]
+
+    for org in made["accepted"]:
+        assert org.name in mail, f"{org.name} accepted but is missing from the body"
+        assert org.logo_url in mail, f"{org.name}'s logo is missing from the body"
+        assert org.name in sent, f"{org.name} is missing from the prompt"
+        assert org.logo_url in sent, f"{org.name}'s logo is missing from the prompt"
+
+    for status in ("pending", "declined"):
+        for org in made[status]:
+            assert org.name not in mail, f"{org.name} is {status} but is in the body"
+            assert org.logo_url not in mail
+            assert org.name not in sent, f"{org.name} is {status} but is in the prompt"
+
+
+def test_mail_save(client, app, seeds):
+    """The organiser's edit is what gets stored — the draft is a starting point."""
+    _with_key(app)
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    with _fake_sdk(reply=LOREM):
+        _generate_mail(client, tok, aid)
+
+    resp = _save_mail(
+        client, tok, aid,
+        {"mail_subject": "Come to chai & compilers", "mail_body": "Hand-written body."},
+    )
+
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    state = _campaign(client, tok, aid)
+    assert state["mail_subject"] == "Come to chai & compilers"
+    assert state["mail_body"] == "Hand-written body."
+
+    # A PATCH carrying only one key leaves the other alone.
+    assert _save_mail(client, tok, aid, {"mail_body": "Edited again."}).status_code == 200
+    after = _campaign(client, tok, aid)
+    assert after["mail_subject"] == "Come to chai & compilers"
+    assert after["mail_body"] == "Edited again."
+
+
+def test_mail_blocked_when_live(client, app, seeds):
+    """A published campaign's mail is frozen with the rest of the package (AC-06)."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    _add_schedule_item(aid)
+    assert _push_live(client, tok, aid).status_code == 200
+
+    assert _generate_mail(client, tok, aid).status_code == 409
+    assert _save_mail(client, tok, aid, {"mail_body": "x"}).status_code == 409
+
+
+def test_mail_forbidden_for_a_non_manager(client, seeds):
+    """Both mail routes are behind can_manage_activity, like every campaign write."""
+    stu = _token(client, "stu@test.com")
+    aid = seeds["activity_id"]
+    assert _generate_mail(client, stu, aid).status_code == 403
+    assert _save_mail(client, stu, aid, {"mail_body": "x"}).status_code == 403

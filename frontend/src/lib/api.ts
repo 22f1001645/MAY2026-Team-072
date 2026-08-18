@@ -808,6 +808,37 @@ export const api = {
     }).then(r => ({ posterName: r.poster_name }))
   },
 
+  /** Draft the campaign mail (CAMPAIGN-01/02). Always resolves when the campaign
+   *  is editable: the server degrades to a static template rather than failing,
+   *  and reports which one the caller got in `degraded`. The banner that flag
+   *  drives is the only way an organiser can tell the two apart, so it is
+   *  adapted here rather than dropped. */
+  generateMail: (
+    activityId: string,
+  ): Promise<{ mailSubject: string | null; mailBody: string | null; degraded: boolean }> =>
+    request<any>(`/activities/${activityId}/campaign/generate-mail`, { method: 'POST' }).then(
+      r => ({
+        mailSubject: r.mail_subject ?? null,
+        mailBody: r.mail_body ?? null,
+        degraded: !!r.degraded,
+      }),
+    ),
+
+  /** Persist the organiser's edited mail. Only the keys supplied travel, so a
+   *  blur-save on the body says nothing about the subject and cannot blank it. */
+  saveMail: (
+    activityId: string,
+    patch: { mailSubject?: string; mailBody?: string },
+  ): Promise<{ mailSubject: string | null; mailBody: string | null }> => {
+    const body: Record<string, string> = {}
+    if (patch.mailSubject !== undefined) body.mail_subject = patch.mailSubject
+    if (patch.mailBody !== undefined) body.mail_body = patch.mailBody
+    return request<any>(`/activities/${activityId}/campaign/mail`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(r => ({ mailSubject: r.mail_subject ?? null, mailBody: r.mail_body ?? null }))
+  },
+
   formFields: (activityId: string): Promise<ApiFormField[]> =>
     request<any[]>(`/activities/${activityId}/form-fields`).then(rows =>
       rows.map(adaptFormField),

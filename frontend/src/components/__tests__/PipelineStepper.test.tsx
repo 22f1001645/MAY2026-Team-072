@@ -134,6 +134,8 @@ vi.mock('../../lib/queries', () => {
     useUpdateFormField: mutation(),
     useDeleteFormField: mutation(),
     useGenerateSlug: mutation(),
+    useGenerateMail: mutation(),
+    useSaveMail: mutation(),
     usePushLive: mutation(),
     useUploadPoster: mutation(),
   }

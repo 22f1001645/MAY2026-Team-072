@@ -460,6 +460,30 @@ export const useUploadPoster = (activityId?: string) => {
   })
 }
 
+/** Draft the campaign mail (CAMPAIGN-01). Invalidating the campaign is what
+ *  redraws both the editor and the stepper's Mail step — `completeness.mail` is
+ *  the server's flag and is only ever read from that payload. The mutation's own
+ *  `data.degraded` is what the amber banner reads: it describes the generation
+ *  that just happened and is deliberately not persisted on the campaign row,
+ *  since a reload should show the draft, not a stale complaint about it. */
+export const useGenerateMail = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.generateMail(activityId!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
+/** Persist an edited mail subject or body. */
+export const useSaveMail = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (patch: { mailSubject?: string; mailBody?: string }) =>
+      api.saveMail(activityId!, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
 export const useFormFields = (activityId?: string) =>
   useQuery({
     queryKey: ['form-fields', activityId],

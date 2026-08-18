@@ -31,6 +31,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { FormFieldRow } from '../components/FormFieldRow'
+import { MailTemplateEditor } from '../components/MailTemplateEditor'
 import { PipelineStepper } from '../components/PipelineStepper'
 import { PosterUpload } from '../components/PosterUpload'
 import { PushLiveGate } from '../components/PushLiveGate'
@@ -52,6 +53,8 @@ import {
   useUpdateFormField,
   useDeleteFormField,
   useGenerateSlug,
+  useGenerateMail,
+  useSaveMail,
   usePushLive,
   useUploadPoster,
 } from '../lib/queries'
@@ -79,6 +82,8 @@ export default function CampaignBuilder() {
   const updateFieldMut = useUpdateFormField(id)
   const deleteFieldMut = useDeleteFormField(id)
   const generateSlugMut = useGenerateSlug(id)
+  const generateMailMut = useGenerateMail(id)
+  const saveMailMut = useSaveMail(id)
   const pushLiveMut = usePushLive(id)
   const uploadPosterMut = useUploadPoster(id)
   const { addToast } = useToast()
@@ -240,6 +245,23 @@ export default function CampaignBuilder() {
             </Button>
           </div>
         )}
+      </Card>
+
+      {/* Mail template (CAMPAIGN-01 / CAMPAIGN-02) */}
+      <Card className="p-6 space-y-3">
+        <h2 className="text-[15px] font-semibold text-offwhite">Mail Template</h2>
+        <MailTemplateEditor
+          mailSubject={campaign?.mailSubject ?? null}
+          mailBody={campaign?.mailBody ?? null}
+          /* The flag describes the generation that just happened, so it comes
+             off the mutation rather than off the campaign row — a reload should
+             show the draft, not a stale complaint about how it was made. */
+          degraded={!!generateMailMut.data?.degraded}
+          generating={generateMailMut.isPending}
+          disabled={registrationLocked}
+          onGenerate={() => generateMailMut.mutateAsync()}
+          onSave={patch => saveMailMut.mutateAsync(patch)}
+        />
       </Card>
 
       {/* Poster (CAMPAIGN-03) */}

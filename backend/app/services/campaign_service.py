@@ -25,6 +25,8 @@ from ..constants import (
     SLUG_MAX_ATTEMPTS,
     SLUG_RANDOM_BYTES,
     SLUG_TITLE_MAX,
+    TASK_STATUS_LABELS,
+    TASK_STATUSES,
 )
 from ..errors import ApiError
 from ..extensions import db
@@ -174,6 +176,14 @@ def campaign_state(activity, actor=None) -> dict:
     # than from a second list living in the browser. FormFieldSchema validates
     # against the same tuple, so the picker and the 422 cannot disagree.
     base["form_field_types"] = list(FORM_FIELD_TYPES)
+    # The Kanban board's three columns travel with the campaign state for the
+    # same reason: TaskSchema validates a status against this exact tuple, so a
+    # column set assembled in the browser could offer an option the server
+    # answers 422 to. Order is the declared order — the board renders its
+    # columns left to right in it (TEAM-02).
+    base["task_statuses"] = [
+        {"value": status, "label": TASK_STATUS_LABELS[status]} for status in TASK_STATUSES
+    ]
     return base
 
 

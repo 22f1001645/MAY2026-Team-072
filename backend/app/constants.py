@@ -138,6 +138,18 @@ TASK_IN_PROGRESS = "in_progress"
 TASK_DONE = "done"
 TASK_STATUSES = (TASK_TODO, TASK_IN_PROGRESS, TASK_DONE)
 
+# The column heading each status is displayed under. Lives here beside the
+# statuses themselves so the board's three columns travel on the wire with the
+# values they map to — a browser that held its own copy of these labels would be
+# a second place the column set is written down, which is the drift the
+# no-por-literals gate exists to prevent. Title-casing the value would read
+# "Todo", so the labels are spelled out rather than derived.
+TASK_STATUS_LABELS = {
+    TASK_TODO: "To Do",
+    TASK_IN_PROGRESS: "In Progress",
+    TASK_DONE: "Done",
+}
+
 # --- Campaign package states (CAMPAIGN-06) ---
 # The transition to `live` is gated on is_meetup_head (RBAC-03), supplied by the
 # authorization predicates in plan 01-05.

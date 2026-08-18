@@ -218,6 +218,26 @@ def test_campaign_read_carries_the_allowed_form_field_types(client, seeds):
     assert resp.get_json()["form_field_types"] == list(FORM_FIELD_TYPES)
 
 
+def test_campaign_read_carries_the_task_board_columns(client, seeds):
+    """The campaign payload names the board's columns and their headings.
+
+    The Kanban board renders one column per entry, in this order. TaskSchema
+    validates an incoming status against the same tuple, so a column list built
+    in the browser could offer a status the server answers 422 to — the label
+    travels alongside the value for the same reason, since "To Do" cannot be
+    derived from "todo" by any rule the client could apply.
+    """
+    from app.constants import TASK_STATUS_LABELS, TASK_STATUSES
+
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    resp = client.get(f"/api/v1/activities/{aid}/campaign", headers=_auth(tok))
+    assert resp.status_code == 200
+    assert resp.get_json()["task_statuses"] == [
+        {"value": s, "label": TASK_STATUS_LABELS[s]} for s in TASK_STATUSES
+    ]
+
+
 def test_generate_slug_creates_and_returns_url(client, seeds):
     """POST generate-slug stores a unique slug and returns registration_url (AC-15)."""
     tok = _token(client, "org@test.com")

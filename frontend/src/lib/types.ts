@@ -275,6 +275,29 @@ export interface ApiFormField {
   position: number
 }
 
+/** One card on an activity's Kanban board (TEAM-02). Replaces the `Task` shape
+ *  above, which was a client-side mock and was never persisted. `status` is
+ *  deliberately a plain string: the legal values are the server's, and the
+ *  board's columns come off the wire in `ApiCampaignState.taskStatuses` — a
+ *  union type here would be a second copy of that set. */
+export interface ApiTask {
+  id: string
+  activityId: string
+  title: string
+  description: string | null
+  assigneeId: string | null
+  /** ISO datetime, or `null` when the card carries no deadline. */
+  deadline: string | null
+  status: string
+  position: number
+}
+
+/** One column of the task board, as the server declares it. */
+export interface ApiTaskStatus {
+  value: string
+  label: string
+}
+
 /** The published campaign status, mirroring backend constants.CAMPAIGN_LIVE.
  *  Both the stepper's last step and the push-live gate read it, so it is named
  *  once rather than spelled as a literal at each comparison. */
@@ -295,6 +318,8 @@ export interface ApiCampaignState {
   pushedLiveAt: string | null
   isMeetupHead: boolean
   formFieldTypes: string[]
+  /** The Kanban board's columns, in render order (TEAM-02). */
+  taskStatuses: ApiTaskStatus[]
   completeness: {
     schedule: boolean
     mail: boolean

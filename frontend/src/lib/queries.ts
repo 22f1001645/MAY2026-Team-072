@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './api'
-import type { ApiFormField } from './types'
+import type { ApiFormField, ApiTask } from './types'
 
 /* TanStack Query hooks — server cache, retries, and invalidation on mutation
  * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
@@ -479,5 +479,44 @@ export const useDeleteFormField = (activityId?: string) => {
   return useMutation({
     mutationFn: (fieldId: string) => api.deleteFormField(activityId!, fieldId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
+  })
+}
+
+// Phase 5: Kanban task board (TEAM-02).
+//
+// None of these hooks sets a refetch option. The board is fetched on page load
+// and after a mutation invalidates it — nothing else (AC-35). The default
+// QueryClient in main.tsx has no interval either, and
+// `src/__tests__/no-kanban-polling.test.ts` fails the build if one appears.
+export const useTasks = (activityId?: string) =>
+  useQuery({
+    queryKey: ['tasks', activityId],
+    queryFn: () => api.tasks(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useCreateTask = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (draft: { title: string; assigneeId?: string | null; deadline?: string | null; status?: string }) =>
+      api.createTask(activityId!, draft),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
+  })
+}
+
+export const useUpdateTask = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { taskId: string; patch: Partial<ApiTask> }) =>
+      api.updateTask(activityId!, v.taskId, v.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
+  })
+}
+
+export const useDeleteTask = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (taskId: string) => api.deleteTask(activityId!, taskId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
   })
 }

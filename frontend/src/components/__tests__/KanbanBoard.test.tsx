@@ -45,8 +45,8 @@ const task = (over: Partial<ApiTask> & { id: string }): ApiTask => ({
 })
 
 function renderBoard(props: Partial<React.ComponentProps<typeof KanbanBoard>> = {}) {
-  const onCreate = props.onCreate ?? vi.fn()
-  const onUpdate = props.onUpdate ?? vi.fn()
+  const onCreate = vi.fn()
+  const onUpdate = vi.fn()
   const utils = render(
     <ToastProvider>
       <KanbanBoard
@@ -56,10 +56,10 @@ function renderBoard(props: Partial<React.ComponentProps<typeof KanbanBoard>> = 
         isLoading={false}
         isError={false}
         onRetry={vi.fn()}
-        onCreate={onCreate}
-        onUpdate={onUpdate}
         onDelete={vi.fn()}
         {...props}
+        onCreate={onCreate}
+        onUpdate={onUpdate}
       />
     </ToastProvider>,
   )

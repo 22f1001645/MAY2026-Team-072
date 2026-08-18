@@ -3,6 +3,7 @@ import type {
   ApiCampaignState,
   ApiFormField,
   ApiSchedulePreset,
+  ApiTask,
   BrandKit,
   EkatvaEvent,
   OrgProfile,
@@ -385,6 +386,37 @@ function adaptFormField(f: any): ApiFormField {
   }
 }
 
+function adaptTask(t: any): ApiTask {
+  return {
+    id: t.id,
+    activityId: t.activity_id,
+    title: t.title,
+    description: t.description ?? null,
+    assigneeId: t.assignee_id ?? null,
+    deadline: t.deadline ?? null,
+    status: t.status,
+    position: t.position,
+  }
+}
+
+/** camelCase → wire name for one Kanban card (TEAM-02). */
+const TASK_WIRE_KEYS: Record<string, string> = {
+  title: 'title',
+  description: 'description',
+  assigneeId: 'assignee_id',
+  deadline: 'deadline',
+  status: 'status',
+  position: 'position',
+}
+
+/** `<input type="date">` yields a bare `YYYY-MM-DD`, and the deadline column is
+ *  a DateTime. Widening it to midnight here — rather than loosening the
+ *  schema — keeps the server's accepted format one thing. */
+function taskDeadlineToWire(deadline?: string | null): string | null {
+  if (!deadline) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? `${deadline}T00:00:00` : deadline
+}
+
 function adaptCampaign(c: any): ApiCampaignState {
   return {
     id: c.id ?? null,
@@ -398,6 +430,7 @@ function adaptCampaign(c: any): ApiCampaignState {
     pushedLiveAt: c.pushed_live_at ?? null,
     isMeetupHead: !!c.is_meetup_head,
     formFieldTypes: c.form_field_types ?? [],
+    taskStatuses: c.task_statuses ?? [],
     completeness: {
       schedule: !!c.completeness?.schedule,
       mail: !!c.completeness?.mail,
@@ -788,4 +821,48 @@ export const api = {
   },
   deleteFormField: (activityId: string, fieldId: string) =>
     request<void>(`/activities/${activityId}/form-fields/${fieldId}`, { method: 'DELETE' }),
+
+  // Phase 5: Kanban task board (TEAM-02).
+  // Every one of these answers 403 `campaign_not_live` until the campaign is
+  // published — the caller presents that as an explanation, not a failure.
+  tasks: (activityId: string): Promise<ApiTask[]> =>
+    request<any[]>(`/activities/${activityId}/tasks`).then((rows) => rows.map(adaptTask)),
+
+  createTask: (
+    activityId: string,
+    draft: { title: string; assigneeId?: string | null; deadline?: string | null; status?: string },
+  ): Promise<ApiTask> =>
+    request<any>(`/activities/${activityId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: draft.title,
+        assignee_id: draft.assigneeId ?? null,
+        deadline: taskDeadlineToWire(draft.deadline),
+        status: draft.status ?? null,
+      }),
+    }).then(adaptTask),
+
+  /** Sends only the keys the caller supplied, for the same reason
+   *  updateScheduleItem does: a padded body turns a column move into a full-row
+   *  replace and lets a stale card clobber a concurrent title edit (T-05-47). */
+  updateTask: (
+    activityId: string,
+    taskId: string,
+    patch: Partial<Pick<ApiTask, 'title' | 'description' | 'assigneeId' | 'deadline' | 'status' | 'position'>>,
+  ): Promise<ApiTask> => {
+    const wire: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(patch)) {
+      const wireKey = TASK_WIRE_KEYS[key]
+      if (wireKey && value !== undefined) {
+        wire[wireKey] = wireKey === 'deadline' ? taskDeadlineToWire(value as string | null) : value
+      }
+    }
+    return request<any>(`/activities/${activityId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(wire),
+    }).then(adaptTask)
+  },
+
+  deleteTask: (activityId: string, taskId: string) =>
+    request<void>(`/activities/${activityId}/tasks/${taskId}`, { method: 'DELETE' }),
 }

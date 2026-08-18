@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useCities, useHouses, useSubmitProposal } from '../lib/queries'
+import { useCities, useHouses, useOrgs, useSubmitProposal } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
@@ -36,6 +36,7 @@ const TEAM_ROLES = [
 export default function ProposalNew() {
   const nav = useNavigate()
   const { data: houses = [] } = useHouses()
+  const { data: orgs = [] } = useOrgs()
   const { data: cities = [] } = useCities()
   const submitMut = useSubmitProposal()
 
@@ -174,12 +175,24 @@ export default function ProposalNew() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>House</Label>
+              <Label>Organisation</Label>
               <select value={form.org_id} onChange={(e) => set('org_id', e.target.value)} className={selectCls}>
-                <option value="" className="bg-onyx">Select a house…</option>
-                {houses.map((o: any) => (
-                  <option key={o.id} value={o.id} className="bg-onyx">{o.name}</option>
-                ))}
+                <option value="" className="bg-onyx">Select an organisation…</option>
+                <optgroup label="Houses">
+                  {orgs.filter((o: any) => o.type === 'house').map((o: any) => (
+                    <option key={o.id} value={o.id} className="bg-onyx">{o.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Societies">
+                  {orgs.filter((o: any) => o.type === 'society').map((o: any) => (
+                    <option key={o.id} value={o.id} className="bg-onyx">{o.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Councils">
+                  {orgs.filter((o: any) => o.type === 'council').map((o: any) => (
+                    <option key={o.id} value={o.id} className="bg-onyx">{o.name}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <div>
@@ -374,48 +387,59 @@ export default function ProposalNew() {
 
         {/* Collaborating Orgs (PROPOSAL-01) */}
         <Card className="p-6">
-          <Label>Collaborating houses</Label>
+          <Label>Collaborating organisations</Label>
           <p className="mb-3 text-caption text-graytext-mid">
-            Name every house running this with you. Each one's Secretary is asked to
+            Name every organisation running this with you. Each one's Secretary is asked to
             accept before it counts.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {(houses as any[])
-              .filter((o: any) => o.id !== form.org_id)
-              .map((o: any) => {
-                const checked = collabOrgIds.includes(o.id)
-                return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    aria-pressed={checked}
-                    onClick={() => setCollabOrgIds(
-                      checked ? collabOrgIds.filter(id => id !== o.id) : [...collabOrgIds, o.id]
-                    )}
-                    className={
-                      'flex items-center gap-3 rounded-xl border px-4 py-2 text-left text-[14px] transition-all ' +
-                      (checked
-                        ? 'border-teal bg-teal/10 text-offwhite'
-                        : 'border-white/10 bg-white/[0.02] text-graytext-light hover:border-teal/40')
-                    }
-                  >
-                    <span className={`h-4 w-4 shrink-0 rounded border ${checked ? 'border-teal bg-teal' : 'border-white/30'} flex items-center justify-center text-caption text-onyx`}>
-                      {checked ? '✓' : ''}
-                    </span>
-                    <span className="min-w-0 truncate">{o.name}</span>
-                    <span className="ml-auto shrink-0 text-caption text-graytext-mid">{o.type}</span>
-                  </button>
-                )
-              })}
+          <div className="space-y-6">
+            {['house', 'society', 'council'].map((type) => {
+              const typeOrgs = orgs.filter((o: any) => o.type === type && o.id !== form.org_id)
+              if (typeOrgs.length === 0) return null
+              return (
+                <div key={type}>
+                  <div className="mb-2 text-caption font-semibold uppercase tracking-wider text-graytext-mid">
+                    {type === 'house' ? 'Houses' : type === 'society' ? 'Societies' : 'Councils'}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {typeOrgs.map((o: any) => {
+                      const checked = collabOrgIds.includes(o.id)
+                      return (
+                        <button
+                          key={o.id}
+                          type="button"
+                          aria-pressed={checked}
+                          onClick={() => setCollabOrgIds(
+                            checked ? collabOrgIds.filter(id => id !== o.id) : [...collabOrgIds, o.id]
+                          )}
+                          className={
+                            'flex items-center gap-3 rounded-xl border px-4 py-2 text-left text-[14px] transition-all ' +
+                            (checked
+                              ? 'border-teal bg-teal/10 text-offwhite'
+                              : 'border-white/10 bg-white/[0.02] text-graytext-light hover:border-teal/40')
+                          }
+                        >
+                          <span className={`h-4 w-4 shrink-0 rounded border ${checked ? 'border-teal bg-teal' : 'border-white/30'} flex items-center justify-center text-caption text-onyx`}>
+                            {checked ? '✓' : ''}
+                          </span>
+                          <span className="min-w-0 truncate">{o.name}</span>
+                          <span className="ml-auto shrink-0 text-caption text-graytext-mid">{o.type}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
           {collabOrgIds.length === 0 ? (
             <p className="mt-2 text-caption text-graytext-mid">
-              No collaborators yet — this is a {houses.find((o: any) => o.id === form.org_id)?.name ?? 'your house'}{' '}
+              No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'}{' '}
               event.
             </p>
           ) : (
             <p className="mt-2 text-caption text-teal">
-              {collabOrgIds.length} house{collabOrgIds.length > 1 ? 's' : ''} selected
+              {collabOrgIds.length} organisation{collabOrgIds.length > 1 ? 's' : ''} selected
               {collabOrgIds.length >= 2 && ' · invite accepted by all → Mega Meetup!'}
             </p>
           )}

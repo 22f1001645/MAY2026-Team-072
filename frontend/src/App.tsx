@@ -22,6 +22,7 @@ import ManageEvent from './pages/ManageEvent'
 import Expenses from './pages/Expenses'
 import CheckIn from './pages/CheckIn'
 import CampaignBuilder from './pages/CampaignBuilder'
+import KanbanWorkspace from './pages/KanbanWorkspace'
 // Admin
 import ApprovalQueue from './pages/ApprovalQueue'
 import Reimbursements from './pages/Reimbursements'
@@ -151,6 +152,7 @@ function AppShell() {
         <Route path="/events/:id/expenses" element={<Expenses />} />
         <Route path="/events/:id/checkin" element={<CheckIn />} />
         <Route path="/events/:id/campaign" element={<CampaignBuilder />} />
+        <Route path="/events/:id/workspace" element={<KanbanWorkspace />} />
 
         {/* Admin */}
         <Route path="/admin/approvals" element={<ApprovalQueue />} />

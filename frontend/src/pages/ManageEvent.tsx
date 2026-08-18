@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { TASKS } from '../lib/mock'
 import { useCancelEvent, useEvent, useRoster, useUpdateEvent } from '../lib/queries'
 import { Badge, Button, Card, Input, Progress, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
@@ -12,7 +11,6 @@ export default function ManageEvent() {
   const { id } = useParams()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: roster = [] } = useRoster(id)
-  const [tasks, setTasks] = useState(TASKS) // v1 tasks are thin — local, not persisted
   const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks'>('roster')
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
@@ -21,9 +19,6 @@ export default function ManageEvent() {
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
   if (!e) return <div>Event not found</div>
-
-  const toggle = (tid: string) =>
-    setTasks(tasks.map((t) => (t.id === tid ? { ...t, done: !t.done } : t)))
 
   const referrersMap = roster.reduce((acc: Record<string, number>, r: any) => {
     if (r.referrer) acc[r.referrer] = (acc[r.referrer] || 0) + 1
@@ -59,7 +54,11 @@ export default function ManageEvent() {
         }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      {/* The "Tasks complete" tile was a count of the mock array and has no
+          replacement here: the real board lives at /events/:id/workspace and is
+          inert until the campaign is live, so a tile on this page would read 0
+          of 0 for every unpublished event. */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <Card className="p-5">
           <div className="text-caption uppercase tracking-wider text-graytext-mid">
             Registered headcount
@@ -70,15 +69,6 @@ export default function ManageEvent() {
           </div>
           <div className="mt-2">
             <Progress value={e.registered} max={e.capacity} />
-          </div>
-        </Card>
-        <Card className="p-5">
-          <div className="text-caption uppercase tracking-wider text-graytext-mid">
-            Tasks complete
-          </div>
-          <div className="mt-1 text-[32px] font-bold text-gold">
-            {tasks.filter((t) => t.done).length}
-            <span className="text-[15px] text-graytext-mid">/{tasks.length}</span>
           </div>
         </Card>
         <Card className="p-5">
@@ -178,38 +168,15 @@ export default function ManageEvent() {
           )}
         </Card>
       ) : (
-        <Card className="p-5">
-          <div className="space-y-2">
-            {tasks.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3"
-              >
-                <button
-                  onClick={() => toggle(t.id)}
-                  className={cx(
-                    'grid h-6 w-6 shrink-0 place-items-center rounded-md border transition-colors',
-                    t.done ? 'border-teal bg-teal/20 text-teal' : 'border-white/20 hover:border-teal',
-                  )}
-                >
-                  {t.done && (
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path d="m5 12 4 4L19 6" />
-                    </svg>
-                  )}
-                </button>
-                <div className="flex-1">
-                  <div className={cx('text-[14px]', t.done ? 'text-graytext-mid line-through' : 'text-offwhite')}>
-                    {t.label}
-                  </div>
-                </div>
-                <Badge tone="teal">{t.assignee}</Badge>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-caption text-graytext-mid">
-            Task assignment is a thin v1 slice — deepened in Phase 2 (PRD §10).
+        <Card className="p-10 text-center">
+          <div className="text-h3 font-semibold text-offwhite">Team tasks moved</div>
+          <p className="mx-auto mt-2 max-w-md text-body text-graytext-light">
+            Tasks now live on the team workspace, where they are saved on the server and visible
+            to every crew member on any device.
           </p>
+          <Link to={`/events/${e.id}/workspace`} className="mt-6 inline-block">
+            <Button variant="secondary">Open the task board</Button>
+          </Link>
         </Card>
       )}
 

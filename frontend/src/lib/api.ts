@@ -319,6 +319,18 @@ function absoluteUploadUrl(path?: string | null): string | null {
   }
 }
 
+/** The absolute URL of a stored upload, from its server-chosen filename.
+ *
+ *  The campaign payload carries `poster_name` — the bare filename — rather than
+ *  a path, so this is the poster's counterpart to `absoluteUploadUrl` above and
+ *  exists for the same reason: the API's origin differs from the app's, and a
+ *  component that assembled this itself would be a second base URL to keep in
+ *  step. The name is encoded even though the server only ever issues a UUID and
+ *  an extension, because a filename reaching an `<img src>` unescaped is a habit
+ *  worth not having. */
+export const uploadUrl = (filename: string): string =>
+  `${BASE}/uploads/${encodeURIComponent(filename)}`
+
 /** Every optional lands on a non-`undefined` value, following `adaptMe`, so no
  *  page needs a `?.` chain for a field the server always sends. */
 export function adaptOrganisation(o: ApiOrganisation): Organisation {
@@ -782,6 +794,19 @@ export const api = {
    *  caller refetches instead. */
   pushLive: (activityId: string): Promise<unknown> =>
     request<unknown>(`/activities/${activityId}/campaign/push-live`, { method: 'POST' }),
+
+  /** Attach a poster to the campaign (CAMPAIGN-03). Multipart, so the request
+   *  helper's FormData branch drops the JSON content type and lets the browser
+   *  set its own boundary — the key must be `poster`, which is the part name the
+   *  route reads. */
+  uploadPoster: (activityId: string, file: File): Promise<{ posterName: string }> => {
+    const form = new FormData()
+    form.append('poster', file)
+    return request<{ poster_name: string }>(`/activities/${activityId}/campaign/poster`, {
+      method: 'POST',
+      body: form,
+    }).then(r => ({ posterName: r.poster_name }))
+  },
 
   formFields: (activityId: string): Promise<ApiFormField[]> =>
     request<any[]>(`/activities/${activityId}/form-fields`).then(rows =>

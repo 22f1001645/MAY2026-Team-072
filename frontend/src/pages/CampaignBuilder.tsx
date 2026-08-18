@@ -32,6 +32,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { FormFieldRow } from '../components/FormFieldRow'
 import { PipelineStepper } from '../components/PipelineStepper'
+import { PosterUpload } from '../components/PosterUpload'
 import { PushLiveGate } from '../components/PushLiveGate'
 import { PresetAccordion } from '../components/PresetAccordion'
 import { RegistrationLinkCard } from '../components/RegistrationLinkCard'
@@ -52,6 +53,7 @@ import {
   useDeleteFormField,
   useGenerateSlug,
   usePushLive,
+  useUploadPoster,
 } from '../lib/queries'
 import { CAMPAIGN_LIVE } from '../lib/types'
 import type { ApiFormField, ApiScheduleItem } from '../lib/types'
@@ -78,6 +80,7 @@ export default function CampaignBuilder() {
   const deleteFieldMut = useDeleteFormField(id)
   const generateSlugMut = useGenerateSlug(id)
   const pushLiveMut = usePushLive(id)
+  const uploadPosterMut = useUploadPoster(id)
   const { addToast } = useToast()
 
   const [newTitle, setNewTitle] = useState('')
@@ -86,9 +89,10 @@ export default function CampaignBuilder() {
   const [addingField, setAddingField] = useState(false)
 
   const canManage = capabilities?.manageableActivityIds?.includes(id!)
-  // Registration fields freeze once the campaign is published; the server's 409
-  // campaign_live is the actual control (assert_editable), this only removes
-  // the affordance.
+  // Every editable part of the package — registration fields and the poster
+  // alike — freezes once the campaign is published. The server's 409
+  // campaign_live is the actual control (assert_editable is the first call in
+  // both write paths); this only removes the affordance.
   const registrationLocked = !canManage || campaign?.status === CAMPAIGN_LIVE
 
   if (eventLoading || scheduleLoading || campaignLoading)
@@ -236,6 +240,17 @@ export default function CampaignBuilder() {
             </Button>
           </div>
         )}
+      </Card>
+
+      {/* Poster (CAMPAIGN-03) */}
+      <Card className="p-6 space-y-3">
+        <h2 className="text-[15px] font-semibold text-offwhite">Poster</h2>
+        <PosterUpload
+          posterName={campaign?.posterName ?? null}
+          uploading={uploadPosterMut.isPending}
+          disabled={registrationLocked}
+          onUpload={file => uploadPosterMut.mutateAsync(file)}
+        />
       </Card>
 
       {/* Registration — custom form fields (CAMPAIGN-05) */}

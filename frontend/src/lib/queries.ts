@@ -449,6 +449,17 @@ export const usePushLive = (activityId?: string) => {
   })
 }
 
+/** Attach a poster (CAMPAIGN-03). Invalidating the campaign is what redraws
+ *  both the thumbnail and the pipeline stepper's Poster step, since the
+ *  completeness flags are the server's and are only ever read from that payload. */
+export const useUploadPoster = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => api.uploadPoster(activityId!, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
 export const useFormFields = (activityId?: string) =>
   useQuery({
     queryKey: ['form-fields', activityId],

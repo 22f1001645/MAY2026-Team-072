@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Completed 05-10-PLAN.md
-last_updated: "2026-08-18T12:55:00.000Z"
+stopped_at: Completed 05-11-PLAN.md — Phase 05 complete (11/11)
+last_updated: "2026-08-18T14:35:00.000Z"
 last_activity: 2026-08-18
-last_activity_desc: "Completed 05-10: campaign posters upload, stored under a server-chosen name whose type came from the file's own bytes, and the app-wide size cap split so raising it for the poster did not widen the logo"
+last_activity_desc: "Completed 05-11: the campaign mail draft, assembled so the model writes only the narrative and the server concatenates every fact after the call returns — an injection that fully succeeds still cannot move a date, venue, fee or capacity"
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 36
-  completed_plans: 35
-  percent: 97
+  completed_plans: 36
+  percent: 100
 ---
 
 # Project State
@@ -24,17 +24,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 05 — post-acceptance-pipeline-design-campaign-live-workspace (planning)
+**Current focus:** Phase 05 — post-acceptance-pipeline-design-campaign-live-workspace (complete; manual UAT outstanding)
 
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
-Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 10/11 (Phase 05 — 05-01..05-10 complete; only 05-11 remains)
-Status: Phase 05 waves 1-5 complete; wave 6 in progress — 05-10 (poster upload) landed, 05-11 (AI mail generation) is the last plan in the phase
-Last activity: 2026-08-18 — Completed 05-10: campaign posters upload, stored under a server-chosen name whose type came from the file's own bytes, and the app-wide size cap split so raising it for the poster did not widen the logo
+Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
+Plan: 9/9 (Phase 04); 11/11 (Phase 05 — 05-01..05-11 all complete)
+Status: Phase 05 fully executed — all seven waves landed. 05-11 (AI mail generation) closed the phase; every Phase 5 requirement (DESIGN-01, CAMPAIGN-01..06, TEAM-01..04) has passing tests. What remains for Phase 05 is manual UAT only, per 05-VALIDATION.md's manual-only list.
+Last activity: 2026-08-18 — Completed 05-11: the campaign mail draft, assembled so the model writes only the narrative and the server concatenates every fact after the call returns — an injection that fully succeeds still cannot move a date, venue, fee or capacity
 
-Progress: [█████████░] 97% (35/36 plans across the milestone) — Phase 05: 91%
+Progress: [██████████] 100% (36/36 plans across the milestone) — Phase 05: 100%
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Progress: [█████████░] 97% (35/36 plans across the milestone
 | Phase 05 P05 | 40min | 2 tasks | 4 files |
 | Phase 05 P09 | 45min | 3 tasks | 13 files |
 | Phase 05 P10 | 50min | 2 tasks | 12 files |
+| Phase 05 P11 | 45min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -202,6 +203,12 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-10: save_poster imports sniff_image_ext, IMAGE_MAGIC_BYTES and upload_dir from Phase 4's upload_controller and Phase 5 adds no serve route — AC-14 is asserted by reading a Phase 5 poster back through Phase 4's GET /uploads/<filename>, so the test proves the reuse rather than a second copy of send_from_directory and its nosniff header
 - [Phase 5]: 05-10: PosterUpload takes a File and lets api.uploadPoster build the FormData, so the component has no opinion about the wire format; the FormData claim is asserted against fetch, where it actually exists
 - [Phase 5]: 05-10: the file input's value is cleared in a finally block — without it, re-picking the same file after a failure fires no change event and the retry silently does nothing, which is E8's forbidden outcome reappearing on the recovery path
+- [Phase 5]: 05-11: the fact block is concatenated onto the model's output AFTER the call returns, never passed through it — the delimiters and the system instruction are defence in depth, the assembly order is the control, and the injection test lets the attack fully succeed and asserts the real fee survives anyway
+- [Phase 5]: 05-11: the facts are appended unconditionally on the degraded path too, which makes an empty mail body structurally impossible rather than something checked for (PROB-P2)
+- [Phase 5]: 05-11: generate_mail catches Exception broadly and degrades rather than propagating — unset key, uninstalled SDK, network error, rate limit and an empty completion all answer 200 with a usable draft and `degraded: true`, so the campaign pipeline has no dependency on AI availability
+- [Phase 5]: 05-11: `degraded` lives on the mutation result, not on the campaign row — it describes the generation that just happened, and persisting it would make a reload show a stale complaint about a draft the organiser may have since rewritten
+- [Phase 5]: 05-11: MailTemplateEditor adopts mailSubject and mailBody from props per field rather than as a pair, so a response populating only one of them cannot blank the other (E5 partial)
+- [Phase 5]: 05-11: an AI test asserts the artefact against a model that returned nonsense — a realistic stand-in could contain a plausible number and make the assertion pass for the wrong reason
 
 ### Pending Todos
 
@@ -221,8 +228,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-18T12:55:00.000Z
-Stopped at: Completed 05-10-PLAN.md
+Last session: 2026-08-18T14:35:00.000Z
+Stopped at: Completed 05-11-PLAN.md — Phase 05 complete (11/11)
 Resume file: None
 
-Next: 05-11 (AI mail generation) — the last plan in Phase 5; then finish Phase 04 manual UAT via `04-UAT.md`
+Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured), then finish Phase 04 manual UAT via `04-UAT.md`. Phase 06 (Event Execution & Close-Out) is the next phase to plan.

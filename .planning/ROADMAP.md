@@ -196,7 +196,7 @@ Plans:
   4. Nothing reaches students until the assigned Meetup Head explicitly approves the full package; a non-Meetup-Head team member's push-live attempt is rejected server-side.
   5. Once live, the roster assembled at proposal time sees a Kanban board whose tasks (assignee, deadline, status) survive a hard reload and are visible to another team member on another device; volunteer points can only be awarded to actual crew members, and crew membership grants no org-wide permission anywhere else.
 
-**Plans**: 10/11 plans executed
+**Plans**: 11/11 plans executed
 **UI hint**: yes
 
 Plans:
@@ -230,7 +230,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 — needs Phase 4)*
 
-- [ ] 05-11-PLAN.md — AI mail generation: server-interpolated facts, injection-hardened prompt, degraded fallback, `MailTemplateEditor` (CAMPAIGN-01, CAMPAIGN-02)
+- [x] 05-11-PLAN.md — AI mail generation: server-interpolated facts, injection-hardened prompt, degraded fallback, `MailTemplateEditor` (CAMPAIGN-01, CAMPAIGN-02)
 
 **Wave structure**: a backend chain (01 → 02 → 03 → 04 → 05) and a frontend chain (01 → 06 → 07 → 08 → 09) that run in parallel from Wave 2 onward. Both chains are internally sequential because every backend plan edits `campaign_service.py`, `schemas/__init__.py` or `controllers/__init__.py`, and every frontend plan edits `api.ts`, `queries.ts` and `CampaignBuilder.tsx`. The chains share no files, so Waves 2–5 each run two plans in parallel. Per **OD-1**, the two Phase-4-dependent slices — poster (CAMPAIGN-03) and AI mail (CAMPAIGN-01/02) — are sequenced last; the other 8 requirements need no Phase 4 artifact and are executable immediately.
 

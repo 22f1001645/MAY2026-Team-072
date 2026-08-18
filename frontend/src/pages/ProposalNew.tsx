@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useCities, useOrgs, useSubmitProposal } from '../lib/queries'
+import { useCities, useHouses, useSubmitProposal } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
@@ -35,7 +35,7 @@ const TEAM_ROLES = [
 // FR-B1: submit a proposal with scale, date, venue, description, capacity + budget
 export default function ProposalNew() {
   const nav = useNavigate()
-  const { data: orgs = [] } = useOrgs()
+  const { data: houses = [] } = useHouses()
   const { data: cities = [] } = useCities()
   const submitMut = useSubmitProposal()
 
@@ -89,7 +89,7 @@ export default function ProposalNew() {
     e.preventDefault()
     const payload = {
       title: form.title,
-      org_id: form.org_id || orgs[0]?.id,
+      org_id: form.org_id || houses[0]?.id,
       city: form.city || cities[0]?.name,
       scale,
       venue: form.venue,
@@ -174,10 +174,10 @@ export default function ProposalNew() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Organisation</Label>
+              <Label>House</Label>
               <select value={form.org_id} onChange={(e) => set('org_id', e.target.value)} className={selectCls}>
-                <option value="" className="bg-onyx">Select an organisation…</option>
-                {orgs.map((o: any) => (
+                <option value="" className="bg-onyx">Select a house…</option>
+                {houses.map((o: any) => (
                   <option key={o.id} value={o.id} className="bg-onyx">{o.name}</option>
                 ))}
               </select>
@@ -374,13 +374,13 @@ export default function ProposalNew() {
 
         {/* Collaborating Orgs (PROPOSAL-01) */}
         <Card className="p-6">
-          <Label>Collaborating organisations</Label>
+          <Label>Collaborating houses</Label>
           <p className="mb-3 text-caption text-graytext-mid">
-            Name every organisation running this with you. Each one's Secretary is asked to
+            Name every house running this with you. Each one's Secretary is asked to
             accept before it counts.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {(orgs as any[])
+            {(houses as any[])
               .filter((o: any) => o.id !== form.org_id)
               .map((o: any) => {
                 const checked = collabOrgIds.includes(o.id)
@@ -410,12 +410,12 @@ export default function ProposalNew() {
           </div>
           {collabOrgIds.length === 0 ? (
             <p className="mt-2 text-caption text-graytext-mid">
-              No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'}{' '}
+              No collaborators yet — this is a {houses.find((o: any) => o.id === form.org_id)?.name ?? 'your house'}{' '}
               event.
             </p>
           ) : (
             <p className="mt-2 text-caption text-teal">
-              {collabOrgIds.length} org{collabOrgIds.length > 1 ? 's' : ''} selected
+              {collabOrgIds.length} house{collabOrgIds.length > 1 ? 's' : ''} selected
               {collabOrgIds.length >= 2 && ' · invite accepted by all → Mega Meetup!'}
             </p>
           )}

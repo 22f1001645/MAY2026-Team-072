@@ -921,4 +921,12 @@ export const api = {
 
   deleteTask: (activityId: string, taskId: string) =>
     request<void>(`/activities/${activityId}/tasks/${taskId}`, { method: 'DELETE' }),
+
+  // Admin: Phase 5 live campaign monitor
+  liveCampaigns: (): Promise<any[]> =>
+    request<any[]>('/analytics/live-campaigns'),
+
+  // Admin: Phase 4 brand kit overview (reuses /orgs — client-side scoped)
+  brandKitOrgs: (): Promise<any[]> =>
+    request<any[]>('/orgs'),
 }

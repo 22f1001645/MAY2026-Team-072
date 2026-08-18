@@ -28,6 +28,7 @@ import ApprovalQueue from './pages/ApprovalQueue'
 import Reimbursements from './pages/Reimbursements'
 import Analytics from './pages/Analytics'
 import OrganiserAnalytics from './pages/OrganiserAnalytics'
+import CampaignMonitor from './pages/CampaignMonitor'
 import Orgs from './pages/Orgs'
 import OrgProfile from './pages/OrgProfile'
 import AdminSettings from './pages/AdminSettings'
@@ -159,6 +160,7 @@ function AppShell() {
         <Route path="/admin/reimbursements" element={<Reimbursements />} />
         <Route path="/admin/analytics" element={<Analytics />} />
         <Route path="/admin/organiser-analytics" element={<OrganiserAnalytics />} />
+        <Route path="/admin/campaigns" element={<CampaignMonitor />} />
         <Route path="/admin/orgs" element={<Orgs />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
 

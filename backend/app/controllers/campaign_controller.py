@@ -9,6 +9,7 @@ Route shape follows schedule_controller.py (plan 05-01):
 """
 from flask import Blueprint, g, jsonify, request
 
+from ..errors import ApiError
 from ..rbac import auth_required, can_manage_activity_required, meetup_head_required
 from ..schemas import FormFieldPatchSchema, FormFieldSchema
 from ..services import campaign_service
@@ -37,6 +38,32 @@ def generate_slug(activity_id):
     """Mint a unique registration slug and return it with the full URL (AC-15)."""
     result = campaign_service.generate_slug(g.activity, g.current_user)
     return jsonify(result), 200
+
+
+# --------------------------------------------------------------------------- #
+# Poster upload (CAMPAIGN-03)                                                 #
+# --------------------------------------------------------------------------- #
+
+@campaign_bp.post("/activities/<activity_id>/campaign/poster")
+@can_manage_activity_required
+def upload_poster(activity_id):
+    """Attach a poster to the campaign (AC-12, AC-13).
+
+    Deliberately does NOT measure the upload here. ``MAX_CONTENT_LENGTH``
+    refuses an oversize body with a 413 before Flask buffers it, whereas a
+    length check in this view could only run after the whole body had already
+    been read into memory — which is the exhaustion it would be pretending to
+    prevent (T-05-51).
+
+    There is no serve route in this module either: AC-14 is satisfied by
+    Phase 4's ``GET /api/v1/uploads/<filename>``, which routes through
+    ``send_from_directory`` and sets ``nosniff``. A second one here would be a
+    second place for those two controls to be forgotten.
+    """
+    poster = request.files.get("poster")
+    if poster is None:
+        raise ApiError("Attach a poster image to upload.", "missing_file", 400)
+    return jsonify(campaign_service.save_poster(g.activity, poster, g.current_user)), 200
 
 
 # --------------------------------------------------------------------------- #

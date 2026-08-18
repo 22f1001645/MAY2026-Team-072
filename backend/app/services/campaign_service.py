@@ -13,6 +13,7 @@ Extended by plan 05-03: ``push_live`` — the draft → live transition (CAMPAIG
 import re
 import secrets
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from flask import current_app
 from sqlalchemy.exc import IntegrityError
@@ -27,6 +28,15 @@ from ..constants import (
     SLUG_TITLE_MAX,
     TASK_STATUS_LABELS,
     TASK_STATUSES,
+)
+# CAMPAIGN-03 reuses Phase 4's upload primitive rather than restating it. This
+# is the same deliberate service→controller reach org_profile_service makes: the
+# format allowlist and the `nosniff` serve header that depends on it belong in
+# one file, and a second copy here would be free to drift from it.
+from ..controllers.upload_controller import (
+    IMAGE_MAGIC_BYTES,
+    sniff_image_ext,
+    upload_dir,
 )
 from ..errors import ApiError
 from ..extensions import db
@@ -225,6 +235,64 @@ def generate_slug(activity, actor) -> dict:
         "registration_slug": campaign.registration_slug,
         "registration_url": _registration_url(campaign.registration_slug),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Plan 05-10: Poster upload (CAMPAIGN-03, AC-12 / AC-13)                      #
+# --------------------------------------------------------------------------- #
+
+def save_poster(activity, file_storage, actor) -> dict:
+    """Store an uploaded poster and point the campaign at its filename (AC-12).
+
+    Reuses Phase 4's upload primitive wholesale — ``sniff_image_ext`` for the
+    format decision and ``upload_dir`` for the destination. Phase 5 deliberately
+    defines neither a second allowlist nor a second directory resolver: the
+    format table and the ``nosniff`` serve header that depends on it have to stay
+    in one file or they drift apart.
+
+    The stored name is ``uuid4().hex`` plus the extension the SNIFF produced. The
+    client's filename is never echoed, never joined and never stored (T-05-49),
+    and the part's declared content type is not a type decision either — both are
+    free for an attacker to set. That is what keeps an SVG, which is XML that can
+    carry a <script> element and would be stored XSS the moment the public serve
+    route handed it back, out of the directory entirely (T-05-48).
+
+    No hand-composed filesystem path anywhere: the destination is
+    ``upload_dir() / name`` from a name the server chose, and reading it back
+    goes through ``send_from_directory``, which resolves through ``safe_join``
+    (T-05-50).
+
+    Last-write-wins on a second upload (AC-13) falls out of the singleton
+    accessor rather than from any check here, which is why two racing uploads
+    still leave exactly one poster on the row.
+    """
+    # First, before a single byte is examined: a published campaign's poster is
+    # frozen along with everything else in the package (AC-06, T-05-53).
+    assert_editable(activity)
+
+    head = file_storage.read(IMAGE_MAGIC_BYTES)
+    file_storage.seek(0)                    # the sniff must not eat the file
+
+    ext = sniff_image_ext(head)
+    if ext is None:
+        # Refused before anything is written, so a rejected upload leaves no file
+        # behind to be served or cleaned up later.
+        raise ApiError(
+            "Only PNG, JPG or WebP images are accepted.",
+            "unsupported_media_type",
+            415,
+        )
+
+    name = f"{uuid4().hex}{ext}"
+    file_storage.save(str(upload_dir() / name))
+
+    campaign = _get_or_create_campaign(activity)
+    campaign.poster_name = name
+    AuditRepository.record(
+        "activity", activity.id, "Uploaded campaign poster", actor, activity.title
+    )
+    db.session.commit()
+    return {"poster_name": name}
 
 
 # --------------------------------------------------------------------------- #

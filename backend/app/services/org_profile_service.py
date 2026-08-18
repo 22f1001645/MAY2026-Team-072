@@ -229,6 +229,23 @@ def store_logo(org, file_storage, actor):
     the extension the SNIFF produced, which is the only filename an attacker has
     no input to.
     """
+    # The logo's own 2 MiB ceiling, checked here rather than through
+    # MAX_CONTENT_LENGTH. That key is app-wide and Phase 5 raised it to 5 MiB for
+    # the campaign poster (decision OD-2), so without this the logo would have
+    # silently inherited the looser bound (T-05-52).
+    #
+    # Seeking to the end and back measures the part WITHOUT reading it: Werkzeug
+    # has already spooled the body to a temporary file, and MAX_CONTENT_LENGTH
+    # capped how much it was willing to spool, so nothing here can be made to
+    # buffer more than 5 MiB. A `len(file_storage.read())` would defeat that.
+    file_storage.stream.seek(0, 2)
+    size = file_storage.stream.tell()
+    file_storage.stream.seek(0)
+    if size > current_app.config["LOGO_MAX_BYTES"]:
+        raise ApiError(
+            "A logo must be 2 MB or smaller.", "payload_too_large", 413
+        )
+
     head = file_storage.read(_SNIFF_BYTES)
     file_storage.seek(0)                    # the sniff must not eat the file
 

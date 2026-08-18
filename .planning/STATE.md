@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-08-16T09:05:00.000Z"
-last_activity: 2026-08-16
-last_activity_desc: "Completed 05-05: volunteer points now require a crew row on the activity, and crew membership is proven to grant nothing org-wide and to lapse the moment the row is deleted"
+stopped_at: Completed 05-09-PLAN.md
+last_updated: "2026-08-18T09:35:00.000Z"
+last_activity: 2026-08-18
+last_activity_desc: "Completed 05-09: the team task board is real — three server-declared columns backed by persisted rows, inert until the campaign is live, and structurally forbidden from polling"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 33
-  percent: 92
+  completed_plans: 34
+  percent: 94
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 8/11 (Phase 05 — 05-01..05-04, 05-05, 05-06, 05-07, 05-08 complete; 05-09..05-11 remain)
-Status: Phase 05 waves 1-4 complete; wave 5 started — 05-05 (crew authorization boundaries) landed
-Last activity: 2026-08-16 — Completed 05-05: volunteer points now require a crew row on the activity, and crew membership is proven to grant nothing org-wide and to lapse the moment the row is deleted
+Plan: 9/9 (Phase 04); 9/11 (Phase 05 — 05-01..05-09 complete; 05-10 and 05-11 remain)
+Status: Phase 05 waves 1-4 complete; wave 5 in progress — 05-05 (crew authorization boundaries) and 05-09 (live task workspace) landed
+Last activity: 2026-08-18 — Completed 05-09: the team task board is real — three server-declared columns backed by persisted rows, inert until the campaign is live, and structurally forbidden from polling
 
-Progress: [█████████░] 92% (33/36 plans across the milestone) — Phase 05: 73%
+Progress: [█████████░] 94% (34/36 plans across the milestone) — Phase 05: 82%
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Progress: [█████████░] 92% (33/36 plans across the milestone
 | Phase 05 P04 | 30min | 2 tasks | 5 files |
 | Phase 05 P08 | 40min | 2 tasks | 8 files |
 | Phase 05 P05 | 40min | 2 tasks | 4 files |
+| Phase 05 P09 | 45min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,13 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-05: the crew lookup sits before the first db.session.add, which makes "a refused award writes no ledger row" true by construction; the test asserts the ContributionPoint count, not only the 403
 - [Phase 5]: 05-05: AC-36's url_map walk is differential (crew user vs a plain no-POR student, identical statuses everywhere) rather than a flat 403, because GET /orgs/<org_id>/profile is deliberately any-authenticated-reader since 04-04 — the differential is TEAM-03's actual claim and needs no exemption list
 - [Phase 5]: 05-05: the PROB-P4 test reassigns the activity to the Meetup Head first, because _seed_activity makes the crew user the organiser and organiser_id is an independent grant in can_manage_activity — without that the deletion would have proven nothing
+- [Phase 5]: 05-09: the board's three columns travel on the campaign payload as task_statuses, with the label beside the value — TaskSchema validates against the same tuple, so a browser-side column list could offer an option the server answers 422 to, and "To Do" cannot be derived from "todo" by any rule the client could apply
+- [Phase 5]: 05-09: per-column chrome is keyed on the INDEX into the server's declared status order, not on the status value — keying it on the value would have reintroduced the three status strings in the one file the design exists to keep them out of
+- [Phase 5]: 05-09: the 403 campaign_not_live gets its own page branch and is never toasted; TEAM-01's whole point is that the board is inert before publication, so reporting it as a failure would tell the organiser something untrue about their own workflow
+- [Phase 5]: 05-09: the page fails only when the task query errored AND no data ever arrived — a failed refetch keeps the last good board and surfaces the column-header retry, which is what makes KanbanBoard's isError/onRetry props reachable rather than dead
+- [Phase 5]: 05-09: the column landmark is a named <section> wrapping the Card, because Card accepts only children/className/hover/onClick and cannot carry an accessible name — same class of upstream correction as Badge not taking onClick
+- [Phase 5]: 05-09: ManageEvent's "Tasks complete" tile was deleted rather than repointed at the real board, which is inert until publication and would have read 0 of 0 on every unpublished event
+- [Phase 5]: 05-09: the no-polling gate scans a NAMED three-file list rather than all of src/, and carries a companion test proving each scanned path still exists — a repo-wide scan fails on unrelated code and teaches people to weaken it, and a renamed file would turn the gate into a no-op that passes for free
 
 ### Pending Todos
 
@@ -206,8 +214,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-16T09:05:00.000Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-08-18T09:35:00.000Z
+Stopped at: Completed 05-09-PLAN.md
 Resume file: None
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`; then 05-09 (retire the mock array against the task routes 05-04 shipped), 05-10 and 05-11
+Next: finish Phase 04 manual UAT via `04-UAT.md`; then 05-10 (poster upload) and 05-11 (AI mail generation), the two remaining Phase 5 plans

@@ -196,7 +196,7 @@ Plans:
   4. Nothing reaches students until the assigned Meetup Head explicitly approves the full package; a non-Meetup-Head team member's push-live attempt is rejected server-side.
   5. Once live, the roster assembled at proposal time sees a Kanban board whose tasks (assignee, deadline, status) survive a hard reload and are visible to another team member on another device; volunteer points can only be awarded to actual crew members, and crew membership grants no org-wide permission anywhere else.
 
-**Plans**: 8/11 plans executed
+**Plans**: 9/11 plans executed
 **UI hint**: yes
 
 Plans:
@@ -222,7 +222,7 @@ Plans:
 **Wave 5** *(blocked on Wave 4)*
 
 - [x] 05-05-PLAN.md — Volunteer-points crew guard + the TEAM-03 url_map proof and the removed-member control (TEAM-03, TEAM-04)
-- [ ] 05-09-PLAN.md — Frontend: `KanbanBoard` + `KanbanWorkspace`, mock array retired, no-polling structural gate (TEAM-01, TEAM-02)
+- [x] 05-09-PLAN.md — Frontend: `KanbanBoard` + `KanbanWorkspace`, mock array retired, no-polling structural gate (TEAM-01, TEAM-02)
 
 **Wave 6** *(blocked on Wave 5 — needs Phase 4)*
 

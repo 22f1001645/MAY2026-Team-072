@@ -196,7 +196,7 @@ Plans:
   4. Nothing reaches students until the assigned Meetup Head explicitly approves the full package; a non-Meetup-Head team member's push-live attempt is rejected server-side.
   5. Once live, the roster assembled at proposal time sees a Kanban board whose tasks (assignee, deadline, status) survive a hard reload and are visible to another team member on another device; volunteer points can only be awarded to actual crew members, and crew membership grants no org-wide permission anywhere else.
 
-**Plans**: 9/11 plans executed
+**Plans**: 10/11 plans executed
 **UI hint**: yes
 
 Plans:
@@ -226,7 +226,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 — needs Phase 4)*
 
-- [ ] 05-10-PLAN.md — Poster upload: 5 MB app cap per OD-2, magic-byte type sniffing, `PosterUpload` (CAMPAIGN-03)
+- [x] 05-10-PLAN.md — Poster upload: 5 MB app cap per OD-2, magic-byte type sniffing, `PosterUpload` (CAMPAIGN-03)
 
 **Wave 7** *(blocked on Wave 6 — needs Phase 4)*
 

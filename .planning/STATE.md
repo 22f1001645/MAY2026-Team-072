@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
 status: executing
-stopped_at: Completed 05-09-PLAN.md
-last_updated: "2026-08-18T09:35:00.000Z"
+stopped_at: Completed 05-10-PLAN.md
+last_updated: "2026-08-18T12:55:00.000Z"
 last_activity: 2026-08-18
-last_activity_desc: "Completed 05-09: the team task board is real — three server-declared columns backed by persisted rows, inert until the campaign is live, and structurally forbidden from polling"
+last_activity_desc: "Completed 05-10: campaign posters upload, stored under a server-chosen name whose type came from the file's own bytes, and the app-wide size cap split so raising it for the poster did not widen the logo"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 36
-  completed_plans: 34
-  percent: 94
+  completed_plans: 35
+  percent: 97
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — IN PROGRESS
-Plan: 9/9 (Phase 04); 9/11 (Phase 05 — 05-01..05-09 complete; 05-10 and 05-11 remain)
-Status: Phase 05 waves 1-4 complete; wave 5 in progress — 05-05 (crew authorization boundaries) and 05-09 (live task workspace) landed
-Last activity: 2026-08-18 — Completed 05-09: the team task board is real — three server-declared columns backed by persisted rows, inert until the campaign is live, and structurally forbidden from polling
+Plan: 9/9 (Phase 04); 10/11 (Phase 05 — 05-01..05-10 complete; only 05-11 remains)
+Status: Phase 05 waves 1-5 complete; wave 6 in progress — 05-10 (poster upload) landed, 05-11 (AI mail generation) is the last plan in the phase
+Last activity: 2026-08-18 — Completed 05-10: campaign posters upload, stored under a server-chosen name whose type came from the file's own bytes, and the app-wide size cap split so raising it for the poster did not widen the logo
 
-Progress: [█████████░] 94% (34/36 plans across the milestone) — Phase 05: 82%
+Progress: [█████████░] 97% (35/36 plans across the milestone) — Phase 05: 91%
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Progress: [█████████░] 94% (34/36 plans across the milestone
 | Phase 05 P08 | 40min | 2 tasks | 8 files |
 | Phase 05 P05 | 40min | 2 tasks | 4 files |
 | Phase 05 P09 | 45min | 3 tasks | 13 files |
+| Phase 05 P10 | 50min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -196,10 +197,16 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-09: the column landmark is a named <section> wrapping the Card, because Card accepts only children/className/hover/onClick and cannot carry an accessible name — same class of upstream correction as Badge not taking onClick
 - [Phase 5]: 05-09: ManageEvent's "Tasks complete" tile was deleted rather than repointed at the real board, which is inert until publication and would have read 0 of 0 on every unpublished event
 - [Phase 5]: 05-09: the no-polling gate scans a NAMED three-file list rather than all of src/, and carries a companion test proving each scanned path still exists — a repo-wide scan fails on unrelated code and teaches people to weaken it, and a renamed file would turn the gate into a no-op that passes for free
+- [Phase 5]: 05-10: MAX_CONTENT_LENGTH is now POSTER_MAX_BYTES (5 MiB) and the logo's 2 MiB moved into store_logo as an explicit LOGO_MAX_BYTES check — the key is app-wide, so raising it for the poster without moving the logo's bound would have silently widened the logo endpoint (T-05-52)
+- [Phase 5]: 05-10: the logo's per-endpoint check measures the file by seeking to the end of the already-spooled stream, never by reading it — a len(file.read()) would buffer the very body the cap exists to keep out of memory; Phase 4's boundary test moved with the control and now builds a body whose FILE part is exactly the limit
+- [Phase 5]: 05-10: save_poster imports sniff_image_ext, IMAGE_MAGIC_BYTES and upload_dir from Phase 4's upload_controller and Phase 5 adds no serve route — AC-14 is asserted by reading a Phase 5 poster back through Phase 4's GET /uploads/<filename>, so the test proves the reuse rather than a second copy of send_from_directory and its nosniff header
+- [Phase 5]: 05-10: PosterUpload takes a File and lets api.uploadPoster build the FormData, so the component has no opinion about the wire format; the FormData claim is asserted against fetch, where it actually exists
+- [Phase 5]: 05-10: the file input's value is cleared in a finally block — without it, re-picking the same file after a failure fires no change event and the retry silently does nothing, which is E8's forbidden outcome reappearing on the recovery path
 
 ### Pending Todos
 
 - **No `03-VERIFICATION.md`** — Phase 1 and Phase 2 both have one; Phase 3 does not. Worth writing once manual UAT closes out, for parity with the other phases.
+- **A replaced poster's old file is left on disk** (05-10). `store_logo` unlinks the previous file after the commit; `save_poster` does not, because `CampaignPackage` has no equivalent of the `UPLOAD_URL_PATTERN` guard that makes the logo's unlink safe against a client-writable value. Effect is one unreferenced file per replacement — a cleanup problem, not a correctness one.
 - **No regenerate affordance on `RegistrationLinkCard`** (surfaced by the 05-07 checkpoint, step 7). Once a slug exists the card renders only Copy — 05-07's acceptance criteria only covered the null-URL state, so the checkpoint script assumed a capability the task was never asked to build. The backend rotation is correct and verified at the API layer (second mint invalidates the first, old slug 404s). A future plan should add the button plus the "this breaks every link already shared" confirmation it needs.
 
 ### Blockers/Concerns
@@ -214,8 +221,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-18T09:35:00.000Z
-Stopped at: Completed 05-09-PLAN.md
+Last session: 2026-08-18T12:55:00.000Z
+Stopped at: Completed 05-10-PLAN.md
 Resume file: None
 
-Next: finish Phase 04 manual UAT via `04-UAT.md`; then 05-10 (poster upload) and 05-11 (AI mail generation), the two remaining Phase 5 plans
+Next: 05-11 (AI mail generation) — the last plan in Phase 5; then finish Phase 04 manual UAT via `04-UAT.md`

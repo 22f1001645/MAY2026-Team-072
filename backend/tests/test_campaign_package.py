@@ -7,7 +7,12 @@ Module covers AC-08…AC-26 (CAMPAIGN-01/04/05 surface):
   - Public event preview via slug resolution (OD-3)
 
 Error envelope: {error: ..., code: ...} — no "reason" key (errors.py:19-23).
+
+Extended by plan 05-10: poster upload (CAMPAIGN-03, AC-12/AC-13/AC-14).
 """
+import base64
+import io
+
 import pytest
 from werkzeug.security import generate_password_hash
 
@@ -628,3 +633,189 @@ def test_campaign_state_carries_is_meetup_head(client, seeds):
 
     crew = _campaign(client, _token(client, "crew@test.com"), aid)
     assert crew["is_meetup_head"] is False
+
+
+# --------------------------------------------------------------------------- #
+# Plan 05-10: poster upload (CAMPAIGN-03, AC-12 / AC-13 / AC-14)               #
+# --------------------------------------------------------------------------- #
+
+# A real 1x1 PNG, not a bare signature: the sniff only reads the head, but the
+# serve assertion compares the whole stored file against these bytes, so a
+# truncated stand-in would make that comparison prove nothing.
+PNG_1X1 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAE"
+    "hQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+JPEG_HEAD = b"\xff\xd8\xff\xe0" + b"\x00" * 32
+# The T-05-48 payload: an SVG is XML that can carry a <script> element, and it
+# arrives here wearing a .png filename and an image/png content type, because
+# both of those cost an attacker nothing to set.
+SVG_BYTES = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+
+_POSTER_BOUNDARY = "----ekatvaposterboundary"
+_POSTER_MULTIPART = f"multipart/form-data; boundary={_POSTER_BOUNDARY}"
+
+
+def _poster_url(activity_id):
+    return f"/api/v1/activities/{activity_id}/campaign/poster"
+
+
+def _poster_body_of_exactly(total):
+    """A genuine multipart body whose TOTAL length is exactly *total* bytes.
+
+    MAX_CONTENT_LENGTH caps the request body rather than the file inside it, so
+    only a body that counts its own envelope can land on the cap's real edge.
+    """
+    prefix = (
+        f"--{_POSTER_BOUNDARY}\r\n"
+        'Content-Disposition: form-data; name="poster"; filename="poster.png"\r\n'
+        "Content-Type: image/png\r\n\r\n"
+    ).encode()
+    suffix = f"\r\n--{_POSTER_BOUNDARY}--\r\n".encode()
+    padding = total - len(prefix) - len(suffix) - len(PNG_1X1)
+    assert padding >= 0, "asked for a body smaller than its own envelope"
+    body = prefix + PNG_1X1 + b"\x00" * padding + suffix
+    assert len(body) == total
+    return body
+
+
+def _upload_poster(client, token, activity_id, content, filename, mimetype):
+    return client.post(
+        _poster_url(activity_id),
+        data={"poster": (io.BytesIO(content), filename, mimetype)},
+        content_type="multipart/form-data",
+        headers=_auth(token),
+    )
+
+
+@pytest.fixture()
+def uploads(app):
+    """The upload directory, with every file the test created removed after.
+
+    `instance/uploads/` is real gitignored disk shared with the dev server and
+    with Phase 4's suite, so a test may only clean up what it made itself.
+    """
+    from app.controllers.upload_controller import upload_dir
+
+    with app.app_context():
+        before = set(upload_dir().iterdir())
+        yield upload_dir()
+        for stale in set(upload_dir().iterdir()) - before:
+            stale.unlink(missing_ok=True)
+
+
+def test_poster_upload_saves_and_returns_name(client, seeds, uploads):
+    """AC-12: the stored name is the server's, never the client's."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    resp = _upload_poster(client, tok, aid, PNG_1X1, "My Poster (v2).PNG", "image/png")
+
+    assert resp.status_code == 200, resp.get_json()
+    name = resp.get_json()["poster_name"]
+    assert name != "My Poster (v2).PNG"
+    assert "poster" not in name.lower()
+    assert name.endswith(".png")
+    assert (uploads / name).read_bytes() == PNG_1X1
+    assert _campaign(client, tok, aid)["poster_name"] == name
+    assert _campaign(client, tok, aid)["completeness"]["poster"] is True
+
+
+def test_poster_upload_overwrites(client, seeds, uploads):
+    """AC-13: a second upload wins and the row still holds exactly one poster."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+
+    first = _upload_poster(client, tok, aid, PNG_1X1, "a.png", "image/png")
+    second = _upload_poster(client, tok, aid, JPEG_HEAD, "b.jpg", "image/jpeg")
+
+    assert second.status_code == 200, second.get_json()
+    first_name = first.get_json()["poster_name"]
+    second_name = second.get_json()["poster_name"]
+    assert second_name != first_name
+    assert second_name.endswith(".jpg")
+    assert _campaign(client, tok, aid)["poster_name"] == second_name
+
+
+def test_poster_upload_rejects_svg(client, seeds, uploads):
+    """T-05-48: SVG markup under a .png name and an image/png type is refused."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    before = set(uploads.iterdir())
+
+    resp = _upload_poster(client, tok, aid, SVG_BYTES, "safe.png", "image/png")
+
+    assert resp.status_code == 415, resp.status_code
+    assert resp.get_json()["code"] == "unsupported_media_type"
+    assert set(uploads.iterdir()) == before, "a refused upload was written anyway"
+    assert _campaign(client, tok, aid)["poster_name"] is None
+
+
+def test_poster_upload_rejects_oversize(client, app, seeds, uploads):
+    """T-05-51: over the cap is refused by Flask before the body is buffered."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    cap = app.config["MAX_CONTENT_LENGTH"]
+    before = set(uploads.iterdir())
+
+    resp = client.post(
+        _poster_url(aid),
+        data=_poster_body_of_exactly(cap + 1),
+        content_type=_POSTER_MULTIPART,
+        headers=_auth(tok),
+    )
+
+    assert resp.status_code == 413, resp.status_code
+    assert set(uploads.iterdir()) == before, "the view ran anyway"
+
+
+def test_poster_upload_missing_part_400(client, seeds, uploads):
+    """A multipart body with no `poster` part is a client error, not a 500."""
+    tok = _token(client, "org@test.com")
+    resp = client.post(
+        _poster_url(seeds["activity_id"]),
+        data={"wrong_key": (io.BytesIO(PNG_1X1), "a.png", "image/png")},
+        content_type="multipart/form-data",
+        headers=_auth(tok),
+    )
+    assert resp.status_code == 400, resp.status_code
+
+
+def test_uploads_serve_returns_the_poster_bytes(client, seeds, uploads):
+    """AC-14: Phase 4's serve route hands back a Phase 5 poster unchanged.
+
+    Phase 5 adds no serve route of its own — this asserts that reuse.
+    """
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    name = _upload_poster(
+        client, tok, aid, PNG_1X1, "a.png", "image/png"
+    ).get_json()["poster_name"]
+
+    served = client.get(f"/api/v1/uploads/{name}")
+
+    assert served.status_code == 200
+    assert served.data == PNG_1X1
+    assert served.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_poster_upload_blocked_when_live(client, seeds, uploads):
+    """A live campaign's poster is frozen with the rest of the package (AC-06)."""
+    tok = _token(client, "org@test.com")
+    aid = seeds["activity_id"]
+    _add_schedule_item(aid)
+    assert _push_live(client, tok, aid).status_code == 200
+
+    resp = _upload_poster(client, tok, aid, PNG_1X1, "a.png", "image/png")
+
+    assert resp.status_code == 409, resp.status_code
+    assert resp.get_json()["code"] == "campaign_live"
+
+
+def test_poster_upload_forbidden_for_a_non_manager(client, seeds, uploads):
+    """T-05-54: the guard resolves the activity from the URL, not from the body."""
+    resp = _upload_poster(
+        client, _token(client, "stu@test.com"), seeds["activity_id"],
+        PNG_1X1, "a.png", "image/png",
+    )
+    assert resp.status_code == 403, resp.status_code

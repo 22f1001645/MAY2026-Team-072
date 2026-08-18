@@ -344,3 +344,18 @@ class ScheduleItemPatchSchema(Schema):
     owner_label = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=120))
     notes = fields.Str(load_default=None, allow_none=True)
     position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))
+
+
+class MailSchema(Schema):
+    """CAMPAIGN-01: the organiser's edited mail subject and body.
+
+    Both nullable so a PATCH carrying only the body says nothing about the
+    subject — campaign_service.save_mail applies only the keys it was given.
+    ``mail_subject`` is capped at the column's own width so an over-long subject
+    is a placeable 422 rather than a database error on commit.
+    """
+
+    mail_subject = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(max=200)
+    )
+    mail_body = fields.Str(load_default=None, allow_none=True)

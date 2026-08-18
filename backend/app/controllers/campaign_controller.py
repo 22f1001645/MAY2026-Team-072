@@ -11,7 +11,7 @@ from flask import Blueprint, g, jsonify, request
 
 from ..errors import ApiError
 from ..rbac import auth_required, can_manage_activity_required, meetup_head_required
-from ..schemas import FormFieldPatchSchema, FormFieldSchema
+from ..schemas import FormFieldPatchSchema, FormFieldSchema, MailSchema
 from ..services import campaign_service
 
 campaign_bp = Blueprint("campaign", __name__, url_prefix="/api/v1")
@@ -64,6 +64,34 @@ def upload_poster(activity_id):
     if poster is None:
         raise ApiError("Attach a poster image to upload.", "missing_file", 400)
     return jsonify(campaign_service.save_poster(g.activity, poster, g.current_user)), 200
+
+
+# --------------------------------------------------------------------------- #
+# Mail template (CAMPAIGN-01, CAMPAIGN-02)                                    #
+# --------------------------------------------------------------------------- #
+
+@campaign_bp.post("/activities/<activity_id>/campaign/generate-mail")
+@can_manage_activity_required
+def generate_mail(activity_id):
+    """Draft the campaign mail (AC-08…AC-11).
+
+    Always 200 when the campaign is editable, even with no AI configured at all:
+    the service degrades to a static template and reports it with a ``degraded``
+    flag rather than raising, so the campaign pipeline never blocks on the
+    availability of a third party (T-05-59).
+
+    ``can_manage_activity_required`` like every other campaign write — any crew
+    member may build the package; only the Meetup Head may ship it.
+    """
+    return jsonify(campaign_service.generate_mail(g.activity, g.current_user)), 200
+
+
+@campaign_bp.patch("/activities/<activity_id>/campaign/mail")
+@can_manage_activity_required
+def save_mail(activity_id):
+    """Persist the organiser's edited subject and body."""
+    data = MailSchema().load(request.get_json() or {})
+    return jsonify(campaign_service.save_mail(g.activity, data, g.current_user)), 200
 
 
 # --------------------------------------------------------------------------- #

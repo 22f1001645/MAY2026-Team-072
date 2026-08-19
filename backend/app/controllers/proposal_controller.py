@@ -15,6 +15,7 @@ from ..schemas import (
     DecisionSchema,
     ProposalSchema,
     ReassignMeetupHeadSchema,
+    ReportPatchSchema,
     ReportSchema,
 )
 from ..services import proposal_service
@@ -78,6 +79,26 @@ def submit_report(activity_id):
     data = ReportSchema().load(request.get_json() or {})
     report = proposal_service.submit_report(activity_id, data["summary"], g.current_user)
     return jsonify(report.to_dict()), 201
+
+
+@proposal_bp.patch("/activities/<activity_id>/report")
+@can_manage_activity_required
+def patch_report(activity_id):
+    """FEEDBACK-01 — save the post-event reflection draft, or submit it.
+
+    Guard: can_manage_activity_required, not meetup_head_required. The broad
+    question this route must answer for every call is "may this person touch
+    this event's reflection?", and D-12 answers it with "any team member". The
+    narrow Meetup Head rule applies only when the body carries
+    `status: submitted`, which a route guard cannot see, so proposal_service
+    asks it — the same split REIMB-01/02 uses on the Reimbursement panel.
+
+    Sits beside the FR-F2 POST above rather than replacing it: that endpoint
+    files a `summary` in one shot, this one is the two-stage reflection.
+    """
+    data = ReportPatchSchema().load(request.get_json() or {})
+    report = proposal_service.patch_report(activity_id, data, g.current_user)
+    return jsonify(report.to_dict()), 200
 
 
 @proposal_bp.get("/activities/<activity_id>/report")

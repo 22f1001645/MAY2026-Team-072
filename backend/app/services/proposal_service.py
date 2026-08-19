@@ -17,6 +17,8 @@ from ..constants import (
     PROPOSAL_REJECTED,
     PROPOSAL_REVOKED,
     PROPOSAL_SUBMITTED,
+    REPORT_DRAFT,
+    REPORT_SUBMITTED,
     ROLE_ADMIN,
     TEAM_ROLES,
     TEAM_ROLE_MEETUP_HEAD,
@@ -35,7 +37,7 @@ from ..models import (
     Report,
     User,
 )
-from ..rbac import has_organiser_por_in_org
+from ..rbac import has_organiser_por_in_org, is_meetup_head
 from ..repositories.repos import ActivityRepository, AuditRepository, OrgRepository
 
 
@@ -336,6 +338,106 @@ def submit_report(activity_id: str, summary: str, organiser) -> Report:
     activity.status = "completed"
     db.session.add(report)
     AuditRepository.record("report", activity_id, "Filed post-event report", organiser)
+    db.session.commit()
+    return report
+
+
+# --------------------------------------------------------------------------- #
+# FEEDBACK-01 — the post-event reflection: open drafting, one submitter
+# --------------------------------------------------------------------------- #
+def patch_report(activity_id: str, data: dict, user) -> Report:
+    """FEEDBACK-01 — save the reflection draft; only the Meetup Head submits.
+
+    Decision D-12 splits one panel into two authorities, exactly as REIMB-01/02
+    split the Reimbursement panel next to it. Any team member may write and
+    rewrite `challenges` and `learnings` — the panel auto-saves each textarea on
+    blur — and none of that counts as filing anything. Only the assigned Meetup
+    Head may move the report to `submitted`.
+
+    The route guard answers the broad question (may this person touch this
+    event's reflection at all?). The narrow one depends on `status` in the
+    request body, which no route guard can read, so it is asked here — the
+    conditional-authority split established by expense_service.draft_and_submit.
+
+    Both gates run BEFORE the first field is written, following that same
+    function: a submit the caller was not allowed to make must leave the draft
+    exactly as they left it, not half-saved by the call that refused them.
+    """
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity:
+        raise ApiError("Event not found", "not_found", 404)
+
+    submitting = data.get("status") == REPORT_SUBMITTED
+    if submitting and not is_meetup_head(user, activity):
+        # No admin fallback, deliberately. is_meetup_head documents itself as
+        # "the one accountable submitter" and FEEDBACK-01 is one of the three
+        # rules named in that docstring; a convenience short-circuit here would
+        # quietly restate the rule as "the Meetup Head or anyone senior to
+        # them" (RBAC-03). PROPOSAL-05 gives an admin the power to REASSIGN the
+        # Meetup Head, which is a different power from acting as one.
+        raise ApiError(
+            "Only the assigned Meetup Head of this event may submit the "
+            "post-event reflection",
+            "forbidden",
+            403,
+        )
+
+    # A soft-deleted report is gone, not a draft to resume — the TIMELINE-01
+    # projection skips those rows for the same reason. Earliest-first so the row
+    # this endpoint edits stays the same one when history has left more than one
+    # behind (FR-F2's submit_report appends rather than upserting).
+    report = (
+        Report.query.filter(
+            Report.activity_id == activity_id,
+            Report.deleted_at.is_(None),
+        )
+        .order_by(Report.created_at.asc())
+        .first()
+    )
+
+    if report is not None and report.status == REPORT_SUBMITTED:
+        # Once filed, the reflection is a record of what the team said at the
+        # time, not a document that keeps moving under the person reading it —
+        # the same rule REIMB-01 applies to an expense that has left draft.
+        # Rows predating this endpoint carry `submitted` by server default, and
+        # that is the truth about them: they were filed, by FR-F2's POST.
+        raise ApiError(
+            "This report has already been submitted",
+            "report_not_draft",
+            409,
+        )
+
+    if report is None:
+        # FEEDBACK-01's upsert: the panel has no "create report" action, so the
+        # first blur on an empty textarea is what brings the row into being.
+        # `summary` is left empty rather than invented — FR-F2's summary and
+        # D-12's reflection are different fields written by different actions.
+        report = Report(activity_id=activity_id, summary="", status=REPORT_DRAFT)
+        db.session.add(report)
+
+    # None means "not mentioned", never "clear it": the schema fills every
+    # absent key with None, so reading these with a default would blank a
+    # paragraph the client never sent (the EditEventSchema partial-PATCH rule).
+    for field in ("challenges", "learnings"):
+        if data.get(field) is not None:
+            setattr(report, field, data[field])
+
+    if submitting:
+        report.status = REPORT_SUBMITTED
+        report.submitted_by = user.id
+        # Distinct from created_at, which is when the draft was first written.
+        report.submitted_at = datetime.now(UTC)
+        # Keyed on the activity so it lands in this event's audit trail beside
+        # submit_report()'s row. `report` is deliberately absent from the
+        # timeline projection's PROJECTED_ENTITIES, so this cannot double the
+        # entry that projection already emits from the Report table itself.
+        AuditRepository.record(
+            "report",
+            activity_id,
+            "Post-event reflection submitted",
+            user,
+        )
+
     db.session.commit()
     return report
 

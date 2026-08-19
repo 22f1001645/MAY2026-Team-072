@@ -12,6 +12,7 @@ from ..constants import (
     COLLAB_ACCEPTED,
     COLLAB_DECLINED,
     FORM_FIELD_TYPES,
+    REPORT_STATES,
     SOCIAL_PLATFORM_KEYS,
     TASK_STATUSES,
     TEAM_ROLES,
@@ -301,6 +302,35 @@ class BrandKitSchema(Schema):
 
 class ReportSchema(Schema):
     summary = fields.Str(required=True, validate=validate.Length(min=10))
+
+
+class ReportPatchSchema(Schema):
+    """FEEDBACK-01 — the post-event reflection, saved as a draft or submitted.
+
+    Every field is nullable and defaults to None, so a PATCH carrying only
+    `challenges` says nothing about `learnings` and proposal_service leaves that
+    column alone (the EditEventSchema / TaskPatchSchema partial-PATCH rule).
+    The panel auto-saves each textarea on blur (D-03, D-12), which is exactly a
+    request that mentions one field and not the other.
+
+    `status` is a field rather than a second endpoint because the Submit button
+    both saves the textarea the user is still in and closes the report (D-11's
+    reasoning, applied to D-12): splitting it would let those two halves land in
+    either order. WHO may set it to `submitted` is deliberately not decided here
+    — that depends on the caller, not on the payload, so it lives in the service
+    where `is_meetup_head` can be asked (RBAC-03).
+
+    Neither text field carries a length bound: both columns are `Text`, so a
+    bound here would be a limit this schema invented rather than one the
+    database has, and it would truncate a genuinely long reflection with a 422
+    the panel could not explain.
+    """
+
+    challenges = fields.Str(load_default=None, allow_none=True)
+    learnings = fields.Str(load_default=None, allow_none=True)
+    status = fields.Str(
+        load_default=None, allow_none=True, validate=validate.OneOf(REPORT_STATES)
+    )
 
 
 class VolunteerSchema(Schema):

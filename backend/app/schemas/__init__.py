@@ -1,7 +1,7 @@
 """Marshmallow schemas — request validation only (422 on failure).
 
 Responses are shaped by each model's to_dict(); these guard the write paths."""
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, ValidationError, fields, validate, validates_schema
 
 from ..constants import (
     ACADEMIC_LEVELS,
@@ -75,19 +75,37 @@ class ExpenseSchema(Schema):
 class ExpenseDraftRowSchema(Schema):
     """REIMB-01 — one row of the expense draft list.
 
-    `id` present means "edit this row", absent means "create one". `label` is
-    the only required field: a draft is a working document, so an amount the
-    organiser has not looked up yet defaults to 0 rather than making the whole
-    payload a 422. Both string bounds match the declared column widths, so an
-    over-long value is a placeable 422 rather than a database error on commit.
+    `id` present means "edit this row", absent means "create one", and that is
+    the only thing that decides which fields are required. Every field is
+    nullable so an edit carrying only `amount` says nothing about the label and
+    expense_service leaves that column alone — the EditEventSchema and
+    TaskPatchSchema rule, applied to a row inside a list.
+
+    A NEW row still needs a label, because a bill with no description is not a
+    draft of anything. That rule is conditional on `id`, so it lives in
+    `_label_is_required_on_a_new_row` rather than in `required=True`, which
+    cannot see the rest of the row. Both string bounds match the declared column
+    widths, so an over-long value is a placeable 422 rather than a database
+    error on commit.
     """
 
     id = fields.Str(load_default=None, allow_none=True)
-    label = fields.Str(required=True, validate=validate.Length(min=1, max=200))
-    amount = fields.Int(load_default=0, validate=validate.Range(min=0))
+    label = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(min=1, max=200)
+    )
+    amount = fields.Int(
+        load_default=None, allow_none=True, validate=validate.Range(min=0)
+    )
     bill_name = fields.Str(
         load_default=None, allow_none=True, validate=validate.Length(max=200)
     )
+
+    @validates_schema
+    def _label_is_required_on_a_new_row(self, data, **kwargs):
+        if not data.get("id") and not data.get("label"):
+            raise ValidationError(
+                "Missing data for required field.", field_name="label"
+            )
 
 
 class ExpenseDraftSchema(Schema):

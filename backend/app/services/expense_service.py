@@ -165,16 +165,21 @@ def draft_and_submit(activity_id, rows, submit, social_post_url, user):
                     "expense_not_draft",
                     409,
                 )
-            expense.label = row.get("label", expense.label)
-            expense.amount = row.get("amount", expense.amount)
-            if row.get("bill_name") is not None:
-                expense.bill_name = row["bill_name"]
+            # None means "not mentioned", never "clear it". The schema fills
+            # every absent key with None, so reading them with .get(key, default)
+            # would blank a label the client never sent (the EditEventSchema
+            # partial-PATCH rule).
+            for field in ("label", "amount", "bill_name"):
+                if row.get(field) is not None:
+                    setattr(expense, field, row[field])
         else:
             db.session.add(
                 Expense(
                     activity_id=activity_id,
                     label=row["label"],
-                    amount=row.get("amount", 0),
+                    # A draft is a working document: an amount the organiser has
+                    # not looked up yet is 0, not a 422 on the whole payload.
+                    amount=row.get("amount") or 0,
                     bill_name=row.get("bill_name"),
                     status=EXPENSE_DRAFT,
                     submitted_by=user.id,

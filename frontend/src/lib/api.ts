@@ -491,9 +491,17 @@ export const api = {
   },
   /** Revoke this device's session and clear the cookie. */
   logout: async () => {
-    const res = await request<{ message: string }>('/auth/logout', { method: 'POST' })
-    _accessToken = null
-    return res
+    _accessToken = null // Clear local auth token immediately
+    try {
+      const res = await Promise.race([
+        request<{ message: string }>('/auth/logout', { method: 'POST' }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+      ])
+      return res
+    } catch (e) {
+      console.warn('Logout slow or failed, forcing local fallback', e)
+      return { message: 'local fallback' }
+    }
   },
   /** User self-confirms their academic level + status (AUTH-04).
    *  Callers pass camelCase; this wrapper is the only module that knows the
@@ -588,6 +596,8 @@ export const api = {
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
   notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
+  clearNotifications: () => request('/notifications', { method: 'DELETE' }),
+  deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
 
   // Proposals / approval (B)
   submitProposal: (payload: any) =>

@@ -133,7 +133,7 @@ function NavDropdown({ item }: { item: NavItem }) {
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { role, name, city, capabilities } = useSession()
-  const { currentUser, logout, refreshUser } = useAuth()
+  const { currentUser, logout, refreshUser, isLoggingOut } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [editCityOpen, setEditCityOpen] = useState(false)
@@ -162,10 +162,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   // status nudge off deep pages entirely; it is not a header strip.
   const isHomeRoute = location.pathname === '/discover' || location.pathname === '/organiser'
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
-
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
 
@@ -175,46 +171,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { data: notifications = [] } = useNotifications()
   const unreadCount = notifications.filter((n: any) => !n.read).length
 
-  const { data: searchUsers = [] } = useQuery({
-    queryKey: ['search-users', searchQuery],
-    queryFn: () => api.users(searchQuery),
-    enabled: role === 'admin' && searchQuery.trim().length >= 1,
-  })
-
-  const { data: allEvents = [] } = useQuery({
-    queryKey: ['search-events'],
-    queryFn: () => api.events(),
-    enabled: searchQuery.trim().length >= 1,
-  })
-
-  const { data: allOrgs = [] } = useQuery({
-    queryKey: ['search-orgs'],
-    queryFn: () => api.orgs(),
-    enabled: searchQuery.trim().length >= 1,
-  })
-
-  const filteredEvents = allEvents.filter(
-    (e) =>
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
-
-  const filteredOrgs = allOrgs.filter(
-    (o) =>
-      o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.type.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node
-      if (searchRef.current && !searchRef.current.contains(target)) {
-        setSearchOpen(false)
-      }
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setNotificationsOpen(false)
-      }
       if (profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false)
       }
@@ -223,9 +182,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (
@@ -279,117 +237,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             {nav.filter(item => item.subItems).map(item => (
               <NavDropdown key={item.label} item={item} />
             ))}
-          </div>
-          
-          {/* Global Search */}
-          <div ref={searchRef} className="relative hidden md:block">
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[13px] text-graytext-light focus-within:border-teal/50 focus-within:bg-black/40 transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-graytext-mid">
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3-3" strokeLinecap="round" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setSearchOpen(true)
-                }}
-                onFocus={() => setSearchOpen(true)}
-                className="w-32 lg:w-48 bg-transparent text-[13px] text-offwhite placeholder:text-graytext-mid focus:outline-none"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery('')
-                    setSearchOpen(false)
-                  }}
-                  className="text-graytext-mid hover:text-offwhite text-[12px] px-1"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* Global Search Dropdown */}
-            {searchOpen && searchQuery.trim().length >= 1 && (
-              <div className="absolute right-0 top-full mt-3 w-80 md:w-96 rounded-2xl border border-white/10 bg-black p-3 shadow-2xl z-50 max-h-[70vh] overflow-y-auto space-y-3 animate-fade-down origin-top-right">
-                {/* Events Section */}
-                {filteredEvents.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-teal mb-1 px-2">Events ({filteredEvents.length})</div>
-                    <div className="space-y-1">
-                      {filteredEvents.slice(0, 3).map((evt) => (
-                        <button
-                          key={evt.id}
-                          type="button"
-                          onClick={() => {
-                            setSearchOpen(false)
-                            navigate(`/events/${evt.id}`)
-                          }}
-                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none"
-                        >
-                          <div className="text-[13px] font-semibold text-offwhite">{evt.title}</div>
-                          <div className="text-[11px] text-graytext-light">{evt.city} · {evt.startsAt}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* People / Members Section */}
-                {searchUsers.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-gold mb-1 px-2">People / Members ({searchUsers.length})</div>
-                    <div className="space-y-1">
-                      {searchUsers.slice(0, 3).map((usr) => (
-                        <button
-                          key={usr.id}
-                          type="button"
-                          onClick={() => {
-                            setSearchOpen(false)
-                            if (role === 'admin') navigate('/admin/orgs')
-                          }}
-                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none"
-                        >
-                          <div className="text-[13px] font-semibold text-offwhite">{usr.name}</div>
-                          <div className="text-[11px] text-graytext-light">{usr.email} · {usr.city}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Organisations Section */}
-                {filteredOrgs.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-1 px-2">Organisations ({filteredOrgs.length})</div>
-                    <div className="space-y-1">
-                      {filteredOrgs.slice(0, 3).map((org) => (
-                        <button
-                          key={org.id}
-                          type="button"
-                          onClick={() => {
-                            setSearchOpen(false)
-                            if (role === 'admin') navigate('/admin/orgs')
-                            else navigate('/discover')
-                          }}
-                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none"
-                        >
-                          <div className="text-[13px] font-semibold text-offwhite">{org.name}</div>
-                          <div className="text-[11px] text-graytext-light">Type: {org.type}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {filteredEvents.length === 0 && searchUsers.length === 0 && filteredOrgs.length === 0 && (
-                  <div className="p-4 text-center text-[13px] text-graytext-mid">No matching events, people, or orgs found.</div>
-                )}
-              </div>
-            )}
           </div>
           
           {/* Notifications */}
@@ -536,11 +383,16 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
               <button
                 onClick={handleLogout}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-graytext-mid hover:bg-white/5 hover:text-red-400 focus:outline-none transition-colors"
+                disabled={isLoggingOut}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-graytext-mid hover:bg-white/5 hover:text-red-400 focus:outline-none transition-colors disabled:opacity-50"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                </svg>
+                {isLoggingOut ? (
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>

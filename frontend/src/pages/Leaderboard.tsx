@@ -1,13 +1,56 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Gem, Star, Zap, Medal, Crown, Ticket, Mic, Gift, Target, Sprout } from 'lucide-react'
 
 import { useLeaderboard, useMyPoints, useCities } from '../lib/queries'
 import { useSession } from '../lib/session'
-import CitySelector from '../components/CitySelector'
 import { Badge, Card, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import type { LeaderRow, LedgerEntry } from '../lib/types'
 import { cx } from '../lib/format'
+
+function InlineDropdown({ value, options, onChange }: { value: string, options: string[], onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button 
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 border-b-[3px] border-teal/40 text-teal hover:border-teal transition-colors focus:outline-none cursor-pointer pb-0.5"
+      >
+        <span>{value === 'Overall' ? 'overall' : value}</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-onyx/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal text-left shadow-2xl">
+          {options.map(opt => (
+            <button
+              key={opt}
+              onClick={() => { onChange(opt); setOpen(false) }}
+              className={`text-left px-4 py-2.5 rounded-lg transition-colors ${value === opt ? 'bg-teal/20 text-teal' : 'hover:bg-white/10'}`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Gamification tiers — a computed lens over the same points total, no separate store.
 function getTierInfo(points: number) {
@@ -27,7 +70,9 @@ export default function Leaderboard() {
   const { data: points } = useMyPoints()
   const { data: CITIES = [] } = useCities()
 
-  const ranked = rows.map((r: LeaderRow) => ({ ...r, isMe: r.userId === sessionId }))
+  const ranked = rows
+    .filter((r: LeaderRow) => r.points > 0)
+    .map((r: LeaderRow) => ({ ...r, isMe: r.userId === sessionId }))
   const me = ranked.find((r: LeaderRow) => r.isMe)
   const totalPoints = points?.total ?? 0
   const myTier = getTierInfo(totalPoints)
@@ -114,13 +159,16 @@ export default function Leaderboard() {
         {/* Main Column */}
         <div className="min-w-0">
           {/* Scope Filters */}
-          <CitySelector
-            cities={CITIES.map((c: any) => c.name)}
-            activeCity={scope}
-            setActiveCity={setScope}
-            allowAll={true}
-            allLabel="Overall"
-          />
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex flex-wrap items-center justify-center lg:justify-start gap-3">
+              Showing top students in
+              <InlineDropdown 
+                value={scope} 
+                options={['Overall', ...CITIES.map((c: any) => c.name)]} 
+                onChange={setScope} 
+              />
+            </h2>
+          </div>
 
           {isLoading && <Loading label="Tallying points…" />}
           {isError && <ErrorState error={error} />}
@@ -183,92 +231,114 @@ export default function Leaderboard() {
                 </div>
               )}
 
-              {/* Table */}
-              <div className="rounded-3xl border border-white/10 bg-black/40 overflow-hidden shadow-2xl backdrop-blur-xl animate-fade-up">
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-[14px]">
-                    <thead>
-                      <tr className="border-b border-white/10 bg-white/5 text-[11px] uppercase tracking-widest text-graytext-mid">
-                        <th className="px-6 py-4 text-left font-semibold">Rank</th>
-                        <th className="px-6 py-4 text-left font-semibold">Student</th>
-                        <th className="px-6 py-4 text-right font-semibold">Stats</th>
-                        <th className="px-6 py-4 text-right font-semibold">Points</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {ranked.map((r: LeaderRow) => {
-                        const tier = getTierInfo(r.points)
-                        return (
-                          <tr
-                            key={r.name}
-                            className={cx(
-                              'group transition-colors duration-200',
-                              r.isMe ? 'bg-teal/10 hover:bg-teal/15' : 'hover:bg-white/5',
-                            )}
-                          >
-                            <td className="px-6 py-4">
-                              <span
-                                className={cx(
-                                  'grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold shadow-sm',
-                                  r.rank === 1 ? 'bg-gold/20 text-gold ring-1 ring-gold/30' : 
-                                  r.rank === 2 ? 'bg-slate-300/20 text-slate-300 ring-1 ring-slate-300/30' :
-                                  r.rank === 3 ? 'bg-amber-600/20 text-amber-500 ring-1 ring-amber-600/30' : 
-                                  'bg-white/5 text-graytext-light group-hover:bg-white/10 group-hover:text-offwhite transition-colors',
-                                )}
-                              >
-                                {r.rank}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className={cx("font-bold", r.isMe ? "text-teal" : "text-offwhite")}>{r.name}</span>
-                                    {r.isMe && (
-                                      <span className="px-2 py-0.5 rounded-full bg-teal text-onyx text-[10px] font-bold uppercase tracking-wider">You</span>
-                                    )}
-                                  </div>
-                                  <div className="text-[12px] text-graytext-mid mt-0.5">{r.city}</div>
-                                </div>
-                                <div className={cx("hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-semibold", tier.bg, tier.border, tier.color)}>
-                                  <span>{tier.icon}</span>
-                                  <span>{tier.name}</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="text-[12px] text-graytext-light">
-                                <span className="font-semibold text-offwhite">{r.attended}</span> Attended
-                              </div>
-                              {(r.organised > 0 || r.isOrganiser) && (
-                                <div className="text-[12px] text-graytext-light mt-0.5">
-                                  <span className="font-semibold text-offwhite">{r.organised}</span> Organised
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span className={cx(
-                                "text-[16px] font-black", 
-                                r.rank === 1 ? "text-gold" : r.rank === 2 ? "text-slate-300" : r.rank === 3 ? "text-amber-500" : "text-teal"
-                              )}>
-                                {r.points}
-                              </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                      {ranked.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="px-6 py-12 text-center">
-                            <div className="text-graytext-mid mb-1">No points recorded {scope !== 'Overall' ? `in ${scope}` : 'yet'}.</div>
-                            <div className="text-[13px] text-graytext-light">Attend events or refer friends to get on the board!</div>
-                          </td>
+              {/* Table or Empty State */}
+              {ranked.length > 0 ? (
+                <div className="rounded-3xl border border-white/10 bg-black/40 overflow-hidden shadow-2xl backdrop-blur-xl animate-fade-up">
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-[14px]">
+                      <thead>
+                        <tr className="border-b border-white/10 bg-white/5 text-[11px] uppercase tracking-widest text-graytext-mid">
+                          <th className="px-6 py-4 text-left font-semibold">Rank</th>
+                          <th className="px-6 py-4 text-left font-semibold">Student</th>
+                          <th className="px-6 py-4 text-right font-semibold">Stats</th>
+                          <th className="px-6 py-4 text-right font-semibold">Points</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {ranked.map((r: LeaderRow) => {
+                          const tier = getTierInfo(r.points)
+                          return (
+                            <tr
+                              key={r.name}
+                              className={cx(
+                                'group transition-colors duration-200',
+                                r.isMe ? 'bg-teal/10 hover:bg-teal/15' : 'hover:bg-white/5',
+                              )}
+                            >
+                              <td className="px-6 py-4">
+                                <span
+                                  className={cx(
+                                    'grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold shadow-sm',
+                                    r.rank === 1 ? 'bg-gold/20 text-gold ring-1 ring-gold/30' : 
+                                    r.rank === 2 ? 'bg-slate-300/20 text-slate-300 ring-1 ring-slate-300/30' :
+                                    r.rank === 3 ? 'bg-amber-600/20 text-amber-500 ring-1 ring-amber-600/30' : 
+                                    'bg-white/5 text-graytext-light group-hover:bg-white/10 group-hover:text-offwhite transition-colors',
+                                  )}
+                                >
+                                  {r.rank}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={cx("font-bold", r.isMe ? "text-teal" : "text-offwhite")}>{r.name}</span>
+                                      {r.isMe && (
+                                        <span className="px-2 py-0.5 rounded-full bg-teal text-onyx text-[10px] font-bold uppercase tracking-wider">You</span>
+                                      )}
+                                    </div>
+                                    <div className="text-[12px] text-graytext-mid mt-0.5">{r.city}</div>
+                                  </div>
+                                  <div className={cx("hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-semibold", tier.bg, tier.border, tier.color)}>
+                                    <span>{tier.icon}</span>
+                                    <span>{tier.name}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="text-[12px] text-graytext-light">
+                                  <span className="font-semibold text-offwhite">{r.attended}</span> Attended
+                                </div>
+                                {(r.organised > 0 || r.isOrganiser) && (
+                                  <div className="text-[12px] text-graytext-light mt-0.5">
+                                    <span className="font-semibold text-offwhite">{r.organised}</span> Organised
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <span className={cx(
+                                  "text-[16px] font-black", 
+                                  r.rank === 1 ? "text-gold" : r.rank === 2 ? "text-slate-300" : r.rank === 3 ? "text-amber-500" : "text-teal"
+                                )}>
+                                  {r.points}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-onyx via-black to-onyx p-12 text-center shadow-2xl animate-fade-up group">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-gold/10 blur-[80px] rounded-full pointer-events-none group-hover:bg-gold/20 transition-colors duration-700" />
+                  <div className="grain absolute inset-0 mix-blend-overlay opacity-20 pointer-events-none" />
+                  
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 mb-6 rounded-full bg-black/50 border border-white/5 backdrop-blur-xl flex items-center justify-center shadow-inner relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gold/20 translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-out" />
+                      <Crown size={36} strokeWidth={1.5} className="text-gold relative z-10" />
+                    </div>
+                    
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-3 drop-shadow-xl">
+                      {scope !== 'Overall' ? `${scope} is wide open.` : 'The leaderboard is wide open.'}
+                    </h2>
+                    <p className="text-base text-graytext-mid max-w-md mx-auto mb-8 leading-relaxed">
+                      Nobody has scored any points here yet. This is your chance to be the very first to claim the #1 spot.
+                    </p>
+                    
+                    <Link to={scope !== 'Overall' ? `/discover?city=${encodeURIComponent(scope)}` : '/discover'}>
+                      <button 
+                        className="px-8 py-3.5 rounded-xl bg-white/5 text-offwhite font-bold text-[13px] tracking-wider uppercase border border-white/10 hover:bg-gold hover:text-onyx hover:border-gold hover:shadow-[0_0_30px_rgba(255,215,0,0.3)] transition-all flex items-center gap-2"
+                      >
+                        <Target size={18} />
+                        Conquer {scope !== 'Overall' ? scope : 'the board'}
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

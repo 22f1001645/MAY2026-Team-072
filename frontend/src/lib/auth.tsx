@@ -25,9 +25,10 @@ interface AuthCtx {
     region_id: string
     city?: string
   }) => Promise<{ ok: boolean; error?: string }>
-  logout: () => void
+  logout: () => Promise<void>
   updateCurrentUser: (updates: Partial<Account>) => void
   refreshUser: () => Promise<void>
+  isLoggingOut: boolean
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<Account | null>(null)
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { addToast } = useToast()
@@ -116,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
+    setIsLoggingOut(true)
     try {
       await api.logout()
     } finally {
@@ -139,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ currentUser, capabilities, loading, login, register, logout, refreshUser, updateCurrentUser }}>
+    <Ctx.Provider value={{ currentUser, capabilities, loading, isLoggingOut, login, register, logout, refreshUser, updateCurrentUser }}>
       {children}
     </Ctx.Provider>
   )

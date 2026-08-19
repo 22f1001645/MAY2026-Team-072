@@ -82,14 +82,17 @@ export default function EventDetail() {
         </div>
       )}
 
-      {/* /discover is behind auth, so it is not offered to a visitor who has
-          arrived from a shared link and has no session yet. */}
+
+
       {currentUser && (
         <Link
           to="/discover"
-          className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-graytext-light hover:text-teal"
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[12px] font-bold tracking-widest uppercase text-graytext-mid backdrop-blur-md transition-all duration-300 hover:border-teal/30 hover:bg-teal/10 hover:text-teal hover:shadow-[0_0_15px_rgba(92,230,201,0.15)] group"
         >
-          ← Discovery feed
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="transition-transform duration-300 group-hover:-translate-x-1">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Back to Discover
         </Link>
       )}
 
@@ -123,19 +126,19 @@ export default function EventDetail() {
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left: details */}
         <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="mb-3 text-h3 font-semibold text-gold">About this event</h2>
-            <p className="text-body leading-relaxed text-graytext-light">
+          <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h2 className="mb-4 text-h3 font-bold text-white tracking-wide">About this event</h2>
+            <p className="text-body leading-relaxed text-graytext-light text-[15px]">
               {e.description || 'Details coming soon.'}
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-4">
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
               <InfoRow icon="cal" label="Date" value={formatDate(e.startsAt)} />
               <InfoRow icon="clock" label="Time" value={formatTime(e.startsAt)} />
               <InfoRow icon="pin" label="Venue" value={e.venue} />
               <InfoRow icon="user" label="Organiser" value={e.organiser} />
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+            <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 shadow-inner">
               <iframe
                 width="100%"
                 height="200"
@@ -149,10 +152,10 @@ export default function EventDetail() {
 
           {/* Collaborating Orgs (PROPOSAL-06 Respond UI) */}
           {e.collaborators && e.collaborators.length > 0 && (
-            <Card className="p-6">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-h3 font-semibold text-gold">Collaborating organisations</h2>
-                {e.isMegaMeetup && <Badge tone="gold">⭐ Mega Meetup</Badge>}
+            <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-h3 font-bold text-white tracking-wide">Collaborating organisations</h2>
+                {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">⭐ Mega Meetup</Badge>}
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
@@ -197,9 +200,9 @@ export default function EventDetail() {
 
           {/* Team Roster (PROPOSAL-04) */}
           {e.teamMembers && e.teamMembers.length > 0 && (
-            <Card className="p-6">
-              <h2 className="mb-3 text-h3 font-semibold text-gold">Event team</h2>
-              <div className="grid gap-2 sm:grid-cols-2">
+            <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+              <h2 className="mb-5 text-h3 font-bold text-white tracking-wide">Event team</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {e.teamMembers.map((t: any) => (
                   <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[12px] font-medium text-graytext-light">
@@ -220,9 +223,9 @@ export default function EventDetail() {
           {/* Organiser-only face of the same object (PRD §16 — one object, two faces) */}
 
           {canManage && (
-            <Card className="border-teal/20 p-6">
-              <div className="mb-3 flex items-center gap-2">
-                <Badge tone="teal">Organiser view</Badge>
+            <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-teal/20 shadow-[0_8px_30px_rgba(92,230,201,0.08)]">
+              <div className="mb-4 flex items-center gap-3">
+                <Badge tone="teal" className="shadow-lg shadow-teal/10">Organiser view</Badge>
                 <span className="text-caption text-graytext-mid">
                   Only visible to your POR
                 </span>
@@ -329,8 +332,8 @@ export default function EventDetail() {
 
         {/* Right: sticky register card */}
         <div>
-          <Card className="sticky top-24 p-6">
-            <div className="mb-1 flex items-baseline justify-between">
+          <Card className="sticky top-32 p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="mb-2 flex items-baseline justify-between">
               <span className="text-caption uppercase tracking-wider text-graytext-mid">
                 Attendance
               </span>

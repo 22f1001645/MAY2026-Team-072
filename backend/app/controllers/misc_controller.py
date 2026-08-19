@@ -36,6 +36,26 @@ def mark_notifications_read():
     return jsonify({"ok": True}), 200
 
 
+@misc_bp.delete("/notifications")
+@auth_required
+def clear_notifications():
+    from ..models import Notification
+    db.session.query(Notification).filter_by(user_id=g.current_user.id).delete()
+    db.session.commit()
+    return jsonify({"ok": True}), 200
+
+
+@misc_bp.delete("/notifications/<notif_id>")
+@auth_required
+def delete_notification(notif_id):
+    from ..models import Notification
+    notif = db.session.query(Notification).filter_by(id=notif_id, user_id=g.current_user.id).first()
+    if notif:
+        db.session.delete(notif)
+        db.session.commit()
+    return jsonify({"ok": True}), 200
+
+
 @misc_bp.get("/dashboard")
 @auth_required
 def dashboard():

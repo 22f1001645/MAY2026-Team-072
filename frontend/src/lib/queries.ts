@@ -267,6 +267,22 @@ export const useMarkNotificationsRead = () => {
   })
 }
 
+export const useClearNotifications = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.clearNotifications(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
+  })
+}
+
+export const useDeleteNotification = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.deleteNotification(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
+  })
+}
+
 export const useCreateOrg = () => {
   const qc = useQueryClient()
   return useMutation({

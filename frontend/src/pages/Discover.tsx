@@ -1,20 +1,63 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useEvents, useMyRegistrations, useCities } from '../lib/queries'
 import { Badge, Button, Card, Mandala } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cover, scaleLabel, daysUntil, cx, formatDate, formatTime } from '../lib/format'
 import { EkatvaEvent } from '../lib/types'
 import { useSession } from '../lib/session'
-import CitySelector from '../components/CitySelector'
 import WelcomeBanner from '../components/WelcomeBanner'
+
+function InlineDropdown({ value, options, onChange, isCity }: { value: string, options: string[], onChange: (v: string) => void, isCity: boolean }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button 
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 border-b-[3px] border-teal/40 text-teal hover:border-teal transition-colors focus:outline-none cursor-pointer pb-0.5"
+      >
+        <span>{value === 'All' ? (isCity ? 'anywhere' : 'all') : value.toLowerCase()}</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-onyx/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal">
+          {options.map(opt => (
+            <button
+              key={opt}
+              onClick={() => { onChange(opt); setOpen(false) }}
+              className={`text-left px-4 py-2.5 rounded-lg transition-colors ${value === opt ? 'bg-teal/20 text-teal' : 'hover:bg-white/10'}`}
+            >
+              {opt === 'All' ? (isCity ? 'Anywhere' : 'All') : opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Discover() {
   const { data: events = [], isLoading, isError, error } = useEvents()
   const { data: regs = [] } = useMyRegistrations()
   const { data: CITIES = [] } = useCities()
+  const [searchParams] = useSearchParams()
   const { city: userCity } = useSession()
-  const [activeCity, setActiveCity] = useState(userCity || 'All')
+  const [activeCity, setActiveCity] = useState(searchParams.get('city') || userCity || 'All')
   const [activeCategory, setActiveCategory] = useState('All')
   const [notifyEmail, setNotifyEmail] = useState('')
   const [notified, setNotified] = useState(false)
@@ -71,39 +114,27 @@ export default function Discover() {
   return (
     <div>
       <WelcomeBanner />
-      <FeaturedCarousel events={featured} />
+      <FeaturedCarousel events={featured} isLoading={isLoading} />
 
-      {/* Filters Header */}
-      <div id="feed" className="mb-4 flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-h2 font-semibold text-gold">Upcoming near you</h2>
+      {/* Dynamic Sentence Header */}
+      <div className="mb-10 mt-6 lg:mt-8">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-[1.4] md:leading-[1.3] flex flex-wrap items-center gap-x-2 gap-y-3">
+          <span>Discover</span>
+          <InlineDropdown 
+            value={activeCategory} 
+            options={allCategories} 
+            onChange={setActiveCategory} 
+            isCity={false} 
+          />
+          <span>events in</span>
+          <InlineDropdown 
+            value={activeCity} 
+            options={['All', ...CITIES.map((c: any) => c.name)]} 
+            onChange={setActiveCity} 
+            isCity={true} 
+          />
+        </h1>
       </div>
-
-      {/* Visual Category Chips */}
-      {allCategories.length > 1 && (
-        <div className="mb-4 overflow-x-auto pb-2 scrollbar-none flex items-center gap-2">
-          {allCategories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={cx(
-                'whitespace-nowrap rounded-full border px-4 py-1.5 text-[13px] font-medium transition-all duration-300 capitalize',
-                activeCategory === cat
-                  ? 'border-teal bg-teal text-onyx shadow-glow-teal'
-                  : 'border-white/10 bg-white/5 text-graytext-light hover:border-white/20 hover:text-offwhite',
-              )}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* City chips */}
-      <CitySelector
-        cities={CITIES.map((c: any) => c.name)}
-        activeCity={activeCity}
-        setActiveCity={setActiveCity}
-      />
 
       {/* Live states */}
       {isLoading && <Loading label="Loading events near you…" />}
@@ -190,7 +221,7 @@ export default function Discover() {
   )
 }
 
-function FeaturedCarousel({ events }: { events: EkatvaEvent[] }) {
+function FeaturedCarousel({ events, isLoading }: { events: EkatvaEvent[], isLoading?: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
@@ -200,6 +231,32 @@ function FeaturedCarousel({ events }: { events: EkatvaEvent[] }) {
     }, 5000)
     return () => clearInterval(timer)
   }, [events.length])
+
+  if (isLoading) {
+    return (
+      <section className="relative mb-9 overflow-hidden rounded-xl2 border border-white/5 bg-[#070C0A] flex flex-col items-center justify-center text-center p-10 h-[420px]">
+        {/* Subtle Brand Gradients for depth */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[120%] bg-teal/5 blur-[80px] rounded-full pointer-events-none mix-blend-screen" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[100%] bg-emerald/5 blur-[80px] rounded-full pointer-events-none mix-blend-screen" />
+        
+        {/* Shimmering Layout Elements */}
+        <div className="relative z-10 max-w-3xl flex flex-col items-center w-full">
+          <div className="w-36 h-8 rounded-full bg-white/[0.03] border border-white/[0.05] mb-5 overflow-hidden relative">
+             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full animate-shimmer" />
+          </div>
+          <div className="w-3/4 max-w-[500px] h-14 rounded-2xl bg-white/[0.02] border border-white/[0.05] mb-4 overflow-hidden relative">
+             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full animate-[shimmer_2s_infinite_0.2s]" />
+          </div>
+          <div className="w-1/2 max-w-[300px] h-5 rounded-lg bg-white/[0.02] mb-8 overflow-hidden relative">
+             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full animate-[shimmer_2s_infinite_0.4s]" />
+          </div>
+          <div className="w-40 h-12 rounded-full bg-white/[0.03] border border-white/[0.05] overflow-hidden relative">
+             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full animate-[shimmer_2s_infinite_0.6s]" />
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   if (events.length === 0) return null
 

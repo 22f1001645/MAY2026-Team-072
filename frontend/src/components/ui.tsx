@@ -161,9 +161,11 @@ export function Card({
 export function Badge({
   children,
   tone = 'neutral',
+  className,
 }: {
   children: ReactNode
   tone?: 'teal' | 'gold' | 'neutral' | 'success' | 'warn' | 'danger'
+  className?: string
 }) {
   const tones = {
     teal: 'bg-teal/10 text-teal border-teal/25',
@@ -178,6 +180,7 @@ export function Badge({
       className={cx(
         'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
         tones[tone],
+        className
       )}
     >
       {children}

@@ -9,6 +9,7 @@ import {
   usePatchReportMutation,
   useDraftExpensesMutation,
 } from '../lib/queries'
+import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, Input, Progress, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import EventAnnouncementsModal from '../components/EventAnnouncementsModal'
@@ -17,6 +18,7 @@ import { cx, daysUntil } from '../lib/format'
 // FR-F1 (thin): registration list + basic task assignment
 export default function ManageEvent() {
   const { id } = useParams()
+  const { currentUser } = useAuth()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: roster = [] } = useRoster(id)
   const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks'>('roster')
@@ -27,6 +29,16 @@ export default function ManageEvent() {
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
   if (!e) return <div>Event not found</div>
+
+  const isMeetupHead = !!(
+    e.teamMembers?.some(
+      (m: any) =>
+        (m.userId === currentUser?.id || m.user_id === currentUser?.id) &&
+        m.role === 'Meetup Head',
+    ) ||
+    e.organiser === currentUser?.name ||
+    currentUser?.role === 'admin'
+  )
 
   const referrersMap = roster.reduce((acc: Record<string, number>, r: any) => {
     if (r.referrer) acc[r.referrer] = (acc[r.referrer] || 0) + 1
@@ -200,8 +212,8 @@ export default function ManageEvent() {
       {/* Phase 6 close-out panels — only visible after event date has passed */}
       {new Date(e.startsAt) < new Date() && (
         <div className="mt-8 space-y-4">
-          <ReflectionPanel activityId={e.id} />
-          <ReimbursementPanel activityId={e.id} />
+          <ReflectionPanel activityId={e.id} isMeetupHead={isMeetupHead} />
+          <ReimbursementPanel activityId={e.id} isMeetupHead={isMeetupHead} />
           <EventTimeline activityId={e.id} />
         </div>
       )}
@@ -242,14 +254,12 @@ function Accordion({
   )
 }
 
-function ReflectionPanel({ activityId }: { activityId: string }) {
+function ReflectionPanel({ activityId, isMeetupHead }: { activityId: string; isMeetupHead: boolean }) {
   const [challenges, setChallenges] = useState('')
   const [learnings, setLearnings] = useState('')
   const [saving, setSaving] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const patchMut = usePatchReportMutation()
-  const me = (window as any).__ME_CACHE // injected by auth context if available
-  const isMeetupHead = me?.capabilities?.meetupHeadOf?.length > 0
 
   const autoSave = (field: 'challenges' | 'learnings', value: string) => {
     setSaving(true)
@@ -303,9 +313,15 @@ function ReflectionPanel({ activityId }: { activityId: string }) {
           )}
           <div className="flex justify-end">
             <Button
-              disabled={!isMeetupHead || patchMut.isPending}
+              disabled={!isMeetupHead || (!challenges.trim() && !learnings.trim()) || patchMut.isPending}
               onClick={handleSubmit}
-              title={!isMeetupHead ? 'Only the Meetup Head can submit the reflection' : undefined}
+              title={
+                !isMeetupHead
+                  ? 'Only the Meetup Head can submit the reflection'
+                  : !challenges.trim() && !learnings.trim()
+                  ? 'Please write your reflection before submitting'
+                  : undefined
+              }
             >
               {patchMut.isPending ? 'Submitting…' : 'Submit Reflection'}
             </Button>
@@ -316,7 +332,7 @@ function ReflectionPanel({ activityId }: { activityId: string }) {
   )
 }
 
-function ReimbursementPanel({ activityId }: { activityId: string }) {
+function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; isMeetupHead: boolean }) {
   const [rows, setRows] = useState<{ label: string; amount: string; bill_name: string }[]>([
     { label: '', amount: '', bill_name: '' },
   ])
@@ -324,8 +340,13 @@ function ReimbursementPanel({ activityId }: { activityId: string }) {
   const [submitted, setSubmitted] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const draftMut = useDraftExpensesMutation()
-  const me = (window as any).__ME_CACHE
-  const isMeetupHead = me?.capabilities?.meetupHeadOf?.length > 0
+
+  const validExpenses = rows.filter((r) => r.label.trim() && (parseFloat(r.amount) || 0) > 0)
+  const canSubmit =
+    isMeetupHead &&
+    validExpenses.length > 0 &&
+    socialUrl.trim().length > 0 &&
+    !draftMut.isPending
 
   const addRow = () => setRows((r) => [...r, { label: '', amount: '', bill_name: '' }])
   const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i))
@@ -416,9 +437,17 @@ function ReimbursementPanel({ activityId }: { activityId: string }) {
           )}
           <div className="flex justify-end pt-2">
             <Button
-              disabled={!isMeetupHead || draftMut.isPending}
+              disabled={!canSubmit}
               onClick={() => setConfirmOpen(true)}
-              title={!isMeetupHead ? 'Only the Meetup Head can submit a reimbursement request' : undefined}
+              title={
+                !isMeetupHead
+                  ? 'Only the Meetup Head can submit a reimbursement request'
+                  : validExpenses.length === 0
+                  ? 'Add at least one expense with label and amount'
+                  : !socialUrl.trim()
+                  ? 'Social post URL is required to submit'
+                  : undefined
+              }
             >
               Submit Reimbursement
             </Button>

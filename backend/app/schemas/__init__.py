@@ -72,6 +72,50 @@ class ExpenseSchema(Schema):
     bill_name = fields.Str(load_default="bill.pdf")
 
 
+class ExpenseDraftRowSchema(Schema):
+    """REIMB-01 — one row of the expense draft list.
+
+    `id` present means "edit this row", absent means "create one". `label` is
+    the only required field: a draft is a working document, so an amount the
+    organiser has not looked up yet defaults to 0 rather than making the whole
+    payload a 422. Both string bounds match the declared column widths, so an
+    over-long value is a placeable 422 rather than a database error on commit.
+    """
+
+    id = fields.Str(load_default=None, allow_none=True)
+    label = fields.Str(required=True, validate=validate.Length(min=1, max=200))
+    amount = fields.Int(load_default=0, validate=validate.Range(min=0))
+    bill_name = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(max=200)
+    )
+
+
+class ExpenseDraftSchema(Schema):
+    """REIMB-01/REIMB-02 — the whole expense list in one write, plus the
+    Meetup Head's optional submit.
+
+    `expenses` defaults to an empty list so a bare `{"submit": true}` is a valid
+    "submit what is already drafted" call. `submit` is a flag rather than a
+    second endpoint because the UI's Submit button both saves the row the user
+    is still typing and closes the list (decision D-11); splitting it would let
+    those two halves land in either order.
+
+    `social_post_url` carries a length bound only, following SocialLinkSchema:
+    the shape of a URL is decided by `app.url_safety`, and whether one is
+    REQUIRED depends on `submit`, which is a service-layer question. Duplicating
+    either check here would pre-empt a placeable, coded rejection with a bare
+    422 the Reimbursement panel cannot attach to the field.
+    """
+
+    expenses = fields.List(fields.Nested(ExpenseDraftRowSchema), load_default=list)
+    submit = fields.Bool(load_default=False)
+    social_post_url = fields.Str(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=MAX_SOCIAL_URL_LENGTH),
+    )
+
+
 class BroadcastSchema(Schema):
     title = fields.Str(required=True)
     body = fields.Str(required=True)

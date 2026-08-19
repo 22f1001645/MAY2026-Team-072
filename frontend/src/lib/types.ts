@@ -264,3 +264,69 @@ export interface ApiSchedulePreset {
   name: string
   items: Array<{ timeBlock: string; title: string }>
 }
+
+/** One organiser-defined custom registration field (CAMPAIGN-05). The wire
+ *  spelling `field_type` is adapted once in api.ts, as with every other type
+ *  in this module. */
+export interface ApiFormField {
+  id: string
+  activityId: string
+  label: string
+  fieldType: string
+  options: string[]
+  required: boolean
+  position: number
+}
+
+/** One card on an activity's Kanban board (TEAM-02). Replaces the `Task` shape
+ *  above, which was a client-side mock and was never persisted. `status` is
+ *  deliberately a plain string: the legal values are the server's, and the
+ *  board's columns come off the wire in `ApiCampaignState.taskStatuses` — a
+ *  union type here would be a second copy of that set. */
+export interface ApiTask {
+  id: string
+  activityId: string
+  title: string
+  description: string | null
+  assigneeId: string | null
+  /** ISO datetime, or `null` when the card carries no deadline. */
+  deadline: string | null
+  status: string
+  position: number
+}
+
+/** One column of the task board, as the server declares it. */
+export interface ApiTaskStatus {
+  value: string
+  label: string
+}
+
+/** The published campaign status, mirroring backend constants.CAMPAIGN_LIVE.
+ *  Both the stepper's last step and the push-live gate read it, so it is named
+ *  once rather than spelled as a literal at each comparison. */
+export const CAMPAIGN_LIVE = 'live'
+
+/** The campaign package's state as the server reports it (CAMPAIGN-04/06).
+ *  `registrationUrl` is the server's assembled link — the browser never builds
+ *  it, because the URL shape is a published contract (D-12). */
+export interface ApiCampaignState {
+  id: string | null
+  activityId: string
+  status: string
+  mailSubject: string | null
+  mailBody: string | null
+  posterName: string | null
+  registrationSlug: string | null
+  registrationUrl: string | null
+  pushedLiveAt: string | null
+  isMeetupHead: boolean
+  formFieldTypes: string[]
+  /** The Kanban board's columns, in render order (TEAM-02). */
+  taskStatuses: ApiTaskStatus[]
+  completeness: {
+    schedule: boolean
+    mail: boolean
+    poster: boolean
+    registration: boolean
+  }
+}

@@ -135,6 +135,23 @@ def _multipart_of_exactly(total):
     return body
 
 
+def _multipart_whose_file_is_exactly(size):
+    """A multipart body whose FILE part is exactly *size* bytes.
+
+    The logo's own 2 MiB bound (Config.LOGO_MAX_BYTES) is checked inside the
+    view against the uploaded part, not against the request body, so its edge
+    can only be hit by counting the file rather than the envelope — the mirror
+    image of the helper above, which exists for the app-wide cap.
+    """
+    prefix = (
+        f"--{_BOUNDARY}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="logo.png"\r\n'
+        "Content-Type: image/png\r\n\r\n"
+    ).encode()
+    suffix = f"\r\n--{_BOUNDARY}--\r\n".encode()
+    return _multipart_of_exactly(size + len(prefix) + len(suffix))
+
+
 @pytest.fixture(autouse=True)
 def swept_upload_dir(app):
     """`instance/uploads/` is real, gitignored disk shared by every run.
@@ -716,11 +733,24 @@ def test_sniff_accepts_three_formats_and_refuses_everything_else():
     assert sniff_image_ext(b"RIFF\x00\x00\x00\x00WAVE" + b"\x00" * 16) is None
 
 
-def test_upload_size_cap_is_two_mib_and_not_overridden_in_tests():
-    """The cap is enforced by Flask before the body is buffered, so the value
-    itself is the control. TestConfig must not soften it, or the boundary test
-    below would be proving something about a test-only number."""
-    assert Config.MAX_CONTENT_LENGTH == 2 * 1024 * 1024
+def test_upload_size_caps_are_split_and_not_overridden_in_tests():
+    """Two caps since Phase 5's CAMPAIGN-03 (decision OD-2), not one.
+
+    ``MAX_CONTENT_LENGTH`` is a single app-wide Flask key, so it cannot carry
+    both the poster's 5 MiB and the logo's 2 MiB. The shared key was raised to
+    the larger of the two — Flask still refuses anything past it before the body
+    is buffered — and the logo's stricter bound moved into ``store_logo`` as a
+    per-endpoint check, so raising the shared key did not quietly relax it.
+
+    TestConfig must soften neither value, or the boundary test below would be
+    proving something about a test-only number.
+    """
+    assert Config.LOGO_MAX_BYTES == 2 * 1024 * 1024
+    assert Config.POSTER_MAX_BYTES == 5 * 1024 * 1024
+    assert Config.MAX_CONTENT_LENGTH == Config.POSTER_MAX_BYTES
+    assert Config.LOGO_MAX_BYTES < Config.MAX_CONTENT_LENGTH, (
+        "a logo bound at or above the app-wide cap would never be reached"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -819,16 +849,19 @@ def test_logo_sniffs_content(client, app, house_secretary_headers):
 def test_logo_too_large(client, app, house_secretary_headers):
     """T-04-21, asserted at the exact edge and one byte past it.
 
-    The over-size body is refused by Flask before it is buffered, so the view
-    never runs: no file appears and the row still points at the file the
-    at-the-cap upload stored. The pair matters — a cap that also refused a body
-    exactly at the limit would be off by one and nothing else here would notice.
+    Since Phase 5's OD-2 the logo's 2 MiB lives in the view rather than in
+    MAX_CONTENT_LENGTH, so the edge is measured on the FILE. Nothing is written
+    when it is exceeded — the check runs before the save — and the row still
+    points at the file the at-the-limit upload stored. The pair matters: a bound
+    that also refused a file exactly at the limit would be off by one and
+    nothing else here would notice. T-05-52 is the regression this pins: raising
+    the shared app-wide key for the campaign poster must not widen the logo.
     """
     house = house_org()
-    cap = app.config["MAX_CONTENT_LENGTH"]
+    logo_cap = app.config["LOGO_MAX_BYTES"]
 
     at_the_cap = client.post(
-        _logo(house), data=_multipart_of_exactly(cap),
+        _logo(house), data=_multipart_whose_file_is_exactly(logo_cap),
         content_type=_MULTIPART, headers=house_secretary_headers,
     )
     assert at_the_cap.status_code == 200, at_the_cap.status_code
@@ -836,11 +869,22 @@ def test_logo_too_large(client, app, house_secretary_headers):
     after_the_cap = set(upload_dir().iterdir())
 
     over = client.post(
-        _logo(house), data=_multipart_of_exactly(cap + 1),
+        _logo(house), data=_multipart_whose_file_is_exactly(logo_cap + 1),
         content_type=_MULTIPART, headers=house_secretary_headers,
     )
 
     assert over.status_code == 413
+    assert over.get_json()["code"] == "payload_too_large"
+    assert set(upload_dir().iterdir()) == after_the_cap, "the file was saved anyway"
+    assert house_org().logo_url == accepted_url
+
+    # And the app-wide cap is still the outer wall: a body past it never reaches
+    # the view at all, so this one carries no JSON envelope of ours.
+    huge = client.post(
+        _logo(house), data=_multipart_of_exactly(app.config["MAX_CONTENT_LENGTH"] + 1),
+        content_type=_MULTIPART, headers=house_secretary_headers,
+    )
+    assert huge.status_code == 413
     assert set(upload_dir().iterdir()) == after_the_cap, "the view ran anyway"
     assert house_org().logo_url == accepted_url
 

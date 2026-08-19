@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useParams, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useEvent, useMyRegistrations, useRegister, useUnregister, useAnnouncements, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
 import { useSession } from '../lib/session'
@@ -11,6 +11,17 @@ import { cover, daysUntil, formatDate, formatTime, scaleLabel, cx, googleCalenda
 import EventChat from '../components/EventChat'
 import CollabStatus from '../components/CollabStatus'
 
+/**
+ * EventDetail also serves the shared registration link, which a visitor opens
+ * with no session at all (OD-3). Two rules follow from that:
+ *
+ *  - Nothing here may assume a payload key. The anonymous response carries no
+ *    budget, no collaborators and no team roster (T-05-33), so every one of
+ *    those sections renders on presence rather than on an assumption.
+ *  - No session-only query may fire without a session. A 401 is read by the
+ *    request pipeline as an expired session and redirects to /login, which
+ *    would throw the visitor off the page the link was meant to open.
+ */
 export default function EventDetail() {
   const { id } = useParams()
   const location = useLocation()
@@ -19,8 +30,9 @@ export default function EventDetail() {
   const { id: currentUserId, role, capabilities } = useSession()
   const { currentUser } = useAuth()
   const { addToast } = useToast()
+  const navigate = useNavigate()
   const { data: e, isLoading, isError, error } = useEvent(id)
-  const { data: myRegs = [] } = useMyRegistrations()
+  const { data: myRegs = [] } = useMyRegistrations(!!currentUser)
   const { data: announcements = [] } = useAnnouncements(id)
   const registerMut = useRegister()
   const unregisterMut = useUnregister()
@@ -29,7 +41,12 @@ export default function EventDetail() {
   const [reassignOpen, setReassignOpen] = useState(false)
   const [reassignUserId, setReassignUserId] = useState('')
 
-  const canManage = role !== 'student' || capabilities?.manageableActivityIds?.includes(id!)
+  // The `currentUser` term is stated rather than inferred: without it an
+  // anonymous visitor whose `role` is not 'student' would open the organiser
+  // face of the page. It cannot happen today (role falls back to 'student'),
+  // which is exactly why it is worth pinning here.
+  const canManage =
+    !!currentUser && (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
@@ -65,12 +82,16 @@ export default function EventDetail() {
         </div>
       )}
 
-      <Link
-        to="/discover"
-        className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-graytext-light hover:text-teal"
-      >
-        ← Discovery feed
-      </Link>
+      {/* /discover is behind auth, so it is not offered to a visitor who has
+          arrived from a shared link and has no session yet. */}
+      {currentUser && (
+        <Link
+          to="/discover"
+          className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-graytext-light hover:text-teal"
+        >
+          ← Discovery feed
+        </Link>
+      )}
 
       {refId && !registered && (
         <div className="mb-5 rounded-xl2 border border-teal/30 bg-teal/10 px-4 py-3 text-[13px] text-teal">
@@ -206,20 +227,26 @@ export default function EventDetail() {
                   Only visible to your POR
                 </span>
               </div>
-              <h2 className="mb-3 text-h3 font-semibold text-offwhite">
-                Line-item budget · {inr(plannedTotal)}
-              </h2>
-              <div className="space-y-2">
-                {e.budget.map((b) => (
-                  <div
-                    key={b.id}
-                    className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2 text-[13px]"
-                  >
-                    <span className="text-graytext-light">{b.label}</span>
-                    <span className="font-semibold text-offwhite">{inr(b.planned)}</span>
+              {/* Only rendered when the payload actually carried budget lines —
+                  the anonymous preview omits the key entirely (T-05-33). */}
+              {e.budget.length > 0 && (
+                <>
+                  <h2 className="mb-3 text-h3 font-semibold text-offwhite">
+                    Line-item budget · {inr(plannedTotal)}
+                  </h2>
+                  <div className="space-y-2">
+                    {e.budget.map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2 text-[13px]"
+                      >
+                        <span className="text-graytext-light">{b.label}</span>
+                        <span className="font-semibold text-offwhite">{inr(b.planned)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
               <div className="mt-4 flex gap-2">
                 <Link to={`/events/${e.id}/manage`}>
                   <Button variant="secondary" size="sm">
@@ -404,7 +431,18 @@ export default function EventDetail() {
                     className="w-full"
                     size="lg"
                     disabled={registerMut.isPending || (spotsLeft <= 0 && isWaitlistClosed)}
-                    onClick={() => registerMut.mutate({ id: e.id, referredBy: refId })}
+                    onClick={() => {
+                      // A visitor from a shared link signs in first and comes
+                      // back here — the same router-state idiom the session
+                      // expiry flow uses. The register endpoint stays behind
+                      // @auth_required either way; this only saves them a
+                      // failed request and a lost page (T-05-35).
+                      if (!currentUser) {
+                        navigate('/login', { state: { from: location.pathname } })
+                        return
+                      }
+                      registerMut.mutate({ id: e.id, referredBy: refId })
+                    }}
                   >
                     {registerMut.isPending
                       ? 'Processing…'
@@ -434,7 +472,7 @@ export default function EventDetail() {
               <Perk text="Meet people from your city IRL" />
               <Perk text="Contribution points on attendance" />
             </div>
-            {!isPast && e.status !== 'cancelled' && (
+            {currentUser && !isPast && e.status !== 'cancelled' && (
               <div className="mt-6">
                 {((registered && !isWaitlisted) || canManage) && e.status !== 'completed' && (
                   <button

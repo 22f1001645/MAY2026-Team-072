@@ -35,14 +35,24 @@ class Config:
         "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://localhost:5175",
     ).split(",")
 
-    # Upload size cap (ORG-01, decision D-01). 2 MiB, and deliberately NOT an
-    # env-var override: it is a security control, not a deployment knob. Flask
-    # refuses a larger body BEFORE buffering it, which is the whole reason the
-    # cap lives here rather than as a length check inside a view — a view-level
-    # check has already read the entire body into memory by the time it can
-    # reject it. TestConfig does not override it, because the boundary test has
-    # to exercise the real value.
-    MAX_CONTENT_LENGTH = 2 * 1024 * 1024
+    # Upload size caps. Deliberately NOT env-var overrides: they are security
+    # controls, not deployment knobs, and TestConfig does not soften them
+    # either, because the boundary tests have to exercise the real values.
+    #
+    # MAX_CONTENT_LENGTH is a single APP-WIDE Flask key, so the two endpoints
+    # that accept a file cannot both express their limit through it. Phase 5
+    # (CAMPAIGN-03, decision OD-2) raised it from the logo's original 2 MiB to
+    # the poster's 5 MiB, which the UI-SPEC's "max 5 MB" copy promises. Flask
+    # still refuses anything larger BEFORE buffering the body, which is the
+    # whole reason this bound lives here rather than as a length check inside a
+    # view — by the time a view can measure a body it has already read it.
+    #
+    # The logo's stricter 2 MiB therefore moved to a per-endpoint check in
+    # org_profile_service.store_logo, so raising the shared key did not quietly
+    # relax the logo rule (T-05-52).
+    POSTER_MAX_BYTES = 5 * 1024 * 1024
+    LOGO_MAX_BYTES = 2 * 1024 * 1024
+    MAX_CONTENT_LENGTH = POSTER_MAX_BYTES
 
     # AI-drafted brand kit (ORG-04, decision D-04). Server-side only: this must
     # never be re-exposed as a VITE_* name, because Vite inlines those into the

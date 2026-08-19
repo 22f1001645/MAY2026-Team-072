@@ -1,4 +1,15 @@
-import type { Account, BrandKit, EkatvaEvent, OrgProfile, Organisation, Role } from './types'
+import type {
+  Account,
+  ApiCampaignState,
+  ApiFormField,
+  ApiSchedulePreset,
+  ApiTask,
+  BrandKit,
+  EkatvaEvent,
+  OrgProfile,
+  Organisation,
+  Role,
+} from './types'
 
 /* ---------------------------------------------------------------------------
  * API client — Phase 2 (D-01, D-05, D-06, D-09).
@@ -308,6 +319,18 @@ function absoluteUploadUrl(path?: string | null): string | null {
   }
 }
 
+/** The absolute URL of a stored upload, from its server-chosen filename.
+ *
+ *  The campaign payload carries `poster_name` — the bare filename — rather than
+ *  a path, so this is the poster's counterpart to `absoluteUploadUrl` above and
+ *  exists for the same reason: the API's origin differs from the app's, and a
+ *  component that assembled this itself would be a second base URL to keep in
+ *  step. The name is encoded even though the server only ever issues a UUID and
+ *  an extension, because a filename reaching an `<img src>` unescaped is a habit
+ *  worth not having. */
+export const uploadUrl = (filename: string): string =>
+  `${BASE}/uploads/${encodeURIComponent(filename)}`
+
 /** Every optional lands on a non-`undefined` value, following `adaptMe`, so no
  *  page needs a `?.` chain for a field the server always sends. */
 export function adaptOrganisation(o: ApiOrganisation): Organisation {
@@ -343,6 +366,92 @@ export function adaptBrandKit(k: ApiBrandKit): BrandKit {
 
 /* -------------------------------- endpoints ------------------------------ */
 let _explicitRefreshPromise: Promise<any> | null = null
+/** camelCase → wire name for a schedule-item patch (DESIGN-01). Keeping the map
+ *  here rather than inline keeps this module the only place that knows the wire
+ *  spelling of a schedule column. */
+const SCHEDULE_WIRE_KEYS: Record<string, string> = {
+  title: 'title',
+  timeBlock: 'time_block',
+  position: 'position',
+  notes: 'notes',
+  ownerId: 'owner_id',
+  ownerLabel: 'owner_label',
+}
+
+/** camelCase → wire name for a custom registration field (CAMPAIGN-05). */
+const FORM_FIELD_WIRE_KEYS: Record<string, string> = {
+  label: 'label',
+  fieldType: 'field_type',
+  options: 'options',
+  required: 'required',
+  position: 'position',
+}
+
+function adaptFormField(f: any): ApiFormField {
+  return {
+    id: f.id,
+    activityId: f.activity_id,
+    label: f.label,
+    fieldType: f.field_type,
+    options: f.options ?? [],
+    required: !!f.required,
+    position: f.position,
+  }
+}
+
+function adaptTask(t: any): ApiTask {
+  return {
+    id: t.id,
+    activityId: t.activity_id,
+    title: t.title,
+    description: t.description ?? null,
+    assigneeId: t.assignee_id ?? null,
+    deadline: t.deadline ?? null,
+    status: t.status,
+    position: t.position,
+  }
+}
+
+/** camelCase → wire name for one Kanban card (TEAM-02). */
+const TASK_WIRE_KEYS: Record<string, string> = {
+  title: 'title',
+  description: 'description',
+  assigneeId: 'assignee_id',
+  deadline: 'deadline',
+  status: 'status',
+  position: 'position',
+}
+
+/** `<input type="date">` yields a bare `YYYY-MM-DD`, and the deadline column is
+ *  a DateTime. Widening it to midnight here — rather than loosening the
+ *  schema — keeps the server's accepted format one thing. */
+function taskDeadlineToWire(deadline?: string | null): string | null {
+  if (!deadline) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(deadline) ? `${deadline}T00:00:00` : deadline
+}
+
+function adaptCampaign(c: any): ApiCampaignState {
+  return {
+    id: c.id ?? null,
+    activityId: c.activity_id,
+    status: c.status,
+    mailSubject: c.mail_subject ?? null,
+    mailBody: c.mail_body ?? null,
+    posterName: c.poster_name ?? null,
+    registrationSlug: c.registration_slug ?? null,
+    registrationUrl: c.registration_url ?? null,
+    pushedLiveAt: c.pushed_live_at ?? null,
+    isMeetupHead: !!c.is_meetup_head,
+    formFieldTypes: c.form_field_types ?? [],
+    taskStatuses: c.task_statuses ?? [],
+    completeness: {
+      schedule: !!c.completeness?.schedule,
+      mail: !!c.completeness?.mail,
+      poster: !!c.completeness?.poster,
+      registration: !!c.completeness?.registration,
+    },
+  }
+}
 
 export const api = {
   // Auth (Phase 2 — cookie session)
@@ -645,17 +754,19 @@ export const api = {
     activityId: string,
     itemId: string,
     patch: { title?: string | null; timeBlock?: string | null; position?: number | null; notes?: string | null; ownerId?: string | null; ownerLabel?: string | null },
-  ) =>
-    request<any>(`/activities/${activityId}/schedule/${itemId}`, {
+  ) => {
+    // Only the keys the caller actually supplied reach the wire. The server
+    // treats a body carrying position alone as a reorder and leaves every other
+    // column untouched, so padding the body with nulls would turn every move
+    // into a full-row replace and let a blur-save in flight clobber it (T-05-30).
+    const wire: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(patch)) {
+      const wireKey = SCHEDULE_WIRE_KEYS[key]
+      if (wireKey && value !== undefined) wire[wireKey] = value
+    }
+    return request<any>(`/activities/${activityId}/schedule/${itemId}`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        title: patch.title ?? null,
-        time_block: patch.timeBlock ?? null,
-        position: patch.position ?? null,
-        notes: patch.notes ?? null,
-        owner_id: patch.ownerId ?? null,
-        owner_label: patch.ownerLabel ?? null,
-      }),
+      body: JSON.stringify(wire),
     }).then(i => ({
       id: i.id,
       activityId: i.activity_id,
@@ -665,7 +776,165 @@ export const api = {
       ownerId: i.owner_id,
       ownerLabel: i.owner_label,
       notes: i.notes,
-    })),
+    }))
+  },
   deleteScheduleItem: (activityId: string, itemId: string) =>
     request<void>(`/activities/${activityId}/schedule/${itemId}`, { method: 'DELETE' }),
+
+  /** Static scale-appropriate agenda templates (DESIGN-01 / AC-07). An unknown
+   *  scale answers `[]` server-side rather than erroring. */
+  schedulePresets: (scale: string): Promise<ApiSchedulePreset[]> =>
+    request<any[]>(`/schedule-presets?scale=${encodeURIComponent(scale)}`).then(presets =>
+      presets.map(p => ({
+        name: p.name,
+        items: (p.items ?? []).map((i: any) => ({ timeBlock: i.time_block, title: i.title })),
+      })),
+    ),
+
+  // Phase 5: Campaign package + custom registration fields (CAMPAIGN-04/05)
+  /** The campaign state. `registrationUrl` comes straight off this payload and
+   *  is never assembled here — the URL shape belongs to the server (D-12). */
+  campaign: (activityId: string): Promise<ApiCampaignState> =>
+    request<any>(`/activities/${activityId}/campaign`).then(adaptCampaign),
+
+  /** Mint a registration slug. Returns the server's assembled URL — the caller
+   *  copies that value verbatim and never rebuilds it (D-12). */
+  generateSlug: (activityId: string): Promise<{ registrationSlug: string; registrationUrl: string }> =>
+    request<any>(`/activities/${activityId}/campaign/generate-slug`, { method: 'POST' }).then(
+      r => ({ registrationSlug: r.registration_slug, registrationUrl: r.registration_url }),
+    ),
+
+  /** Publish the campaign (CAMPAIGN-06). The route answers with the campaign
+   *  row alone — no completeness, no is_meetup_head — so the response is not
+   *  adapted into a campaign state and is never written into the cache; the
+   *  caller refetches instead. */
+  pushLive: (activityId: string): Promise<unknown> =>
+    request<unknown>(`/activities/${activityId}/campaign/push-live`, { method: 'POST' }),
+
+  /** Attach a poster to the campaign (CAMPAIGN-03). Multipart, so the request
+   *  helper's FormData branch drops the JSON content type and lets the browser
+   *  set its own boundary — the key must be `poster`, which is the part name the
+   *  route reads. */
+  uploadPoster: (activityId: string, file: File): Promise<{ posterName: string }> => {
+    const form = new FormData()
+    form.append('poster', file)
+    return request<{ poster_name: string }>(`/activities/${activityId}/campaign/poster`, {
+      method: 'POST',
+      body: form,
+    }).then(r => ({ posterName: r.poster_name }))
+  },
+
+  /** Draft the campaign mail (CAMPAIGN-01/02). Always resolves when the campaign
+   *  is editable: the server degrades to a static template rather than failing,
+   *  and reports which one the caller got in `degraded`. The banner that flag
+   *  drives is the only way an organiser can tell the two apart, so it is
+   *  adapted here rather than dropped. */
+  generateMail: (
+    activityId: string,
+  ): Promise<{ mailSubject: string | null; mailBody: string | null; degraded: boolean }> =>
+    request<any>(`/activities/${activityId}/campaign/generate-mail`, { method: 'POST' }).then(
+      r => ({
+        mailSubject: r.mail_subject ?? null,
+        mailBody: r.mail_body ?? null,
+        degraded: !!r.degraded,
+      }),
+    ),
+
+  /** Persist the organiser's edited mail. Only the keys supplied travel, so a
+   *  blur-save on the body says nothing about the subject and cannot blank it. */
+  saveMail: (
+    activityId: string,
+    patch: { mailSubject?: string; mailBody?: string },
+  ): Promise<{ mailSubject: string | null; mailBody: string | null }> => {
+    const body: Record<string, string> = {}
+    if (patch.mailSubject !== undefined) body.mail_subject = patch.mailSubject
+    if (patch.mailBody !== undefined) body.mail_body = patch.mailBody
+    return request<any>(`/activities/${activityId}/campaign/mail`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(r => ({ mailSubject: r.mail_subject ?? null, mailBody: r.mail_body ?? null }))
+  },
+
+  formFields: (activityId: string): Promise<ApiFormField[]> =>
+    request<any[]>(`/activities/${activityId}/form-fields`).then(rows =>
+      rows.map(adaptFormField),
+    ),
+  createFormField: (
+    activityId: string,
+    field: { label: string; fieldType: string; options?: string[]; required?: boolean; position?: number },
+  ): Promise<ApiFormField> =>
+    request<any>(`/activities/${activityId}/form-fields`, {
+      method: 'POST',
+      body: JSON.stringify({
+        label: field.label,
+        field_type: field.fieldType,
+        options: field.options ?? [],
+        required: field.required ?? false,
+        position: field.position ?? 0,
+      }),
+    }).then(adaptFormField),
+  /** Sends only the keys the caller supplied, for the same reason
+   *  updateScheduleItem does: a padded body turns every edit into a full-row
+   *  replace and lets a blur-save in flight clobber a concurrent change. */
+  updateFormField: (
+    activityId: string,
+    fieldId: string,
+    patch: Partial<Pick<ApiFormField, 'label' | 'fieldType' | 'options' | 'required' | 'position'>>,
+  ): Promise<ApiFormField> => {
+    const wire: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(patch)) {
+      const wireKey = FORM_FIELD_WIRE_KEYS[key]
+      if (wireKey && value !== undefined) wire[wireKey] = value
+    }
+    return request<any>(`/activities/${activityId}/form-fields/${fieldId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(wire),
+    }).then(adaptFormField)
+  },
+  deleteFormField: (activityId: string, fieldId: string) =>
+    request<void>(`/activities/${activityId}/form-fields/${fieldId}`, { method: 'DELETE' }),
+
+  // Phase 5: Kanban task board (TEAM-02).
+  // Every one of these answers 403 `campaign_not_live` until the campaign is
+  // published — the caller presents that as an explanation, not a failure.
+  tasks: (activityId: string): Promise<ApiTask[]> =>
+    request<any[]>(`/activities/${activityId}/tasks`).then((rows) => rows.map(adaptTask)),
+
+  createTask: (
+    activityId: string,
+    draft: { title: string; assigneeId?: string | null; deadline?: string | null; status?: string },
+  ): Promise<ApiTask> =>
+    request<any>(`/activities/${activityId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: draft.title,
+        assignee_id: draft.assigneeId ?? null,
+        deadline: taskDeadlineToWire(draft.deadline),
+        status: draft.status ?? null,
+      }),
+    }).then(adaptTask),
+
+  /** Sends only the keys the caller supplied, for the same reason
+   *  updateScheduleItem does: a padded body turns a column move into a full-row
+   *  replace and lets a stale card clobber a concurrent title edit (T-05-47). */
+  updateTask: (
+    activityId: string,
+    taskId: string,
+    patch: Partial<Pick<ApiTask, 'title' | 'description' | 'assigneeId' | 'deadline' | 'status' | 'position'>>,
+  ): Promise<ApiTask> => {
+    const wire: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(patch)) {
+      const wireKey = TASK_WIRE_KEYS[key]
+      if (wireKey && value !== undefined) {
+        wire[wireKey] = wireKey === 'deadline' ? taskDeadlineToWire(value as string | null) : value
+      }
+    }
+    return request<any>(`/activities/${activityId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(wire),
+    }).then(adaptTask)
+  },
+
+  deleteTask: (activityId: string, taskId: string) =>
+    request<void>(`/activities/${activityId}/tasks/${taskId}`, { method: 'DELETE' }),
 }

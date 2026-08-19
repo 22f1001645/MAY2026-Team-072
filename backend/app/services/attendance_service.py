@@ -1,7 +1,7 @@
 from .settings_service import get_recognition_points
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Attendance, ContributionPoint, Notification, User, Registration
+from ..models import ActivityTeamMember, Attendance, ContributionPoint, Notification, Registration, User
 from ..repositories.repos import ActivityRepository, RegistrationRepository
 
 REFERRAL_POINTS = {"referrer": 50, "referred": 20}
@@ -114,10 +114,33 @@ def scan_qr(activity_id: str, qr_token: str, organiser) -> dict:
 
 
 def award_volunteer_points(activity_id: str, user_id: str, role_name: str, organiser) -> dict:
-    """FR-G3 — Award volunteer contribution points (20 points) for an assigned role."""
+    """FR-G3 — Award volunteer contribution points (20 points) for an assigned role.
+
+    TEAM-04: the recipient must hold an ActivityTeamMember row on THIS activity.
+    The check belongs here rather than in the route, and should stay here. The
+    route's `organiser_required` decorator authorises the *caller* and cannot
+    look at the target `user_id` at all, so without this every organiser POR
+    holder in the country could mint points for any user id in the system. That
+    route is also one of the six frozen LEGACY_COARSE_ROUTES entries, which
+    Phase 1 deliberately declined to retrofit — so "simplifying" this upward
+    into a decorator is not available even in principle.
+
+    The lookup runs before the first `db.session.add`, which is what makes "a
+    refused award writes no ledger row" true by construction rather than by
+    relying on a caller to roll back."""
     activity = ActivityRepository.by_id(activity_id)
     if not activity:
         raise ApiError("Event not found", "event_not_found", 404)
+
+    crew = ActivityTeamMember.query.filter_by(
+        activity_id=activity_id, user_id=user_id
+    ).first()
+    if crew is None:
+        raise ApiError(
+            "Volunteer points can only be awarded to a member of this event's crew.",
+            "not_crew_member",
+            403,
+        )
 
     db.session.add(
         ContributionPoint(

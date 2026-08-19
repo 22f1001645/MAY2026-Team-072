@@ -13,6 +13,7 @@ from ..constants import (
     COLLAB_DECLINED,
     FORM_FIELD_TYPES,
     SOCIAL_PLATFORM_KEYS,
+    TASK_STATUSES,
     TEAM_ROLES,
     UPLOAD_URL_PATTERN,
 )
@@ -291,6 +292,38 @@ class FormFieldPatchSchema(Schema):
     position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))
 
 
+class TaskSchema(Schema):
+    """TEAM-02: create one card on the activity's Kanban board.
+
+    `status` is validated against TASK_STATUSES imported from constants — the
+    three status strings are never restated here, following FormFieldSchema and
+    AcademicStatusSchema above. A value outside that tuple is turned into a 422
+    by the central Marshmallow ValidationError handler (errors.py:31-34), so it
+    never reaches a column, which is what AC-34 asserts.
+
+    The 200-character title bound matches the declared column width, so the
+    server keeps the promise the character counter makes (T-05-23)."""
+
+    title = fields.Str(required=True, validate=validate.Length(min=1, max=200))
+    description = fields.Str(load_default=None, allow_none=True)
+    assignee_id = fields.Str(load_default=None, allow_none=True)
+    deadline = fields.DateTime(load_default=None, allow_none=True)
+    status = fields.Str(
+        load_default=None, allow_none=True, validate=validate.OneOf(TASK_STATUSES)
+    )
+    position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))
+
+
+class TaskPatchSchema(TaskSchema):
+    """TEAM-02: partial update of one card. Follows EditEventSchema's shape —
+    every field nullable, so a PATCH carrying only `status` says nothing about
+    the rest and task_service leaves those columns alone (T-05-24)."""
+
+    title = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(min=1, max=200)
+    )
+
+
 class ScheduleItemSchema(Schema):
     """DESIGN-01: create one row of the event agenda."""
 
@@ -311,3 +344,18 @@ class ScheduleItemPatchSchema(Schema):
     owner_label = fields.Str(load_default=None, allow_none=True, validate=validate.Length(max=120))
     notes = fields.Str(load_default=None, allow_none=True)
     position = fields.Int(load_default=None, allow_none=True, validate=validate.Range(min=0))
+
+
+class MailSchema(Schema):
+    """CAMPAIGN-01: the organiser's edited mail subject and body.
+
+    Both nullable so a PATCH carrying only the body says nothing about the
+    subject — campaign_service.save_mail applies only the keys it was given.
+    ``mail_subject`` is capped at the column's own width so an over-long subject
+    is a placeable 422 rather than a database error on commit.
+    """
+
+    mail_subject = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(max=200)
+    )
+    mail_body = fields.Str(load_default=None, allow_none=True)

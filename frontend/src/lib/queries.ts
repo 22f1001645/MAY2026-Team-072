@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './api'
+import type { ApiFormField, ApiTask } from './types'
 
 /* TanStack Query hooks — server cache, retries, and invalidation on mutation
  * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
@@ -23,8 +24,12 @@ export const useEvents = (city?: string, scale?: string, dateRange?: string) =>
 export const useEvent = (id?: string) =>
   useQuery({ queryKey: ['event', id], queryFn: () => api.event(id!), enabled: !!id })
 
-export const useMyRegistrations = () =>
-  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, refetchInterval: 10000 })
+/** `enabled` exists for the one page a visitor can open without a session
+ *  (`/events/:slug`, OD-3). Firing this without one answers 401, which the
+ *  request pipeline reads as an expired session and redirects to /login —
+ *  so an unguarded call here would bounce the visitor off the public page. */
+export const useMyRegistrations = (enabled = true) =>
+  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, refetchInterval: 10000 })
 
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
@@ -386,6 +391,16 @@ export const useScheduleItems = (activityId?: string) =>
     enabled: !!activityId,
   })
 
+/** Scale presets are static reference data — no refetch interval, and no
+ *  loading state worth rendering; the accordion simply is not there until the
+ *  catalogue arrives (DESIGN-01 / AC-07). */
+export const useSchedulePresets = (scale?: string) =>
+  useQuery({
+    queryKey: ['schedule-presets', scale],
+    queryFn: () => api.schedulePresets(scale!),
+    enabled: !!scale,
+  })
+
 export const useCreateScheduleItem = (activityId?: string) => {
   const qc = useQueryClient()
   return useMutation({
@@ -409,5 +424,142 @@ export const useDeleteScheduleItem = (activityId?: string) => {
   return useMutation({
     mutationFn: (itemId: string) => api.deleteScheduleItem(activityId!, itemId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', activityId] }),
+  })
+}
+
+// Phase 5: Campaign package + custom registration fields (CAMPAIGN-04/05)
+export const useCampaign = (activityId?: string) =>
+  useQuery({
+    queryKey: ['campaign', activityId],
+    queryFn: () => api.campaign(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useGenerateSlug = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.generateSlug(activityId!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
+/** Publish the campaign (CAMPAIGN-06). Invalidates the task list as well as the
+ *  campaign: the workspace is gated on the campaign being live, so its 403 has
+ *  to be re-evaluated the moment publication succeeds. */
+export const usePushLive = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.pushLive(activityId!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaign', activityId] })
+      qc.invalidateQueries({ queryKey: ['tasks', activityId] })
+    },
+  })
+}
+
+/** Attach a poster (CAMPAIGN-03). Invalidating the campaign is what redraws
+ *  both the thumbnail and the pipeline stepper's Poster step, since the
+ *  completeness flags are the server's and are only ever read from that payload. */
+export const useUploadPoster = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => api.uploadPoster(activityId!, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
+/** Draft the campaign mail (CAMPAIGN-01). Invalidating the campaign is what
+ *  redraws both the editor and the stepper's Mail step — `completeness.mail` is
+ *  the server's flag and is only ever read from that payload. The mutation's own
+ *  `data.degraded` is what the amber banner reads: it describes the generation
+ *  that just happened and is deliberately not persisted on the campaign row,
+ *  since a reload should show the draft, not a stale complaint about it. */
+export const useGenerateMail = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.generateMail(activityId!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
+/** Persist an edited mail subject or body. */
+export const useSaveMail = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (patch: { mailSubject?: string; mailBody?: string }) =>
+      api.saveMail(activityId!, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', activityId] }),
+  })
+}
+
+export const useFormFields = (activityId?: string) =>
+  useQuery({
+    queryKey: ['form-fields', activityId],
+    queryFn: () => api.formFields(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useCreateFormField = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (field: { label: string; fieldType: string; options?: string[]; required?: boolean; position?: number }) =>
+      api.createFormField(activityId!, field),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
+  })
+}
+
+export const useUpdateFormField = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { fieldId: string; patch: Partial<ApiFormField> }) =>
+      api.updateFormField(activityId!, v.fieldId, v.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
+  })
+}
+
+export const useDeleteFormField = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (fieldId: string) => api.deleteFormField(activityId!, fieldId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['form-fields', activityId] }),
+  })
+}
+
+// Phase 5: Kanban task board (TEAM-02).
+//
+// None of these hooks sets a refetch option. The board is fetched on page load
+// and after a mutation invalidates it — nothing else (AC-35). The default
+// QueryClient in main.tsx has no interval either, and
+// `src/__tests__/no-kanban-polling.test.ts` fails the build if one appears.
+export const useTasks = (activityId?: string) =>
+  useQuery({
+    queryKey: ['tasks', activityId],
+    queryFn: () => api.tasks(activityId!),
+    enabled: !!activityId,
+  })
+
+export const useCreateTask = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (draft: { title: string; assigneeId?: string | null; deadline?: string | null; status?: string }) =>
+      api.createTask(activityId!, draft),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
+  })
+}
+
+export const useUpdateTask = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { taskId: string; patch: Partial<ApiTask> }) =>
+      api.updateTask(activityId!, v.taskId, v.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
+  })
+}
+
+export const useDeleteTask = (activityId?: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (taskId: string) => api.deleteTask(activityId!, taskId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
   })
 }

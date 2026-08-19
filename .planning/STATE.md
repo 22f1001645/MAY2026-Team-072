@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 05
-current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
+current_phase: 06
+current_phase_name: event-execution-close-out
 status: executing
-stopped_at: Completed 05-11-PLAN.md — Phase 05 complete (11/11)
-last_updated: "2026-08-18T14:35:00.000Z"
-last_activity: 2026-08-18
-last_activity_desc: "Completed 05-11: the campaign mail draft, assembled so the model writes only the narrative and the server concatenates every fact after the call returns — an injection that fully succeeds still cannot move a date, venue, fee or capacity"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-08-19T00:00:00.000Z"
+last_activity: 2026-08-19
+last_activity_desc: "Completed 06-01: the event timeline, built as a projection over records other services already own, plus the TIMELINE-02 audit backfill that gave three services the write they had only ever claimed to make"
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 36
-  completed_plans: 36
-  percent: 100
+  total_plans: 40
+  completed_plans: 37
+  percent: 93
 ---
 
 # Project State
@@ -24,17 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 05 — post-acceptance-pipeline-design-campaign-live-workspace (complete; manual UAT outstanding)
+**Current focus:** Phase 06 — event-execution-close-out (1/4 plans; 06-01 landed)
 
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
-Plan: 9/9 (Phase 04); 11/11 (Phase 05 — 05-01..05-11 all complete)
-Status: Phase 05 fully executed — all seven waves landed. 05-11 (AI mail generation) closed the phase; every Phase 5 requirement (DESIGN-01, CAMPAIGN-01..06, TEAM-01..04) has passing tests. What remains for Phase 05 is manual UAT only, per 05-VALIDATION.md's manual-only list.
-Last activity: 2026-08-18 — Completed 05-11: the campaign mail draft, assembled so the model writes only the narrative and the server concatenates every fact after the call returns — an injection that fully succeeds still cannot move a date, venue, fee or capacity
+Phase: 06 (event-execution-close-out) — IN PROGRESS
+Plan: 1/4 (Phase 06 — 06-01 complete; 06-02, 06-03, 06-04 pending)
+Status: 06-01 landed the timeline half of Phase 6. TIMELINE-01 (GET /api/v1/activities/<id>/timeline, a read-only projection with no new table) and TIMELINE-02 (AuditLog writes backfilled into registration_service, attendance_service and expense_service) are both complete and tested. Backend suite: 387 passing, up from the 378 baseline.
+Last activity: 2026-08-19 — Completed 06-01: the event timeline, built as a projection over records other services already own, plus the TIMELINE-02 audit backfill that gave three services the write they had only ever claimed to make
 
-Progress: [██████████] 100% (36/36 plans across the milestone) — Phase 05: 100%
+Progress: [█████████░] 93% (37/40 plans across the milestone) — Phase 06: 25%
 
 ## Performance Metrics
 
@@ -94,6 +95,7 @@ Progress: [██████████] 100% (36/36 plans across the mileston
 | Phase 05 P09 | 45min | 3 tasks | 13 files |
 | Phase 05 P10 | 50min | 2 tasks | 12 files |
 | Phase 05 P11 | 45min | 3 tasks | 9 files |
+| Phase 06 P01 | 40min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -125,6 +127,9 @@ Recent decisions affecting current work:
 - [Phase 2]: Decoupled Auth tokens from database reads by extracting `TermRepository` and `BlocklistRepository`.
 - [Phase 2]: Added `is_current` to `Term` model and generated migration `17240eb59839` to track the current term.
 - [Phase 2]: Introduced dynamic RBAC predicates (`manageable_orgs`, `manageable_activities`) avoiding token bloat.
+- [Phase 6]: The event timeline reads BOTH the audit log and the underlying tables, de-duplicated by a per-entity cutoff (the earliest audit row's timestamp) rather than an on/off switch — an event with check-ins on both sides of the TIMELINE-02 backfill gets each half from exactly one source.
+- [Phase 6]: The "Expense submitted" audit row was keyed on `expense.id` before the flush, so `entity_id` was always null and the row belonged to nothing. It is now keyed on `activity_id`, which is both the fix and what makes it findable by its two readers.
+- [Phase 6]: `advance()`/`bulk_advance()` audit rows stay keyed on the expense id — those are admin-side pipeline moves, not events in the organiser's timeline.
 - [Phase 2]: Handled role-based capability switching entirely in the frontend using `SessionProvider` and a UI `ViewSwitcher` without server-side token modification.
 - [Phase ?]: [Phase 2] locations=["cookies"] on both cookie endpoints is the authoritative server-side fix for the stale-Authorization-header lockout — the frontend needs no change for correctness (T-02-17, mutation-verified).
 - [Phase ?]: [Phase 2] The blocklist loader stays a pure predicate; revocation side effects live in auth_service.refresh behind skip_revocation_check=True, which is what makes reuse detection reachable for 02-03.

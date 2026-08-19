@@ -294,7 +294,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
-| 6. Event Execution & Close-Out | 0/TBD | Not started | - |
+| 6. Event Execution & Close-Out | 1/4 | In Progress | - |
 | 7. Progression Gating | 0/TBD | Not started | - |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
 

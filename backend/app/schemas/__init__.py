@@ -451,3 +451,17 @@ class MailSchema(Schema):
         load_default=None, allow_none=True, validate=validate.Length(max=200)
     )
     mail_body = fields.Str(load_default=None, allow_none=True)
+
+
+class FeedbackSchema(Schema):
+    """FEEDBACK-02 — one attendee's post-event rating.
+
+    `rating` is required and bounded to 1-5 at the schema layer, which means
+    the service never receives an out-of-range value and can skip re-validation.
+    `comment` is optional; the Text column has no fixed cap, but 2 000 chars
+    matches UX expectations (a meaningful paragraph, not an essay).
+    """
+
+    rating = fields.Int(required=True, validate=validate.Range(min=1, max=5))
+    comment = fields.Str(load_default=None, allow_none=True,
+                         validate=validate.Length(max=2000))

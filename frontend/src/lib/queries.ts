@@ -555,3 +555,71 @@ export const useDeleteTask = (activityId?: string) => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Phase 6: Event Execution & Close-Out
+// ---------------------------------------------------------------------------
+
+/** TIMELINE-01: ordered chronological projection for an event. */
+export const useTimeline = (id?: string) =>
+  useQuery({
+    queryKey: ['timeline', id],
+    queryFn: () => api.timeline(id!),
+    enabled: !!id,
+  })
+
+/** REIMB-01/02: draft expense rows + optional Meetup Head submit. */
+export const useDraftExpensesMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      body,
+    }: {
+      activityId: string
+      body: { expenses: object[]; submit?: boolean; social_post_url?: string }
+    }) => api.draftExpenses(activityId, body),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['expenses', activityId] }),
+  })
+}
+
+/** FEEDBACK-01: auto-save challenges/learnings on blur; Meetup Head submit. */
+export const usePatchReportMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      patch,
+    }: {
+      activityId: string
+      patch: { challenges?: string | null; learnings?: string | null; status?: string }
+    }) => api.patchReport(activityId, patch),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['report', activityId] }),
+  })
+}
+
+/** FEEDBACK-02: attendee submits a 1-5 star rating after attending. */
+export const useSubmitFeedbackMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      body,
+    }: {
+      activityId: string
+      body: { rating: number; comment?: string }
+    }) => api.submitFeedback(activityId, body),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['my-feedback', activityId] }),
+  })
+}
+
+/** FEEDBACK-02: check own submission; returns {submitted: false} when none. */
+export const useMyFeedback = (id?: string) =>
+  useQuery({
+    queryKey: ['my-feedback', id],
+    queryFn: () => api.myFeedback(id!),
+    enabled: !!id,
+  })

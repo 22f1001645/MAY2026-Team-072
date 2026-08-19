@@ -929,4 +929,40 @@ export const api = {
   // Admin: Phase 4 brand kit overview (reuses /orgs — client-side scoped)
   brandKitOrgs: (): Promise<any[]> =>
     request<any[]>('/orgs'),
+
+  // Phase 6: Event Execution & Close-Out
+  // timeline — read-only chronological projection (TIMELINE-01)
+  timeline: (activityId: string): Promise<any[]> =>
+    request<any[]>(`/activities/${activityId}/timeline`),
+
+  // draftExpenses — any team member drafts; Meetup Head submits with social URL (REIMB-01/02)
+  draftExpenses: (
+    activityId: string,
+    body: { expenses: object[]; submit?: boolean; social_post_url?: string },
+  ) =>
+    request<any>(`/activities/${activityId}/expenses`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  // patchReport — auto-save challenges/learnings; Meetup Head submit (FEEDBACK-01)
+  patchReport: (
+    activityId: string,
+    patch: { challenges?: string | null; learnings?: string | null; status?: string },
+  ) =>
+    request<any>(`/activities/${activityId}/report`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  // submitFeedback — attendee 1-5 star rating after attending (FEEDBACK-02)
+  submitFeedback: (activityId: string, body: { rating: number; comment?: string }) =>
+    request<any>(`/activities/${activityId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  // myFeedback — check own submission; returns {submitted: false} when none (FEEDBACK-02)
+  myFeedback: (activityId: string) =>
+    request<any>(`/activities/${activityId}/feedback/me`),
 }

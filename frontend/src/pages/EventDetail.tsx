@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useEvent, useMyRegistrations, useRegister, useUnregister, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
+import { useEvent, useMyRegistrations, useRegister, useUnregister, useRespondCollab, useReassignMeetupHead, useMyFeedback, useSubmitFeedbackMutation } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, Dialog, Progress, Select, useToast } from '../components/ui'
@@ -134,6 +134,9 @@ export default function EventDetail() {
               />
             </div>
           </Card>
+
+          {/* FEEDBACK-02: attended students can rate after the event */}
+          <FeedbackForm activityId={id!} myRegs={myRegs} eventStartsAt={e.startsAt} />
 
           {/* Collaborating Orgs (PROPOSAL-06 Respond UI) */}
           {e.collaborators && e.collaborators.length > 0 && (
@@ -532,5 +535,98 @@ function Perk({ text }: { text: string }) {
       </svg>
       {text}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// FEEDBACK-02: attendee feedback form
+// ---------------------------------------------------------------------------
+
+function FeedbackForm({
+  activityId,
+  myRegs,
+  eventStartsAt,
+}: {
+  activityId: string
+  myRegs: any[]
+  eventStartsAt: string
+}) {
+  const myReg = myRegs.find((r: any) => r.activityId === activityId || r.activity_id === activityId)
+  const attended = myReg?.attended === true
+  const eventPast = new Date(eventStartsAt) < new Date()
+
+  const { data: existing } = useMyFeedback(attended && eventPast ? activityId : undefined)
+  const submitMut = useSubmitFeedbackMutation()
+  const { addToast } = useToast()
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+
+  if (!attended || !eventPast) return null
+
+  if (existing?.submitted || submitMut.isSuccess) {
+    return (
+      <Card className="p-6 mb-4">
+        <div className="flex items-center gap-3">
+          <Badge tone="success">Feedback Submitted ✓</Badge>
+          <span className="text-[14px] text-graytext-light">
+            {'★'.repeat(existing?.rating ?? rating)}{'☆'.repeat(5 - (existing?.rating ?? rating))}
+          </span>
+        </div>
+        <p className="mt-1 text-[13px] text-graytext-mid">
+          Thank you for your feedback!
+        </p>
+      </Card>
+    )
+  }
+
+  const handleSubmit = () => {
+    submitMut.mutate(
+      { activityId, body: { rating, comment: comment || undefined } },
+      { onSuccess: () => addToast('Feedback submitted — thank you!') },
+    )
+  }
+
+  return (
+    <Card className="p-6 mb-4">
+      <h3 className="text-h3 font-semibold text-gold mb-1">Rate This Event</h3>
+      <p className="text-[13px] text-graytext-mid mb-4">
+        How was your experience? Your feedback helps future attendees.
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Event rating"
+        className="flex gap-2 mb-4"
+      >
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            role="radio"
+            aria-label={`${n} star${n > 1 ? 's' : ''}`}
+            aria-checked={rating === n}
+            onClick={() => setRating((r) => (r === n ? 0 : n))}
+            className={`text-3xl cursor-pointer transition-colors select-none ${
+              n <= rating ? 'text-[#FFD700]' : 'text-white/20 hover:text-white/50'
+            }`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none resize-none"
+        placeholder="Share your thoughts (optional)"
+        rows={3}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+      />
+      <div className="mt-4 flex justify-end">
+        <Button
+          disabled={rating === 0 || submitMut.isPending}
+          onClick={handleSubmit}
+        >
+          {submitMut.isPending ? 'Submitting…' : 'Submit Feedback'}
+        </Button>
+      </div>
+    </Card>
   )
 }

@@ -57,8 +57,8 @@ export default {
       },
       keyframes: {
         'fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%': { opacity: '0', transform: 'translate3d(0, 20px, 0)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
         },
         'spin-slow': {
           '0%': { transform: 'rotate(0deg)' },
@@ -71,25 +71,25 @@ export default {
           '75%': { transform: 'rotate(5deg)' },
         },
         'spring-up': {
-          '0%': { opacity: '0', transform: 'translateY(20px) scale(0.98)' },
-          '60%': { opacity: '1', transform: 'translateY(-2px) scale(1.01)' },
-          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+          '0%': { opacity: '0', transform: 'translate3d(0, 20px, 0) scale(0.98)' },
+          '60%': { opacity: '1', transform: 'translate3d(0, -2px, 0) scale(1.01)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0) scale(1)' },
         },
         'aurora': {
-          '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: '0.3' },
-          '33%': { transform: 'translate(30px, -50px) scale(1.1)', opacity: '0.4' },
-          '66%': { transform: 'translate(-20px, 20px) scale(0.9)', opacity: '0.2' },
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)', opacity: '0.3' },
+          '33%': { transform: 'translate3d(30px, -50px, 0) scale(1.1)', opacity: '0.4' },
+          '66%': { transform: 'translate3d(-20px, 20px, 0) scale(0.9)', opacity: '0.2' },
         },
         'fadeIn': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
         'slideInRight': {
-          '0%': { transform: 'translateX(100%)' },
-          '100%': { transform: 'translateX(0)' },
+          '0%': { transform: 'translate3d(100%, 0, 0)' },
+          '100%': { transform: 'translate3d(0, 0, 0)' },
         },
         'shimmer': {
-          '100%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translate3d(100%, 0, 0)' },
         }
       },
       animation: {

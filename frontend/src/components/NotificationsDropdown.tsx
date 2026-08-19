@@ -76,7 +76,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
       />
       
       {/* Drawer */}
-      <div className="relative w-full max-w-[28rem] h-full bg-[#070C0A] border-l border-white/10 shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease-out]">
+      <div className="relative w-full max-w-[28rem] h-full bg-[#070C0A] border-l border-white/10 shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease-out] will-change-transform">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0 bg-black/20">
           <h3 className="text-[18px] font-bold text-offwhite uppercase tracking-widest flex items-center gap-3">

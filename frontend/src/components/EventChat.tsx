@@ -119,7 +119,7 @@ export default function EventChat({
                   </div>
 
                   <div className={cx(
-                    "px-4 py-2.5 text-[14px] leading-relaxed backdrop-blur-md shadow-lg",
+                    "px-4 py-2.5 text-[14px] leading-relaxed shadow-lg",
                     isImportant
                       ? "bg-teal/10 border border-teal/20 text-offwhite rounded-2xl" + (isMyMessage ? " rounded-tr-sm" : " rounded-tl-sm")
                       : isMyMessage

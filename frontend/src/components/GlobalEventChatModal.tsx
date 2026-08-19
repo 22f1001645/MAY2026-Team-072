@@ -49,7 +49,7 @@ export function GlobalEventChatModal() {
           />
         </div>
         
-        <div className="flex items-center justify-between border-b border-white/10 p-4 shrink-0 relative z-10 bg-onyx/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between border-b border-white/10 p-4 shrink-0 relative z-10 bg-onyx/90">
           <h3 className="text-h3 font-semibold text-offwhite">
             {event ? event.title : 'Event Chat'}
           </h3>

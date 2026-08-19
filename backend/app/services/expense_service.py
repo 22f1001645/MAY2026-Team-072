@@ -1,3 +1,5 @@
+import json
+
 from ..constants import ACTIVITY_FEE_INR, EXPENSE_FLOW, EXPENSE_SUBMITTED, EXPENSE_APPROVED, EXPENSE_PAID
 from ..errors import ApiError
 from ..extensions import db
@@ -20,7 +22,29 @@ def submit_expense(data: dict, organiser) -> Expense:
         submitted_by=organiser.id,
     )
     db.session.add(expense)
-    AuditRepository.record("expense", expense.id, "Expense submitted", organiser, data["label"])
+
+    # TIMELINE-02 — this row used to be keyed on `expense.id`, which was always
+    # null: the UUID default is applied at INSERT, and this call ran before the
+    # flush, so every "Expense submitted" audit row ever written carried
+    # entity_id=None and belonged to nothing. Keying it on `activity_id` both
+    # fixes that and puts the submission where its two readers look — the
+    # activity audit trail and the Phase 6 timeline projection. The pipeline
+    # rows written by advance()/bulk_advance() stay keyed on the expense id:
+    # those are admin-side status moves, not events in the organiser's timeline.
+    db.session.flush()
+    AuditRepository.record(
+        "expense",
+        expense.activity_id,
+        f"Expense submitted: {expense.label} ({expense.amount})",
+        organiser,
+        note=json.dumps(
+            {
+                "expense_id": expense.id,
+                "label": expense.label,
+                "amount": expense.amount,
+            }
+        ),
+    )
     db.session.commit()
     return expense
 

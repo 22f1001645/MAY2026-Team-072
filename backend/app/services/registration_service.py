@@ -1,8 +1,10 @@
+import json
+
 from ..constants import PROPOSAL_APPROVED, EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Notification, Registration, Announcement
-from ..repositories.repos import ActivityRepository, RegistrationRepository
+from ..repositories.repos import ActivityRepository, AuditRepository, RegistrationRepository
 
 
 def register(activity_id: str, student, referred_by_id: str = None) -> Registration:
@@ -39,6 +41,28 @@ def register(activity_id: str, student, referred_by_id: str = None) -> Registrat
             title=title,
             body=body,
         )
+    )
+
+    # TIMELINE-02 — this service claimed to record an audit event and never did.
+    # The row is scoped to `activity_id`, not to the Registration's own id,
+    # because every reader of it (the activity audit trail, and the Phase 6
+    # timeline projection) asks "what happened to this event?". A row keyed on
+    # the registration id answers a question nobody asks and would be invisible
+    # to both. The flush is what makes `reg.id` real — the UUID default is
+    # applied at INSERT, so recording it before the flush would store null.
+    db.session.flush()
+    AuditRepository.record(
+        "registration",
+        activity_id,
+        f"Student registered: {student.name}",
+        student,
+        note=json.dumps(
+            {
+                "registration_id": reg.id,
+                "student": student.name,
+                "status": reg_status,
+            }
+        ),
     )
     db.session.commit()
     return reg

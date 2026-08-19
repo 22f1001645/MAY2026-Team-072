@@ -1,8 +1,11 @@
+import json
+
 from .settings_service import get_recognition_points
+from ..constants import ATTENDANCE_METHOD_MANUAL
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Attendance, ActivityTeamMember, ContributionPoint, Notification
-from ..repositories.repos import ActivityRepository, RegistrationRepository
+from ..repositories.repos import ActivityRepository, AuditRepository, RegistrationRepository
 
 REFERRAL_POINTS = {"referrer": 50, "referred": 20}
 
@@ -62,7 +65,31 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
             continue
         if reg.attendance is not None:
             continue  # idempotent — already checked in
-        db.session.add(Attendance(registration_id=reg.id, checked_in_by=organiser.id))
+        attendance = Attendance(registration_id=reg.id, checked_in_by=organiser.id)
+        db.session.add(attendance)
+
+        # TIMELINE-02 — one audit row per NEW check-in, written inside the same
+        # `if reg.attendance is not None: continue` guard that makes check_in
+        # idempotent, so a re-scan adds neither an Attendance row nor a second
+        # timeline entry. `method` is read off the row rather than hardcoded:
+        # when QR check-in starts passing a method through, the audit trail and
+        # the timeline follow it without a second edit here.
+        method = attendance.method or ATTENDANCE_METHOD_MANUAL
+        student_name = reg.student.name if reg.student else "unknown"
+        AuditRepository.record(
+            "attendance",
+            activity_id,
+            f"Checked in: {student_name} ({method})",
+            organiser,
+            note=json.dumps(
+                {
+                    "registration_id": reg.id,
+                    "student": student_name,
+                    "method": method,
+                }
+            ),
+        )
+
         # Student earns attendance points
         db.session.add(
             ContributionPoint(

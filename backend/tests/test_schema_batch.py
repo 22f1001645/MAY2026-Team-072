@@ -25,16 +25,21 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "f997686e136b" # f997686e136b — add organisations.website (Phase 4, ORG-02 / D-03)
+HEAD_REVISION = "cf7cb9577b67" # cf7cb9577b67 — add expenses.social_post_url (Phase 6, REIMB-02 / D-10)
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 7
+EXPECTED_REVISION_COUNT = 8
 # 7th: f997686e136b adds organisations.website — ORG-02 decision D-03 models the
 # organisation's own site as a distinct column rather than a `platform` row on
 # organisation_social_links, so the host-allowlist guarantee stays true of every
 # social-link row without a carve-out. Additive, nullable, no reseed.
+# 8th: cf7cb9577b67 adds expenses.social_post_url — REIMB-02 decision D-10 puts
+# the link to the event's social post on the expense row rather than in a
+# separate table, so an admin reviewing any single bill sees the evidence
+# without a join. Additive, nullable (it is meaningless on a REIMB-01 draft
+# row), no reseed; the requirement is enforced in expense_service at submit.
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {

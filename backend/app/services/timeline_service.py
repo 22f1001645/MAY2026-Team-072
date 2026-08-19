@@ -276,7 +276,18 @@ def build_timeline(activity_id: str) -> list[dict]:
         .order_by(Expense.created_at.asc())
         .first()
     )
-    if first_expense is not None and _predates(first_expense.created_at, cutoffs.get("expense")):
+    # The cutoff is read as a presence check here rather than as a timestamp
+    # comparison, unlike sections 3 and 4. Those emit one entry PER ROW, so a
+    # row has to be dated against the boundary individually. This section emits
+    # one entry per ACTIVITY however many bills there are, and the audit row it
+    # would duplicate is activity-keyed too — so "does this activity have an
+    # expense audit row at all?" is the whole question.
+    #
+    # It also has to be. REIMB-01 (plan 06-02) separates a bill's creation from
+    # its submission by however long the organiser takes to gather receipts, so
+    # `created_at` stopped being the moment the reimbursement was submitted and
+    # a comparison against it reported every post-backfill submission twice.
+    if first_expense is not None and cutoffs.get("expense") is None:
         entries.append(
             _entry(
                 TYPE_REIMBURSEMENT_SUBMITTED,

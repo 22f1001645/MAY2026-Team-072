@@ -7,6 +7,7 @@ import { cover, scaleLabel, daysUntil, cx, formatDate, formatTime } from '../lib
 import { EkatvaEvent } from '../lib/types'
 import { useSession } from '../lib/session'
 import CitySelector from '../components/CitySelector'
+import WelcomeBanner from '../components/WelcomeBanner'
 
 export default function Discover() {
   const { data: events = [], isLoading, isError, error } = useEvents()
@@ -59,11 +60,17 @@ export default function Discover() {
   }, [events, activeCategory, activeCity])
 
   if (!isLoading && !isError && upcomingGlobally === 0) {
-    return <GlobalEmptyState notifyEmail={notifyEmail} setNotifyEmail={setNotifyEmail} notified={notified} setNotified={setNotified} />
+    return (
+      <div>
+        <WelcomeBanner />
+        <GlobalEmptyState notifyEmail={notifyEmail} setNotifyEmail={setNotifyEmail} notified={notified} setNotified={setNotified} />
+      </div>
+    )
   }
 
   return (
     <div>
+      <WelcomeBanner />
       <FeaturedCarousel events={featured} />
 
       {/* Filters Header */}
@@ -245,7 +252,6 @@ function SocialProof({ count }: { count: number }) {
   if (count === 0) return <span className="text-caption text-graytext-mid">Be the first!</span>
   
   const avatars = Math.min(count, 3)
-  const colors = ['bg-[#FF6B6B]', 'bg-[#4ECDC4]', 'bg-[#FFE66D]', 'bg-[#845EC2]']
   
   return (
     <div className="flex items-center">
@@ -253,8 +259,13 @@ function SocialProof({ count }: { count: number }) {
         {Array.from({ length: avatars }).map((_, i) => (
           <div 
             key={i} 
-            className={cx("w-6 h-6 rounded-full border-2 border-onyx shadow-sm", colors[i % colors.length])}
-          />
+            className="w-6 h-6 rounded-full border border-white/20 bg-onyx shadow-sm flex items-center justify-center relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-white/5" />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-graytext-mid relative z-10">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
         ))}
       </div>
       <span className="text-caption font-medium text-graytext-mid">
@@ -265,7 +276,10 @@ function SocialProof({ count }: { count: number }) {
 }
 
 function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?: boolean; compact?: boolean }) {
+  const isFull = e.registered >= e.capacity
   const nearlyFull = e.registered / e.capacity > 0.85
+  const isWaitlistClosed = new Date(e.startsAt).getTime() - Date.now() < 24 * 60 * 60 * 1000
+  
   return (
     <Card hover className="h-full overflow-hidden flex flex-col">
       <div
@@ -275,7 +289,12 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
         <div className="grain absolute inset-0" />
         <div className="relative flex w-full items-center justify-between">
           <Badge tone="gold">{daysUntil(e.startsAt)}</Badge>
-          {nearlyFull && !compact && <Badge tone="warn">Filling fast</Badge>}
+          {!compact && !isRegistered && (
+            isFull 
+              ? <Badge tone="neutral">{isWaitlistClosed ? 'At Capacity' : 'Join Waitlist'}</Badge>
+              : nearlyFull ? <Badge tone="warn">Almost Full</Badge>
+              : null
+          )}
         </div>
       </div>
       <div className="relative p-4 bg-onyx z-10 flex-1 flex flex-col">
@@ -288,11 +307,20 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
         
         {!compact && e.tags && e.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {e.tags.slice(0, 3).map((t) => (
-              <span key={t} className="rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-graytext-mid">
-                {t}
-              </span>
-            ))}
+            {e.tags.slice(0, 3).map((t) => {
+              const tl = t.toLowerCase()
+              const colorClass = tl === 'local' 
+                ? 'bg-teal/15 text-teal border-teal/20' 
+                : tl === 'fest' 
+                ? 'bg-gold/15 text-gold border-gold/20'
+                : 'bg-white/5 text-graytext-mid border-white/10'
+                
+              return (
+                <span key={t} className={cx("rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest", colorClass)}>
+                  {t}
+                </span>
+              )
+            })}
           </div>
         )}
         

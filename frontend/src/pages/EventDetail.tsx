@@ -14,7 +14,7 @@ import CollabStatus from '../components/CollabStatus'
 export default function EventDetail() {
   const { id } = useParams()
   const location = useLocation()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const refId = searchParams.get('ref') ?? undefined
   const { id: currentUserId, role, capabilities } = useSession()
   const { currentUser } = useAuth()
@@ -32,16 +32,6 @@ export default function EventDetail() {
   const canManage = role !== 'student' || capabilities?.manageableActivityIds?.includes(id!)
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
-  const [isChatOpen, setIsChatOpen] = useState(location.state?.openChat || false)
-
-  useEffect(() => {
-    if (isChatOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [isChatOpen])
 
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
@@ -62,6 +52,7 @@ export default function EventDetail() {
   const spotsLeft = e.capacity - count
   const plannedTotal = e.budget.reduce((s: any, b: any) => s + b.planned, 0)
   const isPast = e.status === 'completed' || e.status === 'archived'
+  const isWaitlistClosed = new Date(e.startsAt).getTime() - Date.now() < 24 * 60 * 60 * 1000
 
   return (
     <div>
@@ -379,28 +370,31 @@ export default function EventDetail() {
                       disabled={unregisterMut.isPending}
                       onClick={() => {
                         localStorage.removeItem('cal_' + e.id)
+                        setAddedToCalendar(false)
                         unregisterMut.mutate(e.id)
                       }}
                     >
                       {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
                     </Button>
                     {!isWaitlisted && (
-                      <a
-                        href={addedToCalendar ? googleCalendarDayLink(e.startsAt) : googleCalendarLink({ title: e.title, startsAt: e.startsAt, venue: e.venue, description: e.description })}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Button
+                        variant="ghost"
                         className="w-full"
                         onClick={() => {
+                          const url = addedToCalendar 
+                            ? googleCalendarDayLink(e.startsAt) 
+                            : googleCalendarLink({ title: e.title, startsAt: e.startsAt, venue: e.venue, description: e.description })
+                          
+                          window.open(url, '_blank')
+                          
                           if (!addedToCalendar) {
                             localStorage.setItem('cal_' + e.id, '1')
                             setAddedToCalendar(true)
                           }
                         }}
                       >
-                        <Button variant="ghost" className="w-full">
-                          {addedToCalendar ? 'View in calendar' : 'Add to calendar'}
-                        </Button>
-                      </a>
+                        {addedToCalendar ? 'View in calendar' : 'Add to calendar'}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -409,13 +403,13 @@ export default function EventDetail() {
                   <Button
                     className="w-full"
                     size="lg"
-                    disabled={registerMut.isPending}
+                    disabled={registerMut.isPending || (spotsLeft <= 0 && isWaitlistClosed)}
                     onClick={() => registerMut.mutate({ id: e.id, referredBy: refId })}
                   >
                     {registerMut.isPending
                       ? 'Processing…'
                       : spotsLeft <= 0
-                        ? 'Join Waitlist'
+                        ? (isWaitlistClosed ? 'At Capacity' : 'Join Waitlist')
                         : "Register — it's free"}
                   </Button>
                   {registerMut.isError && (
@@ -442,59 +436,22 @@ export default function EventDetail() {
             </div>
             {!isPast && e.status !== 'cancelled' && (
               <div className="mt-6">
-                {(registered || canManage) && e.status !== 'completed' && (
-                  <Button
-                    variant="secondary"
-                    className="w-full flex items-center justify-center gap-2"
-                    onClick={() => setIsChatOpen(true)}
+                {((registered && !isWaitlisted) || canManage) && e.status !== 'completed' && (
+                  <button
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-[14px] font-medium text-offwhite transition-colors hover:bg-white/10"
+                    onClick={() => setSearchParams(prev => { prev.set('chat', e.id); return prev; })}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
-                    Event Message
-                  </Button>
+                    Event chat
+                  </button>
                 )}
               </div>
             )}
           </Card>
         </div>
       </div>
-
-      {/* Chat Drawer & Backdrop (rendered via Portal to escape stacking context) */}
-      {createPortal(
-        <>
-          {isChatOpen && (
-            <div
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"
-              onClick={() => setIsChatOpen(false)}
-            />
-          )}
-
-          <div
-            className={cx(
-              "fixed top-0 right-0 z-50 h-full w-[420px] max-w-[100vw] bg-onyx border-l border-white/10 shadow-2xl transition-transform duration-300 ease-in-out flex flex-col",
-              isChatOpen ? "translate-x-0" : "translate-x-full"
-            )}
-          >
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
-              <h2 className="text-h3 font-bold text-offwhite">Event Chat</h2>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="text-graytext-mid hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 w-10 h-10 flex items-center justify-center transition-colors shadow-lg"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden p-6 pb-8">
-              <EventChat eventId={e.id} isRegistered={registered} canManage={canManage} />
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   )
 }

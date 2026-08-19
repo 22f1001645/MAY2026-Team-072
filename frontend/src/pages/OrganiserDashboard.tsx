@@ -6,6 +6,7 @@ import { Badge, Button, Card, Progress, SectionTitle, StatCard } from '../compon
 import { Loading, ErrorState } from '../components/states'
 import { daysUntil, formatDate } from '../lib/format'
 import InvitationCard from '../components/InvitationCard'
+import WelcomeBanner from '../components/WelcomeBanner'
 
 const STATUS_TONE: Record<string, any> = {
   approved: 'success',
@@ -38,6 +39,7 @@ export default function OrganiserDashboard() {
 
   return (
     <div>
+      <WelcomeBanner />
       <SectionTitle
         eyebrow="Organiser · RC"
         title="Organiser Dashboard"

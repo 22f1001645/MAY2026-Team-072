@@ -342,6 +342,8 @@ export function adaptBrandKit(k: ApiBrandKit): BrandKit {
 }
 
 /* -------------------------------- endpoints ------------------------------ */
+let _explicitRefreshPromise: Promise<any> | null = null
+
 export const api = {
   // Auth (Phase 2 — cookie session)
   login: async (email: string, password: string) => {
@@ -365,9 +367,18 @@ export const api = {
     request('/auth/me/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   /** Rotate the refresh cookie and obtain a new access token. */
   refresh: async () => {
-    const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
-    _accessToken = res.access_token
-    return res
+    if (!_explicitRefreshPromise) {
+      _explicitRefreshPromise = (async () => {
+        try {
+          const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+          _accessToken = res.access_token
+          return res
+        } finally {
+          _explicitRefreshPromise = null
+        }
+      })()
+    }
+    return _explicitRefreshPromise
   },
   /** Revoke this device's session and clear the cookie. */
   logout: async () => {

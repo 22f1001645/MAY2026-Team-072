@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { QRCodeCanvas } from 'qrcode.react'
 import { useMyPoints, useMyRegistrations, useCities } from '../lib/queries'
 import { Badge, Button, Card, Input, SectionTitle, StatCard, useToast } from '../components/ui'
@@ -7,8 +8,10 @@ import { Loading, ErrorState } from '../components/states'
 import { coverForScale, daysUntil, formatDate, formatTime, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
+import { CalendarWidget } from '../components/CalendarWidget'
 
 export default function MyRegistrations() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data: regs = [], isLoading, isError, error } = useMyRegistrations()
   const { data: points } = useMyPoints()
   const { id: currentUserId, name: userName, city: userCity, role } = useSession()
@@ -73,8 +76,9 @@ export default function MyRegistrations() {
   const nextEvent = [...upcoming].sort((a, b) => new Date(a.activity.startsAt).getTime() - new Date(b.activity.startsAt).getTime())[0]
 
   return (
-    <div className="pb-12 max-w-5xl mx-auto">
-      {/* Registrations Hero */}
+    <div className="pb-12 max-w-[1400px] px-4 xl:px-8 mx-auto flex flex-col xl:flex-row gap-8 items-start justify-center">
+      <div className="w-full max-w-5xl shrink-0">
+        {/* Registrations Hero */}
       {nextEvent ? (
         <section className="mb-10 relative overflow-hidden rounded-3xl border border-teal/20 bg-gradient-to-r from-onyx via-black to-onyx p-8 shadow-[0_0_40px_rgba(63,212,182,0.05)] mt-8">
           <div className="absolute top-0 right-0 w-64 h-64 bg-teal/10 blur-3xl rounded-full pointer-events-none translate-x-1/4 -translate-y-1/4" />
@@ -260,11 +264,12 @@ export default function MyRegistrations() {
                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
                   <div className="flex gap-2">
                     {a.status !== 'completed' && (
-                      <Link to={`/events/${a.id}`} state={{ openChat: true }}>
-                        <button className="h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-teal hover:bg-teal hover:text-onyx transition-colors" title="Event Chat">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                        </button>
-                      </Link>
+                      <button 
+                        className="rounded-full flex items-center justify-center text-teal hover:bg-teal hover:text-onyx transition-colors h-9 w-9 bg-white/5"
+                        onClick={() => setSearchParams({ chat: a.id })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                      </button>
                     )}
                     {a.status === 'upcoming' && !isWaitlisted && (
                       <button 
@@ -281,9 +286,13 @@ export default function MyRegistrations() {
                       </button>
                     )}
                   </div>
-                  
-                  <Button size="sm" variant={isPastEvent ? "secondary" : "primary"} onClick={() => setSelectedTicket(r)}>
-                    View Pass
+                  <Button 
+                    size="sm" 
+                    variant={isPastEvent || isWaitlisted ? "secondary" : "primary"} 
+                    disabled={isWaitlisted}
+                    onClick={() => setSelectedTicket(r)}
+                  >
+                    {isWaitlisted ? 'Spot Pending' : 'View Pass'}
                   </Button>
                 </div>
               </div>
@@ -293,8 +302,8 @@ export default function MyRegistrations() {
       </div>
 
       {/* Boarding Pass Modal */}
-      {selectedTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+      {selectedTicket && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
           <div className="absolute inset-0" onClick={() => setSelectedTicket(null)} />
           
           <div className="relative w-full max-w-[340px] flex flex-col bg-offwhite rounded-3xl shadow-2xl overflow-hidden scale-100 animate-[fadeUp_0.4s_ease-out(1.2)]">
@@ -305,16 +314,16 @@ export default function MyRegistrations() {
               style={{ background: coverForScale(selectedTicket.activity?.scale || 'local_meetup') }}
             >
               <div className="absolute inset-0 bg-black/20" />
-              <div className="grain absolute inset-0 mix-blend-overlay opacity-30" />
+              <div className="grain absolute inset-0 mix-blend-overlay opacity-30 pointer-events-none" />
               
               <button 
                 onClick={() => setSelectedTicket(null)}
-                className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-black/30 backdrop-blur-md text-white/90 hover:bg-black/60 transition-colors z-10"
+                className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-black/30 backdrop-blur-md text-white/90 hover:bg-black/60 transition-colors z-50 cursor-pointer"
               >
                 ✕
               </button>
               
-              <div className="relative z-10">
+              <div className="relative z-10 pointer-events-none">
                 <div className="text-[10px] uppercase tracking-widest font-bold opacity-80 mb-1">
                   Ekatva Digital Pass
                 </div>
@@ -325,7 +334,7 @@ export default function MyRegistrations() {
             </div>
 
             {/* Modal Perforation */}
-            <div className="relative flex items-center justify-between -mt-4 z-20">
+            <div className="relative flex items-center justify-between -mt-4 z-20 pointer-events-none">
               <div className="h-8 w-8 rounded-full bg-black border-r border-black/10 -ml-4 shadow-inner" />
               <div className="flex-1 border-b-[2px] border-dashed border-gray-400 opacity-50" />
               <div className="h-8 w-8 rounded-full bg-black border-l border-black/10 -mr-4 shadow-inner" />
@@ -378,8 +387,16 @@ export default function MyRegistrations() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      </div>
+
+      {/* Right Sidebar - Calendar */}
+      <div className="w-full xl:w-[320px] shrink-0 sticky top-24 mt-8">
+        <CalendarWidget regs={regs} />
+      </div>
 
     </div>
   )

@@ -2,6 +2,7 @@ import { useAnalytics } from '../lib/queries'
 import { Card, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
+import WelcomeBanner from '../components/WelcomeBanner'
 
 // FR-H: descriptive community analytics + the ₹200 activity-fee utilisation wedge
 export default function Analytics() {
@@ -18,6 +19,7 @@ export default function Analytics() {
 
   return (
     <div>
+      <WelcomeBanner />
       <SectionTitle
         eyebrow="Admin · Intelligence"
         title="Community Analytics"

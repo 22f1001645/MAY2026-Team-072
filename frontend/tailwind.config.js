@@ -70,12 +70,24 @@ export default {
           '50%': { transform: 'rotate(-10deg)' },
           '75%': { transform: 'rotate(5deg)' },
         },
+        'spring-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px) scale(0.98)' },
+          '60%': { opacity: '1', transform: 'translateY(-2px) scale(1.01)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'aurora': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: '0.3' },
+          '33%': { transform: 'translate(30px, -50px) scale(1.1)', opacity: '0.4' },
+          '66%': { transform: 'translate(-20px, 20px) scale(0.9)', opacity: '0.2' },
+        }
       },
       animation: {
         // Fade-in reveal: 20px upward slide + opacity 0→1 (brand kit §7)
         'fade-up': 'fade-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
         'spin-slow': 'spin-slow 2.4s linear infinite',
         'shake': 'shake 0.4s ease-in-out',
+        'spring-up': 'spring-up 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.1) both',
+        'aurora': 'aurora 15s ease-in-out infinite',
       },
     },
   },

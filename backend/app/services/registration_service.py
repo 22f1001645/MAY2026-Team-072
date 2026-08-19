@@ -16,9 +16,15 @@ def register(activity_id: str, student, referred_by_id: str = None) -> Registrat
     if RegistrationRepository.find(activity_id, student.id):
         raise ApiError("You are already registered for this event", "already_registered", 409)
 
+    from datetime import datetime, timedelta
+
     # Capacity is tracked; registration closes at capacity (FR-D2)
     # Waitlist support: if capacity is full, register as waitlisted.
     is_waitlisted = activity.registered_count() >= activity.capacity
+    
+    if is_waitlisted and (activity.starts_at - datetime.utcnow() <= timedelta(hours=24)):
+        raise ApiError("The waitlist is closed within 24 hours of the event.", "waitlist_closed", 400)
+        
     reg_status = "waitlisted" if is_waitlisted else "confirmed"
 
     qr_token = secrets.token_urlsafe(32)

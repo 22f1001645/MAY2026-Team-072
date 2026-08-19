@@ -165,6 +165,7 @@ export interface Registration {
   studentName: string
   registeredAt: string
   attended: boolean
+  status?: 'confirmed' | 'waitlisted' | 'cancelled'
 }
 
 export interface LeaderRow {

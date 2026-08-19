@@ -1,15 +1,35 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNotifications, useMarkNotificationsRead } from '../lib/queries'
 import { Badge } from './ui'
 import InvitationCard from './InvitationCard'
 import { cx } from '../lib/format'
 
-const TONE: Record<string, { tone: any; icon: string; label: string }> = {
-  reminder: { tone: 'teal', icon: '⏰', label: 'Reminder' },
-  update: { tone: 'gold', icon: '📣', label: 'Update' },
-  approval: { tone: 'success', icon: '✓', label: 'Confirmed' },
-  points: { tone: 'gold', icon: '★', label: 'Points' },
-  collaboration_invite: { tone: 'gold', icon: '🤝', label: 'Invite' },
+const TONE: Record<string, { tone: any; icon: ReactNode; label: string }> = {
+  reminder: { 
+    tone: 'teal', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, 
+    label: 'Reminder' 
+  },
+  update: { 
+    tone: 'gold', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, 
+    label: 'Notice' 
+  },
+  approval: { 
+    tone: 'success', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, 
+    label: 'Confirmed' 
+  },
+  points: { 
+    tone: 'gold', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, 
+    label: 'Points' 
+  },
+  collaboration_invite: { 
+    tone: 'gold', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, 
+    label: 'Invite' 
+  },
 }
 
 function ago(iso?: string) {
@@ -97,17 +117,14 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                 className={cx(
                   'cursor-pointer rounded-xl p-3 transition-all duration-200 flex gap-3 relative overflow-hidden',
                   !n.read 
-                    ? 'bg-black/60 border-l-[3px] border-l-teal ring-1 ring-teal/30 shadow-[0_0_15px_rgba(92,230,201,0.15)] hover:bg-black' 
+                    ? 'bg-white/5 hover:bg-white/10' 
                     : 'bg-transparent border border-transparent hover:bg-white/5 hover:border-white/10'
                 )}
               >
-                {!n.read && (
-                  <div className="absolute top-0 right-0 h-16 w-16 bg-teal/10 blur-xl rounded-full translate-x-8 -translate-y-8" />
-                )}
                 <div
                   className={cx(
                     'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[15px]',
-                    n.read ? 'bg-white/5' : 'bg-teal/12'
+                    n.read ? 'bg-white/5 text-graytext-mid' : 'bg-teal/12 text-teal'
                   )}
                 >
                   {t.icon}
@@ -117,8 +134,9 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                     <Badge tone={t.tone}>{t.label}</Badge>
                     <span className="shrink-0 text-[10px] text-graytext-mid">{ago(n.at)}</span>
                   </div>
-                  <div className={cx("mt-1.5 text-[13px] font-semibold text-offwhite", !isExpanded && "truncate")}>
+                  <div className={cx("mt-1.5 text-[13px] font-semibold text-offwhite flex items-center gap-2", !isExpanded && "truncate")}>
                     {n.title}
+                    {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 shadow-[0_0_8px_rgba(92,230,201,0.6)]"></span>}
                   </div>
                   {n.type === 'update' && n.activity_title && (
                     <div className="mt-0.5 text-[11px] font-medium text-teal">

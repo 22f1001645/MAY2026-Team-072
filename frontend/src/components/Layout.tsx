@@ -11,6 +11,8 @@ import { Button, Card, Input, Mandala } from './ui'
 import NotificationsDropdown from './NotificationsDropdown'
 import ViewSwitcher from './ViewSwitcher'
 import AcademicStatusBanner from './AcademicStatusBanner'
+import { ProfileModal } from './ProfileModal'
+import { GlobalEventChatModal } from './GlobalEventChatModal'
 
 interface NavItem {
   to?: string
@@ -24,7 +26,6 @@ const NAV: Record<Role, NavItem[]> = {
   student: [
     { to: '/discover', label: 'Discover', icon: <Icon d="M12 2 4 7v10l8 5 8-5V7z" /> },
     { to: '/me', label: 'My Registrations', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
-    { to: '/profile', label: 'Profile', icon: <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" /> },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
   ],
   organiser: [
@@ -136,6 +137,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [editCityOpen, setEditCityOpen] = useState(false)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const location = useLocation()
 
   // The first data-derived nav entry in this file. `NAV` stays a static
@@ -431,34 +433,17 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
 
           {/* Profile Dropdown */}
-          <div ref={profileRef} className="relative hidden lg:block ml-1">
+          <div className="relative hidden lg:block ml-1">
             <button 
-              onClick={() => setProfileOpen(!profileOpen)} 
+              onClick={() => setProfileModalOpen(true)} 
               className={cx(
                 "grid h-9 w-9 place-items-center rounded-full text-[13px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-teal/50",
                 role === 'admin' ? 'bg-gold/15 text-gold hover:ring-gold/50' : 'bg-teal/15 text-teal hover:ring-teal/50',
-                profileOpen && (role === 'admin' ? 'ring-2 ring-gold/50' : 'ring-2 ring-teal/50')
+                profileModalOpen && (role === 'admin' ? 'ring-2 ring-gold/50' : 'ring-2 ring-teal/50')
               )}
             >
               {name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </button>
-            {profileOpen && (
-              <div className="absolute right-0 top-full mt-3 w-60 rounded-2xl border border-white/10 bg-black p-2 shadow-2xl z-50 animate-fade-down origin-top-right">
-                <div className="p-3 mb-1 border-b border-white/5">
-                  <div className="truncate text-[14px] font-semibold text-offwhite">{name}</div>
-                  <div className="truncate text-[12px] text-graytext-light mt-0.5">
-                    {currentUser?.por ?? ROLE_LABEL[role]} · {city}
-                  </div>
-                </div>
-                <button 
-                  onClick={handleLogout} 
-                  className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors focus:outline-none"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                  Sign out
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -583,6 +568,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           onSaved={refreshUser}
         />
       )}
+
+      <ProfileModal 
+        isOpen={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+      />
+      <GlobalEventChatModal />
     </div>
   )
 }

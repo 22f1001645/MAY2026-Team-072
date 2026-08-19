@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, setOnSessionExpired } from './api'
 import { useToast } from '../components/ui'
 import type { Account, Capabilities, Role } from './types'
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { addToast } = useToast()
+  const queryClient = useQueryClient()
 
   // Register session expiry callback (D-06). api.ts calls this once per failed
   // refresh, so the toast and the redirect happen once however many requests
@@ -117,9 +119,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.logout()
     } finally {
-      setCurrentUser(null)
-      setCapabilities(null)
-      navigate('/login')
+      // Clear react-query cache so data doesn't leak to the next login session
+      queryClient.clear()
+      // Use a hard redirect so AppShell is completely bypassed and destroyed. 
+      // This ensures AppShell doesn't catch the unauthenticated state mid-render 
+      // and redirect us back with state={{ from: '/organiser' }}
+      window.location.href = '/login'
     }
   }
 

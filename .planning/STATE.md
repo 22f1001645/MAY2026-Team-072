@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: event-execution-close-out
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-08-19T00:00:00.000Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-08-19T01:19:49.401Z"
 last_activity: 2026-08-19
-last_activity_desc: "Completed 06-01: the event timeline, built as a projection over records other services already own, plus the TIMELINE-02 audit backfill that gave three services the write they had only ever claimed to make"
+last_activity_desc: "Completed 06-02: the reimbursement half of Phase 6 — any team member drafts expense rows, only the Meetup Head submits, and the social-post link is validated by the Phase 4 ORG-02 allowlist rather than trusted"
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 40
-  completed_plans: 37
-  percent: 93
+  completed_plans: 38
+  percent: 95
 ---
 
 # Project State
@@ -24,18 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 06 — event-execution-close-out (1/4 plans; 06-01 landed)
+**Current focus:** Phase 06 — event-execution-close-out (2/4 plans; 06-01 and 06-02 landed)
 
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — IN PROGRESS
-Plan: 1/4 (Phase 06 — 06-01 complete; 06-02, 06-03, 06-04 pending)
-Status: 06-01 landed the timeline half of Phase 6. TIMELINE-01 (GET /api/v1/activities/<id>/timeline, a read-only projection with no new table) and TIMELINE-02 (AuditLog writes backfilled into registration_service, attendance_service and expense_service) are both complete and tested. Backend suite: 387 passing, up from the 378 baseline.
-Last activity: 2026-08-19 — Completed 06-01: the event timeline, built as a projection over records other services already own, plus the TIMELINE-02 audit backfill that gave three services the write they had only ever claimed to make
+Plan: 2/4 (Phase 06 — 06-01 and 06-02 complete; 06-03, 06-04 pending)
+Status: 06-02 landed the reimbursement half. REIMB-01 (any team member drafts expense rows) and REIMB-02 (only the Meetup Head submits, with a social-post URL validated by the ORG-02 allowlist) are complete and tested behind one endpoint, PATCH /api/v1/activities/<id>/expenses. One new Alembic revision, cf7cb9577b67, adds expenses.social_post_url. Backend suite: 407 passing, up from 387.
+Last activity: 2026-08-19 — Completed 06-02: the reimbursement half of Phase 6 — any team member drafts expense rows, only the Meetup Head submits, and the social-post link is validated by the Phase 4 ORG-02 allowlist rather than trusted
 
-Progress: [█████████░] 93% (37/40 plans across the milestone) — Phase 06: 25%
+Progress: [█████████░] 95% (38/40 plans across the milestone) — Phase 06: 50%
 
 ## Performance Metrics
 
@@ -96,6 +96,7 @@ Progress: [█████████░] 93% (37/40 plans across the milestone
 | Phase 05 P10 | 50min | 2 tasks | 12 files |
 | Phase 05 P11 | 45min | 3 tasks | 9 files |
 | Phase 06 P01 | 40min | 3 tasks | 6 files |
+| Phase 06 P02 | 60min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -214,6 +215,10 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-11: `degraded` lives on the mutation result, not on the campaign row — it describes the generation that just happened, and persisting it would make a reload show a stale complaint about a draft the organiser may have since rewritten
 - [Phase 5]: 05-11: MailTemplateEditor adopts mailSubject and mailBody from props per field rather than as a pair, so a response populating only one of them cannot blank the other (E5 partial)
 - [Phase 5]: 05-11: an AI test asserts the artefact against a model that returned nonsense — a realistic stand-in could contain a plausible number and make the assertion pass for the wrong reason
+- [Phase ?]: REIMB-02 submit gate is rbac.is_meetup_head with NO admin fallback — an admin's PROPOSAL-05 power is to reassign the Meetup Head, not to act as one (06-02)
+- [Phase ?]: Conditional authority splits across layers: the broad predicate (can_manage_activity) guards the route, the body-dependent one (is_meetup_head, gated on the submit flag) lives in the service — a route guard cannot read the body (06-02)
+- [Phase ?]: Endpoints that both save and transition in one call check every gate BEFORE touching a row, so a refused call leaves the working document untouched (06-02)
+- [Phase ?]: social_post_url is searched across the six ORG-02 platforms rather than taking a platform parameter; malformed keeps social_url_scheme, well-formed-but-not-social keeps social_url_host (D-09, 06-02)
 
 ### Pending Todos
 
@@ -233,8 +238,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-18T14:35:00.000Z
-Stopped at: Completed 05-11-PLAN.md — Phase 05 complete (11/11)
+Last session: 2026-08-19T01:18:58.344Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured), then finish Phase 04 manual UAT via `04-UAT.md`. Phase 06 (Event Execution & Close-Out) is the next phase to plan.

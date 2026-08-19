@@ -80,8 +80,8 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Reimbursement
 
-- [ ] **REIMB-01**: Any team member can draft expense entries against budget lines, but only the assigned Meetup Head can submit the final reimbursement request — consistent with the campaign-approval and report-submission pattern (CAMPAIGN-06, FEEDBACK-01)
-- [ ] **REIMB-02**: Reimbursement submission requires a social-post link (photos with attendees, posted to the entity's socials) alongside bill attachments; admin reviews this as supplementary context only — the QR-verified Attendance count (QR-04) remains the sole authoritative number, never overridden by photo review
+- [x] **REIMB-01**: Any team member can draft expense entries against budget lines, but only the assigned Meetup Head can submit the final reimbursement request — consistent with the campaign-approval and report-submission pattern (CAMPAIGN-06, FEEDBACK-01)
+- [x] **REIMB-02**: Reimbursement submission requires a social-post link (photos with attendees, posted to the entity's socials) alongside bill attachments; admin reviews this as supplementary context only — the QR-verified Attendance count (QR-04) remains the sole authoritative number, never overridden by photo review
 
 ### QR Check-In
 
@@ -171,7 +171,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | QR-01, QR-02, QR-03, QR-04 | Phase 6 | Pending |
 | TIMELINE-01, TIMELINE-02 | Phase 6 | Complete (06-01) |
 | FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
-| REIMB-01, REIMB-02 | Phase 6 | Pending |
+| REIMB-01, REIMB-02 | Phase 6 | Complete (06-02 — backend; frontend panel in 06-04) |
 | PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Pending |
 | CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
 

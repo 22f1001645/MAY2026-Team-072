@@ -306,8 +306,8 @@ export default function MyRegistrations() {
 
               {/* Ticket Body */}
               <div className="flex-1 p-5 flex flex-col">
-                <Link to={`/events/${a.id}`} className="block mb-4 group-hover:text-teal transition-colors">
-                  <h3 className="text-h3 font-bold text-offwhite leading-snug line-clamp-2">{a.title}</h3>
+                <Link to={`/events/${a.id}`} className="block mb-4">
+                  <h3 className="text-h3 font-bold text-offwhite transition-colors group-hover:text-teal leading-snug line-clamp-2">{a.title}</h3>
                 </Link>
 
                 <div className="grid grid-cols-2 gap-4 mb-5">

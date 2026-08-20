@@ -17,23 +17,6 @@ import { SocialLinksEditor } from '../components/SocialLinksEditor'
 import { SocialLinksRow } from '../components/SocialLinksRow'
 import { cx } from '../lib/format'
 
-/* The organisation profile — ORG-01, 04-UI-SPEC.md S1/S2/S3.
- *
- * One page, four org types. `org.type` is read for exactly two things: the type
- * Badge label, and (inside OrgLogo) whether the seeded house mark is eligible.
- * There is no branch on it anywhere else — no per-type layout, no per-type
- * field set, no per-type copy. "Across all four org types" is discharged by
- * there being nothing to branch on.
- *
- * Edit rights are `capabilities.manageableOrgIds.includes(orgId)`, computed
- * once. Never a role, never an org name, never a city, never a POR string, and
- * never sent back to the API — `can_manage_org_required` on the server is the
- * actual control and this is only what renders. A viewer who does not manage
- * this organisation sees the complete read-only profile and no trace that an
- * editing surface exists: no Edit control, no greyed control, no padlock, no
- * permission line. The 403 is what a curl gets; nothing at all is what a
- * browser gets. */
-
 const ORG_TYPE_LABEL: Record<string, string> = {
   house: 'Forest House',
   society: 'Society',
@@ -41,21 +24,13 @@ const ORG_TYPE_LABEL: Record<string, string> = {
   council: 'Council',
 }
 
-const SECTION_LABEL = { profile: 'Profile', links: 'Links', brandkit: 'Brand kit' } as const
-type Section = keyof typeof SECTION_LABEL
-
 const BIO_LIMIT = 1000
 const BIO_COUNTER_FROM = 800
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const LOGO_LIMIT_BYTES = 2 * 1024 * 1024
 
-/** A stable empty array, so the memos below are not invalidated every render by
- *  a fresh `[]` while capabilities are still resolving. */
 const NO_ORGS: string[] = []
 
-/* Headings are chosen from the envelope `code`, never by string-matching the
- * message: the message is the server's sentence and is rendered verbatim
- * beneath our heading. */
 const ERROR_HEADINGS: Record<string, string> = {
   invalid_image: "That file isn't a PNG, JPEG or WebP",
 }
@@ -79,15 +54,15 @@ export default function OrgProfile() {
 
   const { data: org, isLoading, isError, error } = useOrgProfile(orgId)
 
-  const [editing, setEditing] = useState<Section | null>(null)
+  const [activeTab, setActiveTab] = useState<'public' | 'internal'>('public')
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editTab, setEditTab] = useState<'identity' | 'links'>('identity')
+
   const [bio, setBio] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
   const [logoNotice, setLogoNotice] = useState<{ heading: string; body?: string } | null>(null)
   const [logoLoadFailed, setLogoLoadFailed] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
-  /** Reported up by the Brand kit section so this page can own the one
-   *  unsaved-work listener below rather than each section registering its
-   *  own. A pending AI draft counts as unsaved work. */
   const [kitDirty, setKitDirty] = useState(false)
 
   const saveProfile = useUpdateOrgProfile()
@@ -109,15 +84,8 @@ export default function OrgProfile() {
     [allOrgs, manageableOrgIds],
   )
 
-  const dirty = (editing === 'profile' && bio !== (org?.bio ?? '')) || kitDirty
+  const dirty = (editModalOpen && editTab === 'identity' && bio !== (org?.bio ?? '')) || kitDirty
 
-  // The browser's own confirm covers the one loss the user did not initiate
-  // through the app. In-app navigation is deliberately not blocked: the draft
-  // is discarded and nothing is saved, which is exactly what ORG-04 demands,
-  // and the disclosure happens before the loss in the draft strip's own first
-  // sentence rather than as a confirm afterwards. `useBlocker` would need a
-  // data router, which this app does not use — recorded as a decision, not an
-  // omission.
   useEffect(() => {
     if (!dirty) return
     const warn = (e: BeforeUnloadEvent) => {
@@ -139,8 +107,6 @@ export default function OrgProfile() {
 
   if (isLoading) return <Loading label="Loading the organisation…" />
 
-  // A 404 here is almost always a stale link rather than a failure, and
-  // ErrorState's alarm language would misdescribe it.
   if (isError) {
     if ((error as ApiError)?.status === 404) {
       return (
@@ -160,9 +126,6 @@ export default function OrgProfile() {
 
   if (!org) return null
 
-  // What the data says renders, ignoring a runtime load failure; and what
-  // clearing the upload would fall back to, so the remove dialog names the
-  // real outcome instead of guessing at it.
   const liveRung = resolveRung(org)
   const fallbackRung = resolveRung(org, 2)
   const fallbackNote =
@@ -173,50 +136,31 @@ export default function OrgProfile() {
         : `No logo yet. ${org.name} shows its initials.`
   const afterRemoval = fallbackRung <= 3 ? `the built-in ${org.name} mark` : 'its initials'
 
-  // The one place the render-locked exception applies to authority: silently
-  // discarding a half-written bio is worse than an honest dead end.
-  const lostAccess = editing !== null && !canEdit
-  const blockedFor = (section: Section) =>
-    editing !== null && editing !== section ? SECTION_LABEL[editing] : null
-  const blockedBy = blockedFor('profile')
+  const lostAccess = editModalOpen && !canEdit
 
   const startEdit = () => {
     setBio(org.bio ?? '')
     setLogoNotice(null)
-    setEditing('profile')
+    setEditTab('identity')
+    setEditModalOpen(true)
   }
 
   const cancelEdit = () => {
-    setEditing(null)
+    setEditModalOpen(false)
     setLogoNotice(null)
   }
 
-  // Only what the server vouches for reaches the read view, so this is also the
-  // count of everything there is to render.
   const hasLinks = org.socialLinks.length > 0 || !!org.website
   const needsAttention = org.withheldPlatforms.length
-
-  const startLinks = () => {
-    saveLinks.reset()
-    setEditing('links')
-  }
-
-  const cancelLinks = () => {
-    saveLinks.reset()
-    setEditing(null)
-  }
 
   const submitProfile = () => {
     saveProfile.mutate(
       { id: orgId, payload: { bio } },
       {
         onSuccess: (data) => {
-          // The read view re-renders from the server's own response, because
-          // the server normalises what it stores and the user must see what
-          // was actually saved.
           qc.setQueryData(['orgProfile', orgId], data)
           addToast('Profile saved', 'success')
-          setEditing(null)
+          setEditModalOpen(false)
         },
       },
     )
@@ -230,13 +174,9 @@ export default function OrgProfile() {
       { id: orgId, payload },
       {
         onSuccess: (data) => {
-          // From the server's own response, never from the form state: the
-          // server normalises what it stores — a tab inside a hostname is
-          // silently removed by the URL parser — and the user must see what
-          // was actually saved.
           qc.setQueryData(['orgProfile', orgId], data)
           addToast('Links saved', 'success')
-          setEditing(null)
+          setEditModalOpen(false)
         },
       },
     )
@@ -244,15 +184,11 @@ export default function OrgProfile() {
 
   const chooseFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    e.target.value = '' // so re-choosing the same file after a rejection still fires
+    e.target.value = ''
     if (!file) return
     setLogoNotice(null)
     setLogoLoadFailed(false)
 
-    // Immediate, explained rejections of an input that provably cannot
-    // succeed — no request is sent. These are not a client-side copy of a
-    // server rule: the magic-byte sniff on the server is still the gate, and
-    // the `accept` attribute is a hint rather than one.
     if (!LOGO_TYPES.includes(file.type)) {
       setLogoNotice({ heading: "PNG, JPEG or WebP only. SVG isn't accepted." })
       return
@@ -279,9 +215,6 @@ export default function OrgProfile() {
               : { heading: errorHeading(apiErr?.code), body: apiErr?.message },
           )
         },
-        // Discarded either way: on success the server's URL has already
-        // replaced it, on failure the tile snaps back to whichever rung was
-        // live. A preview of a file the server refused is never left standing.
         onSettled: () => {
           URL.revokeObjectURL(objectUrl)
           setPreview(null)
@@ -313,293 +246,258 @@ export default function OrgProfile() {
     />
   )
 
+  // Gradient based on Brand Kit Palette or fallback
+  const p1 = org.brandKit?.palette?.[0] || 'rgba(63, 212, 182, 0.2)'
+  const p2 = org.brandKit?.palette?.[1] || 'rgba(16, 185, 129, 0.1)'
+  const bannerStyle = { background: `linear-gradient(135deg, ${p1}, ${p2})` }
+
   return (
-    <div>
-      <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-        {tile}
-        <div className="min-w-0 flex-1">
-          <SectionTitle eyebrow="Organisation" title={org.name} />
-          <div className="flex flex-wrap gap-2">
-            <Badge>{ORG_TYPE_LABEL[org.type] ?? org.type}</Badge>
-            {org.city && <Badge tone="neutral">{org.city}</Badge>}
-          </div>
-        </div>
+    <div className="pb-16 animate-fade-in">
+      {/* Dynamic Banner & Avatar */}
+      <div className="relative mb-24 h-48 w-full overflow-visible rounded-xl border border-white/5 md:h-64" style={bannerStyle}>
+        {/* Holographic overlay */}
+        <div className="absolute inset-0 opacity-[0.15] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        
         {showSwitcher && (
-          <Select
-            className="w-full sm:w-64"
-            value={orgId}
-            onChange={(e) => navigate(`/orgs/${e.target.value}`)}
-            options={switcherOptions}
-          />
+          <div className="absolute top-4 left-4 z-10">
+            <Select
+              className="w-48 bg-black/50 backdrop-blur-md border-white/10"
+              value={orgId}
+              onChange={(e) => navigate(`/orgs/${e.target.value}`)}
+              options={switcherOptions}
+            />
+          </div>
         )}
+
+        {/* Global Edit Button */}
+        {canEdit && (
+          <div className="absolute right-4 bottom-4 md:top-4 md:bottom-auto">
+            <Button variant="secondary" onClick={startEdit} className="bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-white/10">
+              Edit Profile
+            </Button>
+          </div>
+        )}
+
+        {/* Overlapping Avatar */}
+        <div className="absolute bottom-[-80px] left-6 md:left-10 rounded-full border-[6px] border-[#0a0a0a] bg-[#0a0a0a] shadow-xl">
+          <OrgLogo
+            org={org}
+            size={160}
+            className="rounded-full"
+            onLogoLoadError={() => setLogoLoadFailed(true)}
+          />
+        </div>
       </div>
 
-      {/* Section order is locked: Profile → Links → Brand kit. Identity before
-          contact before voice, and the brand kit last because it is the only
-          section a reader never sees. `space-y-6` owns every gap between
-          sections; no section adds a margin of its own. */}
-      <div className="space-y-6">
-        <Card className="p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-h3 font-semibold text-gold">Profile</h2>
-            {canEdit && editing === null && (
-              <Button size="sm" variant="secondary" onClick={startEdit}>
-                Edit
-              </Button>
-            )}
-            {canEdit && blockedBy && (
-              <LockedControl label="Edit" reason={`Finish editing ${blockedBy} first.`} />
+      <div className="grid grid-cols-1 gap-12 md:grid-cols-[300px_1fr]">
+        {/* Left Sidebar */}
+        <div className="flex flex-col gap-6">
+          <div>
+            <h1 className="text-4xl font-extrabold text-white tracking-tight">{org.name}</h1>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge>{ORG_TYPE_LABEL[org.type] ?? org.type}</Badge>
+              {org.city && <Badge tone="neutral">{org.city}</Badge>}
+            </div>
+          </div>
+
+          <div className="text-body text-offwhite whitespace-pre-line">
+            {org.bio ? (
+              org.bio
+            ) : (
+              <span className="text-graytext-mid text-sm italic">{org.name} hasn't written a bio yet.</span>
             )}
           </div>
 
-          {editing === 'profile' ? (
-            <>
-              <div className="space-y-4">
-                <div>
+          {(canEdit || hasLinks) && (
+            <div className="mt-2 border-t border-white/5 pt-6">
+              {hasLinks ? (
+                <SocialLinksRow links={org.socialLinks} website={org.website} />
+              ) : (
+                <p className="text-caption text-graytext-mid">No links yet.</p>
+              )}
+              {canEdit && needsAttention > 0 && (
+                <div className="mt-3">
+                  <Badge tone="warn">
+                    {needsAttention === 1 ? '1 link needs attention' : `${needsAttention} links need attention`}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Main Content (Tabs) */}
+        <div className="flex flex-col min-h-[400px]">
+          <div className="mb-6 flex items-center gap-6 border-b border-white/5 pb-px">
+            <button
+              className={cx(
+                "pb-3 text-sm font-bold uppercase tracking-wider transition-colors relative",
+                activeTab === 'public' ? "text-teal" : "text-graytext-mid hover:text-white"
+              )}
+              onClick={() => setActiveTab('public')}
+            >
+              Public Profile
+              {activeTab === 'public' && (
+                <span className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-teal shadow-[0_0_8px_rgba(63,212,182,0.8)]" />
+              )}
+            </button>
+            {canEdit && (
+              <button
+                className={cx(
+                  "pb-3 text-sm font-bold uppercase tracking-wider transition-colors relative flex items-center gap-2",
+                  activeTab === 'internal' ? "text-amber-400" : "text-graytext-mid hover:text-white"
+                )}
+                onClick={() => setActiveTab('internal')}
+              >
+                Manager Internal
+                {needsAttention > 0 && <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />}
+                {activeTab === 'internal' && (
+                  <span className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+                )}
+              </button>
+            )}
+          </div>
+
+          <div className="flex-1 animate-fade-up">
+            {activeTab === 'public' ? (
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-12 text-center">
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-graytext-mid">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white">More features coming soon</h3>
+                <p className="mt-2 text-sm text-graytext-light max-w-sm mx-auto">
+                  Featured projects, active members, and public updates will appear here in the future.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <Card className="p-6 border-amber-500/20 bg-amber-500/[0.02]">
+                  <h3 className="text-h4 font-bold text-amber-400 mb-2 flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                    Internal Dashboard
+                  </h3>
+                  <p className="text-sm text-graytext-light mb-6">
+                    Everything below is strictly visible to managers of {org.name}.
+                  </p>
+                  <BrandKitEditor
+                    orgId={orgId}
+                    canEdit={canEdit}
+                    editing={true}
+                    blockedBy={null}
+                    onEdit={() => {}}
+                    onCancel={() => {}}
+                    onDirtyChange={setKitDirty}
+                  />
+                </Card>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Global Edit Modal */}
+      <Dialog open={editModalOpen} onClose={cancelEdit} title="Edit Profile" className="max-w-2xl">
+        <div className="mb-6 flex border-b border-white/10">
+          <button
+            className={cx("px-4 py-3 text-[13px] font-bold uppercase tracking-wider", editTab === 'identity' ? "text-teal border-b-2 border-teal" : "text-graytext-mid hover:text-white")}
+            onClick={() => setEditTab('identity')}
+          >
+            Identity & Bio
+          </button>
+          <button
+            className={cx("px-4 py-3 text-[13px] font-bold uppercase tracking-wider", editTab === 'links' ? "text-teal border-b-2 border-teal" : "text-graytext-mid hover:text-white")}
+            onClick={() => setEditTab('links')}
+          >
+            Social Links
+            {needsAttention > 0 && <span className="ml-2 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] text-amber-400">{needsAttention}</span>}
+          </button>
+        </div>
+
+        <div className="min-h-[300px]">
+          {editTab === 'identity' ? (
+            <div className="space-y-8">
+              <div>
+                <label className="mb-3 block text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                  Logo
+                </label>
+                <div className="flex items-center gap-4">
                   {tile}
-                  <div className="mt-2 flex items-center gap-2">
-                    {/* The styled label is the focusable, keyboard-activatable
-                        control; the input is visually hidden but still a real
-                        input, so the focus ring has something to follow. */}
+                  <div className="flex flex-col gap-2">
                     <label
                       aria-busy={uploadLogo.isPending || undefined}
                       className={cx(
-                        'inline-flex cursor-pointer items-center gap-2 rounded-full bg-teal px-4 py-2 text-[12px] font-bold uppercase tracking-wide text-onyx shadow-glow-teal transition duration-200 ease-material hover:bg-teal-accent focus-within:outline-none focus-within:ring-2 focus-within:ring-teal/50',
+                        'inline-flex cursor-pointer items-center justify-center rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10',
                         uploadLogo.isPending && 'cursor-not-allowed opacity-40',
                       )}
                     >
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        className="sr-only"
-                        disabled={uploadLogo.isPending}
-                        onChange={chooseFile}
-                      />
-                      {uploadLogo.isPending
-                        ? 'Uploading…'
-                        : liveRung === 1
-                          ? 'Replace logo'
-                          : 'Upload a logo'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={uploadLogo.isPending} onChange={chooseFile} />
+                      {uploadLogo.isPending ? 'Uploading…' : liveRung === 1 ? 'Replace image' : 'Upload image'}
                     </label>
                     {liveRung === 1 && (
                       <button
                         type="button"
                         onClick={() => setRemoveOpen(true)}
-                        aria-label="Remove the logo"
-                        title="Remove the logo"
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-red-400/40 text-red-300 transition duration-200 ease-material hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
+                        className="text-left text-sm text-red-400 hover:text-red-300 transition"
                       >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden
-                        >
-                          <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
-                        </svg>
+                        Remove logo
                       </button>
                     )}
                   </div>
-                  {/* Disclosed where the user can act, never on the read view —
-                      marking the fallback there would make the whole Houses
-                      grid look unfinished on day one. */}
-                  {fallbackNote && (
-                    <p className="mt-2 text-caption text-graytext-light">{fallbackNote}</p>
-                  )}
-                  {logoLoadFailed && (
-                    <p className="mt-2 text-caption text-amber-300">
-                      That logo file couldn't be loaded. Upload it again.
-                    </p>
-                  )}
-                  {logoNotice && (
-                    <div className="mt-2">
-                      <ErrorStrip heading={logoNotice.heading} body={logoNotice.body} />
-                    </div>
-                  )}
                 </div>
+                {fallbackNote && <p className="mt-3 text-caption text-graytext-light">{fallbackNote}</p>}
+                {logoLoadFailed && <p className="mt-2 text-caption text-amber-300">That logo file couldn't be loaded. Upload it again.</p>}
+                {logoNotice && <div className="mt-3"><ErrorStrip heading={logoNotice.heading} body={logoNotice.body} /></div>}
+              </div>
 
-                <div>
-                  <label
-                    htmlFor="org-bio"
-                    className="mb-2 block text-caption font-semibold uppercase tracking-wider text-graytext-light"
-                  >
-                    Bio
-                  </label>
-                  {/* No hard cap: truncating a paste silently is worse than
-                      letting the server say why. */}
-                  <Textarea
-                    id="org-bio"
-                    rows={5}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="What your organisation is, who it's for, and what it's known for."
-                  />
-                  {bio.length >= BIO_COUNTER_FROM && (
-                    <p
-                      className={cx(
-                        'mt-1 text-caption',
-                        bio.length > BIO_LIMIT ? 'text-red-300' : 'text-graytext-mid',
-                      )}
-                    >
-                      {bio.length > BIO_LIMIT
-                        ? `${bio.length}/${BIO_LIMIT} — trim ${bio.length - BIO_LIMIT} characters.`
-                        : `${bio.length}/${BIO_LIMIT}`}
-                    </p>
-                  )}
-                </div>
-
-                {saveProfile.isError && (
-                  <ErrorStrip
-                    heading={errorHeading((saveProfile.error as ApiError)?.code)}
-                    body={
-                      (saveProfile.error as Error)?.message ||
-                      'Nothing was saved. Check your connection and try again.'
-                    }
-                  />
+              <div>
+                <label htmlFor="org-bio" className="mb-2 block text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                  Bio
+                </label>
+                <Textarea id="org-bio" rows={5} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="What your organisation is, who it's for, and what it's known for." />
+                {bio.length >= BIO_COUNTER_FROM && (
+                  <p className={cx('mt-1 text-caption', bio.length > BIO_LIMIT ? 'text-red-300' : 'text-graytext-mid')}>
+                    {bio.length > BIO_LIMIT ? `${bio.length}/${BIO_LIMIT} — trim ${bio.length - BIO_LIMIT} characters.` : `${bio.length}/${BIO_LIMIT}`}
+                  </p>
                 )}
               </div>
 
-              <div className="mt-6 flex items-start justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={cancelEdit}
-                  disabled={saveProfile.isPending}
-                >
-                  Cancel
-                </Button>
-                {/* Save is never pre-disabled on a client-side guess of a
-                    server rule. Every rule on this page lives on the server by
-                    design, and a second, weaker copy of it would leave the user
-                    facing a grey button with no explanation the first time the
-                    two disagreed. */}
+              {saveProfile.isError && (
+                <ErrorStrip heading={errorHeading((saveProfile.error as ApiError)?.code)} body={(saveProfile.error as Error)?.message || 'Nothing was saved. Check your connection and try again.'} />
+              )}
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <Button variant="ghost" onClick={cancelEdit} disabled={saveProfile.isPending}>Cancel</Button>
                 {lostAccess ? (
-                  <LockedControl
-                    label="Save changes"
-                    variant="primary"
-                    size="md"
-                    className="text-right"
-                    reason="Your access to this organisation changed. Copy anything you need — this won't save."
-                  />
+                  <LockedControl label="Save changes" reason="Your access changed. Copy anything you need — this won't save." />
                 ) : (
-                  <Button
-                    type="button"
-                    onClick={submitProfile}
-                    disabled={saveProfile.isPending}
-                    aria-busy={saveProfile.isPending || undefined}
-                  >
+                  <Button onClick={submitProfile} disabled={saveProfile.isPending} aria-busy={saveProfile.isPending || undefined}>
                     {saveProfile.isPending ? 'Saving…' : 'Save changes'}
                   </Button>
                 )}
               </div>
-            </>
-          ) : org.bio ? (
-            <p className="max-w-prose whitespace-pre-line text-body text-offwhite">{org.bio}</p>
-          ) : (
-            <p className="text-caption text-graytext-mid">{org.name} hasn't written a bio yet.</p>
-          )}
-        </Card>
-
-        {/* Links — ORG-02. Absent entirely for a reader with nothing to show:
-            on a read-only profile an empty section is clutter. Present for a
-            manager, because the manager needs the entry point. */}
-        {(canEdit || hasLinks) && (
-          <Card className="p-6">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-h3 font-semibold text-gold">Links</h2>
-              <div className="flex items-center gap-2">
-                {/* A manager should not have to open the editor to learn
-                    something needs their attention. A reader never sees this —
-                    they cannot act on it, and naming it would only advertise a
-                    link they must not receive. */}
-                {canEdit && needsAttention > 0 && (
-                  <Badge tone="warn">
-                    {needsAttention === 1
-                      ? '1 link needs attention'
-                      : `${needsAttention} links need attention`}
-                  </Badge>
-                )}
-                {canEdit && editing === null && (
-                  <Button size="sm" variant="secondary" onClick={startLinks}>
-                    Edit
-                  </Button>
-                )}
-                {canEdit && blockedFor('links') && (
-                  <LockedControl
-                    label="Edit"
-                    reason={`Finish editing ${blockedFor('links')} first.`}
-                  />
-                )}
-              </div>
             </div>
-
-            {editing === 'links' ? (
-              <SocialLinksEditor
-                org={org}
-                saving={saveLinks.isPending}
-                error={saveLinks.isError ? (saveLinks.error as ApiError) : null}
-                onSave={submitLinks}
-                onCancel={cancelLinks}
-              />
-            ) : hasLinks ? (
-              <SocialLinksRow links={org.socialLinks} website={org.website} />
-            ) : (
-              <p className="text-caption text-graytext-mid">No links yet.</p>
-            )}
-          </Card>
-        )}
-
-        {/* Brand kit — ORG-03/ORG-04. Rendered iff `canEdit`, with its own
-            separately-gated query, so the request is never issued for a
-            non-manager and no 403 reaches this surface. A brand kit is an
-            internal working document, not part of the public identity. */}
-        {canEdit && (
-          <BrandKitEditor
-            orgId={orgId}
-            canEdit={canEdit}
-            editing={editing === 'brandkit'}
-            blockedBy={blockedFor('brandkit')}
-            onEdit={() => setEditing('brandkit')}
-            onCancel={() => setEditing(null)}
-            onDirtyChange={setKitDirty}
-          />
-        )}
-      </div>
+          ) : (
+            <SocialLinksEditor
+              org={org}
+              saving={saveLinks.isPending}
+              error={saveLinks.isError ? (saveLinks.error as ApiError) : null}
+              onSave={submitLinks}
+              onCancel={cancelEdit}
+            />
+          )}
+        </div>
+      </Dialog>
 
       <Dialog open={removeOpen} onClose={() => setRemoveOpen(false)} title="Remove the logo?">
         <p className="text-body text-graytext-light">
           {org.name} goes back to {afterRemoval}. You can upload a new one any time.
         </p>
         {removeLogo.isError && (
-          <div className="mt-4">
-            <ErrorStrip
-              heading={errorHeading((removeLogo.error as ApiError)?.code)}
-              body={(removeLogo.error as Error)?.message}
-            />
-          </div>
+          <div className="mt-4"><ErrorStrip heading={errorHeading((removeLogo.error as ApiError)?.code)} body={(removeLogo.error as Error)?.message} /></div>
         )}
         <div className="mt-6 flex justify-end gap-2">
-          <Button
-            variant="ghost"
-            type="button"
-            autoFocus
-            onClick={() => setRemoveOpen(false)}
-            disabled={removeLogo.isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            type="button"
-            onClick={confirmRemove}
-            disabled={removeLogo.isPending}
-            aria-busy={removeLogo.isPending || undefined}
-          >
+          <Button variant="ghost" type="button" autoFocus onClick={() => setRemoveOpen(false)} disabled={removeLogo.isPending}>Cancel</Button>
+          <Button variant="danger" type="button" onClick={confirmRemove} disabled={removeLogo.isPending} aria-busy={removeLogo.isPending || undefined}>
             {removeLogo.isPending ? 'Removing…' : 'Remove logo'}
           </Button>
         </div>
@@ -608,13 +506,6 @@ export default function OrgProfile() {
   )
 }
 
-/* Render-locked is a specific visual contract, not a bare `disabled`: the
- * label is unchanged, a padlock marks it, and the condition is stated in a
- * *visible* line as well as the title, because a tooltip alone is unreachable
- * on touch. It stays hoverable and focusable — pointer events are never
- * switched off, because an explanation nobody can hover is not an explanation.
- * Busy is the opposite contract and lives inline on each control: aria-busy,
- * no padlock, and the verb in its present-participle form. */
 function LockedControl({
   label,
   reason,
@@ -630,25 +521,8 @@ function LockedControl({
 }) {
   return (
     <div className={className}>
-      <Button
-        variant={variant}
-        size={size}
-        disabled
-        aria-disabled="true"
-        title={reason}
-        className="cursor-not-allowed opacity-40"
-      >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
+      <Button variant={variant} size={size} disabled aria-disabled="true" title={reason} className="cursor-not-allowed opacity-40">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <rect x="4" y="11" width="16" height="10" rx="2" />
           <path d="M8 11V7a4 4 0 0 1 8 0v4" />
         </svg>
@@ -661,10 +535,7 @@ function LockedControl({
 
 function ErrorStrip({ heading, body }: { heading: string; body?: string }) {
   return (
-    <div
-      role="alert"
-      className="rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-[14px] text-red-300"
-    >
+    <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-[14px] text-red-300">
       <div className="font-semibold">{heading}</div>
       {body && <div className="mt-1">{body}</div>}
     </div>

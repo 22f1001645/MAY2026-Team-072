@@ -36,10 +36,9 @@ const NAV: Record<Role, NavItem[]> = {
       subItems: [
         { to: '/events/ev-ekatva-hyd/manage', label: 'Registrations & Tasks', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
         { to: '/events/ev-hyd-coffee/expenses', label: 'Reimbursement', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
-        { to: '/events/ev-ekatva-hyd/checkin', label: 'Check-in', icon: <Icon d="m5 12 4 4L19 6" /> },
+        { to: '/checkin', label: 'Check-in', icon: <Icon d="m5 12 4 4L19 6" /> },
       ]
     },
-    { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
   ],
   admin: [
     { to: '/admin/approvals', label: 'Approval Queue', icon: <Icon d="m9 11 3 3 8-8M4 12v6a2 2 0 0 0 2 2h12" /> },

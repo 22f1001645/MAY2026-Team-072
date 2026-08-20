@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useCities, useOrgs, useSubmitProposal } from '../lib/queries'
-import { Badge, Button, Card, SectionTitle } from '../components/ui'
+import { Badge, Button, Card, SectionTitle, FormSelect, FormDatePicker } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
 import { api } from '../lib/api'
@@ -60,7 +60,9 @@ export default function ProposalNew() {
   const [searchingTeam, setSearchingTeam] = useState(false)
   // Phase 3: Collaborating Orgs (PROPOSAL-01)
   const [collabOrgIds, setCollabOrgIds] = useState<string[]>([])
+  const [collabSearch, setCollabSearch] = useState('')
   const [done, setDone] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
 
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
@@ -85,8 +87,24 @@ export default function ProposalNew() {
   const meetupHeadCount = teamRows.filter(r => r.role === 'Meetup Head').length
   const teamValid = teamRows.length > 0 && meetupHeadCount === 1
 
+  const isStep1Valid = !!(form.title && (form.org_id || orgs.length > 0) && (form.city || cities.length > 0) && form.starts_at && form.capacity && form.venue && form.description)
+  
+  const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
+  const isBudgetValid = cap === null || cap === 0 || total <= cap
+  const isStep2Valid = isBudgetValid
+
+  const nextStep = () => {
+    if (currentStep === 1 && isStep1Valid) setCurrentStep(2)
+    else if (currentStep === 2 && isStep2Valid) setCurrentStep(3)
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
+  }
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!teamValid || !isStep1Valid || !isStep2Valid) return
     const payload = {
       title: form.title,
       org_id: form.org_id || orgs[0]?.id,
@@ -113,7 +131,7 @@ export default function ProposalNew() {
         <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-teal/15 text-3xl">
           ✓
         </div>
-        <h1 className="text-h1 font-bold text-gold">Proposal submitted</h1>
+        <h1 className="text-h1 font-bold text-white">Proposal submitted</h1>
         <p className="mx-auto mt-2 max-w-md text-body text-graytext-light">
           It's in the admin's approval queue with a full audit trail. You'll be notified
           the moment it's approved — and it auto-publishes to your city feed.
@@ -135,10 +153,34 @@ export default function ProposalNew() {
         sub="One form, no re-keying. On approval this becomes a live event on the city feed."
       />
 
+      {/* Stepper UI */}
+      <div className="mb-8 flex items-center justify-between relative">
+        <div className="absolute left-0 top-1/2 -z-10 h-0.5 w-full -translate-y-1/2 bg-white/5">
+          <div className="h-full bg-teal transition-all duration-500 ease-out" style={{ width: `${((currentStep - 1) / 2) * 100}%` }} />
+        </div>
+        {[1, 2, 3].map((step) => {
+          const active = currentStep === step
+          const passed = currentStep > step
+          return (
+            <div key={step} className="flex flex-col items-center gap-2 bg-black px-2">
+              <div className={`grid h-8 w-8 place-items-center rounded-full border-2 text-[13px] font-bold transition-colors ${active ? 'border-teal bg-teal text-onyx shadow-[0_0_15px_rgba(45,212,191,0.4)]' : passed ? 'border-teal bg-teal text-onyx' : 'border-white/20 bg-onyx text-graytext-mid'}`}>
+                {passed ? '✓' : step}
+              </div>
+              <span className={`text-[11px] font-semibold uppercase tracking-wider ${active ? 'text-teal' : passed ? 'text-offwhite' : 'text-graytext-mid'}`}>
+                {step === 1 ? 'Core Details' : step === 2 ? 'Budget' : 'Team'}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
       <form onSubmit={submit} className="space-y-6">
-        {/* Scale */}
-        <Card className="p-6">
-          <Label>Activity scale</Label>
+        
+        {/* STEP 1 */}
+        <div className={currentStep === 1 ? 'block space-y-6 animate-fade-in' : 'hidden'}>
+          {/* Scale */}
+          <Card className="p-6">
+            <Label>Activity scale</Label>
           <div className="grid gap-3 sm:grid-cols-3">
             {(['local_meetup', 'regional_meetup', 'regional_fest'] as ActivityScale[]).map((s) => (
               <button
@@ -175,26 +217,53 @@ export default function ProposalNew() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>Organisation</Label>
-              <select value={form.org_id} onChange={(e) => set('org_id', e.target.value)} className={selectCls}>
-                <option value="" className="bg-onyx">Select an organisation…</option>
-                {orgs.map((o: any) => (
-                  <option key={o.id} value={o.id} className="bg-onyx">{o.name}</option>
-                ))}
-              </select>
+              <FormSelect
+                value={form.org_id}
+                onChange={(val) => set('org_id', val)}
+                placeholder="Select an organisation…"
+                options={orgs.map((o: any) => ({ label: o.name, value: o.id }))}
+              />
             </div>
             <div>
               <Label>City</Label>
-              <select value={form.city} onChange={(e) => set('city', e.target.value)} className={selectCls}>
-                <option value="" className="bg-onyx">Select a city…</option>
-                {cities.map((c: any) => (
-                  <option key={c.id} value={c.name} className="bg-onyx">{c.name}</option>
-                ))}
-              </select>
+              <FormSelect
+                value={form.city}
+                onChange={(val) => set('city', val)}
+                placeholder="Select a city…"
+                options={cities.map((c: any) => ({ label: c.name, value: c.name }))}
+              />
             </div>
             <div>
               <Label>Date & time</Label>
-              <Input type="datetime-local" value={form.starts_at}
-                onChange={(e) => set('starts_at', e.target.value)} required />
+              <div className="flex gap-2">
+                <FormDatePicker 
+                  value={form.starts_at.split('T')[0] || ''} 
+                  onChange={(date) => {
+                    const current = form.starts_at || ''
+                    const timePart = current.includes('T') ? current.split('T')[1] : '18:00'
+                    set('starts_at', `${date}T${timePart}`)
+                  }} 
+                  className="flex-1" 
+                />
+                <FormSelect 
+                  value={form.starts_at.includes('T') ? form.starts_at.split('T')[1].slice(0, 5) : ''}
+                  onChange={(time) => {
+                    const current = form.starts_at || ''
+                    const datePart = current ? current.split('T')[0] : new Date().toISOString().split('T')[0]
+                    set('starts_at', `${datePart}T${time}`)
+                  }}
+                  placeholder="Time"
+                  className="w-[120px]"
+                  options={Array.from({ length: 48 }).map((_, i) => {
+                    const h = Math.floor(i / 2)
+                    const m = i % 2 === 0 ? '00' : '30'
+                    const hh = String(h).padStart(2, '0')
+                    const ampm = h >= 12 ? 'PM' : 'AM'
+                    const h12 = h % 12 || 12
+                    return { label: `${h12}:${m} ${ampm}`, value: `${hh}:${m}` }
+                  })}
+                />
+              </div>
             </div>
             <div>
               <Label>Capacity</Label>
@@ -218,9 +287,18 @@ export default function ProposalNew() {
             />
           </div>
         </Card>
+          
+          <div className="flex justify-end pt-4">
+            <Button type="button" size="lg" onClick={nextStep} disabled={!isStep1Valid}>
+              Continue to Budget →
+            </Button>
+          </div>
+        </div>
 
-        {/* Line-item budget (FR-E1) */}
-        <Card className="p-6">
+        {/* STEP 2 */}
+        <div className={currentStep === 2 ? 'block space-y-6 animate-fade-in' : 'hidden'}>
+          {/* Line-item budget (FR-E1) */}
+          <Card className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <Label className="mb-0">Line-item budget</Label>
             <Badge tone="gold">Total {inr(total)}</Badge>
@@ -291,10 +369,22 @@ export default function ProposalNew() {
               </div>
             )
           })()}
-        </Card>
+          </Card>
+          
+          <div className="flex justify-between pt-4">
+            <Button type="button" variant="ghost" size="lg" onClick={prevStep}>
+              ← Back
+            </Button>
+            <Button type="button" size="lg" onClick={nextStep} disabled={!isStep2Valid}>
+              Continue to Team →
+            </Button>
+          </div>
+        </div>
 
-        {/* Team Roster (PROPOSAL-02) */}
-        <Card className="p-6">
+        {/* STEP 3 */}
+        <div className={currentStep === 3 ? 'block space-y-6 animate-fade-in' : 'hidden'}>
+          {/* Team Roster (PROPOSAL-02) */}
+          <Card className="p-6">
           <Label>Team roster</Label>
           <p className="mb-3 text-caption text-graytext-mid">
             Assign one Meetup Head. Everything else is optional.
@@ -343,22 +433,19 @@ export default function ProposalNew() {
                       <span className="rounded-full bg-gold/20 px-2 py-0.5 text-caption font-semibold text-gold">Head</span>
                     )}
                     <span className="flex-1 text-[14px] font-medium text-offwhite">{row.userName}</span>
-                    <select
+                    <FormSelect
                       value={row.role}
-                      onChange={(e) => setTeamRows(teamRows.map(r => r.id === row.id ? { ...r, role: e.target.value } : r))}
-                      className="rounded-lg border border-white/10 bg-onyx px-2 py-1 text-caption text-offwhite"
-                    >
-                      {TEAM_ROLES.map(role => (
-                        <option
-                          key={role}
-                          value={role}
-                          disabled={role === 'Meetup Head' && meetupHeadCount > 0 && row.role !== 'Meetup Head'}
-                          className="bg-onyx"
-                        >
-                          {role}{role === 'Meetup Head' && meetupHeadCount > 0 && row.role !== 'Meetup Head' ? ' (assigned)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setTeamRows(teamRows.map(r => r.id === row.id ? { ...r, role: val } : r))}
+                      className="w-40"
+                      options={TEAM_ROLES.map(role => {
+                        const isDisabled = role === 'Meetup Head' && meetupHeadCount > 0 && row.role !== 'Meetup Head'
+                        return {
+                          label: role + (isDisabled ? ' (assigned)' : ''),
+                          value: role,
+                          disabled: isDisabled
+                        }
+                      })}
+                    />
                     <button
                       type="button"
                       aria-label={`Remove ${row.userName} from the roster`}
@@ -379,39 +466,55 @@ export default function ProposalNew() {
             Name every organisation running this with you. Each one's Secretary is asked to
             accept before it counts.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {(orgs as any[])
-              .filter((o: any) => o.id !== form.org_id)
-              .map((o: any) => {
-                const checked = collabOrgIds.includes(o.id)
-                return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    aria-pressed={checked}
-                    onClick={() => setCollabOrgIds(
-                      checked ? collabOrgIds.filter(id => id !== o.id) : [...collabOrgIds, o.id]
-                    )}
-                    className={
-                      'flex items-center gap-3 rounded-xl border px-4 py-2 text-left text-[14px] transition-all ' +
-                      (checked
-                        ? 'border-teal bg-teal/10 text-offwhite'
-                        : 'border-white/10 bg-white/[0.02] text-graytext-light hover:border-teal/40')
-                    }
-                  >
-                    <span className={`h-4 w-4 shrink-0 rounded border ${checked ? 'border-teal bg-teal' : 'border-white/30'} flex items-center justify-center text-caption text-onyx`}>
-                      {checked ? '✓' : ''}
-                    </span>
-                    <span className="min-w-0 truncate">{o.name}</span>
-                    <span className="ml-auto shrink-0 text-caption text-graytext-mid">{o.type}</span>
-                  </button>
-                )
-              })}
+
+          <div className="relative mb-3">
+            <input
+              value={collabSearch}
+              onChange={(e) => setCollabSearch(e.target.value)}
+              placeholder="Search to add collaborators..."
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
+            />
+            {collabSearch.length > 0 && (
+              <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-onyx shadow-xl">
+                {orgs
+                  .filter((o: any) => o.id !== form.org_id && !collabOrgIds.includes(o.id) && o.name?.toLowerCase().includes(collabSearch.toLowerCase()))
+                  .slice(0, 10)
+                  .map((o: any) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => {
+                        setCollabOrgIds([...collabOrgIds, o.id])
+                        setCollabSearch('')
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-2 text-left text-[14px] hover:bg-white/5"
+                    >
+                      <span className="font-medium text-offwhite">{o.name}</span>
+                      <span className="ml-auto text-caption text-graytext-mid">{o.type}</span>
+                    </button>
+                  ))}
+                {orgs.filter((o: any) => o.id !== form.org_id && !collabOrgIds.includes(o.id) && o.name?.toLowerCase().includes(collabSearch.toLowerCase())).length === 0 && (
+                  <div className="px-4 py-3 text-[14px] text-graytext-mid">No matching organisations found.</div>
+                )}
+              </div>
+            )}
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            {collabOrgIds.map(id => {
+              const org = orgs.find((o: any) => o.id === id)
+              return (
+                <div key={id} className="flex items-center gap-1.5 rounded-full border border-teal/30 bg-teal/10 pl-3 pr-1 py-1 text-[13px] font-medium text-teal">
+                  {org?.name}
+                  <button type="button" onClick={() => setCollabOrgIds(collabOrgIds.filter(x => x !== id))} className="grid h-5 w-5 place-items-center rounded-full text-teal hover:bg-teal/20">×</button>
+                </div>
+              )
+            })}
+          </div>
+          
           {collabOrgIds.length === 0 ? (
             <p className="mt-2 text-caption text-graytext-mid">
-              No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'}{' '}
-              event.
+              No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'} event.
             </p>
           ) : (
             <p className="mt-2 text-caption text-teal">
@@ -438,17 +541,23 @@ export default function ProposalNew() {
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" type="button" onClick={() => nav('/organiser')}>
-            Cancel
+        <div className="flex justify-between pt-4">
+          <Button variant="ghost" type="button" onClick={prevStep}>
+            ← Back
           </Button>
-          <Button type="submit" size="lg" disabled={submitMut.isPending || !teamValid || (() => {
-            const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
-            return cap !== null && cap > 0 && total > cap
-          })()}>
-            {submitMut.isPending ? 'Submitting…' : 'Submit for approval'}
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="ghost" type="button" onClick={() => nav('/organiser')}>
+              Cancel
+            </Button>
+            <Button type="submit" size="lg" disabled={submitMut.isPending || !teamValid || (() => {
+              const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
+              return cap !== null && cap > 0 && total > cap
+            })()}>
+              {submitMut.isPending ? 'Submitting…' : 'Submit for approval'}
+            </Button>
+          </div>
         </div>
+      </div>
       </form>
     </div>
   )

@@ -11,20 +11,32 @@ import { cx } from '../lib/format'
 
 export type View = 'student' | 'organiser'
 
-/** Routes that belong to the Organiser view. Everything else is Student. */
+/** Routes that explicitly belong to the Organiser view. */
 const ORGANISER_ROUTES = [
   /^\/organiser(\/|$)/,
   /^\/proposals(\/|$)/,
-  /^\/events\/[^/]+\/(manage|expenses|checkin)(\/|$)/,
+  /^\/events\/[^/]+\/(manage|expenses)(\/|$)/, // Action routes are definitely organiser
+  /^\/checkin(\/|$)/,
+  /^\/orgs(\/|$)/,
 ]
 
-/** The switcher derives its value from the URL on every render — never from
- *  React state, never from storage. That is what makes D-16 (a deep link into
- *  the other view flips the switcher) free rather than a synchronisation
- *  problem. Exported so `lib/session.tsx` and the tests share one definition of
- *  the route set; three copies would drift. */
+/** Routes that explicitly belong to the Student view. */
+const STUDENT_ROUTES = [
+  /^\/discover(\/|$)/,
+  /^\/me(\/|$)/,
+  /^\/leaderboard(\/|$)/,
+]
+
+/** 
+ * The switcher derives its value from the URL on every render.
+ * If a route is neutral (like `/events/:id`), it preserves the current stored view.
+ */
 export function viewFromPathname(pathname: string): View {
-  return ORGANISER_ROUTES.some((re) => re.test(pathname)) ? 'organiser' : 'student'
+  if (ORGANISER_ROUTES.some((re) => re.test(pathname))) return 'organiser'
+  if (STUDENT_ROUTES.some((re) => re.test(pathname))) return 'student'
+  
+  // Neutral routes (e.g. /events/:id or profile pages) keep whatever is currently stored.
+  return (localStorage.getItem('ekatva_view') as View) || 'student'
 }
 
 const SEGMENTS: { view: View; label: string }[] = [
@@ -49,6 +61,13 @@ export default function ViewSwitcher() {
   useEffect(() => {
     if (!loading && !isOrganiser) localStorage.removeItem('ekatva_view')
   }, [loading, isOrganiser])
+
+  // Sync explicitly matched routes to localStorage so that subsequent navigation
+  // to neutral routes (like /events/:id) preserves the intended view.
+  useEffect(() => {
+    if (ORGANISER_ROUTES.some((re) => re.test(pathname))) localStorage.setItem('ekatva_view', 'organiser')
+    else if (STUDENT_ROUTES.some((re) => re.test(pathname))) localStorage.setItem('ekatva_view', 'student')
+  }, [pathname])
 
   // No disabled state, no ghost, no lock, no reserved space: a single-role
   // student never learns the switcher exists, the nav simply starts higher.

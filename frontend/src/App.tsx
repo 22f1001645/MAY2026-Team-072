@@ -148,7 +148,7 @@ function AppShell() {
         <Route path="/proposals/new" element={<ProposalNew />} />
         <Route path="/events/:id/manage" element={<ManageEvent />} />
         <Route path="/events/:id/expenses" element={<Expenses />} />
-        <Route path="/events/:id/checkin" element={<CheckIn />} />
+        <Route path="/checkin" element={<CheckIn />} />
         <Route path="/events/:id/campaign" element={<CampaignBuilder />} />
         <Route path="/events/:id/workspace" element={<KanbanWorkspace />} />
 

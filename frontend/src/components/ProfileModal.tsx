@@ -82,7 +82,7 @@ export function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
           {/* Action Links */}
           <div className="mt-12 flex items-center gap-6">
-            {role === 'student' && (
+            {role !== 'admin' && (
               <button 
                 onClick={() => setPrefsOpen(true)}
                 className="text-[13px] font-bold tracking-widest uppercase text-white hover:text-teal transition-colors flex items-center gap-2 group"
@@ -109,7 +109,7 @@ export function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         {/* RIGHT COLUMN: Stats / HUD */}
         <div className="relative z-10 w-full md:w-[45%] p-10 md:p-16 flex flex-col justify-center bg-white/[0.02]">
           
-          {role !== 'student' ? (
+          {role === 'admin' ? (
             <div className="flex flex-col h-full justify-center">
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 opacity-60">

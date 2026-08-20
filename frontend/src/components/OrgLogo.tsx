@@ -71,7 +71,7 @@ export function OrgLogo({
   className,
 }: {
   org: LogoOrg
-  size: 40 | 80
+  size: 40 | 80 | 160
   /** An object URL for a file chosen but not yet stored. Renders as rung 1 on
    *  a neutral tile, and is never the tile's persisted state. */
   previewUrl?: string | null
@@ -96,6 +96,8 @@ export function OrgLogo({
   const box =
     size === 40
       ? 'grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[18px] overflow-hidden'
+      : size === 160
+      ? 'grid h-40 w-40 shrink-0 place-items-center rounded-full text-[64px] shadow-lg overflow-hidden'
       : 'grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-[36px] shadow-lg overflow-hidden'
 
   // The tint follows the rung that actually rendered. Uploaded artwork carries
@@ -138,7 +140,7 @@ export function OrgLogo({
       {rung === 4 && (
         <span
           aria-hidden
-          className={cx('font-semibold text-graytext-light', size === 80 && 'text-[28px]')}
+          className={cx('font-semibold text-graytext-light', size === 80 && 'text-[28px]', size === 160 && 'text-[48px]')}
         >
           {initialsOf(org.name)}
         </span>

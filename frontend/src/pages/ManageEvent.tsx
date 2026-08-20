@@ -52,14 +52,9 @@ export default function ManageEvent() {
             {e.status !== 'completed' && (
               <>
                 <Button variant="secondary" onClick={() => setAlertOpen(true)}>Push Alerts</Button>
-                <Link to={`/events/${e.id}`} state={{ openChat: true }}>
-                  <Button variant="secondary">Broadcast</Button>
-                </Link>
               </>
             )}
-            <Link to={`/events/${e.id}/checkin`}>
-              <Button variant="secondary">Check-in</Button>
-            </Link>
+
             <Link to={`/events/${e.id}/expenses`}>
               <Button variant="secondary">Reimbursement</Button>
             </Link>

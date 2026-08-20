@@ -338,7 +338,7 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
   const isWaitlistClosed = new Date(e.startsAt).getTime() - Date.now() < 24 * 60 * 60 * 1000
   
   return (
-    <Card hover className="h-full overflow-hidden flex flex-col">
+    <Card hover className="h-full overflow-hidden flex flex-col group/card">
       <div
         className={cx("relative flex items-end p-4 transition-transform duration-500 hover:scale-105", compact ? "h-24" : "h-32")}
         style={{ background: cover(e.cover) }}
@@ -358,7 +358,7 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
         <div className="text-caption uppercase tracking-wider text-teal">
           {e.city}
         </div>
-        <div className="mt-1 line-clamp-2 text-h3 font-semibold text-offwhite">
+        <div className="mt-1 line-clamp-2 text-h3 font-semibold text-offwhite transition-colors group-hover/card:text-teal">
           {e.title}
         </div>
         

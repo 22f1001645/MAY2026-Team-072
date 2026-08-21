@@ -169,7 +169,7 @@ export default function CitySelector({
         </button>
 
         {dropdownOpen && (
-          <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-white/10 bg-black shadow-2xl z-50 overflow-hidden animate-fade-down origin-top-left">
+          <div className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-fade-down origin-top-left">
             <div className="p-2 border-b border-white/5 relative">
               <Search
                 size={14}

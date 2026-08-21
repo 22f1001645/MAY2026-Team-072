@@ -579,3 +579,10 @@ export const useDeleteTask = (activityId?: string) => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
   })
 }
+export const useSubscribeToCityAlert = () => {
+  return useMutation({
+    mutationFn: (v: { email: string; city: string }) => api.subscribeCityAlert(v),
+  })
+}
+
+export const usePendingProposalsCount = () => useQuery({ queryKey: ['proposals', 'pending'], queryFn: () => api.proposals('pending'), select: (data) => data.length })

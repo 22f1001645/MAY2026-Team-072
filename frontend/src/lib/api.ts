@@ -463,6 +463,12 @@ export const api = {
     _accessToken = res.access_token
     return res
   },
+  subscribeCityAlert: async (data: { email: string; city: string }) => {
+    return request<{ ok: boolean }>('/alerts/city', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
   register: async (data: { name: string; email: string; password: string; region_id: string; city?: string }) => {
     const res = await request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',

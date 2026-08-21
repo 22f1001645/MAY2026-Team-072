@@ -288,45 +288,10 @@ export default function Orgs() {
               onChange={e => setPorSearch(e.target.value)}
               className="max-w-xs"
             />
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porOrgFilter}
-              onChange={e => setPorOrgFilter(e.target.value)}
-            >
-              <option value="">All Houses / Orgs</option>
-              {Array.from(new Set(pors.map((p: any) => p.org))).sort().map((org: any) => (
-                <option key={org} value={org}>{org}</option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porRoleFilter}
-              onChange={e => setPorRoleFilter(e.target.value)}
-            >
-              <option value="">All Positions</option>
-              {Array.from(new Set(pors.map((p: any) => p.por_type))).sort().map((role: any) => (
-                <option key={role} value={role}>{role}</option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porRegionFilter}
-              onChange={e => setPorRegionFilter(e.target.value)}
-            >
-              <option value="">All Regions</option>
-              {Array.from(new Set(pors.map((p: any) => p.region).filter(Boolean))).sort().map((region: any) => (
-                <option key={region} value={region}>{region}</option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-              value={porStatusFilter}
-              onChange={e => setPorStatusFilter(e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              <option value="active">Active Only</option>
-              <option value="past">Past Only</option>
-            </select>
+            <Select value={porOrgFilter} onChange={e => setPorOrgFilter(e.target.value)} options={[{ label: 'All Houses / Orgs', value: '' }, ...Array.from(new Set(pors.map((p: any) => p.org))).sort().map((org: any) => ({ label: org, value: org }))]} />
+            <Select value={porRoleFilter} onChange={e => setPorRoleFilter(e.target.value)} options={[{ label: 'All Positions', value: '' }, ...Array.from(new Set(pors.map((p: any) => p.por_type))).sort().map((role: any) => ({ label: role, value: role }))]} />
+            <Select value={porRegionFilter} onChange={e => setPorRegionFilter(e.target.value)} options={[{ label: 'All Regions', value: '' }, ...Array.from(new Set(pors.map((p: any) => p.region).filter(Boolean))).sort().map((region: any) => ({ label: region, value: region }))]} />
+            <Select value={porStatusFilter} onChange={e => setPorStatusFilter(e.target.value)} options={[{ label: 'All Statuses', value: '' }, { label: 'Active Only', value: 'active' }, { label: 'Past Only', value: 'past' }]} />
           </div>
           {pors.length === 0 ? (
             <Card className="p-10 text-center text-graytext-light">No PORs assigned yet.</Card>
@@ -723,18 +688,11 @@ export default function Orgs() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Type</label>
-                  <select className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={orgType} onChange={(e) => setOrgType(e.target.value)}>
-                    <option value="society">Society</option>
-                    <option value="council">Council</option>
-                  </select>
+                  <Select value={orgType} onChange={(e) => setOrgType(e.target.value)} options={[{ label: 'Society', value: 'society' }, { label: 'Council', value: 'council' }]} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">City</label>
-                  <select className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={orgCity} onChange={(e) => setOrgCity(e.target.value)}>
-                    {cities.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
+                  <Select value={orgCity} onChange={(e) => setOrgCity(e.target.value)} options={Array.from(new Set(cities.map((c: any) => c.name))).map((name: any) => ({ label: name, value: name }))} />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -810,27 +768,11 @@ export default function Orgs() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">House</label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={selectedHouseId}
-                    onChange={(e) => setSelectedHouseId(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Select House --</option>
-                    {houses.map((h: any) => (
-                      <option key={h.id} value={h.id}>{h.name}</option>
-                    ))}
-                  </select>
+                  <Select value={selectedHouseId} onChange={(e) => setSelectedHouseId(e.target.value)} options={[{ label: '-- Select House --', value: '' }, ...houses.map((h: any) => ({ label: h.name, value: h.id }))]} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Position</label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={selectedPorType}
-                    onChange={(e) => { setSelectedPorType(e.target.value); setSelectedHouseId('') }}
-                  >
-                    {POR_TYPES.map((pt) => <option key={pt} value={pt}>{pt}</option>)}
-                  </select>
+                  <Select value={selectedPorType} onChange={(e) => { setSelectedPorType(e.target.value); setSelectedHouseId('') }} options={POR_TYPES.map((pt) => ({ label: pt, value: pt }))} />
                 </div>
               </div>
 
@@ -852,15 +794,7 @@ export default function Orgs() {
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
                     Region <span className="text-amber-400">(required for RC)</span>
                   </label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite focus:border-teal focus:outline-none"
-                    value={selectedRegion}
-                    onChange={(e) => setSelectedRegion(e.target.value)}
-                    required={isRC}
-                  >
-                    <option value="">-- Select Region --</option>
-                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  <Select value={selectedRegion} onChange={(e) => setSelectedRegion(e.target.value)} options={[{ label: '-- Select Region --', value: '' }, ...REGIONS.map((r) => ({ label: r, value: r }))]} />
                 </div>
               )}
 

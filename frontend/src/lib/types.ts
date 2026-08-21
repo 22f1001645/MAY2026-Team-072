@@ -90,6 +90,7 @@ export interface OrgProfile extends Organisation {
    *  filter refused is listed here so the editor can say it was saved earlier,
    *  without putting the offending string back in the DOM. */
   withheldPlatforms: string[]
+  brandKit?: BrandKit
 }
 
 export interface BrandKit {

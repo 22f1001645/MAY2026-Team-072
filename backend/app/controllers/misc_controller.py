@@ -99,3 +99,27 @@ def dashboard():
             "attended": sum(1 for r in regs if r.attendance is not None),
         }
     ), 200
+
+@misc_bp.post("/alerts/city")
+def subscribe_to_city_alerts():
+    from flask import request
+    from ..schemas import CityAlertSubscriptionCreate
+    from ..models import CityAlertSubscription
+    from ..errors import bad_request
+
+    schema = CityAlertSubscriptionCreate()
+    errors = schema.validate(request.json or {})
+    if errors:
+        return bad_request("Invalid data", details=errors)
+
+    data = schema.load(request.json)
+    email = data["email"].lower().strip()
+    city = data["city"].strip()
+
+    existing = db.session.query(CityAlertSubscription).filter_by(email=email, city=city).first()
+    if not existing:
+        sub = CityAlertSubscription(email=email, city=city)
+        db.session.add(sub)
+        db.session.commit()
+    
+    return jsonify({"ok": True, "message": "Subscribed successfully"}), 201

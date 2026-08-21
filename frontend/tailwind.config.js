@@ -16,7 +16,7 @@ export default {
           DEFAULT: '#FFCF96', // Unity Gold — headings, accents, celebration
         },
         onyx: {
-          DEFAULT: 'oklch(0.13 0.015 175)', // Oneness Black — teal-tinted, not flat gray (~#030907), backgrounds/grounding
+          DEFAULT: 'oklch(0.13 0.015 175 / <alpha-value>)', // Oneness Black — teal-tinted, not flat gray (~#030907), backgrounds/grounding
           soft: '#111111', // Near Black — text on light
         },
         // Neutrals

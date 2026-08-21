@@ -1237,3 +1237,18 @@ class SystemSetting(Base):
             "value": self.value_json,
             "updated_at": _iso(self.updated_at),
         }
+
+class CityAlertSubscription(Base):
+    __tablename__ = "city_alert_subscriptions"
+    __table_args__ = (db.UniqueConstraint("email", "city", name="uq_city_alert_email_city"),)
+
+    email = db.Column(db.String(255), nullable=False, index=True)
+    city = db.Column(db.String(100), nullable=False, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "city": self.city,
+            "created_at": _iso(self.created_at),
+        }

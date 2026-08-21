@@ -94,9 +94,9 @@ function NavDropdown({ item }: { item: NavItem }) {
     <div className="relative" ref={ref}>
       <button 
         onClick={() => setOpen(!open)}
-        className={cx("whitespace-nowrap flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 focus:outline-none", 
+        className={cx("whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-200 focus:outline-none", 
           isActive 
-            ? "bg-white/10 text-offwhite shadow-[0_2px_10px_rgba(0,0,0,0.1)]" 
+            ? "bg-white/10 text-offwhite" 
             : "text-graytext-light hover:text-offwhite hover:bg-white/5",
           open && "text-offwhite bg-white/5"
         )}
@@ -106,25 +106,25 @@ function NavDropdown({ item }: { item: NavItem }) {
           <path d="m6 9 6 6 6-6"/>
         </svg>
       </button>
-      {open && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 rounded-2xl border border-white/10 bg-black p-2 shadow-2xl z-50 animate-fade-down origin-top">
-          {item.subItems?.map(sub => (
-            <Link
-              key={sub.to}
-              to={sub.to}
-              onClick={() => setOpen(false)}
-              className={cx("whitespace-nowrap flex items-center gap-3 rounded-xl p-2.5 text-[13px] font-medium transition-colors focus:outline-none", 
-                location.pathname === sub.to
-                  ? "bg-teal/10 text-teal"
-                  : "text-graytext-light hover:bg-white/5 hover:text-offwhite"
-              )}
-            >
-              <div className="text-graytext-mid">{sub.icon}</div>
-              {sub.label}
-            </Link>
-          ))}
-        </div>
-      )}
+        {open && (
+          <div className="absolute top-full left-0 mt-1.5 w-48 rounded-lg border border-white/10 bg-[#111] p-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] z-50 animate-fade-down origin-top-left">
+            {item.subItems?.map(sub => (
+              <Link
+                key={sub.to}
+                to={sub.to}
+                onClick={() => setOpen(false)}
+                className={cx("flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors focus:outline-none", 
+                  location.pathname === sub.to
+                    ? "bg-white/10 text-offwhite"
+                    : "text-graytext-mid hover:bg-white/5 hover:text-offwhite"
+                )}
+              >
+                <div className="flex-shrink-0 text-current opacity-70">{sub.icon}</div>
+                <span className="truncate">{sub.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
     </div>
   )
 }
@@ -189,78 +189,78 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col bg-onyx text-offwhite overflow-x-hidden">
       
       {/* Liquid Glass Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/5 bg-onyx/40 backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] px-5 py-3 lg:px-8">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/5 bg-onyx/90 backdrop-blur-md px-5 py-3 lg:px-6">
         
-        {/* Left: Branding */}
-        <div className="flex items-center gap-2.5 z-20">
-          <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity focus:outline-none">
-            <Mandala size={30} />
+        {/* Left: Branding & Navigation */}
+        <div className="flex items-center gap-6 z-20">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+            <Mandala size={26} />
             <div className="hidden sm:block">
-              <div className="text-[16px] font-bold leading-none tracking-wide text-offwhite">
+              <div className="text-[14px] font-bold tracking-wide text-offwhite">
                 EKATVA<span className="text-teal"> OS</span>
               </div>
             </div>
           </Link>
+
+          <div className="hidden lg:block w-px h-5 bg-white/10" />
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {nav.map(item => (
+              item.subItems ? (
+                <NavDropdown key={item.label} item={item} />
+              ) : (
+                <NavLink 
+                  key={item.to!} 
+                  to={item.to!}
+                  className={({ isActive }) => 
+                    cx("whitespace-nowrap px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-200 focus:outline-none", 
+                      isActive || location.pathname === item.to 
+                        ? "bg-white/10 text-offwhite" 
+                        : "text-graytext-light hover:text-offwhite hover:bg-white/5"
+                    )
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              )
+            ))}
+          </nav>
         </div>
 
-        {/* Center: Desktop Nav */}
-        <nav className="hidden lg:flex flex-1 justify-center items-center gap-2 z-10 px-4">
+        {/* Right: Tools & Profile */}
+        <div className="flex items-center gap-4 z-20">
+          
           <div className="empty:hidden flex items-center">
             <ViewSwitcher />
             {capabilities?.isOrganiser && (
-              <div className="w-px h-6 bg-white/10 ml-3 mr-1" />
+              <div className="w-px h-5 bg-white/10 ml-2 mr-0" />
             )}
-          </div>
-          {nav.filter(item => !item.subItems).map(item => (
-              <NavLink 
-                key={item.to!} 
-                to={item.to!}
-                className={({ isActive }) => 
-                  cx("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 focus:outline-none", 
-                    isActive || location.pathname === item.to 
-                      ? "bg-white/10 text-offwhite shadow-[0_2px_10px_rgba(0,0,0,0.1)]" 
-                      : "text-graytext-light hover:text-offwhite hover:bg-white/5"
-                  )
-                }
-              >
-                {item.label}
-              </NavLink>
-          ))}
-        </nav>
-
-        {/* Right: Tools & Profile */}
-        <div className="flex items-center gap-3 z-20">
-
-          {/* Nav Dropdowns (Organiser Hub) */}
-          <div className="hidden lg:flex items-center gap-2">
-            {nav.filter(item => item.subItems).map(item => (
-              <NavDropdown key={item.label} item={item} />
-            ))}
           </div>
           
           {/* Notifications */}
-          <div className="relative" ref={notificationsRef}>
+          <div className="relative flex items-center" ref={notificationsRef}>
             <button
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               aria-label="Notifications"
               className={cx(
-                "group grid h-9 w-9 place-items-center rounded-full border transition-all duration-300 ease-out focus:outline-none",
+                "group flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-all duration-200 focus:outline-none",
                 notificationsOpen
-                  ? 'border-teal/50 bg-teal/10 text-teal shadow-[0_0_15px_rgba(63,212,182,0.3)] scale-105'
-                  : 'border-white/10 bg-white/5 text-graytext-light hover:border-white/20 hover:bg-white/10 hover:text-offwhite hover:scale-105'
+                  ? 'bg-white/10 text-offwhite'
+                  : 'text-graytext-mid hover:bg-white/5 hover:text-offwhite'
               )}
             >
               <svg 
-                width="18" 
-                height="18" 
+                width="16" 
+                height="16" 
                 viewBox="0 0 24 24" 
                 fill={notificationsOpen ? "currentColor" : (unreadCount > 0 ? "currentColor" : "none")} 
                 stroke="currentColor" 
-                strokeWidth="2" 
+                strokeWidth="2.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
                 className={cx(
-                  "transition-transform duration-300 active:scale-90",
+                  "transition-transform duration-300",
                   unreadCount > 0 && !notificationsOpen && "group-hover:animate-shake"
                 )}
               >
@@ -269,8 +269,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               </svg>
             </button>
             {unreadCount > 0 && (
-              <div className="absolute -right-1 -top-1 grid h-4 min-w-[16px] place-items-center rounded-full bg-teal px-1 ring-2 ring-onyx">
-                <span className="text-[9px] font-bold text-onyx leading-none">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              <div className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-teal px-1 ring-2 ring-onyx">
+                <span className="text-[10px] font-bold text-onyx leading-none">{unreadCount > 9 ? '9+' : unreadCount}</span>
               </div>
             )}
             {notificationsOpen && (
@@ -279,13 +279,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
 
           {/* Profile Dropdown */}
-          <div className="relative hidden lg:block ml-1">
+          <div className="relative hidden lg:block">
             <button 
               onClick={() => setProfileModalOpen(true)} 
               className={cx(
-                "grid h-9 w-9 place-items-center rounded-full text-[13px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-teal/50",
-                role === 'admin' ? 'bg-gold/15 text-gold hover:ring-gold/50' : 'bg-teal/15 text-teal hover:ring-teal/50',
-                profileModalOpen && (role === 'admin' ? 'ring-2 ring-gold/50' : 'ring-2 ring-teal/50')
+                "flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold transition-all focus:outline-none ring-2 ring-transparent",
+                role === 'admin' ? 'bg-gold/20 text-gold hover:ring-gold/40' : 'bg-teal/20 text-teal hover:ring-teal/40',
+                profileModalOpen && (role === 'admin' ? 'ring-gold/60' : 'ring-teal/60')
               )}
             >
               {name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
@@ -294,7 +294,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           {/* Mobile Menu Toggle */}
           <button 
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-graytext-light hover:text-offwhite lg:hidden ml-1 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-graytext-light hover:text-offwhite lg:hidden transition-colors"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
           >

@@ -36,7 +36,7 @@ function InlineDropdown({ value, options, onChange }: { value: string, options: 
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-onyx/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal text-left shadow-2xl">
+        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal text-left shadow-2xl">
           {options.map(opt => (
             <button
               key={opt}
@@ -164,7 +164,7 @@ export default function Leaderboard() {
               Showing top students in
               <InlineDropdown 
                 value={scope} 
-                options={['Overall', ...CITIES.map((c: any) => c.name)]} 
+                options={['Overall', ...new Set(CITIES.map((c: any) => c.name))]} 
                 onChange={setScope} 
               />
             </h2>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useEvent, useExpensesFor, useSubmitExpense } from '../lib/queries'
-import { Badge, Button, Card, Progress, SectionTitle } from '../components/ui'
+import { Badge, Button, Card, Progress, SectionTitle, Select } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import type { ExpenseStatus } from '../lib/types'
 
@@ -89,14 +89,11 @@ export default function Expenses() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel>Against budget line</FieldLabel>
-              <select value={lineId} onChange={(ev) => setLineId(ev.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite focus:border-teal/50 focus:outline-none">
-                {e.budget.map((b) => (
-                  <option key={b.id} value={b.id} className="bg-onyx">
-                    {b.label} · {inr(b.planned)}
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={lineId}
+                onChange={(ev) => setLineId(ev.target.value)}
+                options={e.budget.map((b) => ({ label: `${b.label} ₹ ${inr(b.planned)}`, value: b.id }))}
+              />
             </div>
             <div>
               <FieldLabel>Amount (₹)</FieldLabel>

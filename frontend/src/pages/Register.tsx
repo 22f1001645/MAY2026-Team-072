@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { Button } from '../components/ui'
+import { Button, Select } from '../components/ui'
 import { cx } from '../lib/format'
 import AuthShell from './AuthShell'
 import { useRegions, useCitiesForRegion } from '../lib/queries'
@@ -113,22 +113,14 @@ export default function Register() {
 
         {/* Step 1: Region (required) */}
         <Field label="Region">
-          <select
-            required
+          <Select
             value={form.region_id}
             onChange={handleRegionChange}
-            className={inputCls}
-            disabled={regionsLoading}
-          >
-            <option value="" disabled className="bg-onyx">
-              {regionsLoading ? 'Loading regions...' : 'Select your region'}
-            </option>
-            {regions.map((r) => (
-              <option key={r.id} value={r.id} className="bg-onyx">
-                {r.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { label: regionsLoading ? 'Loading regions...' : 'Select your region', value: '' },
+              ...regions.map((r) => ({ label: r.name, value: r.id }))
+            ]}
+          />
         </Field>
 
         {/* Step 2: City (optional, unlocks after region is chosen) */}
@@ -136,21 +128,15 @@ export default function Register() {
           <Field label="Your city">
             {cityMode === 'select' ? (
               <div className="flex gap-2">
-                <select
+                <Select
                   value={form.city}
                   onChange={set('city')}
-                  className={cx(inputCls, 'flex-1')}
-                  disabled={citiesLoading}
-                >
-                  <option value="" className="bg-onyx">
-                    {citiesLoading ? 'Loading cities...' : 'Select your city (optional)'}
-                  </option>
-                  {regionCities.map((c) => (
-                    <option key={c.id} value={c.name} className="bg-onyx">
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  className="flex-1"
+                  options={[
+                    { label: citiesLoading ? 'Loading cities...' : 'Select your city (optional)', value: '' },
+                    ...regionCities.map((c) => ({ label: c.name, value: c.name }))
+                  ]}
+                />
                 <button
                   type="button"
                   onClick={() => setCityMode('other')}

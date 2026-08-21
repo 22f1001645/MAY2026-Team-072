@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useEvents, useMyRegistrations, useCities } from '../lib/queries'
+import { useEvents, useMyRegistrations, useCities, useSubscribeToCityAlert } from '../lib/queries'
 import { Badge, Button, Card, Mandala } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cover, scaleLabel, daysUntil, cx, formatDate, formatTime } from '../lib/format'
@@ -35,7 +35,7 @@ function InlineDropdown({ value, options, onChange, isCity }: { value: string, o
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-onyx/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal">
+        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal">
           {options.map(opt => (
             <button
               key={opt}
@@ -61,6 +61,7 @@ export default function Discover() {
   const [activeCategory, setActiveCategory] = useState('All')
   const [notifyEmail, setNotifyEmail] = useState('')
   const [notified, setNotified] = useState(false)
+  const subscribeAlert = useSubscribeToCityAlert()
 
   const allCategories = useMemo(() => {
     const cats = new Set<string>()
@@ -106,7 +107,7 @@ export default function Discover() {
     return (
       <div>
         <WelcomeBanner />
-        <GlobalEmptyState notifyEmail={notifyEmail} setNotifyEmail={setNotifyEmail} notified={notified} setNotified={setNotified} />
+        <GlobalEmptyState notifyEmail={notifyEmail} setNotifyEmail={setNotifyEmail} notified={notified} setNotified={setNotified} activeCity={activeCity} />
       </div>
     )
   }
@@ -129,7 +130,7 @@ export default function Discover() {
           <span>events in</span>
           <InlineDropdown 
             value={activeCity} 
-            options={['All', ...CITIES.map((c: any) => c.name)]} 
+            options={['All', ...new Set(CITIES.map((c: any) => c.name))]} 
             onChange={setActiveCity} 
             isCity={true} 
           />
@@ -180,11 +181,17 @@ export default function Discover() {
                   <Button 
                     size="lg" 
                     className="w-full sm:w-auto shadow-glow-teal whitespace-nowrap"
+                    disabled={subscribeAlert.isPending}
                     onClick={() => {
-                      if(notifyEmail.includes('@')) setNotified(true);
+                      if (notifyEmail.includes('@')) {
+                        subscribeAlert.mutate(
+                          { email: notifyEmail, city: activeCity },
+                          { onSuccess: () => setNotified(true) }
+                        )
+                      }
                     }}
                   >
-                    Notify Me
+                    {subscribeAlert.isPending ? 'Subscribing...' : 'Notify Me'}
                   </Button>
                 </div>
               ) : (
@@ -403,7 +410,8 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
   )
 }
 
-function GlobalEmptyState({ notifyEmail, setNotifyEmail, notified, setNotified }: any) {
+function GlobalEmptyState({ notifyEmail, setNotifyEmail, notified, setNotified, activeCity }: any) {
+  const subscribeAlert = useSubscribeToCityAlert()
   return (
     <div className="relative flex min-h-[80vh] w-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-onyx/40 animate-[fadeIn_0.5s_ease-out]">
       {/* Immersive background gradient with pulse */}
@@ -437,15 +445,21 @@ function GlobalEmptyState({ notifyEmail, setNotifyEmail, notified, setNotified }
                   placeholder="student@college.edu"
                   className="w-full flex-1 rounded-2xl border border-white/10 bg-black/30 px-6 py-4 text-[15px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
                 />
-                <Button
-                  size="lg"
-                  className="rounded-2xl px-8 shadow-glow-teal whitespace-nowrap"
-                  onClick={() => {
-                    if (notifyEmail.includes('@')) setNotified(true)
-                  }}
-                >
-                  Subscribe
-                </Button>
+                  <Button
+                    size="lg"
+                    className="rounded-2xl px-8 shadow-glow-teal whitespace-nowrap"
+                    disabled={subscribeAlert.isPending}
+                    onClick={() => {
+                      if (notifyEmail.includes('@')) {
+                        subscribeAlert.mutate(
+                          { email: notifyEmail, city: activeCity },
+                          { onSuccess: () => setNotified(true) }
+                        )
+                      }
+                    }}
+                  >
+                    {subscribeAlert.isPending ? 'Subscribing...' : 'Subscribe'}
+                  </Button>
               </div>
             ) : (
               <div className="inline-flex items-center gap-3 rounded-2xl border border-teal/20 bg-teal/10 px-8 py-4 text-[15px] font-medium text-teal shadow-lg animate-[fadeUp_0.3s_ease-out]">

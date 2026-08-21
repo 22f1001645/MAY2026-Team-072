@@ -359,3 +359,7 @@ class MailSchema(Schema):
         load_default=None, allow_none=True, validate=validate.Length(max=200)
     )
     mail_body = fields.Str(load_default=None, allow_none=True)
+
+class CityAlertSubscriptionCreate(Schema):
+    email = fields.Email(required=True)
+    city = fields.Str(required=True, validate=validate.Length(min=1))

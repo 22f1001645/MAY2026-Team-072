@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from '../lib/session'
 
 export default function WelcomeBanner() {
-  const { name } = useSession()
+  const { name, role } = useSession()
   const [time, setTime] = useState(new Date())
   
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function WelcomeBanner() {
   if (hour < 12) greeting = 'Good morning'
   else if (hour < 17) greeting = 'Good afternoon'
 
-  const firstName = name ? name.split(' ')[0].toUpperCase() : 'USER'
+  const firstName = role === 'admin' ? 'ADMIN' : (name ? name.split(' ')[0].toUpperCase() : 'USER')
   const initial = firstName.charAt(0)
 
   return (

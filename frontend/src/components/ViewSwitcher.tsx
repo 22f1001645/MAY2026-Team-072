@@ -1,4 +1,4 @@
-import { useEffect, type KeyboardEvent } from 'react'
+import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, homeFor } from '../lib/auth'
 import { cx } from '../lib/format'
@@ -39,10 +39,6 @@ export function viewFromPathname(pathname: string): View {
   return (localStorage.getItem('ekatva_view') as View) || 'student'
 }
 
-const SEGMENTS: { view: View; label: string }[] = [
-  { view: 'student', label: 'Student' },
-  { view: 'organiser', label: 'Organiser' },
-]
 
 export default function ViewSwitcher() {
   const { pathname } = useLocation()
@@ -83,54 +79,53 @@ export default function ViewSwitcher() {
     navigate(homeFor(view))
   }
 
-  // Standard radiogroup keys: one Tab stop for the group, arrows move and
-  // activate, Home/End jump to the ends.
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const i = SEGMENTS.findIndex((s) => s.view === current)
-    let next = -1
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % SEGMENTS.length
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i + SEGMENTS.length - 1) % SEGMENTS.length
-    else if (e.key === 'Home') next = 0
-    else if (e.key === 'End') next = SEGMENTS.length - 1
-    if (next < 0 || SEGMENTS[next].view === current) return
-    e.preventDefault()
-    activate(SEGMENTS[next].view)
+  // A switch only needs standard button keyboard semantics (Space/Enter),
+  // which a <button> provides natively.
+  const toggle = () => {
+    activate(current === 'student' ? 'organiser' : 'student')
   }
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Dashboard view"
-      onKeyDown={onKeyDown}
-      className="relative flex items-center rounded-full border border-white/5 bg-[#0a0a0a] p-1 shadow-inner"
-    >
-      <div
+    <div className="flex items-center gap-3 mr-2">
+      <span
         className={cx(
-          "absolute top-1 bottom-1 w-[90px] rounded-full bg-teal shadow-[0_0_12px_rgba(63,212,182,0.3)] transition-transform duration-300 ease-out",
-          current === 'organiser' ? "translate-x-[90px]" : "translate-x-0"
+          "text-[13px] font-semibold transition-colors duration-300 cursor-pointer select-none",
+          current === 'student' ? 'text-offwhite' : 'text-graytext-mid hover:text-offwhite'
         )}
-      />
-      {SEGMENTS.map(({ view, label }) => {
-        const active = view === current
-        return (
-          <button
-            key={view}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            tabIndex={active ? 0 : -1}
-            onClick={() => activate(view)}
-            className={cx(
-              'relative z-10 w-[90px] rounded-full py-1.5 text-[13px] font-bold tracking-wide transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
-              active
-                ? 'text-onyx'
-                : 'text-graytext-mid hover:text-offwhite',
-            )}
-          >
-            {label}
-          </button>
-        )
-      })}
+        onClick={() => activate('student')}
+      >
+        Student
+      </span>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={current === 'organiser'}
+        onClick={toggle}
+        className={cx(
+          "relative inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50",
+          current === 'organiser' ? 'bg-teal shadow-[0_0_12px_rgba(63,212,182,0.3)]' : 'bg-white/10'
+        )}
+      >
+        <span className="sr-only">Use Organiser view</span>
+        <span
+          aria-hidden="true"
+          className={cx(
+            "pointer-events-none inline-block h-[20px] w-[20px] transform rounded-full shadow-sm ring-0 transition duration-300 ease-in-out",
+            current === 'organiser' ? 'translate-x-[22px] bg-onyx' : 'translate-x-[2px] bg-graytext-light'
+          )}
+        />
+      </button>
+
+      <span
+        className={cx(
+          "text-[13px] font-semibold transition-colors duration-300 cursor-pointer select-none",
+          current === 'organiser' ? 'text-teal' : 'text-graytext-mid hover:text-offwhite'
+        )}
+        onClick={() => activate('organiser')}
+      >
+        Organiser
+      </span>
     </div>
   )
 }

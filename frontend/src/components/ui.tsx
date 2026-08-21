@@ -425,7 +425,7 @@ export function Select({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/60 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-up scrollbar-hide">
+        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-fade-up scrollbar-hide">
           {options.length === 0 ? (
             <div className="px-3 py-2 text-[13px] text-graytext-mid">No options</div>
           ) : (
@@ -498,7 +498,7 @@ export function FormSelect({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/60 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-up scrollbar-hide">
+        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-fade-up scrollbar-hide">
           {options.length === 0 ? (
             <div className="px-3 py-2 text-[13px] text-graytext-mid">No options</div>
           ) : (
@@ -599,7 +599,7 @@ export function FormDatePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-white/10 bg-black/60 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-fade-up">
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-white/10 bg-black/90 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-fade-up">
           <div className="mb-4 flex items-center justify-between">
             <button type="button" onClick={prevMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>

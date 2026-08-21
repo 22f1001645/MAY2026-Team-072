@@ -4,20 +4,21 @@ from ..extensions import db
 from ..models import ActivityTeamMember, Attendance, ContributionPoint, Notification, Registration, User
 from ..repositories.repos import ActivityRepository, RegistrationRepository
 
-REFERRAL_POINTS = {"referrer": 50, "referred": 20}
-
 
 def _process_referral_gamification(reg, activity):
     """Reward the referrer and the referred student once the referred
     registration actually shows up (not on registration — on attendance)."""
     if not reg.referred_by_id or reg.referred_by_id == reg.student_id:
         return
+
+    points = get_recognition_points()
+
     db.session.add(
         ContributionPoint(
             user_id=reg.referred_by_id,
             activity_id=activity.id,
             action="referred",
-            points=REFERRAL_POINTS["referrer"],
+            points=points["referrer"],
         )
     )
     db.session.add(
@@ -26,7 +27,7 @@ def _process_referral_gamification(reg, activity):
             activity_id=activity.id,
             type="update",
             title="Referral successful!",
-            body=f"{reg.student.name if reg.student else 'A friend'} attended using your link. You earned {REFERRAL_POINTS['referrer']} points!",
+            body=f"{reg.student.name if reg.student else 'A friend'} attended using your link. You earned {points['referrer']} points!",
         )
     )
     db.session.add(
@@ -34,7 +35,7 @@ def _process_referral_gamification(reg, activity):
             user_id=reg.student_id,
             activity_id=activity.id,
             action="referred_welcome",
-            points=REFERRAL_POINTS["referred"],
+            points=points["referee"],
         )
     )
     db.session.add(
@@ -43,12 +44,9 @@ def _process_referral_gamification(reg, activity):
             activity_id=activity.id,
             type="update",
             title="Welcome bonus!",
-            body=f"You earned {REFERRAL_POINTS['referred']} points for attending via a referral link!",
+            body=f"You earned {points['referee']} points for attending via a referral link!",
         )
     )
-
-
-
 
 
 def check_in(activity_id: str, registration_ids: list, organiser) -> dict:

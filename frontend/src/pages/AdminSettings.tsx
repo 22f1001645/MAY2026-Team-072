@@ -10,7 +10,7 @@ export default function AdminSettings() {
     queryFn: () => api.adminSettingsPoints(),
   })
 
-  const [points, setPoints] = useState({ attended: 30, organised: 50, volunteered: 20 })
+  const [points, setPoints] = useState({ attended: 30, organised: 50, volunteered: 20, referrer: 10, referee: 5 })
   const queryClient = useQueryClient()
   const { addToast } = useToast()
 
@@ -20,6 +20,8 @@ export default function AdminSettings() {
         attended: data.attended ?? 30,
         organised: data.organised ?? 50,
         volunteered: data.volunteered ?? 20,
+        referrer: data.referrer ?? 10,
+        referee: data.referee ?? 5,
       })
     }
   }, [data])
@@ -53,7 +55,7 @@ export default function AdminSettings() {
           }}
           className="space-y-6"
         >
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
                 Points for Attending
@@ -87,6 +89,30 @@ export default function AdminSettings() {
                 min="0"
                 value={points.volunteered}
                 onChange={(e) => setPoints({ ...points, volunteered: parseInt(e.target.value) || 0 })}
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                Points for Referring
+              </label>
+              <Input
+                type="number"
+                min="0"
+                value={points.referrer}
+                onChange={(e) => setPoints({ ...points, referrer: parseInt(e.target.value) || 0 })}
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                Points for Being Referred
+              </label>
+              <Input
+                type="number"
+                min="0"
+                value={points.referee}
+                onChange={(e) => setPoints({ ...points, referee: parseInt(e.target.value) || 0 })}
                 required
               />
             </div>

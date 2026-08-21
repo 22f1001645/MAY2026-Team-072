@@ -230,7 +230,7 @@ export default function ProposalNew() {
                 value={form.city}
                 onChange={(val) => set('city', val)}
                 placeholder="Select a city…"
-                options={cities.map((c: any) => ({ label: c.name, value: c.name }))}
+                options={Array.from(new Set(cities.map((c: any) => c.name))).map((name: any) => ({ label: name, value: name }))}
               />
             </div>
             <div>
@@ -402,7 +402,7 @@ export default function ProposalNew() {
               <span className="absolute right-3 top-2 text-caption text-graytext-mid">Searching…</span>
             )}
             {teamSearchResults.length > 0 && (
-              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-onyx shadow-xl">
+              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                 {teamSearchResults.map((u: any) => (
                   <button
                     key={u.id}
@@ -475,7 +475,7 @@ export default function ProposalNew() {
               className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
             />
             {collabSearch.length > 0 && (
-              <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-onyx shadow-xl">
+              <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                 {orgs
                   .filter((o: any) => o.id !== form.org_id && !collabOrgIds.includes(o.id) && o.name?.toLowerCase().includes(collabSearch.toLowerCase()))
                   .slice(0, 10)

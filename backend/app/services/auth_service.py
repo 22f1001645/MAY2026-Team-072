@@ -30,16 +30,17 @@ def register(name: str, email: str, password: str, region_id: str, city: str = N
     if not region or region.type != "region":
         raise ApiError("Invalid region selected", "region_invalid", 400)
 
-    # Derive city: use provided city or fall back to region name
-    city_name = city.strip() if city else region.name
+    # Derive city: use provided city or leave as None
+    city_name = city.strip() if city else None
 
     # Auto-seed the city under the region if it doesn't exist yet
-    from ..models import City
-    existing_city = City.query.filter_by(name=city_name, region_id=region.id).first()
-    if not existing_city:
-        existing_city = City(name=city_name, region_id=region.id)
-        db.session.add(existing_city)
-        db.session.flush()
+    if city_name:
+        from ..models import City
+        existing_city = City.query.filter_by(name=city_name, region_id=region.id).first()
+        if not existing_city:
+            existing_city = City(name=city_name, region_id=region.id)
+            db.session.add(existing_city)
+            db.session.flush()
 
     # Self-service signups are always Students; organiser access is an
     # Admin-assigned POR (PRD assumption — two login roles).

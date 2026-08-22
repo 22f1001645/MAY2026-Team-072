@@ -1,5 +1,12 @@
 import json
+from uuid import uuid4
 
+from ..controllers.upload_controller import (
+    IMAGE_MAGIC_BYTES,
+    served_path,
+    sniff_bill_ext,
+    upload_dir,
+)
 from ..constants import (
     ACTIVITY_FEE_INR,
     EXPENSE_DRAFT,
@@ -270,6 +277,47 @@ def advance(expense_id: str, admin) -> Expense:
             
     db.session.commit()
     return expense
+
+
+def store_bill(activity, file_storage, actor) -> dict:
+    """Store an uploaded bill and hand back the name to put on the expense row.
+
+    Reuses Phase 4's upload primitive wholesale — `upload_dir` for the
+    destination and `sniff_bill_ext` for the format decision — rather than
+    defining a second allowlist or a second directory resolver, which would
+    drift apart from the `nosniff` serve header that depends on them.
+
+    The stored name is `uuid4().hex` plus the extension the SNIFF produced. The
+    client's filename is never joined into a path and never stored, and the
+    part's declared content type is not consulted: both are free for a caller to
+    set. `original_name` is echoed back for display only, so the organiser can
+    tell which receipt is which, and it never reaches the filesystem.
+
+    Nothing is written until the bytes have been accepted, so a refused upload
+    leaves no file behind.
+    """
+    head = file_storage.read(IMAGE_MAGIC_BYTES)
+    file_storage.seek(0)                    # the sniff must not eat the file
+
+    ext = sniff_bill_ext(head)
+    if ext is None:
+        raise ApiError(
+            "Attach a PNG, JPG, WebP or PDF bill.",
+            "unsupported_media_type",
+            415,
+        )
+
+    name = f"{uuid4().hex}{ext}"
+    file_storage.save(str(upload_dir() / name))
+
+    AuditRepository.record("expense", activity.id, "Bill uploaded", actor)
+    db.session.commit()
+
+    return {
+        "bill_name": name,
+        "bill_url": served_path(name),
+        "original_name": file_storage.filename,
+    }
 
 
 def for_activity(activity_id):

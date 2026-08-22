@@ -600,7 +600,11 @@ export const api = {
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
-  notifications: (role: string = 'student') => request<any[]>(`/notifications?role=${role}`),
+  /** Every notification addressed to the signed-in user. The current view is
+   *  deliberately NOT a parameter here — it is a rendering concern that must
+   *  never reach the wire (D-18), so callers filter the result on the
+   *  `target_role` each row carries. */
+  notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
@@ -968,6 +972,22 @@ export const api = {
   // timeline — read-only chronological projection (TIMELINE-01)
   timeline: (activityId: string): Promise<any[]> =>
     request<any[]>(`/activities/${activityId}/timeline`),
+
+  /** Attach a receipt or invoice to an expense. Multipart, like uploadPoster —
+   *  the part name must be `bill`, which is what the route reads. Returns the
+   *  server-chosen filename to store on the row, plus the original name for
+   *  display so the organiser can tell two receipts apart. */
+  uploadExpenseBill: (
+    activityId: string,
+    file: File,
+  ): Promise<{ billName: string; billUrl: string; originalName: string }> => {
+    const form = new FormData()
+    form.append('bill', file)
+    return request<{ bill_name: string; bill_url: string; original_name: string }>(
+      `/activities/${activityId}/expenses/bill`,
+      { method: 'POST', body: form },
+    ).then(r => ({ billName: r.bill_name, billUrl: r.bill_url, originalName: r.original_name }))
+  },
 
   // draftExpenses — any team member drafts; Meetup Head submits with social URL (REIMB-01/02)
   draftExpenses: (

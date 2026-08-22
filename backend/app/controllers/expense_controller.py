@@ -1,5 +1,6 @@
 from flask import Blueprint, g, jsonify, request
 
+from ..errors import ApiError
 from ..rbac import admin_required, can_manage_activity_required, organiser_required
 from ..schemas import ExpenseDraftSchema, ExpenseSchema
 from ..services import expense_service
@@ -44,6 +45,26 @@ def draft_expenses(activity_id):
         g.current_user,
     )
     return jsonify(result), 200
+
+
+@expense_bp.post("/activities/<activity_id>/expenses/bill")
+@can_manage_activity_required
+def upload_bill(activity_id):
+    """Store a receipt or invoice and return the name to attach to an expense.
+
+    Same guard as the draft route: any team member may build the expense list,
+    so any of them may attach the bills that go with it (REIMB-01).
+
+    Like the poster route, this deliberately does not measure the upload —
+    MAX_CONTENT_LENGTH refuses an oversize body before Flask buffers it, whereas
+    a length check here could only run once the whole body was already in memory.
+    There is no serve route here either: GET /api/v1/uploads/<filename> already
+    routes through send_from_directory and sets nosniff.
+    """
+    bill = request.files.get("bill")
+    if bill is None:
+        raise ApiError("Attach a bill to upload.", "missing_file", 400)
+    return jsonify(expense_service.store_bill(g.activity, bill, g.current_user)), 200
 
 
 @expense_bp.get("/events/<activity_id>/expenses")

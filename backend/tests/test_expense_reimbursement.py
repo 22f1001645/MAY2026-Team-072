@@ -16,6 +16,11 @@ because a convenience fallback there would silently rewrite three separate
 "only the Meetup Head submits" rules, and a rule kept only in a docstring is a
 rule that decays. This is where it stops being a comment.
 """
+import base64
+import io
+
+import pytest
+
 from app.constants import EXPENSE_DRAFT, EXPENSE_SUBMITTED
 from app.extensions import db
 from app.models import AuditLog, Expense
@@ -24,6 +29,16 @@ from app.services import timeline_service
 from .conftest import meetup_head_user, region_org
 
 GOOD_URL = "https://www.instagram.com/p/CabcDEF123/"
+
+# A real 1x1 PNG, not a bare signature: the sniff reads only the head, but the
+# stored-file assertion compares the whole file, so a truncated stand-in would
+# make that comparison prove nothing.
+PNG_1X1 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAE"
+    "hQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+PDF_BYTES = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+SVG_BYTES = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
 
 
 def _approved_activity(
@@ -416,3 +431,102 @@ def test_drafts_are_not_timeline_events_but_a_submission_is(
         "a reimbursement appears on the timeline exactly once — the audit row "
         "and the expense table must not each contribute an entry"
     )
+
+
+# --- Bill upload ----------------------------------------------------------- #
+#
+# The UAT pass found the "Attach Bill" control did nothing at all: there was no
+# upload endpoint behind it, so an organiser could name a bill but never hand one
+# over. These pin the endpoint that closes that gap, and in particular pin the
+# two things a file upload gets wrong when nobody is watching — trusting the
+# client's filename, and trusting the client's declared content type.
+
+
+@pytest.fixture()
+def uploads(app):
+    """The upload directory, with every file the test created removed after.
+
+    `instance/uploads/` is real gitignored disk shared with the dev server, so a
+    test may only clean up what it made itself (the Phase 5 fixture's rule)."""
+    from app.controllers.upload_controller import upload_dir
+
+    with app.app_context():
+        before = set(upload_dir().iterdir())
+        yield upload_dir()
+        for stale in set(upload_dir().iterdir()) - before:
+            stale.unlink(missing_ok=True)
+
+
+def _upload_bill(client, aid, headers, content, filename, mimetype):
+    return client.post(
+        f"/api/v1/activities/{aid}/expenses/bill",
+        data={"bill": (io.BytesIO(content), filename, mimetype)},
+        content_type="multipart/form-data",
+        headers=headers,
+    )
+
+
+def test_bill_upload_stores_the_file_under_a_name_the_server_chose(
+    client, rc_headers, admin_headers, uploads
+):
+    aid = _approved_activity(client, rc_headers, admin_headers)
+
+    res = _upload_bill(client, aid, rc_headers, PNG_1X1, "My Receipt (2).PNG", "image/png")
+
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["bill_name"].endswith(".png")
+    assert "receipt" not in body["bill_name"].lower(), "the client's filename never becomes the path"
+    assert (uploads / body["bill_name"]).read_bytes() == PNG_1X1
+    # Echoed for display so the organiser can tell two receipts apart.
+    assert body["original_name"] == "My Receipt (2).PNG"
+
+
+def test_bill_upload_accepts_a_pdf_invoice(client, rc_headers, admin_headers, uploads):
+    """A bill is as often a PDF invoice as a photo, which is why bills use their
+    own allowlist rather than the image-only one posters and logos share."""
+    aid = _approved_activity(client, rc_headers, admin_headers)
+
+    res = _upload_bill(client, aid, rc_headers, PDF_BYTES, "invoice.pdf", "application/pdf")
+
+    assert res.status_code == 200
+    assert res.get_json()["bill_name"].endswith(".pdf")
+
+
+def test_bill_upload_refuses_a_script_carrying_svg_dressed_as_a_png(
+    client, rc_headers, admin_headers, uploads
+):
+    """The bytes decide, not the filename and not the content type — both of
+    which cost an attacker nothing to set. An SVG is XML that can carry a
+    <script>, and the serve route is public."""
+    aid = _approved_activity(client, rc_headers, admin_headers)
+    before = set(uploads.iterdir())
+
+    res = _upload_bill(client, aid, rc_headers, SVG_BYTES, "receipt.png", "image/png")
+
+    assert res.status_code == 415
+    assert set(uploads.iterdir()) == before, "a refused upload leaves nothing behind"
+
+
+def test_bill_upload_needs_a_file(client, rc_headers, admin_headers):
+    aid = _approved_activity(client, rc_headers, admin_headers)
+
+    res = client.post(
+        f"/api/v1/activities/{aid}/expenses/bill",
+        data={},
+        content_type="multipart/form-data",
+        headers=rc_headers,
+    )
+
+    assert res.status_code == 400
+    assert res.get_json()["code"] == "missing_file"
+
+
+def test_bill_upload_is_closed_to_someone_who_cannot_manage_the_event(
+    client, rc_headers, admin_headers, student_headers, uploads
+):
+    aid = _approved_activity(client, rc_headers, admin_headers)
+
+    res = _upload_bill(client, aid, student_headers, PNG_1X1, "a.png", "image/png")
+
+    assert res.status_code == 403

@@ -122,6 +122,11 @@ def test_award_volunteer_points(app):
             status=EVENT_UPCOMING
         )
         db.session.add(activity)
+        db.session.flush()
+
+        from app.models import ActivityTeamMember
+        crew = ActivityTeamMember(activity_id=activity.id, user_id=student.id, role="Speaker")
+        db.session.add(crew)
         db.session.commit()
         
         res = award_volunteer_points(activity.id, student.id, "Speaker", admin)

@@ -93,7 +93,9 @@ def scan_qr(activity_id: str, qr_token: str, organiser) -> dict:
     """Resolve a scanned QR code to a registration and check it in. Delegates
     to check_in() so there is exactly one place that creates an Attendance
     row and awards points, whether the organiser scanned or tapped a name."""
-    reg = Registration.query.filter_by(qr_token=qr_token).first()
+    reg = Registration.query.filter(
+        (Registration.qr_token == qr_token) | (Registration.id == qr_token)
+    ).first()
     if not reg or reg.activity_id != activity_id:
         raise ApiError("Invalid QR code for this event", "invalid_qr", 400)
 

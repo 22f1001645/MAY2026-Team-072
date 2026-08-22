@@ -1,5 +1,6 @@
 from flask import Blueprint, g, jsonify, request
 
+from ..errors import ApiError
 from ..rbac import auth_required, can_manage_activity_required, organiser_required
 from ..schemas import BroadcastSchema, CheckInSchema, ScanSchema, VolunteerSchema
 from ..services import attendance_service, registration_service

@@ -1333,14 +1333,13 @@ export default function Orgs() {
                       setSelectedOrgId('')
                     }}
                     className={cx(
-                      'flex items-center justify-center gap-2 rounded-xl border py-2.5 text-[13px] font-semibold transition-all',
+                      'flex items-center justify-center rounded-xl border py-2.5 text-[13px] font-semibold transition-all',
                       porTargetType === 'house'
                         ? 'border-gold/40 bg-gold/10 text-gold shadow-md'
                         : 'border-white/10 bg-onyx text-graytext-light hover:border-white/20'
                     )}
                   >
-                    <span>🌲</span>
-                    <span>Forest House</span>
+                    House
                   </button>
                   <button
                     type="button"
@@ -1350,14 +1349,13 @@ export default function Orgs() {
                       setSelectedOrgId('')
                     }}
                     className={cx(
-                      'flex items-center justify-center gap-2 rounded-xl border py-2.5 text-[13px] font-semibold transition-all',
+                      'flex items-center justify-center rounded-xl border py-2.5 text-[13px] font-semibold transition-all',
                       porTargetType === 'society'
                         ? 'border-teal/40 bg-teal/10 text-teal shadow-md'
                         : 'border-white/10 bg-onyx text-graytext-light hover:border-white/20'
                     )}
                   >
-                    <span>🏛️</span>
-                    <span>Student Society</span>
+                    Society
                   </button>
                 </div>
               </div>
@@ -1366,7 +1364,7 @@ export default function Orgs() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
-                    {porTargetType === 'house' ? 'Forest House' : 'Society'} <span className="text-teal">*</span>
+                    {porTargetType === 'house' ? 'House' : 'Society'} <span className="text-teal">*</span>
                   </label>
                   {porTargetType === 'house' ? (
                     <Select

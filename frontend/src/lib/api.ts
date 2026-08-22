@@ -600,7 +600,7 @@ export const api = {
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
-  notifications: () => request<any[]>('/notifications'),
+  notifications: (role: string = 'student') => request<any[]>(`/notifications?role=${role}`),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
@@ -624,6 +624,8 @@ export const api = {
     request('/expenses', { method: 'POST', body: JSON.stringify(payload) }),
   reimbursements: () => request<any[]>('/reimbursements'),
   verifyExpense: (id: string) => request(`/expenses/${id}/verify`, { method: 'PATCH' }),
+  updateExpenseAmount: (id: string, amount: number) => 
+    request(`/expenses/${id}/amount`, { method: 'PATCH', body: JSON.stringify({ amount }) }),
 
   // Recognition (G)
   leaderboard: (city?: string) =>

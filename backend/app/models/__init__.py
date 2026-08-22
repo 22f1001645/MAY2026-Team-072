@@ -818,6 +818,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"))
+    target_role = db.Column(db.String(20), default="student", server_default="student")
     type = db.Column(db.String(20), default="update")
     title = db.Column(db.String(200))
     body = db.Column(db.Text)

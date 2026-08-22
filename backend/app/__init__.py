@@ -18,6 +18,8 @@ def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
     app.json.sort_keys = False
+    from .extensions import db, jwt, migrate, scheduler
+    from .services.reminder_service import send_24h_reminders
 
     # Extensions
     db.init_app(app)
@@ -27,6 +29,12 @@ def create_app(config_object=Config):
     migrate.init_app(app, db, render_as_batch=True, compare_type=True)
     jwt.init_app(app)
     CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+
+    scheduler.init_app(app)
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        scheduler.start()
+        # Run every hour at minute 0
+        scheduler.add_job(id='send_24h_reminders', func=send_24h_reminders, trigger='cron', minute=0)
 
     # JWT error responses use the same envelope shape
     @jwt.unauthorized_loader

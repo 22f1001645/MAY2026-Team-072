@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { inr } from '../lib/mock'
 import { useAudit, useDecision, useProposals } from '../lib/queries'
-import { Badge, Button } from '../components/ui'
+import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
 import CollabStatus from '../components/CollabStatus'
+import WelcomeBanner from '../components/WelcomeBanner'
 
 export default function ApprovalQueue() {
   const [statusTab, setStatusTab] = useState<'pending' | 'approved' | 'completed'>('pending')
@@ -51,19 +52,18 @@ export default function ApprovalQueue() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] pb-12">
-      {/* Aurora Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal/10 via-black to-black px-8 py-16 text-center shadow-2xl mb-8 mt-4 mx-2">
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px_32px]" />
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="mb-4 inline-flex items-center rounded-full border border-teal/20 bg-teal/5 px-4 py-1.5 text-[13px] font-medium text-teal shadow-inner backdrop-blur-md">
-            {pendingList.length} awaiting decision
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl">
-            Approval Queue
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-graytext-light">
-            Review, collaborate, and approve event proposals from organisers across the ecosystem.
-          </p>
+      <div className="px-4">
+        <WelcomeBanner />
+        <SectionTitle
+          eyebrow="ADMIN · ACTIVITIES"
+          title="Approval Queue"
+          sub="Review, collaborate, and approve event proposals from organisers across the ecosystem."
+        />
+
+        <div className="mb-10 grid gap-4 sm:grid-cols-3">
+          <StatCard label="Awaiting Decision" value={pendingList.length.toString()} tone={pendingList.length > 0 ? "teal" : undefined} />
+          <StatCard label="Approved (Upcoming)" value={approvedList.length.toString()} />
+          <StatCard label="Completed Events" value={completedList.length.toString()} />
         </div>
       </div>
 

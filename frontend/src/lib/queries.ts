@@ -40,8 +40,8 @@ export const useLeaderboard = (city?: string) =>
 export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
-export const useNotifications = () =>
-  useQuery({ queryKey: ['notifications'], queryFn: api.notifications, refetchInterval: 10000 })
+export const useNotifications = (role: string = 'student') =>
+  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), refetchInterval: 10000 })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
@@ -238,7 +238,19 @@ export const useVerifyExpense = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.verifyExpense(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['reimbursements'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reimbursements'] })
+    },
+  })
+}
+
+export const useUpdateExpenseAmount = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, amount }: { id: string, amount: number }) => api.updateExpenseAmount(id, amount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reimbursements'] })
+    },
   })
 }
 

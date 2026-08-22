@@ -92,7 +92,7 @@ export function Button({
   size?: 'sm' | 'md' | 'lg'
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const base =
-    'inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wide rounded-full ' +
+    'inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wide rounded-xl ' +
     'transition duration-200 ease-material focus:outline-none focus:ring-2 focus:ring-teal/50 ' +
     'active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100'
   // CTA hover: scale 1.02, lighten 10% (Brand Kit §7); press: scale 0.97 (feedback on press, not just release)
@@ -236,7 +236,7 @@ export function StatCard({
       <div
         className={cx(
           'mt-1 text-[32px] font-bold leading-none',
-          tone === 'teal' ? 'text-teal' : 'text-gold',
+          'text-offwhite',
         )}
       >
         {value}

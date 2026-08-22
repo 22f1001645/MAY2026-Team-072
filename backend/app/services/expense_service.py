@@ -1,7 +1,7 @@
-from ..constants import ACTIVITY_FEE_INR, EXPENSE_FLOW, EXPENSE_SUBMITTED, EXPENSE_APPROVED, EXPENSE_PAID
+from ..constants import ACTIVITY_FEE_INR, EXPENSE_FLOW, EXPENSE_SUBMITTED, EXPENSE_VERIFIED, EXPENSE_APPROVED, EXPENSE_PAID, ROLE_ADMIN
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Expense
+from ..models import Expense, Notification, User
 from ..repositories.repos import ActivityRepository, AuditRepository, ExpenseRepository
 
 
@@ -50,6 +50,21 @@ def advance(expense_id: str, admin) -> Expense:
     AuditRepository.record(
         "expense", expense.id, f"Advanced to {expense.status}", admin
     )
+    
+    if next_status == EXPENSE_VERIFIED and expense.activity:
+        admins = User.query.filter_by(role=ROLE_ADMIN).all()
+        for a in admins:
+            db.session.add(
+                Notification(
+                    user_id=a.id,
+                    activity_id=expense.activity_id,
+                    type="approval",
+                    title="Expense Verified",
+                    body=f"An expense of ₹{expense.amount} for '{expense.activity.title}' is ready for final admin approval.",
+                    target_role="admin"
+                )
+            )
+            
     db.session.commit()
     return expense
 

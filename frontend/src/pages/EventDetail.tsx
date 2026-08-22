@@ -131,9 +131,9 @@ export default function EventDetail() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left: details */}
-        <div className="space-y-6">
-          <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <h2 className="mb-4 text-h3 font-bold text-white tracking-wide">About this event</h2>
+        <div className="space-y-16 pb-12">
+          <div>
+            <h2 className="mb-6 text-[28px] font-extrabold text-white tracking-tight">About this event</h2>
             <p className="text-body leading-relaxed text-graytext-light text-[15px]">
               {e.description || 'Details coming soon.'}
             </p>
@@ -154,13 +154,13 @@ export default function EventDetail() {
                 src={`https://maps.google.com/maps?q=${encodeURIComponent(e.venue + ', ' + e.city)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
               />
             </div>
-          </Card>
+          </div>
 
           {/* Collaborating Orgs (PROPOSAL-06 Respond UI) */}
           {e.collaborators && e.collaborators.length > 0 && (
-            <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-h3 font-bold text-white tracking-wide">Collaborating organisations</h2>
+            <div>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-[24px] font-extrabold text-white tracking-tight">Collaborating organisations</h2>
                 {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">⭐ Mega Meetup</Badge>}
               </div>
               <div className="space-y-2">
@@ -201,13 +201,13 @@ export default function EventDetail() {
                   )
                 })}
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Team Roster (PROPOSAL-04) */}
           {e.teamMembers && e.teamMembers.length > 0 && (
-            <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-              <h2 className="mb-5 text-h3 font-bold text-white tracking-wide">Event team</h2>
+            <div>
+              <h2 className="mb-6 text-[24px] font-extrabold text-white tracking-tight">Event team</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {e.teamMembers.map((t: any) => (
                   <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
@@ -223,13 +223,13 @@ export default function EventDetail() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
 
-          {/* Organiser-only face of the same object (PRD §16 — one object, two faces) */}
+          {/* Organiser-only face of the same object (PRD A 16 — one object, two faces) */}
 
           {canManage && (
-            <Card className="p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-teal/20 shadow-[0_8px_30px_rgba(92,230,201,0.08)]">
+            <div className="relative p-8 rounded-3xl border border-teal/20 bg-teal/5 shadow-[0_8px_30px_rgba(92,230,201,0.08)] backdrop-blur-3xl">
               <div className="mb-4 flex items-center gap-3">
                 <Badge tone="teal" className="shadow-lg shadow-teal/10">Organiser view</Badge>
                 <span className="text-caption text-graytext-mid">
@@ -276,7 +276,7 @@ export default function EventDetail() {
                   Reassign
                 </Button>
               </div>
-            </Card>
+            </div>
           )}
 
           <Dialog open={reassignOpen} onClose={() => setReassignOpen(false)} title="Reassign Meetup Head">
@@ -351,7 +351,7 @@ export default function EventDetail() {
               </p>
             </Card>
           ) : (
-            <Card className="sticky top-32 p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="sticky top-32 p-8 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
               <div className="mb-2 flex items-baseline justify-between">
                 <span className="text-caption uppercase tracking-wider text-graytext-mid">
                   Attendance
@@ -509,7 +509,7 @@ export default function EventDetail() {
                   )}
                 </div>
               )}
-            </Card>
+            </div>
           )}
         </div>
       </div>

@@ -150,6 +150,14 @@ class ActivityRepository:
         return q.order_by(Activity.starts_at).all()
 
     @staticmethod
+    def get_starting_in_window(start_time, end_time):
+        return Activity.query.filter(
+            Activity.starts_at >= start_time,
+            Activity.starts_at < end_time,
+            Activity.status == "upcoming"
+        ).all()
+
+    @staticmethod
     def proposals_by_status(status=None):
         from ..models import ActivityCollaborator, ActivityTeamMember
         q = Activity.query.join(Proposal)
@@ -286,9 +294,9 @@ class RecognitionRepository:
 
 class NotificationRepository:
     @staticmethod
-    def for_user(user_id):
+    def for_user(user_id, target_role="student"):
         return (
-            Notification.query.filter_by(user_id=user_id)
+            Notification.query.filter_by(user_id=user_id, target_role=target_role)
             .order_by(Notification.created_at.desc())
             .all()
         )

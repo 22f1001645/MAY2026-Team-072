@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import EmojiPicker, { Theme } from 'emoji-picker-react'
 import { useAuth } from '../lib/auth'
 import { useAnnouncements, usePostAnnouncement } from '../lib/queries'
-import { Button, Input, Badge, Mandala } from './ui'
+import { Button, Input, Badge } from './ui'
 import { formatDate, formatTime, cx } from '../lib/format'
 
 export default function EventChat({
@@ -61,7 +61,9 @@ export default function EventChat({
           </div>
         ) : sortedMessages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-opacity duration-500">
-            <Mandala size={56} className="text-teal mb-4 animate-[spin_20s_linear_infinite]" />
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-teal mb-4">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
             <h4 className="text-offwhite font-bold text-[15px] mb-2">It's quiet in here</h4>
             <p className="text-[13px] text-graytext-mid">Be the first to start the conversation.</p>
           </div>

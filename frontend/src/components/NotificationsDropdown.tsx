@@ -4,6 +4,7 @@ import { useNotifications, useMarkNotificationsRead, useClearNotifications, useD
 import { Badge, Mandala } from './ui'
 import InvitationCard from './InvitationCard'
 import { cx } from '../lib/format'
+import { useSession } from '../lib/session'
 
 const TONE: Record<string, { tone: any; icon: ReactNode; label: string }> = {
   reminder: { 
@@ -44,11 +45,12 @@ function ago(iso?: string) {
 }
 
 export default function NotificationsDropdown({ onClose }: { onClose: () => void }) {
-  const { data: items = [], isLoading, isError } = useNotifications()
+  const { role } = useSession()
+  const { data: items = [], isLoading, isError } = useNotifications(role)
   const markReadMutation = useMarkNotificationsRead()
   const clearMutation = useClearNotifications()
   const deleteMutation = useDeleteNotification()
-  const [filter, setFilter] = useState<'all' | 'reminder' | 'update'>('all')
+  const [filter, setFilter] = useState<string>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Prevent background scrolling when drawer is open
@@ -122,7 +124,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
           </div>
 
           <div className="flex gap-2 pb-2 border-b border-white/10">
-            {(['all', 'reminder', 'update'] as const).map(f => (
+            {(role === 'admin' ? ['all', 'approval'] : ['all', 'reminder', 'update']).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -133,7 +135,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                     : "bg-transparent text-graytext-mid border-transparent hover:text-offwhite hover:bg-white/5"
                 )}
               >
-                {f === 'update' ? 'Broadcasts' : f + (f === 'all' ? '' : 's')}
+                {f === 'update' ? 'Broadcasts' : f === 'approval' ? 'Approvals' : f + (f === 'all' ? '' : 's')}
               </button>
             ))}
           </div>
@@ -152,8 +154,11 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
               <div className="absolute inset-0 rounded-full bg-teal/10 blur-3xl animate-[spin-slow_8s_linear_infinite]" />
               <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-teal/20 to-teal/5 blur-2xl animate-[spin-slow_5s_linear_infinite_reverse]" />
               <div className="absolute inset-8 rounded-full bg-teal/10 blur-xl animate-pulse" />
-              <div className="relative z-10 text-teal/80 animate-[spin-slow_20s_linear_infinite]">
-                <Mandala size={56} />
+              <div className="relative z-10 text-teal/80">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points="22 4 12 14.01 9 11.01" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
             </div>
             {/* Elegant Typography */}

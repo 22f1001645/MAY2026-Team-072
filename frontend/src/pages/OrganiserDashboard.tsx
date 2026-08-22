@@ -107,9 +107,9 @@ export default function OrganiserDashboard() {
             No events found for this filter.
           </Card>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-start">
             {filteredEvents.map((e) => (
-              <Card key={e.id} className="h-full overflow-hidden flex flex-col group border-white/5 bg-onyx transition-all duration-300 hover:border-teal/40 hover:shadow-glow-teal hover:-translate-y-1">
+              <Card key={e.id} className="overflow-hidden flex flex-col group border-white/5 bg-onyx transition-all duration-300 hover:border-teal/40 hover:shadow-glow-teal hover:-translate-y-1">
                 <div 
                   className="relative flex items-start justify-between p-4 h-32 transition-transform duration-500 ease-out group-hover:scale-105"
                   style={{ background: e.cover ? cover(e.cover) : coverForScale(e.scale || '') }}

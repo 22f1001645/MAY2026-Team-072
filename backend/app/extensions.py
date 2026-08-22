@@ -29,3 +29,5 @@ metadata = MetaData(naming_convention=NAMING_CONVENTION)
 db = SQLAlchemy(metadata=metadata)
 migrate = Migrate()
 jwt = JWTManager()
+from flask_apscheduler import APScheduler
+scheduler = APScheduler()

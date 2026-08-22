@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { SessionProvider } from './lib/session'
 import Layout from './components/Layout'
-import { Mandala } from './components/ui'
+
 
 // Public
 import Landing from './pages/Landing'
@@ -69,6 +69,29 @@ function useBootLoader(loading: boolean) {
   return tier
 }
 
+function RequireOrganiser({ children }: { children: React.ReactNode }) {
+  const { currentUser, capabilities } = useAuth()
+  if (!capabilities?.isOrganiser) return <Navigate to={currentUser?.role === 'admin' ? "/admin/approvals" : "/discover"} replace />
+  return <>{children}</>
+}
+
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const { currentUser } = useAuth()
+  if (currentUser?.role !== 'admin') return <Navigate to="/discover" replace />
+  return <>{children}</>
+}
+
+function RequireStudent({ children }: { children: React.ReactNode }) {
+  const { currentUser } = useAuth()
+  if (currentUser?.role === 'admin') return <Navigate to="/admin/approvals" replace />
+  return <>{children}</>
+}
+
+function FallbackRoute() {
+  const { currentUser } = useAuth()
+  return <Navigate to={currentUser?.role === 'admin' ? "/admin/approvals" : "/discover"} replace />
+}
+
 // Everything except public pages lives inside the app shell, behind auth.
 function AppShell() {
   const { currentUser, loading } = useAuth()
@@ -103,9 +126,10 @@ function AppShell() {
     return (
       <div className="grid min-h-screen place-items-center bg-onyx">
         <div className="flex flex-col items-center">
-          <div className="mb-4 animate-spin-slow">
-            <Mandala size={44} />
-          </div>
+          <svg className="mb-4 animate-spin h-10 w-10 text-teal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
           <div className="text-[13px] font-medium text-graytext-mid animate-pulse">Waking up server...</div>
         </div>
       </div>
@@ -134,33 +158,33 @@ function AppShell() {
     <Layout>
       <Routes>
         {/* Student */}
-        <Route path="/discover" element={<Discover />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        <Route path="/me" element={<MyRegistrations />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/discover" element={<RequireStudent><Discover /></RequireStudent>} />
+        <Route path="/events/:id" element={<RequireStudent><EventDetail /></RequireStudent>} />
+        <Route path="/me" element={<RequireStudent><MyRegistrations /></RequireStudent>} />
+        <Route path="/leaderboard" element={<RequireStudent><Leaderboard /></RequireStudent>} />
         {/* Readable by anyone signed in; the editing surface inside it is gated
             on capabilities.manageableOrgIds. Registering it here rather than
             beside the public routes is what makes it protected for free. */}
-        <Route path="/orgs/:orgId" element={<OrgProfile />} />
+        <Route path="/orgs/:orgId" element={<RequireStudent><OrgProfile /></RequireStudent>} />
 
         {/* Organiser */}
-        <Route path="/organiser" element={<OrganiserDashboard />} />
-        <Route path="/proposals/new" element={<ProposalNew />} />
-        <Route path="/events/:id/manage" element={<ManageEvent />} />
-        <Route path="/events/:id/expenses" element={<Expenses />} />
-        <Route path="/checkin" element={<CheckIn />} />
-        <Route path="/events/:id/campaign" element={<CampaignBuilder />} />
-        <Route path="/events/:id/workspace" element={<KanbanWorkspace />} />
+        <Route path="/organiser" element={<RequireOrganiser><OrganiserDashboard /></RequireOrganiser>} />
+        <Route path="/proposals/new" element={<RequireOrganiser><ProposalNew /></RequireOrganiser>} />
+        <Route path="/events/:id/manage" element={<RequireOrganiser><ManageEvent /></RequireOrganiser>} />
+        <Route path="/events/:id/expenses" element={<RequireOrganiser><Expenses /></RequireOrganiser>} />
+        <Route path="/checkin" element={<RequireOrganiser><CheckIn /></RequireOrganiser>} />
+        <Route path="/events/:id/campaign" element={<RequireOrganiser><CampaignBuilder /></RequireOrganiser>} />
+        <Route path="/events/:id/workspace" element={<RequireOrganiser><KanbanWorkspace /></RequireOrganiser>} />
 
         {/* Admin */}
-        <Route path="/admin/approvals" element={<ApprovalQueue />} />
-        <Route path="/admin/reimbursements" element={<Reimbursements />} />
-        <Route path="/admin/analytics" element={<Analytics />} />
-        <Route path="/admin/organiser-analytics" element={<OrganiserAnalytics />} />
-        <Route path="/admin/orgs" element={<Orgs />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin/approvals" element={<RequireAdmin><ApprovalQueue /></RequireAdmin>} />
+        <Route path="/admin/reimbursements" element={<RequireAdmin><Reimbursements /></RequireAdmin>} />
+        <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
+        <Route path="/admin/organiser-analytics" element={<RequireAdmin><OrganiserAnalytics /></RequireAdmin>} />
+        <Route path="/admin/orgs" element={<RequireAdmin><Orgs /></RequireAdmin>} />
+        <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
 
-        <Route path="*" element={<Navigate to="/discover" replace />} />
+        <Route path="*" element={<FallbackRoute />} />
       </Routes>
     </Layout>
   )

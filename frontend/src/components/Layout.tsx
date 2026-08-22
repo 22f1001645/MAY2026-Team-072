@@ -167,7 +167,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
-  const { data: notifications = [] } = useNotifications()
+  const { data: notifications = [] } = useNotifications(role)
   const unreadCount = notifications.filter((n: any) => !n.read).length
 
   useEffect(() => {

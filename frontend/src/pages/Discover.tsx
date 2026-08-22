@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useEvents, useMyRegistrations, useCities, useSubscribeToCityAlert } from '../lib/queries'
-import { Badge, Button, Card, Mandala } from '../components/ui'
+import { Badge, Button, Card } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cover, scaleLabel, daysUntil, cx, formatDate, formatTime } from '../lib/format'
 import { EkatvaEvent } from '../lib/types'
@@ -159,7 +159,11 @@ export default function Discover() {
           {/* Notify Me Empty State */}
           <Card className="relative overflow-hidden border-teal/20 bg-onyx shadow-2xl p-10 sm:p-14 text-center group">
             <div className="absolute inset-0 bg-gradient-to-br from-teal/5 to-transparent" />
-            <Mandala size={48} className="mx-auto mb-6 text-teal opacity-80 transition-transform duration-700 group-hover:rotate-90 group-hover:scale-110" />
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-6 text-teal opacity-80 transition-transform duration-700 group-hover:scale-110">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
             
             <div className="relative z-10">
               <h3 className="text-h1 font-bold text-offwhite mb-3 tracking-tight">
@@ -267,39 +271,70 @@ function FeaturedCarousel({ events, isLoading }: { events: EkatvaEvent[], isLoad
 
   if (events.length === 0) return null
 
-  const e = events[activeIndex]
-
   return (
-    <section 
-      className="relative mb-9 overflow-hidden rounded-xl2 border border-white/5 flex flex-col items-center justify-center text-center p-10 h-[420px]"
-      style={{ background: cover(e.cover) }}
-    >
-      <div className="absolute inset-0 bg-onyx/60 backdrop-blur-sm transition-all duration-1000" />
-      <div className="grain absolute inset-0 rounded-xl2 mix-blend-overlay opacity-50" />
-      
-      <div className="relative z-10 max-w-3xl flex flex-col items-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-teal/25 bg-onyx/50 backdrop-blur-md px-3 py-1 text-caption font-semibold text-teal">
-          <Mandala size={16} /> Featured Event
-        </div>
-        <h1 className="text-[36px] font-bold leading-tight text-offwhite md:text-[48px] mb-4 drop-shadow-md transition-all duration-500 line-clamp-2">
-          {e.title}
-        </h1>
-        <p className="max-w-[560px] text-body text-graytext-light line-clamp-2 mb-8 drop-shadow-sm">
-          {e.description || `Join us at ${e.venue} for an incredible experience.`}
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link to={`/events/${e.id}`}>
-            <Button size="lg">Explore Event</Button>
-          </Link>
-          <div className="flex gap-2">
-            <Badge tone="teal">{daysUntil(e.startsAt)}</Badge>
-            <Badge tone="gold">{scaleLabel[e.scale]}</Badge>
-          </div>
-        </div>
+    <div className="relative mb-9 overflow-hidden rounded-xl2 border border-white/5 h-[420px] group">
+      <div 
+        className="flex w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]"
+        style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+      >
+        {events.map((e, idx) => (
+          <section 
+            key={e.id}
+            className="w-full h-full shrink-0 relative flex flex-col items-center justify-center text-center p-10"
+            style={{ background: cover(e.cover) }}
+          >
+            <div className="absolute inset-0 bg-onyx/60 backdrop-blur-sm" />
+            <div className="grain absolute inset-0 mix-blend-overlay opacity-50" />
+            
+            <div 
+              className="relative z-10 max-w-3xl flex flex-col items-center transition-all duration-700 delay-100"
+              style={{ opacity: activeIndex === idx ? 1 : 0, transform: activeIndex === idx ? 'translateY(0)' : 'translateY(20px)' }}
+            >
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-teal/25 bg-onyx/50 backdrop-blur-md px-3 py-1 text-caption font-semibold text-teal shadow-inner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" className={activeIndex === idx ? "animate-pulse" : ""}>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg> Featured Event
+              </div>
+              <h1 className="text-[36px] font-bold leading-tight text-offwhite md:text-[48px] mb-4 drop-shadow-md line-clamp-2">
+                {e.title}
+              </h1>
+              <p className="max-w-[560px] text-body text-graytext-light line-clamp-2 mb-8 drop-shadow-sm">
+                {e.description || `Join us at ${e.venue} for an incredible experience.`}
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link to={`/events/${e.id}`}>
+                  <Button size="lg">Explore Event</Button>
+                </Link>
+                <div className="flex gap-2">
+                  <Badge tone="teal">{daysUntil(e.startsAt)}</Badge>
+                  <Badge tone="gold">{scaleLabel[e.scale]}</Badge>
+                </div>
+              </div>
+            </div>
+          </section>
+        ))}
       </div>
-      
+
+      {/* Navigation Arrows */}
+      {events.length > 1 && (
+        <>
+          <button 
+            onClick={() => setActiveIndex(i => (i - 1 + events.length) % events.length)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <button 
+            onClick={() => setActiveIndex(i => (i + 1) % events.length)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </>
+      )}
+
       {/* Carousel Dots */}
-      <div className="absolute bottom-6 flex gap-2 z-10">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
         {events.map((_, i) => (
           <button 
             key={i}
@@ -308,7 +343,7 @@ function FeaturedCarousel({ events, isLoading }: { events: EkatvaEvent[], isLoad
           />
         ))}
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -425,7 +460,9 @@ function GlobalEmptyState({ notifyEmail, setNotifyEmail, notified, setNotified, 
       {/* Glassmorphism Card */}
       <div className="relative z-10 w-full max-w-2xl px-6">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-12 text-center backdrop-blur-3xl shadow-2xl">
-          <Mandala size={64} className="mx-auto mb-8 text-teal opacity-90 animate-[spin_60s_linear_infinite]" />
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-8 text-teal opacity-90">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
           
           <h1 className="mb-4 text-[42px] font-bold leading-tight tracking-tight text-offwhite sm:text-[56px] drop-shadow-lg">
             The Season is Quiet

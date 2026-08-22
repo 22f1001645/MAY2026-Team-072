@@ -38,11 +38,19 @@ from sqlalchemy.engine import make_url
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from app.constants import HOUSES, POINTS, REGIONS, COUNCIL_UPPER_HOUSE, COUNCIL_LOWER_HOUSE
+from app.constants import (
+    HOUSES,
+    POINTS,
+    REGIONS,
+    COUNCIL_UPPER_HOUSE,
+    COUNCIL_LOWER_HOUSE,
+    TEAM_ROLE_MEETUP_HEAD,
+)
 from app.extensions import db
 from app.models import (
     Activity,
     ActivityFeeRecord,
+    ActivityTeamMember,
     Attendance,
     BudgetLine,
     City,
@@ -384,6 +392,13 @@ def seed_demo_data(app):
                 db.session.add(BudgetLine(activity_id=act.id, label=label, planned=planned))
             db.session.add(Proposal(activity_id=act.id, submitted_by=organiser.id,
                                     status="approved" if approved else "submitted"))
+            # Close-out (reflection, reimbursement submit) is gated on
+            # is_meetup_head, which reads the team roster — not the organiser
+            # column. Without this row none of those flows can be exercised
+            # from fresh seed data at all.
+            db.session.add(ActivityTeamMember(activity_id=act.id, user_id=organiser.id,
+                                              role=TEAM_ROLE_MEETUP_HEAD,
+                                              added_by=organiser.id))
             return act
 
         # Upcoming approved fest (Hyderabad)

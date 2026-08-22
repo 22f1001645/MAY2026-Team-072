@@ -183,4 +183,4 @@ def test_invite_friend(client, app, student_headers, admin_headers, rc_headers):
         assert len(invite_notifs) == 1
         notif = invite_notifs[0]
         assert "invited you to" in notif.title
-        assert activity_id in notif.body
+        assert activity_id in notif.action_url

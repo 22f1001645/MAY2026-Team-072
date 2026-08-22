@@ -170,7 +170,8 @@ def invite_friend(activity_id: str, target_user_id: str, referrer_user: User):
         user_id=target_user_id,
         type="invite",
         title=f"{referrer_user.name} invited you to {activity.title}!",
-        body=f"Join now! /events/{activity.id}?ref={referrer_user.id}",
+        body=f"Join now!",
+        action_url=f"/events/{activity.id}?ref={referrer_user.id}",
         activity_id=activity.id
     )
     db.session.add(notif)

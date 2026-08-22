@@ -152,9 +152,9 @@ export default function Orgs() {
     memberSearch.trim(),
     tab === 'members' && memberSearch.trim().length > 0
   )
-  const { data: houses = [] } = useQuery({ queryKey: ['houses'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'house')) })
-  const { data: societies = [] } = useQuery({ queryKey: ['societies'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'society')) })
-  const { data: regions = [] } = useQuery({ queryKey: ['regions'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'region')) })
+  const houses = useMemo(() => orgs.filter((o: any) => o.type === 'house'), [orgs])
+  const societies = useMemo(() => orgs.filter((o: any) => o.type === 'society'), [orgs])
+  const regions = useMemo(() => orgs.filter((o: any) => o.type === 'region'), [orgs])
 
   const createOrgMutation = useCreateOrg()
   const assignPorMutation = useAssignPor()
@@ -378,7 +378,7 @@ export default function Orgs() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(houses.length > 0 ? houses : orgs.filter((o: any) => o.type === 'house')).map((h: any) => {
+            {houses.map((h: any) => {
               const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9' }
               const secretary = pors.find((p: any) => p.org === h.name && p.por_type === 'House Secretary' && p.active)
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
@@ -1372,7 +1372,7 @@ export default function Orgs() {
                       onChange={(e) => setSelectedOrgId(e.target.value)}
                       options={[
                         { label: '-- Select House --', value: '' },
-                        ...(houses.length > 0 ? houses : orgs.filter((o: any) => o.type === 'house')).map((h: any) => ({
+                        ...houses.map((h: any) => ({
                           label: h.name,
                           value: h.id,
                         })),
@@ -1384,7 +1384,7 @@ export default function Orgs() {
                       onChange={(e) => setSelectedOrgId(e.target.value)}
                       options={[
                         { label: '-- Select Society --', value: '' },
-                        ...(societies.length > 0 ? societies : orgs.filter((o: any) => o.type === 'society')).map((s: any) => ({
+                        ...societies.map((s: any) => ({
                           label: s.name,
                           value: s.id,
                         })),

@@ -316,7 +316,11 @@ export const useCreateOrg = () => {
             banner_url?: string
           },
     ) => api.createOrg(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orgs'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orgs'] })
+      qc.invalidateQueries({ queryKey: ['societies'] })
+      qc.invalidateQueries({ queryKey: ['houses'] })
+    },
   })
 }
 

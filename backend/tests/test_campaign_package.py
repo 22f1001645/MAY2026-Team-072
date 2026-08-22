@@ -299,6 +299,21 @@ def test_generate_slug_overwrites(client, seeds):
     assert slug2 != slug1  # second mint produces a different slug
 
 
+def test_slug_alphabet_stays_inside_the_url_contract():
+    """Every character a suffix can be built from is legal in a slug (AC-15).
+
+    The mint test above draws one slug, so it catches a bad alphabet only by
+    luck: while the suffix came from token_urlsafe, base64url's "_" broke the
+    contract about one run in eleven, which read as a flaky test rather than a
+    broken generator. Checking the alphabet itself fails every time instead.
+    """
+    import re
+
+    from app.constants import SLUG_ALPHABET
+
+    assert re.fullmatch(r"[a-z0-9-]+", SLUG_ALPHABET), SLUG_ALPHABET
+
+
 def test_slug_collision_retry(client, seeds, monkeypatch):
     """All 3 mint attempts collide → 503/slug_collision (AC-16).
 

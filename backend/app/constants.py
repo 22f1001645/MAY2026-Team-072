@@ -165,9 +165,13 @@ FORM_FIELD_TYPES = (FORM_FIELD_TEXT, FORM_FIELD_DROPDOWN)
 
 # --- Registration slug minting (CAMPAIGN-04) ---
 # String(64) leaves room for a 40-char title slug, a separator ("-") and a
-# 6-char secrets.token_urlsafe suffix.  SLUG_MAX_ATTEMPTS caps the retry loop;
-# exhausting it surfaces code=="slug_collision" at HTTP 503.
-SLUG_RANDOM_BYTES = 4     # secrets.token_urlsafe(4) → ~6 URL-safe chars
+# 6-char random suffix.  SLUG_MAX_ATTEMPTS caps the retry loop; exhausting it
+# surfaces code=="slug_collision" at HTTP 503.
+# The suffix is drawn from this alphabet rather than from secrets.token_urlsafe:
+# base64url includes "_", which is not in the published ^[a-z0-9-]+$ slug
+# contract, so roughly one slug in eleven came out malformed.
+SLUG_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
+SLUG_LENGTH = 6           # 36**6 ≈ 2.2e9 suffixes per title
 SLUG_MAX_ATTEMPTS = 3
 SLUG_TITLE_MAX = 40
 

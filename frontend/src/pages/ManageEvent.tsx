@@ -10,6 +10,7 @@ import {
   useTimeline,
   usePatchReportMutation,
   useDraftExpensesMutation,
+  useUploadExpenseBill,
 } from '../lib/queries'
 import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, Input, Progress, SectionTitle } from '../components/ui'
@@ -34,14 +35,16 @@ export default function ManageEvent() {
   if (isError) return <ErrorState error={error} />
   if (!e) return <div>Event not found</div>
 
-  const isMeetupHead = !!(
-    e.teamMembers?.some(
-      (m: any) =>
-        (m.userId === currentUser?.id || m.user_id === currentUser?.id) &&
-        m.role === 'Meetup Head',
-    ) ||
-    e.organiser === currentUser?.name ||
-    currentUser?.role === 'admin'
+  // Team roster only, matching the server's `is_meetup_head` exactly. There is
+  // deliberately no fallback to the event's organiser and none to an admin:
+  // proposing an event is not the same as being accountable for filing it, and
+  // the service refuses an admin on the record that "the Meetup Head or anyone
+  // senior to them" is a different rule from the one RBAC-03 states. Either
+  // fallback here only enables a button the server then answers with a 403.
+  const isMeetupHead = !!e.teamMembers?.some(
+    (m: any) =>
+      (m.userId === currentUser?.id || m.user_id === currentUser?.id) &&
+      m.role === 'Meetup Head',
   )
 
   const referrersMap = roster.reduce((acc: Record<string, number>, r: any) => {
@@ -292,11 +295,17 @@ function ReflectionPanel({ activityId, isMeetupHead }: { activityId: string; isM
   const [learnings, setLearnings] = useState('')
   const [saving, setSaving] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  // Two mutation instances, not one. Clicking Submit blurs the textarea first,
+  // which fires the auto-save; with a single instance that save turns
+  // `isPending` on and disables the button in the same tick the click lands, so
+  // the click is swallowed and the reflection silently never submits. Keeping
+  // the draft save and the submit separate means only a real submit disables it.
+  const saveMut = usePatchReportMutation()
   const patchMut = usePatchReportMutation()
 
   const autoSave = (field: 'challenges' | 'learnings', value: string) => {
     setSaving(true)
-    patchMut.mutate(
+    saveMut.mutate(
       { activityId, patch: { [field]: value } },
       { onSettled: () => setSaving(false) },
     )
@@ -341,8 +350,17 @@ function ReflectionPanel({ activityId, isMeetupHead }: { activityId: string; isM
               onBlur={(e) => autoSave('learnings', e.target.value)}
             />
           </div>
-          {saving && (
-            <p className="animate-pulse text-[12px] text-graytext-mid">Saving…</p>
+          {/* Always in the layout, only the text toggles. Inserting this line
+              on save would push the Submit button down between a click's
+              mousedown and mouseup, so the click that triggered the save lands
+              on empty space and the reflection silently never submits. */}
+          <p className="h-4 animate-pulse text-[12px] text-graytext-mid">
+            {saving ? 'Saving…' : ''}
+          </p>
+          {(patchMut.isError || saveMut.isError) && (
+            <p className="text-[12px] text-red-400">
+              {((patchMut.error ?? saveMut.error) as Error).message}
+            </p>
           )}
           <div className="flex justify-end">
             <Button
@@ -365,6 +383,49 @@ function ReflectionPanel({ activityId, isMeetupHead }: { activityId: string; isM
   )
 }
 
+function BillPicker({
+  activityId,
+  storedName,
+  onUploaded,
+}: {
+  activityId: string
+  storedName: string
+  onUploaded: (billName: string) => void
+}) {
+  const [label, setLabel] = useState('')
+  const upload = useUploadExpenseBill()
+
+  return (
+    <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-3 py-2 text-[13px] text-graytext-mid transition-colors hover:border-teal/40 hover:bg-white/[0.04]">
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp,application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          upload.mutate(
+            { activityId, file },
+            { onSuccess: (r) => { setLabel(r.originalName); onUploaded(r.billName) } },
+          )
+          // Clear the input so picking the same file twice still fires a change.
+          e.target.value = ''
+        }}
+      />
+      <span className="truncate">
+        {upload.isPending
+          ? 'Uploading…'
+          : label || (storedName ? 'Bill attached' : 'Attach bill')}
+      </span>
+      {upload.isError && (
+        <span className="ml-auto shrink-0 text-red-400">
+          {(upload.error as Error).message}
+        </span>
+      )}
+    </label>
+  )
+}
+
 function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; isMeetupHead: boolean }) {
   const [rows, setRows] = useState<{ label: string; amount: string; bill_name: string }[]>([
     { label: '', amount: '', bill_name: '' },
@@ -372,6 +433,10 @@ function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; 
   const [socialUrl, setSocialUrl] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  // Separate instances for the same reason the Reflection panel keeps two: the
+  // blur-triggered draft save must not disable the Submit button under the
+  // click that caused it.
+  const saveMut = useDraftExpensesMutation()
   const draftMut = useDraftExpensesMutation()
 
   const validExpenses = rows.filter((r) => r.label.trim() && (parseFloat(r.amount) || 0) > 0)
@@ -386,15 +451,26 @@ function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; 
   const updateRow = (i: number, k: keyof (typeof rows)[0], v: string) =>
     setRows((r) => r.map((row, idx) => (idx === i ? { ...row, [k]: v } : row)))
 
-  const autoSave = () => {
-    draftMut.mutate({
+  const saveRows = (toSave = rows) => {
+    saveMut.mutate({
       activityId,
       body: {
-        expenses: rows
+        expenses: toSave
           .filter((r) => r.label)
           .map((r) => ({ label: r.label, amount: parseFloat(r.amount) || 0, bill_name: r.bill_name })),
       },
     })
+  }
+
+  const autoSave = () => saveRows()
+
+  // Takes the next rows explicitly rather than calling autoSave after setRows:
+  // the state update has not landed yet at that point, so an autoSave here would
+  // save the row list from before the upload and drop the bill name.
+  const attachBill = (i: number, billName: string) => {
+    const next = rows.map((row, idx) => (idx === i ? { ...row, bill_name: billName } : row))
+    setRows(next)
+    saveRows(next)
   }
 
   const handleSubmit = () => {
@@ -435,11 +511,10 @@ function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; 
                 onBlur={autoSave}
                 className="w-28"
               />
-              <Input
-                placeholder="Bill / reference"
-                value={row.bill_name}
-                onChange={(e: any) => updateRow(i, 'bill_name', e.target.value)}
-                onBlur={autoSave}
+              <BillPicker
+                activityId={activityId}
+                storedName={row.bill_name}
+                onUploaded={(name) => attachBill(i, name)}
               />
               <button
                 onClick={() => removeRow(i)}
@@ -485,6 +560,11 @@ function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; 
               Submit Reimbursement
             </Button>
           </div>
+          {(draftMut.isError || saveMut.isError) && (
+            <p className="text-right text-[12px] text-red-400">
+              {((draftMut.error ?? saveMut.error) as Error).message}
+            </p>
+          )}
           {confirmOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />

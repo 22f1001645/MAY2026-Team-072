@@ -42,10 +42,11 @@ def test_valid_scan_checks_in_and_awards_points(client, app, rc_headers, admin_h
     activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
     res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
     reg_id = res.get_json()["id"]
+    qr_token = res.get_json()["qr_token"]
 
     res = client.post(
         f"/api/v1/events/{activity_id}/scan",
-        json={"registration_id": reg_id},
+        json={"registration_id": qr_token},
         headers=rc_headers,
     )
     assert res.status_code == 200
@@ -65,9 +66,10 @@ def test_duplicate_scan_does_not_double_check_in(client, app, rc_headers, admin_
     activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
     res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
     reg_id = res.get_json()["id"]
+    qr_token = res.get_json()["qr_token"]
 
-    client.post(f"/api/v1/events/{activity_id}/scan", json={"registration_id": reg_id}, headers=rc_headers)
-    res = client.post(f"/api/v1/events/{activity_id}/scan", json={"registration_id": reg_id}, headers=rc_headers)
+    client.post(f"/api/v1/events/{activity_id}/scan", json={"registration_id": qr_token}, headers=rc_headers)
+    res = client.post(f"/api/v1/events/{activity_id}/scan", json={"registration_id": qr_token}, headers=rc_headers)
 
     assert res.status_code == 200
     assert res.get_json()["status"] == "duplicate"
@@ -85,10 +87,11 @@ def test_scan_rejects_a_registration_from_a_different_event(client, app, rc_head
     other_activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id, starts_at="2026-09-15T10:00:00")
     res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
     reg_id = res.get_json()["id"]
+    qr_token = res.get_json()["qr_token"]
 
     res = client.post(
         f"/api/v1/events/{other_activity_id}/scan",
-        json={"registration_id": reg_id},
+        json={"registration_id": qr_token},
         headers=rc_headers,
     )
     assert res.status_code == 400
@@ -119,10 +122,11 @@ def test_student_cannot_scan(client, app, rc_headers, admin_headers, student_hea
     activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
     res = client.post(f"/api/v1/events/{activity_id}/register", headers=student_headers)
     reg_id = res.get_json()["id"]
+    qr_token = res.get_json()["qr_token"]
 
     res = client.post(
         f"/api/v1/events/{activity_id}/scan",
-        json={"registration_id": reg_id},
+        json={"registration_id": qr_token},
         headers=student_headers,
     )
     assert res.status_code == 403
@@ -147,11 +151,12 @@ def test_referral_attendance_awards_the_referrer_and_referred_bonus(
         headers=student_headers,
     )
     reg_id = res.get_json()["id"]
+    qr_token = res.get_json()["qr_token"]
     assert res.get_json()["referred_by_id"] == referrer_id
 
     res = client.post(
         f"/api/v1/events/{activity_id}/scan",
-        json={"registration_id": reg_id},
+        json={"registration_id": qr_token},
         headers=rc_headers,
     )
     assert res.status_code == 200

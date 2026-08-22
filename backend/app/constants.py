@@ -257,6 +257,8 @@ POINTS = {
     "attended": 30,
     "organised": 50,
     "volunteered": 20,
+    "referrer": 10,
+    "referee": 5,
 }
 
 # --- Quota guardrail (FR-B2): one meetup per region per calendar month ---

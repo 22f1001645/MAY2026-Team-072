@@ -16,7 +16,7 @@ export default {
           DEFAULT: '#FFCF96', // Unity Gold — headings, accents, celebration
         },
         onyx: {
-          DEFAULT: 'oklch(0.13 0.015 175)', // Oneness Black — teal-tinted, not flat gray (~#030907), backgrounds/grounding
+          DEFAULT: 'oklch(0.13 0.015 175 / <alpha-value>)', // Oneness Black — teal-tinted, not flat gray (~#030907), backgrounds/grounding
           soft: '#111111', // Near Black — text on light
         },
         // Neutrals
@@ -57,18 +57,51 @@ export default {
       },
       keyframes: {
         'fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%': { opacity: '0', transform: 'translate3d(0, 20px, 0)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
         },
         'spin-slow': {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' },
         },
+        'shake': {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(10deg)' },
+          '50%': { transform: 'rotate(-10deg)' },
+          '75%': { transform: 'rotate(5deg)' },
+        },
+        'spring-up': {
+          '0%': { opacity: '0', transform: 'translate3d(0, 20px, 0) scale(0.98)' },
+          '60%': { opacity: '1', transform: 'translate3d(0, -2px, 0) scale(1.01)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0) scale(1)' },
+        },
+        'aurora': {
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)', opacity: '0.3' },
+          '33%': { transform: 'translate3d(30px, -50px, 0) scale(1.1)', opacity: '0.4' },
+          '66%': { transform: 'translate3d(-20px, 20px, 0) scale(0.9)', opacity: '0.2' },
+        },
+        'fadeIn': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'slideInRight': {
+          '0%': { transform: 'translate3d(100%, 0, 0)' },
+          '100%': { transform: 'translate3d(0, 0, 0)' },
+        },
+        'shimmer': {
+          '100%': { transform: 'translate3d(100%, 0, 0)' },
+        }
       },
       animation: {
         // Fade-in reveal: 20px upward slide + opacity 0→1 (brand kit §7)
         'fade-up': 'fade-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
         'spin-slow': 'spin-slow 2.4s linear infinite',
+        'shake': 'shake 0.4s ease-in-out',
+        'spring-up': 'spring-up 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.1) both',
+        'aurora': 'aurora 15s ease-in-out infinite',
+        'fadeIn': 'fadeIn 0.3s ease-out',
+        'slideInRight': 'slideInRight 0.3s ease-out',
+        'shimmer': 'shimmer 2s infinite',
       },
     },
   },

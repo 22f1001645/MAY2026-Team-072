@@ -449,4 +449,3 @@ def manageable_activities(user: User) -> list:
     if not activity_ids:
         return []
     return Activity.query.filter(Activity.id.in_(activity_ids)).all()
-

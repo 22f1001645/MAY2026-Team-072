@@ -173,6 +173,10 @@ def submit_proposal(data: dict, organiser) -> Activity:
     db.session.add(proposal)
 
     AuditRepository.record("proposal", activity.id, "Submitted proposal", organiser)
+    
+    # Notify all admins of the new proposal
+    _notify_admins(activity.id, "approval", "New Proposal Submitted", f"{organiser.name} has submitted '{activity.title}' in {activity.city}.")
+    
     db.session.commit()
     return activity
 
@@ -350,10 +354,15 @@ def get_report(activity_id: str) -> Report:
     return report
 
 
-def _notify(user_id, activity_id, ntype, title, body):
+def _notify(user_id, activity_id, ntype, title, body, target_role="student"):
     db.session.add(
-        Notification(user_id=user_id, activity_id=activity_id, type=ntype, title=title, body=body)
+        Notification(user_id=user_id, activity_id=activity_id, type=ntype, title=title, body=body, target_role=target_role)
     )
+
+def _notify_admins(activity_id, ntype, title, body):
+    admins = User.query.filter_by(role=ROLE_ADMIN).all()
+    for admin in admins:
+        _notify(admin.id, activity_id, ntype, title, body, target_role="admin")
 
 
 def _notify_collab_invite(activity: Activity, primary_org, collab_org):

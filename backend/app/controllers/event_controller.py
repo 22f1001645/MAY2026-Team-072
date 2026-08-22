@@ -13,8 +13,11 @@ event_bp = Blueprint("events", __name__, url_prefix="/api/v1")
 @auth_required
 def feed():
     """FR-C2 — city-filtered feed of published events."""
+    ActivityRepository.sync_past_events()
     city = request.args.get("city")
-    events = ActivityRepository.published_feed(city)
+    scale = request.args.get("scale")
+    date_range = request.args.get("dateRange")
+    events = ActivityRepository.published_feed(city, scale, date_range)
     return jsonify([e.to_dict() for e in events]), 200
 
 
@@ -54,3 +57,6 @@ def cancel(activity_id):
     """Organiser cancels an event; registrants are notified."""
     activity = event_service.cancel_event(activity_id, g.current_user)
     return jsonify(activity.to_dict(detail=True)), 200
+
+
+

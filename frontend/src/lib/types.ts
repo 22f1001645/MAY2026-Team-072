@@ -90,6 +90,7 @@ export interface OrgProfile extends Organisation {
    *  filter refused is listed here so the editor can say it was saved earlier,
    *  without putting the offending string back in the DOM. */
   withheldPlatforms: string[]
+  brandKit?: BrandKit
 }
 
 export interface BrandKit {
@@ -165,9 +166,11 @@ export interface Registration {
   studentName: string
   registeredAt: string
   attended: boolean
+  status?: 'confirmed' | 'waitlisted' | 'cancelled'
 }
 
 export interface LeaderRow {
+  userId: string
   rank: number
   name: string
   city: string
@@ -175,6 +178,7 @@ export interface LeaderRow {
   attended: number
   organised: number
   isMe?: boolean
+  isOrganiser?: boolean
 }
 
 export interface LedgerEntry {

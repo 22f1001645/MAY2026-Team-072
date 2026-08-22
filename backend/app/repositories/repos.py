@@ -1,7 +1,7 @@
 """Concrete repositories. Grouped in one module for a compact v1; each class
 owns queries for one aggregate (Milestone 2 §3 — Repository layer)."""
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 
 from sqlalchemy.orm import joinedload
 
@@ -134,12 +134,28 @@ class ActivityRepository:
         )
 
     @staticmethod
-    def published_feed(city=None):
+    def published_feed(city=None, scale=None, date_range=None):
         q = Activity.query.filter(Activity.status.in_(["upcoming", "live"]))
         q = q.join(Proposal).filter(Proposal.status == "approved")
         if city and city != "All":
             q = q.filter(Activity.city == city)
+        if scale and scale != "All":
+            q = q.filter(Activity.scale == scale)
+        if date_range:
+            now = datetime.now()
+            if date_range == "this_week":
+                q = q.filter(Activity.starts_at <= now + timedelta(days=7))
+            elif date_range == "this_month":
+                q = q.filter(Activity.starts_at <= now + timedelta(days=30))
         return q.order_by(Activity.starts_at).all()
+
+    @staticmethod
+    def get_starting_in_window(start_time, end_time):
+        return Activity.query.filter(
+            Activity.starts_at >= start_time,
+            Activity.starts_at < end_time,
+            Activity.status == "upcoming"
+        ).all()
 
     @staticmethod
     def proposals_by_status(status=None):
@@ -164,6 +180,20 @@ class ActivityRepository:
     @staticmethod
     def by_organiser(user_id):
         return Activity.query.filter_by(organiser_id=user_id).order_by(Activity.created_at.desc()).all()
+
+    @staticmethod
+    def sync_past_events():
+        """Lazy cron to mark past events as completed."""
+        now = datetime.now()
+        past_events = Activity.query.filter(
+            Activity.status.in_(["upcoming", "live"]),
+            Activity.starts_at < now
+        ).all()
+        if past_events:
+            from ..extensions import db
+            for e in past_events:
+                e.status = "completed"
+            db.session.commit()
 
     @staticmethod
     def meetups_in_region_month(org_id: str, ref: datetime):
@@ -211,12 +241,16 @@ class RegistrationRepository:
         return Registration.query.filter_by(activity_id=activity_id, student_id=student_id).first()
 
     @staticmethod
+    def by_qr_token(qr_token):
+        return Registration.query.filter_by(qr_token=qr_token).first()
+
+    @staticmethod
     def for_activity(activity_id):
         return Registration.query.filter_by(activity_id=activity_id).all()
 
     @staticmethod
     def for_student(student_id):
-        return Registration.query.filter_by(student_id=student_id).all()
+        return Registration.query.join(Activity).filter(Registration.student_id == student_id).order_by(Activity.starts_at.asc()).all()
 
     @staticmethod
     def by_ids(ids):
@@ -260,9 +294,9 @@ class RecognitionRepository:
 
 class NotificationRepository:
     @staticmethod
-    def for_user(user_id):
+    def for_user(user_id, target_role="student"):
         return (
-            Notification.query.filter_by(user_id=user_id)
+            Notification.query.filter_by(user_id=user_id, target_role=target_role)
             .order_by(Notification.created_at.desc())
             .all()
         )

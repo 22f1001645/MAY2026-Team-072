@@ -1,4 +1,4 @@
-import { useEffect, type KeyboardEvent } from 'react'
+import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, homeFor } from '../lib/auth'
 import { cx } from '../lib/format'
@@ -11,26 +11,34 @@ import { cx } from '../lib/format'
 
 export type View = 'student' | 'organiser'
 
-/** Routes that belong to the Organiser view. Everything else is Student. */
+/** Routes that explicitly belong to the Organiser view. */
 const ORGANISER_ROUTES = [
   /^\/organiser(\/|$)/,
   /^\/proposals(\/|$)/,
-  /^\/events\/[^/]+\/(manage|expenses|checkin)(\/|$)/,
+  /^\/events\/[^/]+\/(manage|expenses)(\/|$)/, // Action routes are definitely organiser
+  /^\/checkin(\/|$)/,
+  /^\/orgs(\/|$)/,
 ]
 
-/** The switcher derives its value from the URL on every render — never from
- *  React state, never from storage. That is what makes D-16 (a deep link into
- *  the other view flips the switcher) free rather than a synchronisation
- *  problem. Exported so `lib/session.tsx` and the tests share one definition of
- *  the route set; three copies would drift. */
+/** Routes that explicitly belong to the Student view. */
+const STUDENT_ROUTES = [
+  /^\/discover(\/|$)/,
+  /^\/me(\/|$)/,
+  /^\/leaderboard(\/|$)/,
+]
+
+/** 
+ * The switcher derives its value from the URL on every render.
+ * If a route is neutral (like `/events/:id`), it preserves the current stored view.
+ */
 export function viewFromPathname(pathname: string): View {
-  return ORGANISER_ROUTES.some((re) => re.test(pathname)) ? 'organiser' : 'student'
+  if (ORGANISER_ROUTES.some((re) => re.test(pathname))) return 'organiser'
+  if (STUDENT_ROUTES.some((re) => re.test(pathname))) return 'student'
+  
+  // Neutral routes (e.g. /events/:id or profile pages) keep whatever is currently stored.
+  return (localStorage.getItem('ekatva_view') as View) || 'student'
 }
 
-const SEGMENTS: { view: View; label: string }[] = [
-  { view: 'student', label: 'Student' },
-  { view: 'organiser', label: 'Organiser' },
-]
 
 export default function ViewSwitcher() {
   const { pathname } = useLocation()
@@ -50,6 +58,13 @@ export default function ViewSwitcher() {
     if (!loading && !isOrganiser) localStorage.removeItem('ekatva_view')
   }, [loading, isOrganiser])
 
+  // Sync explicitly matched routes to localStorage so that subsequent navigation
+  // to neutral routes (like /events/:id) preserves the intended view.
+  useEffect(() => {
+    if (ORGANISER_ROUTES.some((re) => re.test(pathname))) localStorage.setItem('ekatva_view', 'organiser')
+    else if (STUDENT_ROUTES.some((re) => re.test(pathname))) localStorage.setItem('ekatva_view', 'student')
+  }, [pathname])
+
   // No disabled state, no ghost, no lock, no reserved space: a single-role
   // student never learns the switcher exists, the nav simply starts higher.
   if (!isOrganiser) return null
@@ -64,48 +79,53 @@ export default function ViewSwitcher() {
     navigate(homeFor(view))
   }
 
-  // Standard radiogroup keys: one Tab stop for the group, arrows move and
-  // activate, Home/End jump to the ends.
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const i = SEGMENTS.findIndex((s) => s.view === current)
-    let next = -1
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % SEGMENTS.length
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i + SEGMENTS.length - 1) % SEGMENTS.length
-    else if (e.key === 'Home') next = 0
-    else if (e.key === 'End') next = SEGMENTS.length - 1
-    if (next < 0 || SEGMENTS[next].view === current) return
-    e.preventDefault()
-    activate(SEGMENTS[next].view)
+  // A switch only needs standard button keyboard semantics (Space/Enter),
+  // which a <button> provides natively.
+  const toggle = () => {
+    activate(current === 'student' ? 'organiser' : 'student')
   }
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Dashboard view"
-      onKeyDown={onKeyDown}
-      className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-black/20 p-1"
-    >
-      {SEGMENTS.map(({ view, label }) => {
-        const active = view === current
-        return (
-          <button
-            key={view}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            tabIndex={active ? 0 : -1}
-            onClick={() => activate(view)}
-            className={cx(
-              'rounded-full px-3 py-1.5 text-[14px] font-medium transition duration-200 ease-material focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
-              active
-                ? 'bg-teal/12 text-teal font-semibold shadow-[inset_0_0_0_1px_rgba(92,230,201,0.35)]'
-                : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
-            )}
-          >
-            {label}
-          </button>
-        )
-      })}
+    <div className="flex items-center gap-3 mr-2">
+      <span
+        className={cx(
+          "text-[13px] font-semibold transition-colors duration-300 cursor-pointer select-none",
+          current === 'student' ? 'text-offwhite' : 'text-graytext-mid hover:text-offwhite'
+        )}
+        onClick={() => activate('student')}
+      >
+        Student
+      </span>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={current === 'organiser'}
+        onClick={toggle}
+        className={cx(
+          "relative inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50",
+          current === 'organiser' ? 'bg-teal shadow-[0_0_12px_rgba(63,212,182,0.3)]' : 'bg-white/10'
+        )}
+      >
+        <span className="sr-only">Use Organiser view</span>
+        <span
+          aria-hidden="true"
+          className={cx(
+            "pointer-events-none inline-block h-[20px] w-[20px] transform rounded-full shadow-sm ring-0 transition duration-300 ease-in-out",
+            current === 'organiser' ? 'translate-x-[22px] bg-onyx' : 'translate-x-[2px] bg-graytext-light'
+          )}
+        />
+      </button>
+
+      <span
+        className={cx(
+          "text-[13px] font-semibold transition-colors duration-300 cursor-pointer select-none",
+          current === 'organiser' ? 'text-teal' : 'text-graytext-mid hover:text-offwhite'
+        )}
+        onClick={() => activate('organiser')}
+      >
+        Organiser
+      </span>
     </div>
   )
 }

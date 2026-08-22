@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useEvent, useMyRegistrations, useRegister, useUnregister, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
+import { useEvent, useMyRegistrations, useRegister, useUnregister, useAnnouncements, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, Dialog, Progress, Select, useToast } from '../components/ui'
@@ -10,6 +10,7 @@ import { Loading, ErrorState } from '../components/states'
 import { cover, daysUntil, formatDate, formatTime, scaleLabel, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import EventChat from '../components/EventChat'
 import CollabStatus from '../components/CollabStatus'
+import { viewFromPathname } from '../components/ViewSwitcher'
 
 /**
  * EventDetail also serves the shared registration link, which a visitor opens
@@ -24,15 +25,16 @@ import CollabStatus from '../components/CollabStatus'
  */
 export default function EventDetail() {
   const { id } = useParams()
-  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
   const refId = searchParams.get('ref') ?? undefined
-  const { role, capabilities } = useSession()
+  const { id: currentUserId, role, capabilities } = useSession()
   const { currentUser } = useAuth()
   const { addToast } = useToast()
-  const location = useLocation()
   const navigate = useNavigate()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: myRegs = [] } = useMyRegistrations(!!currentUser)
+  const { data: announcements = [] } = useAnnouncements(id)
   const registerMut = useRegister()
   const unregisterMut = useUnregister()
   const respondCollabMut = useRespondCollab()
@@ -48,7 +50,6 @@ export default function EventDetail() {
     !!currentUser && (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
-  const [isChatOpen, setIsChatOpen] = useState(false)
 
   if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
@@ -67,18 +68,32 @@ export default function EventDetail() {
   const isWaitlisted = registration?.status === 'waitlisted'
   const count = e.registered
   const spotsLeft = e.capacity - count
-  const plannedTotal = e.budget.reduce((s, b) => s + b.planned, 0)
+  const plannedTotal = e.budget.reduce((s: any, b: any) => s + b.planned, 0)
+  const isPast = e.status === 'completed' || e.status === 'archived'
+  const isWaitlistClosed = new Date(e.startsAt).getTime() - Date.now() < 24 * 60 * 60 * 1000
 
   return (
     <div>
-      {/* /discover is behind auth, so it is not offered to a visitor who has
-          arrived from a shared link and has no session yet. */}
+      {/* Referral Banner */}
+      {refId && !registered && !isPast && (
+        <div className="mb-4 rounded-xl border border-teal/20 bg-teal/10 p-4 text-center backdrop-blur-xl shadow-lg">
+          <div className="text-[14px] font-medium text-teal">
+            🎉 A friend invited you to join them at this event!
+          </div>
+        </div>
+      )}
+
+
+
       {currentUser && (
         <Link
-          to="/discover"
-          className="mb-5 inline-flex items-center gap-1.5 text-[13px] text-graytext-light hover:text-teal"
+          to={viewFromPathname(location.pathname) === 'organiser' ? '/organiser' : '/discover'}
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[12px] font-bold tracking-widest uppercase text-graytext-mid backdrop-blur-md transition-all duration-300 hover:border-teal/30 hover:bg-teal/10 hover:text-teal hover:shadow-[0_0_15px_rgba(92,230,201,0.15)] group"
         >
-          ← Discovery feed
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="transition-transform duration-300 group-hover:-translate-x-1">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          {viewFromPathname(location.pathname) === 'organiser' ? 'Back to Dashboard' : 'Back to Discover'}
         </Link>
       )}
 
@@ -96,10 +111,15 @@ export default function EventDetail() {
         <div className="grain absolute inset-0" />
         <div className="relative">
           <div className="mb-2 flex flex-wrap gap-2">
+            {e.proposalStatus !== 'approved' && (
+              <Badge tone="warn" className="shadow-lg shadow-warn/20 animate-pulse">
+                Pending Approval
+              </Badge>
+            )}
             <Badge tone="gold">{scaleLabel[e.scale]}</Badge>
             <Badge tone="teal">{daysUntil(e.startsAt)}</Badge>
             {e.tags.map((t) => (
-              <Badge key={t}>{t}</Badge>
+              <Badge key={t} tone="neutral">{t}</Badge>
             ))}
           </div>
           <div className="text-caption uppercase tracking-widest text-offwhite/70">
@@ -111,19 +131,20 @@ export default function EventDetail() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left: details */}
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="mb-3 text-h3 font-semibold text-gold">About this event</h2>
-            <p className="text-body leading-relaxed text-graytext-light">
+        <div className="space-y-16 pb-12">
+          <div>
+            <h2 className="mb-6 text-[28px] font-extrabold text-white tracking-tight">About this event</h2>
+            <p className="text-body leading-relaxed text-graytext-light text-[15px]">
               {e.description || 'Details coming soon.'}
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-4">
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
               <InfoRow icon="cal" label="Date" value={formatDate(e.startsAt)} />
               <InfoRow icon="clock" label="Time" value={formatTime(e.startsAt)} />
               <InfoRow icon="pin" label="Venue" value={e.venue} />
               <InfoRow icon="user" label="Organiser" value={e.organiser} />
             </div>
-            <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+
+            <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 shadow-inner">
               <iframe
                 width="100%"
                 height="200"
@@ -133,14 +154,14 @@ export default function EventDetail() {
                 src={`https://maps.google.com/maps?q=${encodeURIComponent(e.venue + ', ' + e.city)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
               />
             </div>
-          </Card>
+          </div>
 
           {/* Collaborating Orgs (PROPOSAL-06 Respond UI) */}
           {e.collaborators && e.collaborators.length > 0 && (
-            <Card className="p-6">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-h3 font-semibold text-gold">Collaborating organisations</h2>
-                {e.isMegaMeetup && <Badge tone="gold">⭐ Mega Meetup</Badge>}
+            <div>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-[24px] font-extrabold text-white tracking-tight">Collaborating organisations</h2>
+                {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">⭐ Mega Meetup</Badge>}
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
@@ -180,14 +201,14 @@ export default function EventDetail() {
                   )
                 })}
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Team Roster (PROPOSAL-04) */}
           {e.teamMembers && e.teamMembers.length > 0 && (
-            <Card className="p-6">
-              <h2 className="mb-3 text-h3 font-semibold text-gold">Event team</h2>
-              <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <h2 className="mb-6 text-[24px] font-extrabold text-white tracking-tight">Event team</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {e.teamMembers.map((t: any) => (
                   <div key={t.id} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[12px] font-medium text-graytext-light">
@@ -202,15 +223,15 @@ export default function EventDetail() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
 
-          {/* Organiser-only face of the same object (PRD §16 — one object, two faces) */}
+          {/* Organiser-only face of the same object (PRD A 16 — one object, two faces) */}
 
           {canManage && (
-            <Card className="border-teal/20 p-6">
-              <div className="mb-3 flex items-center gap-2">
-                <Badge tone="teal">Organiser view</Badge>
+            <div className="relative p-8 rounded-3xl border border-teal/20 bg-teal/5 shadow-[0_8px_30px_rgba(92,230,201,0.08)] backdrop-blur-3xl">
+              <div className="mb-4 flex items-center gap-3">
+                <Badge tone="teal" className="shadow-lg shadow-teal/10">Organiser view</Badge>
                 <span className="text-caption text-graytext-mid">
                   Only visible to your POR
                 </span>
@@ -235,18 +256,15 @@ export default function EventDetail() {
                   </div>
                 </>
               )}
-              <div className="mt-4 flex gap-2">
-                <Link to={`/events/${e.id}/manage`}>
-                  <Button variant="secondary" size="sm">
-                    Manage registrations
-                  </Button>
-                </Link>
-                <Link to={`/events/${e.id}/checkin`}>
-                  <Button variant="secondary" size="sm">
-                    Check-in
-                  </Button>
-                </Link>
-              </div>
+              {e.proposalStatus === 'approved' && (
+                <div className="mt-4 flex gap-2">
+                  <Link to={`/events/${e.id}/manage`}>
+                    <Button variant="secondary" size="sm">
+                      Manage registrations
+                    </Button>
+                  </Link>
+                </div>
+              )}
 
               {/* Reassign Meetup Head (PROPOSAL-05) */}
               <div className="mt-6 border-t border-white/5 pt-4">
@@ -258,7 +276,7 @@ export default function EventDetail() {
                   Reassign
                 </Button>
               </div>
-            </Card>
+            </div>
           )}
 
           <Dialog open={reassignOpen} onClose={() => setReassignOpen(false)} title="Reassign Meetup Head">
@@ -317,187 +335,184 @@ export default function EventDetail() {
 
         {/* Right: sticky register card */}
         <div>
-          <Card className="sticky top-24 p-6">
-            <div className="mb-1 flex items-baseline justify-between">
-              <span className="text-caption uppercase tracking-wider text-graytext-mid">
-                Attendance
-              </span>
-              <span className="text-caption text-teal">{spotsLeft} spots left</span>
-            </div>
-            <div className="mb-2 text-h2 font-bold text-offwhite">
-              {count}
-              <span className="text-graytext-mid">/{e.capacity}</span>
-            </div>
-            <Progress value={count} max={e.capacity} />
-
-            {e.status === 'cancelled' ? (
-              <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
-                <div className="text-h3 font-semibold text-red-400">Event Cancelled</div>
-                <p className="mt-1 text-caption text-red-200/70">
-                  This event has been cancelled by the organiser.
-                </p>
-              </div>
-            ) : role === 'student' ? (
-              registered ? (
-                <div className="mt-5">
-                  <div className={`rounded-xl border p-4 text-center ${isWaitlisted ? 'border-warn/30 bg-warn/10' : 'border-teal/30 bg-teal/10'}`}>
-                    <div className={`text-h3 font-semibold ${isWaitlisted ? 'text-warn' : 'text-teal'}`}>
-                      {isWaitlisted ? "You're on the waitlist ⏳" : "You're in! 🎉"}
-                    </div>
-                    <p className="mt-1 text-caption text-graytext-light">
-                      {isWaitlisted 
-                        ? 'We will notify you if a spot opens up.' 
-                        : 'A confirmation and reminders will reach you. See you there.'}
-                    </p>
-                  </div>
-                  {!isWaitlisted && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-4 w-full text-gold hover:text-gold border border-gold/20 hover:bg-gold/10"
-                      onClick={() => {
-                        const inviteUrl = `${window.location.origin}/events/${e.id}?ref=${currentUser?.id ?? ''}`
-                        navigator.clipboard.writeText(inviteUrl)
-                        addToast('Invite link copied! Earn points for every friend who registers.')
-                      }}
-                    >
-                      Share invite link
-                    </Button>
-                  )}
-
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full"
-                      disabled={unregisterMut.isPending}
-                      onClick={() => unregisterMut.mutate(e.id)}
-                    >
-                      {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
-                    </Button>
-                    {!isWaitlisted && (
-                      <a
-                        href={addedToCalendar ? googleCalendarDayLink(e.startsAt) : googleCalendarLink({ title: e.title, startsAt: e.startsAt, venue: e.venue, description: e.description })}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full"
-                        onClick={() => {
-                          if (!addedToCalendar) {
-                            localStorage.setItem('cal_' + e.id, '1')
-                            setAddedToCalendar(true)
-                          }
-                        }}
-                      >
-                        <Button variant="ghost" className="w-full">
-                          {addedToCalendar ? 'View in calendar' : 'Add to calendar'}
-                        </Button>
-                      </a>
-                    )}
-                  </div>
+          {e.proposalStatus !== 'approved' ? (
+            <Card className="sticky top-32 p-6 md:p-8 bg-onyx/60 backdrop-blur-3xl border-warn/20 shadow-[0_8px_30px_rgba(251,191,36,0.08)]">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-warn/10 text-warn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
                 </div>
-              ) : (
-                <div className="mt-5">
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    disabled={registerMut.isPending}
-                    onClick={() => {
-                      // A visitor from a shared link signs in first and comes
-                      // back here — the same router-state idiom the session
-                      // expiry flow uses. The register endpoint stays behind
-                      // @auth_required either way; this only saves them a
-                      // failed request and a lost page (T-05-35).
-                      if (!currentUser) {
-                        navigate('/login', { state: { from: location.pathname } })
-                        return
-                      }
-                      registerMut.mutate({ id: e.id, referredBy: refId })
-                    }}
-                  >
-                    {registerMut.isPending
-                      ? 'Processing…'
-                      : spotsLeft <= 0
-                        ? 'Join Waitlist'
-                        : "Register — it's free"}
-                  </Button>
-                  {registerMut.isError && (
-                    <p className="mt-2 text-center text-caption text-red-300">
-                      {(registerMut.error as Error).message}
-                    </p>
-                  )}
-                  <p className="mt-3 text-center text-caption text-graytext-mid">
-                    Headcount recorded · reminders sent · earn points on check-in
+                <h3 className="text-[16px] font-bold text-white">Pending Approval</h3>
+              </div>
+              <p className="text-[13px] leading-relaxed text-graytext-light">
+                This event is currently being reviewed by the admin team. Once approved, it will automatically go live on the city feed and students will be able to register.
+              </p>
+            </Card>
+          ) : (
+            <div className="sticky top-32 p-8 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
+              <div className="mb-2 flex items-baseline justify-between">
+                <span className="text-caption uppercase tracking-wider text-graytext-mid">
+                  Attendance
+                </span>
+                <span className="text-caption text-teal">{spotsLeft} spots left</span>
+              </div>
+              <div className="mb-2 text-h2 font-bold text-offwhite">
+                {count}
+                <span className="text-graytext-mid">/{e.capacity}</span>
+              </div>
+              <Progress value={count} max={e.capacity} />
+
+              {e.status === 'cancelled' ? (
+                <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+                  <div className="text-h3 font-semibold text-red-400">🚨 Event Cancelled</div>
+                  <p className="mt-1 text-caption text-red-200/70">
+                    This event has been cancelled by the organiser.
                   </p>
                 </div>
-              )
-            ) : (
-              <div className="mt-5 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-center text-caption text-graytext-light">
-                You're viewing this as an organiser. Registration is the student's face
-                of the same event.
-              </div>
-            )}
+              ) : isPast ? (
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 text-center text-graytext-light">
+                  <div className="text-h3 font-semibold text-offwhite">This event has ended</div>
+                  <p className="mt-1 text-caption">Registration and chat are no longer available.</p>
+                </div>
+              ) : !canManage ? (
+                registered ? (
+                  <div className="mt-5">
+                    <div className="rounded-xl border border-teal/20 bg-teal/10 p-4 text-center">
+                      <div className={`text-h3 font-semibold ${isWaitlisted ? 'text-warn' : 'text-teal'}`}>
+                        {isWaitlisted ? "You're on the waitlist 🕒" : "You're in! 🎉"}
+                      </div>
+                      <p className="mt-1 text-caption text-graytext-light">
+                        {isWaitlisted 
+                          ? 'We will notify you if a spot opens up.' 
+                          : 'A confirmation and reminders will reach you. See you there.'}
+                      </p>
+                    </div>
+                    {/* Share Invite Link */}
+                    {!isWaitlisted && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-4 w-full text-gold hover:text-gold border border-gold/20 hover:bg-gold/10"
+                        onClick={() => {
+                          const inviteUrl = `${window.location.origin}/events/${e.id}?ref=${currentUser?.id ?? currentUserId ?? ''}`
+                          navigator.clipboard.writeText(inviteUrl)
+                          addToast('Invite link copied! Earn points for every friend who registers.')
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2 inline-block">
+                          <circle cx="18" cy="5" r="3"></circle>
+                          <circle cx="6" cy="12" r="3"></circle>
+                          <circle cx="18" cy="19" r="3"></circle>
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                        Share invite link
+                      </Button>
+                    )}
 
-            <div className="mt-5 space-y-2 border-t border-white/5 pt-4 text-[13px]">
-              <Perk text="Meals / refreshments included" />
-              <Perk text="Meet people from your city IRL" />
-              <Perk text="Contribution points on attendance" />
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        variant="ghost"
+                        className="w-full"
+                        disabled={unregisterMut.isPending}
+                        onClick={() => {
+                          localStorage.removeItem('cal_' + e.id)
+                          setAddedToCalendar(false)
+                          unregisterMut.mutate(e.id)
+                        }}
+                      >
+                        {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
+                      </Button>
+                      {!isWaitlisted && (
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => {
+                            const url = addedToCalendar 
+                              ? googleCalendarDayLink(e.startsAt) 
+                              : googleCalendarLink({ title: e.title, startsAt: e.startsAt, venue: e.venue, description: e.description })
+                            
+                            window.open(url, '_blank')
+                            
+                            if (!addedToCalendar) {
+                              localStorage.setItem('cal_' + e.id, '1')
+                              setAddedToCalendar(true)
+                            }
+                          }}
+                        >
+                          {addedToCalendar ? 'View in calendar' : 'Add to calendar'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-5">
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      disabled={registerMut.isPending || (spotsLeft <= 0 && isWaitlistClosed)}
+                      onClick={() => {
+                        // A visitor from a shared link signs in first and comes
+                        // back here — the same router-state idiom the session
+                        // expiry flow uses. The register endpoint stays behind
+                        // @auth_required either way; this only saves them a
+                        // failed request and a lost page (T-05-35).
+                        if (!currentUser) {
+                          navigate('/login', { state: { from: location.pathname } })
+                          return
+                        }
+                        registerMut.mutate({ id: e.id, referredBy: refId })
+                      }}
+                    >
+                      {registerMut.isPending
+                        ? 'Processing…'
+                        : spotsLeft <= 0
+                          ? (isWaitlistClosed ? 'At Capacity' : 'Join Waitlist')
+                          : "Register — it's free"}
+                    </Button>
+                    {registerMut.isError && (
+                      <p className="mt-2 text-center text-caption text-red-300">
+                        {(registerMut.error as Error).message}
+                      </p>
+                    )}
+                    <p className="mt-3 text-center text-caption text-graytext-mid">
+                      Headcount recorded · reminders sent · earn points on check-in
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="mt-5 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-center text-caption text-graytext-light">
+                  You're viewing this as an organiser. Registration is the student's face
+                  of the same event.
+                </div>
+              )}
+
+              <div className="mt-5 space-y-2 border-t border-white/5 pt-4 text-[13px]">
+                <Perk text="Meals / refreshments included" />
+                <Perk text="Meet people from your city IRL" />
+                <Perk text="Contribution points on attendance" />
+              </div>
+              {currentUser && !isPast && e.status !== 'cancelled' && (
+                <div className="mt-6">
+                  {((registered && !isWaitlisted) || canManage) && e.status !== 'completed' && (
+                    <button
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-[14px] font-medium text-offwhite transition-colors hover:bg-white/10"
+                      onClick={() => setSearchParams(prev => { prev.set('chat', e.id); return prev; })}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                      Event chat
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-
-            {currentUser && e.status !== 'cancelled' && (
-              <div className="mt-6">
-                <Button
-                  variant="secondary"
-                  className="w-full flex items-center justify-center gap-2"
-                  onClick={() => setIsChatOpen(true)}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                  Open Event Discussion
-                </Button>
-              </div>
-            )}
-          </Card>
+          )}
         </div>
       </div>
-
-      {/* Chat Drawer & Backdrop (rendered via Portal to escape stacking context).
-          The drawer is always mounted so it can slide, which means EventChat's
-          announcements query runs on page load — gated on a session, because a
-          401 here would redirect a link visitor away from the page. */}
-      {currentUser && createPortal(
-        <>
-          {isChatOpen && (
-            <div
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"
-              onClick={() => setIsChatOpen(false)}
-            />
-          )}
-
-          <div
-            className={cx(
-              "fixed top-0 right-0 z-50 h-full w-[420px] max-w-[100vw] bg-onyx border-l border-white/10 shadow-2xl transition-transform duration-300 ease-in-out flex flex-col",
-              isChatOpen ? "translate-x-0" : "translate-x-full"
-            )}
-          >
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
-              <h2 className="text-h3 font-bold text-offwhite">Event Chat</h2>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="text-graytext-mid hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 w-10 h-10 flex items-center justify-center transition-colors shadow-lg"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden p-6 pb-8">
-              <EventChat eventId={e.id} isRegistered={registered} />
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   )
 }

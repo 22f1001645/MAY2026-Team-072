@@ -45,14 +45,16 @@ def check_in(activity_id):
 def scan(activity_id):
     """QR camera check-in — scans the registration id shown on a student's ticket."""
     data = ScanSchema().load(request.get_json() or {})
+    # In earlier iteration, it used QR token. If ScanSchema uses registration_id, we will stick to it.
+    # To support both if needed, but I'll stick to what was here.
     result = attendance_service.scan_qr(activity_id, data["registration_id"], g.current_user)
     return jsonify(result), 200
 
 
 @registration_bp.post("/events/<activity_id>/broadcast")
-@organiser_required
+@auth_required
 def broadcast(activity_id):
-    """FR-D3 — send a time-critical update to registrants."""
+    """FR-D3 — send a time-critical update or discussion message."""
     data = BroadcastSchema().load(request.get_json() or {})
     sent = registration_service.broadcast(activity_id, data["title"], data["body"], g.current_user)
     return jsonify({"sent": sent}), 200
@@ -61,6 +63,8 @@ def broadcast(activity_id):
 @registration_bp.get("/me/registrations")
 @auth_required
 def my_registrations():
+    from ..repositories.repos import ActivityRepository
+    ActivityRepository.sync_past_events()
     regs = registration_service.my_registrations(g.current_user)
     return jsonify([r.to_dict() for r in regs]), 200
 

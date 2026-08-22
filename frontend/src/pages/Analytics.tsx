@@ -104,7 +104,7 @@ export default function Analytics() {
               <Donut pct={feeUtil} />
               <div className="space-y-3 text-[14px]">
                 <div>
-                  <div className="text-[28px] font-bold leading-none text-teal">
+                  <div className="text-28px font-bold leading-none text-offwhite">
                     {(totals.fee_used ?? 0).toLocaleString('en-IN')}
                   </div>
                   <div className="text-caption text-graytext-light">students used their fee</div>
@@ -141,7 +141,7 @@ export default function Analytics() {
                     )}
                   >
                     <div className="text-[13px] font-semibold text-offwhite">{c.city}</div>
-                    <div className="mt-1 text-[22px] font-bold text-teal">
+                    <div className="mt-1 text-22px font-bold text-offwhite">
                       {Math.round(util * 100)}%
                     </div>
                     <div className="text-caption text-graytext-mid">
@@ -180,7 +180,7 @@ function Donut({ pct }: { pct: number }) {
       </svg>
       <div className="absolute inset-0 grid place-items-center">
         <div className="text-center">
-          <div className="text-[26px] font-bold leading-none text-teal">{pct}%</div>
+          <div className="text-26px font-bold leading-none text-offwhite">{pct}%</div>
           <div className="text-caption text-graytext-mid">utilised</div>
         </div>
       </div>

@@ -2,15 +2,17 @@ import { useState, useRef, useEffect } from 'react'
 import EmojiPicker, { Theme } from 'emoji-picker-react'
 import { useAuth } from '../lib/auth'
 import { useAnnouncements, usePostAnnouncement } from '../lib/queries'
-import { Button, Input, Badge, Mandala } from './ui'
+import { Button, Input, Badge } from './ui'
 import { formatDate, formatTime, cx } from '../lib/format'
 
 export default function EventChat({
   eventId,
   isRegistered,
+  canManage = false,
 }: {
   eventId: string
   isRegistered: boolean
+  canManage?: boolean
 }) {
   const { currentUser } = useAuth()
   const { data: messages = [], isLoading } = useAnnouncements(eventId)
@@ -20,8 +22,7 @@ export default function EventChat({
   const [showPicker, setShowPicker] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const isOrganiser = currentUser?.role === 'admin' || currentUser?.role === 'organiser'
-  const canPost = isRegistered || isOrganiser
+  const canPost = isRegistered || canManage
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -50,52 +51,85 @@ export default function EventChat({
   return (
     <div className="flex h-full flex-col">
       {/* Message List */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-2">
+      <div className={cx(
+        "flex-1 py-4 pr-2",
+        sortedMessages.length > 0 ? "overflow-y-auto space-y-4" : "overflow-hidden"
+      )}>
         {isLoading ? (
           <div className="flex h-32 items-center justify-center text-caption text-graytext-mid">
             Loading discussion...
           </div>
         ) : sortedMessages.length === 0 ? (
-          <div className="flex h-32 items-center justify-center text-center text-caption text-graytext-mid">
-            No messages yet. Be the first to post!
+          <div className="flex h-full flex-col items-center justify-center text-center p-8 opacity-60 hover:opacity-100 transition-opacity duration-500">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-teal mb-4">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <h4 className="text-offwhite font-bold text-[15px] mb-2">It's quiet in here</h4>
+            <p className="text-[13px] text-graytext-mid">Be the first to start the conversation.</p>
           </div>
         ) : (
-          sortedMessages.map((m) => {
+          sortedMessages.map((m, i) => {
             const isMyMessage = currentUser?.name === m.senderName
             const isImportant = m.senderRole === 'Organiser' || m.senderRole === 'Admin'
+            const initial = m.senderName ? m.senderName.charAt(0).toUpperCase() : '?'
+            
+            // Stagger only the most recent 10 messages for performance, starting from oldest in view
+            const idxFromBottom = sortedMessages.length - 1 - i
+            const animDelay = idxFromBottom < 10 ? `${(9 - idxFromBottom) * 0.05}s` : '0s'
 
             return (
               <div
                 key={m.id}
                 className={cx(
-                  "flex flex-col gap-1 w-full animate-fade-up",
-                  isMyMessage ? "items-end" : "items-start"
+                  "flex gap-3 w-full animate-spring-up",
+                  isMyMessage ? "flex-row-reverse" : "flex-row"
                 )}
+                style={{ animationDelay: animDelay }}
               >
-                <div className={cx(
-                  "flex items-center gap-2",
-                  isMyMessage && "flex-row-reverse"
-                )}>
-                  <span className="text-[12px] font-semibold text-offwhite/80">{isMyMessage ? "You" : m.senderName}</span>
-                  {isImportant && !isMyMessage && (
-                    <Badge tone="gold">
-                      {m.senderRole}
-                    </Badge>
-                  )}
-                  <span className="text-[10px] text-graytext-mid">
-                    {formatDate(m.createdAt)} {formatTime(m.createdAt)}
-                  </span>
+                {/* Avatar */}
+                <div className="shrink-0 flex flex-col items-center">
+                  <div className={cx(
+                    "grid h-8 w-8 place-items-center rounded-full text-[12px] font-bold shadow-lg ring-1",
+                    isMyMessage 
+                      ? "bg-white/10 text-offwhite ring-white/20" 
+                      : isImportant
+                        ? "bg-teal/20 text-teal ring-teal/40 shadow-[0_0_10px_rgba(92,230,201,0.2)]"
+                        : "bg-black/40 text-graytext-light ring-white/10"
+                  )}>
+                    {initial}
+                  </div>
                 </div>
 
+                {/* Message Body */}
                 <div className={cx(
-                  "px-4 py-2.5 text-[14px] text-graytext-light border max-w-[85%]",
-                  isImportant
-                    ? "bg-teal/10 border-teal/20 text-offwhite rounded-2xl" + (isMyMessage ? " rounded-tr-sm" : " rounded-tl-sm")
-                    : isMyMessage
-                      ? "bg-white/[0.05] border-white/10 rounded-2xl rounded-tr-sm"
-                      : "bg-white/[0.02] border-white/5 rounded-2xl rounded-tl-sm"
+                  "flex flex-col gap-1 w-full max-w-[80%]",
+                  isMyMessage ? "items-end" : "items-start"
                 )}>
-                  {m.content}
+                  <div className={cx(
+                    "flex items-center gap-2",
+                    isMyMessage && "flex-row-reverse"
+                  )}>
+                    <span className="text-[12px] font-semibold text-offwhite/80">{isMyMessage ? "You" : m.senderName}</span>
+                    {isImportant && !isMyMessage && (
+                      <Badge tone="gold">
+                        {m.senderRole}
+                      </Badge>
+                    )}
+                    <span className="text-[10px] text-graytext-mid">
+                      {formatTime(m.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className={cx(
+                    "px-4 py-2.5 text-[14px] leading-relaxed shadow-lg",
+                    isImportant
+                      ? "bg-teal/10 border border-teal/20 text-offwhite rounded-2xl" + (isMyMessage ? " rounded-tr-sm" : " rounded-tl-sm")
+                      : isMyMessage
+                        ? "bg-white/10 border border-white/10 text-offwhite rounded-2xl rounded-tr-sm"
+                        : "bg-black/40 border border-white/5 text-graytext-light rounded-2xl rounded-tl-sm"
+                  )}>
+                    {m.content}
+                  </div>
                 </div>
               </div>
             )
@@ -105,7 +139,7 @@ export default function EventChat({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-white/5 pt-4">
+      <div className="pt-4 pb-2 relative z-10">
         {canPost ? (
           <form onSubmit={handleSend} className="flex flex-col gap-2 relative">
             {showPicker && (
@@ -118,11 +152,11 @@ export default function EventChat({
                 />
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 pl-2 shadow-[0_4px_24px_rgba(0,0,0,0.2)] focus-within:border-teal/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(92,230,201,0.15)] transition-all">
               <button
                 type="button"
                 onClick={() => setShowPicker(!showPicker)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-graytext-mid hover:bg-white/10 hover:text-white transition-colors"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-graytext-mid hover:bg-white/10 hover:text-white transition-colors"
                 title="Add Emoji"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -132,17 +166,25 @@ export default function EventChat({
                   <line x1="15" y1="9" x2="15.01" y2="9"></line>
                 </svg>
               </button>
-              <Input
+              <input
                 id="chat-input"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1"
+                className="flex-1 bg-transparent text-[14px] text-offwhite placeholder:text-graytext-mid focus:outline-none px-2"
                 disabled={postMutation.isPending}
+                autoComplete="off"
               />
-              <Button type="submit" disabled={!text.trim() || postMutation.isPending}>
-                Send
-              </Button>
+              <button 
+                type="submit" 
+                disabled={!text.trim() || postMutation.isPending}
+                className="grid h-9 w-10 shrink-0 place-items-center rounded-full bg-teal text-onyx hover:bg-teal-400 disabled:opacity-50 disabled:hover:bg-teal transition-colors"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
             </div>
           </form>
         ) : (

@@ -18,8 +18,8 @@ export const useCapabilities = () =>
     select: (data) => data.capabilities,
   })
 
-export const useEvents = (city?: string) =>
-  useQuery({ queryKey: ['events', city], queryFn: () => api.events(city), placeholderData: keepPreviousData })
+export const useEvents = (city?: string, scale?: string, dateRange?: string) =>
+  useQuery({ queryKey: ['events', city, scale, dateRange], queryFn: () => api.events(city, scale, dateRange), placeholderData: keepPreviousData })
 
 export const useEvent = (id?: string) =>
   useQuery({ queryKey: ['event', id], queryFn: () => api.event(id!), enabled: !!id })
@@ -29,7 +29,7 @@ export const useEvent = (id?: string) =>
  *  request pipeline reads as an expired session and redirects to /login —
  *  so an unguarded call here would bounce the visitor off the public page. */
 export const useMyRegistrations = (enabled = true) =>
-  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled })
+  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, refetchInterval: 10000 })
 
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
@@ -40,8 +40,8 @@ export const useLeaderboard = (city?: string) =>
 export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
-export const useNotifications = () =>
-  useQuery({ queryKey: ['notifications'], queryFn: api.notifications })
+export const useNotifications = (role: string = 'student') =>
+  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), refetchInterval: 10000 })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
@@ -110,6 +110,38 @@ export const useBrandKit = (orgId?: string, canEdit?: boolean) =>
   })
 
 // ---- Mutations ----
+export const useUpdateEvent = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; payload: any }) => api.updateEvent(v.id, v.payload),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ['event', id] })
+      qc.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+export const useCancelEvent = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.cancelEvent(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ['event', id] })
+      qc.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+export const useUpdateProfile = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { city?: string }) => api.updateProfile(data),
+    onSuccess: () => {
+      // no-op, rely on the component calling updateCurrentUser from AuthCtx
+    },
+  })
+}
+
 export const useRegister = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -118,6 +150,7 @@ export const useRegister = () => {
       qc.invalidateQueries({ queryKey: ['event', id] })
       qc.invalidateQueries({ queryKey: ['events'] })
       qc.invalidateQueries({ queryKey: ['my-registrations'] })
+      qc.invalidateQueries({ queryKey: ['announcements', id] })
     },
   })
 }
@@ -129,6 +162,7 @@ export const useUnregister = () => {
     onSuccess: (_d, id) => {
       qc.invalidateQueries({ queryKey: ['event', id] })
       qc.invalidateQueries({ queryKey: ['my-registrations'] })
+      qc.invalidateQueries({ queryKey: ['announcements', id] })
     },
   })
 }
@@ -182,38 +216,12 @@ export const useReassignMeetupHead = () => {
 export const useScanQr = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { id: string; registration_id: string }) => api.scanQr(v.id, v.registration_id),
+    mutationFn: (v: { id: string; registration_id?: string; qr_token?: string }) => 
+      api.scanQr(v.id, (v.registration_id || v.qr_token)!),
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.id] }),
   })
 }
 
-export const useUpdateEvent = () => {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (v: { id: string; payload: any }) => api.updateEvent(v.id, v.payload),
-    onSuccess: (_d, { id }) => {
-      qc.invalidateQueries({ queryKey: ['event', id] })
-      qc.invalidateQueries({ queryKey: ['events'] })
-    },
-  })
-}
-
-export const useUpdateProfile = () => {
-  return useMutation({
-    mutationFn: (data: { city?: string }) => api.updateProfile(data),
-  })
-}
-
-export const useCancelEvent = () => {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.cancelEvent(id),
-    onSuccess: (_d, id) => {
-      qc.invalidateQueries({ queryKey: ['event', id] })
-      qc.invalidateQueries({ queryKey: ['events'] })
-    },
-  })
-}
 
 export const useSubmitExpense = () => {
   const qc = useQueryClient()
@@ -230,7 +238,19 @@ export const useVerifyExpense = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.verifyExpense(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['reimbursements'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reimbursements'] })
+    },
+  })
+}
+
+export const useUpdateExpenseAmount = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, amount }: { id: string, amount: number }) => api.updateExpenseAmount(id, amount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reimbursements'] })
+    },
   })
 }
 
@@ -255,6 +275,22 @@ export const useMarkNotificationsRead = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api.markNotificationsRead(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
+  })
+}
+
+export const useClearNotifications = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.clearNotifications(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
+  })
+}
+
+export const useDeleteNotification = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.deleteNotification(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
   })
 }
@@ -555,3 +591,10 @@ export const useDeleteTask = (activityId?: string) => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks', activityId] }),
   })
 }
+export const useSubscribeToCityAlert = () => {
+  return useMutation({
+    mutationFn: (v: { email: string; city: string }) => api.subscribeCityAlert(v),
+  })
+}
+
+export const usePendingProposalsCount = () => useQuery({ queryKey: ['proposals', 'pending'], queryFn: () => api.proposals('pending'), select: (data) => data.length })

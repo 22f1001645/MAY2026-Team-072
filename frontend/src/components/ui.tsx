@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { cx } from '../lib/format'
 
@@ -92,7 +92,7 @@ export function Button({
   size?: 'sm' | 'md' | 'lg'
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const base =
-    'inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wide rounded-full ' +
+    'inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wide rounded-xl ' +
     'transition duration-200 ease-material focus:outline-none focus:ring-2 focus:ring-teal/50 ' +
     'active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100'
   // CTA hover: scale 1.02, lighten 10% (Brand Kit §7); press: scale 0.97 (feedback on press, not just release)
@@ -161,9 +161,11 @@ export function Card({
 export function Badge({
   children,
   tone = 'neutral',
+  className,
 }: {
   children: ReactNode
   tone?: 'teal' | 'gold' | 'neutral' | 'success' | 'warn' | 'danger'
+  className?: string
 }) {
   const tones = {
     teal: 'bg-teal/10 text-teal border-teal/25',
@@ -178,6 +180,7 @@ export function Badge({
       className={cx(
         'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
         tones[tone],
+        className
       )}
     >
       {children}
@@ -190,11 +193,13 @@ export function SectionTitle({
   title,
   sub,
   right,
+  titleColor = 'text-white',
 }: {
   eyebrow?: string
   title: string
   sub?: string
   right?: ReactNode
+  titleColor?: string
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -204,8 +209,7 @@ export function SectionTitle({
             {eyebrow}
           </div>
         )}
-        {/* Headings use Unity Gold (Brand Kit §2) */}
-        <h1 className="text-h1 font-bold text-gold">{title}</h1>
+        <h1 className={cx('text-h1 font-bold', titleColor)}>{title}</h1>
         {sub && <p className="mt-1 max-w-[680px] text-body text-graytext-light">{sub}</p>}
       </div>
       {right}
@@ -232,7 +236,7 @@ export function StatCard({
       <div
         className={cx(
           'mt-1 text-[32px] font-bold leading-none',
-          tone === 'teal' ? 'text-teal' : 'text-gold',
+          'text-offwhite',
         )}
       >
         {value}
@@ -355,8 +359,8 @@ export function Dialog({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-up">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className={cx("relative w-full max-w-md rounded-2xl border border-white/10 bg-onyx shadow-2xl overflow-hidden", className)}>
-        <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
+      <div className={cx("relative w-full max-w-md rounded-2xl border border-white/10 bg-onyx shadow-2xl flex flex-col max-h-[90vh] overflow-hidden", className)}>
+        <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-6 py-4">
           <h2 className="text-[18px] font-bold text-offwhite">{title}</h2>
           <button onClick={onClose} className="rounded-full p-1.5 text-graytext-mid hover:bg-white/5 hover:text-offwhite transition">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -364,7 +368,7 @@ export function Dialog({
             </svg>
           </button>
         </div>
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 overflow-y-auto">
           {children}
         </div>
       </div>
@@ -384,29 +388,261 @@ export function Select({
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
   options: { label: string; value: string }[]
   className?: string
-  /** Accessible name for a select with no visible <label> — required wherever
-   *  the control sits in a repeating row (UI-SPEC §7). */
+  /** Accessible name for a select with no visible <label> - required wherever
+   *  the control sits in a repeating row (UI-SPEC A 7). */
   ariaLabel?: string
 }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const selected = options.find((o) => o.value === value)
+
   return (
-    <div className={cx("relative", className)}>
-      <select
-        value={value}
-        onChange={onChange}
+    <div className={cx('relative', open && 'z-50', className)} ref={ref}>
+      <button
+        type="button"
         aria-label={ariaLabel}
-        className="w-full appearance-none rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 pr-10 text-[14px] text-offwhite focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40"
+        onClick={() => setOpen(!open)}
+        className={cx(
+          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
+          !selected ? 'text-graytext-mid' : 'text-offwhite'
+        )}
       >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-graytext-mid">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <span className="truncate">{selected ? selected.label : 'Select...'}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cx('shrink-0 text-graytext-mid transition-transform', open && 'rotate-180')}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
-      </div>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-fade-up scrollbar-hide">
+          {options.length === 0 ? (
+            <div className="px-3 py-2 text-[13px] text-graytext-mid">No options</div>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  // Emit synthetic event to maintain compatibility with existing consumers
+                  onChange({ target: { value: opt.value } } as React.ChangeEvent<HTMLSelectElement>)
+                  setOpen(false)
+                }}
+                className={cx(
+                  'block w-full truncate rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors',
+                  value === opt.value ? 'bg-teal/20 text-teal' : 'text-graytext-mid hover:bg-white/5 hover:text-offwhite'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function FormSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  className,
+}: {
+  value: string
+  onChange: (val: string) => void
+  options: { label: string; value: string; disabled?: boolean }[]
+  placeholder?: string
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const selected = options.find((o) => o.value === value)
+
+  return (
+    <div className={cx('relative', open && 'z-50', className)} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cx(
+          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
+          !selected ? 'text-graytext-mid' : 'text-offwhite'
+        )}
+      >
+        <span className="truncate">{selected ? selected.label : placeholder || 'Select...'}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cx('shrink-0 text-graytext-mid transition-transform', open && 'rotate-180')}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-fade-up scrollbar-hide">
+          {options.length === 0 ? (
+            <div className="px-3 py-2 text-[13px] text-graytext-mid">No options</div>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={opt.disabled}
+                onClick={() => {
+                  onChange(opt.value)
+                  setOpen(false)
+                }}
+                className={cx(
+                  'block w-full truncate rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors',
+                  opt.disabled ? 'text-graytext-mid/50 cursor-not-allowed' :
+                  value === opt.value ? 'bg-teal/20 text-teal' : 'text-graytext-mid hover:bg-white/5 hover:text-offwhite'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function FormDatePicker({
+  value,
+  onChange,
+  className,
+}: {
+  value: string
+  onChange: (val: string) => void
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Parse current value or use today
+  const initialDate = value ? new Date(value) : new Date()
+  const [currentMonth, setCurrentMonth] = useState(new Date(initialDate.getFullYear(), initialDate.getMonth(), 1))
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const year = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDayOfMonth = new Date(year, month, 1).getDay()
+
+  const days = []
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    days.push(null)
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    days.push(i)
+  }
+
+  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1))
+  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1))
+
+  const monthName = currentMonth.toLocaleString('default', { month: 'long' })
+
+  // Format YYYY-MM-DD
+  const formatAsDateString = (y: number, m: number, d: number) => {
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  }
+
+  const displayValue = value ? new Date(value).toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date'
+
+  return (
+    <div className={cx('relative', open && 'z-50', className)} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cx(
+          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
+          !value ? 'text-graytext-mid' : 'text-offwhite'
+        )}
+      >
+        <span className="truncate">{displayValue}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cx('shrink-0 text-graytext-mid transition-transform', open && 'rotate-180')}>
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-white/10 bg-black/90 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-fade-up">
+          <div className="mb-4 flex items-center justify-between">
+            <button type="button" onClick={prevMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div className="font-semibold text-offwhite">{monthName} {year}</div>
+            <button type="button" onClick={nextMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-1 text-center text-[12px] font-medium text-graytext-mid mb-2">
+            <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((d, i) => {
+              if (d === null) return <div key={i} />
+              const dateStr = formatAsDateString(year, month, d)
+              const isSelected = value === dateStr
+              const isToday = formatAsDateString(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()) === dateStr
+              
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    onChange(dateStr)
+                    setOpen(false)
+                  }}
+                  className={cx(
+                    'grid aspect-square place-items-center rounded-full text-[13px] font-medium transition-colors',
+                    isSelected ? 'bg-teal text-black' : 
+                    isToday ? 'border border-teal/50 text-teal' :
+                    'text-offwhite hover:bg-white/10'
+                  )}
+                >
+                  {d}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

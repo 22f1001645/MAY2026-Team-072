@@ -17,13 +17,16 @@ def leaderboard(city=None) -> list:
             .count()
         )
         organised = ContributionPoint.query.filter_by(user_id=u.id, action="organised").count()
+        is_organiser = any(p.active for m in u.memberships for p in m.pors)
         rows.append(
             {
+                "userId": u.id,
                 "name": u.name,
                 "city": u.city,
                 "points": totals.get(u.id, 0),
                 "attended": attended,
                 "organised": organised,
+                "isOrganiser": is_organiser,
             }
         )
 

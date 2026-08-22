@@ -13,7 +13,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-export function useSession() {
+export function useSession(): {
+  id?: string
+  role: Role
+  name: string
+  city: string
+  capabilities?: any
+} {
   const { currentUser } = useAuth()
   const { pathname } = useLocation()
 
@@ -23,6 +29,7 @@ export function useSession() {
   const role: Role = currentUser?.role === 'admin' ? 'admin' : viewFromPathname(pathname)
 
   return {
+    id: currentUser?.id,
     role,
     name: currentUser?.name ?? '',
     city: currentUser?.city ?? '',

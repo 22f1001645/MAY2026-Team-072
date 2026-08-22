@@ -1,112 +1,186 @@
 import { useEffect, useState } from 'react'
 import { inr } from '../lib/mock'
 import { useAudit, useDecision, useProposals } from '../lib/queries'
-import { Badge, Button, Card, SectionTitle } from '../components/ui'
+import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
 import CollabStatus from '../components/CollabStatus'
+import WelcomeBanner from '../components/WelcomeBanner'
 
-// FR-B3/B4: admin approves / requests changes / rejects, with an audit trail
 export default function ApprovalQueue() {
-  const [statusTab, setStatusTab] = useState<'pending' | 'approved'>('pending')
-  const { data: proposals = [], isLoading, isError, error } = useProposals(statusTab)
-  const [selected, setSelected] = useState<string>('')
+  const [statusTab, setStatusTab] = useState<'pending' | 'approved' | 'completed'>('pending')
+  
+  // Fetch both sets of data so we can derive the three queues immediately
+  const { data: pendingData = [], isLoading: pLoad, isError: pErr, error: pError } = useProposals('pending')
+  const { data: approvedData = [], isLoading: aLoad, isError: aErr, error: aError } = useProposals('approved')
+  
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const decisionMut = useDecision()
 
-  // Keep a valid selection as the list changes
-  useEffect(() => {
-    if (proposals.length && !proposals.some((p) => p.id === selected)) {
-      setSelected(proposals[0].id)
-    }
-  }, [proposals, selected])
+  const now = new Date()
+  
+  // Derive the 3 lists
+  const pendingList = pendingData
+  const approvedList = approvedData.filter(p => new Date(p.startsAt) > now)
+  const completedList = approvedData.filter(p => new Date(p.startsAt) <= now)
 
-  const current = proposals.find((p) => p.id === selected)
+  // Get active list based on tab
+  const activeList = statusTab === 'pending' ? pendingList : statusTab === 'approved' ? approvedList : completedList
+  const current = [...pendingData, ...approvedData].find((p) => p.id === selectedId)
+  
   const { data: audit = [] } = useAudit(current?.id)
 
-  if (isLoading) return <Loading label="Loading the approval queue…" />
-  if (isError) return <ErrorState error={error} />
+  if (pLoad || aLoad) return <Loading label="Loading the approval queue..." />
+  if (pErr) return <ErrorState error={pError} />
+  if (aErr) return <ErrorState error={aError} />
 
   const decide = (decision: string) => {
     if (!current) return
     decisionMut.mutate(
       { id: current.id, decision, note },
-      { onSuccess: () => setNote('') },
+      { 
+        onSuccess: () => {
+          setNote('')
+          setSelectedId(null) // Close the drawer on success
+        } 
+      },
     )
   }
+  
+  const totalEvents = pendingList.length + approvedList.length + completedList.length
 
   return (
-    <div>
-      <SectionTitle
-        eyebrow="Admin"
-        title="Approval Queue"
-        sub="Approve, request changes, or reject — with a comment and an immutable audit trail on every decision."
-        right={<Badge tone="warn">{proposals.length} {statusTab === 'pending' ? 'awaiting decision' : 'approved'}</Badge>}
-      />
+    <div className="min-h-[calc(100vh-64px)] pb-12">
+      <div className="px-4">
+        <WelcomeBanner />
+        <SectionTitle
+          eyebrow="ADMIN · ACTIVITIES"
+          title="Approval Queue"
+          sub="Review, collaborate, and approve event proposals from organisers across the ecosystem."
+        />
 
-      <div className="mb-6 flex gap-2 border-b border-white/5 pb-2">
-        <button
-          className={cx("px-4 py-2 text-[14px] font-semibold transition-colors rounded-t-lg", statusTab === 'pending' ? "text-teal bg-teal/10" : "text-graytext-mid hover:text-offwhite")}
-          onClick={() => { setStatusTab('pending'); setSelected(''); setNote(''); }}
-        >
-          Pending Queue
-        </button>
-        <button
-          className={cx("px-4 py-2 text-[14px] font-semibold transition-colors rounded-t-lg", statusTab === 'approved' ? "text-teal bg-teal/10" : "text-graytext-mid hover:text-offwhite")}
-          onClick={() => { setStatusTab('approved'); setSelected(''); setNote(''); }}
-        >
-          Past Approvals
-        </button>
+        <div className="mb-10 grid gap-4 sm:grid-cols-3">
+          <StatCard label="Awaiting Decision" value={pendingList.length.toString()} tone={pendingList.length > 0 ? "teal" : undefined} />
+          <StatCard label="Approved (Upcoming)" value={approvedList.length.toString()} />
+          <StatCard label="Completed Events" value={completedList.length.toString()} />
+        </div>
       </div>
 
-      {proposals.length === 0 ? (
-        <Card className="p-12 text-center text-graytext-light">
-          🎉 The queue is clear — no proposals waiting on you.
-        </Card>
+      {totalEvents === 0 ? (
+        <div className="mx-2 flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[0.01] py-32 text-center">
+          <div className="mb-4 text-6xl opacity-50">✨</div>
+          <h3 className="text-xl font-bold text-offwhite">All Clear</h3>
+          <p className="mt-2 text-graytext-mid">No proposals have been submitted by organisers yet.</p>
+        </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
-          {/* Queue list */}
-          <div className="space-y-3">
-            {proposals.map((p) => (
-              <Card
-                key={p.id}
-                hover
-                onClick={() => setSelected(p.id)}
-                className={cx('p-4', selected === p.id && 'border-teal/50 shadow-glow-teal')}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-caption text-graytext-mid">{p.city}</span>
-                  {p.proposalStatus === 'changes_requested' ? (
-                    <Badge tone="warn">Re-submitted</Badge>
-                  ) : (
-                    <Badge tone="teal">New</Badge>
-                  )}
-                </div>
-                <div className="mt-1.5 text-[15px] font-semibold text-offwhite">{p.title}</div>
-                <div className="mt-1 text-caption text-graytext-light">
-                  {scaleLabel[p.scale]} · {p.organiser}
-                </div>
-              </Card>
-            ))}
+        <div className="px-4">
+          {/* Tabs */}
+          <div className="mb-8 flex flex-wrap gap-3 border-b border-white/10 pb-4">
+            <TabButton 
+              active={statusTab === 'pending'} 
+              onClick={() => setStatusTab('pending')} 
+              label="Pending" 
+              count={pendingList.length} 
+            />
+            <TabButton 
+              active={statusTab === 'approved'} 
+              onClick={() => setStatusTab('approved')} 
+              label="Approved" 
+              count={approvedList.length} 
+            />
+            <TabButton 
+              active={statusTab === 'completed'} 
+              onClick={() => setStatusTab('completed')} 
+              label="Completed" 
+              count={completedList.length} 
+            />
           </div>
 
-          {/* Detail + decision */}
-          {current && (
-            <div className="space-y-5">
-              <Card className="p-6">
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <Badge tone="gold">{scaleLabel[current.scale]}</Badge>
-                  <Badge tone="neutral">{current.city}</Badge>
-                  {current.proposalStatus === 'changes_requested' && (
-                    <Badge tone="warn">Previously returned</Badge>
-                  )}
-                </div>
-                <h2 className="text-h2 font-bold text-gold">{current.title}</h2>
-                <p className="mt-2 text-body text-graytext-light">
-                  {current.description || 'No description provided.'}
-                </p>
+          {/* Grid */}
+          {activeList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] py-20 text-center">
+              <p className="text-[15px] font-medium text-graytext-mid">No events in this queue.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {activeList.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedId(p.id)}
+                  className="group flex flex-col text-left overflow-hidden rounded-2xl border border-white/10 bg-onyx/40 transition-all hover:-translate-y-1 hover:border-teal/30 hover:shadow-glow-teal hover:bg-onyx/60"
+                >
+                  <div className="flex-1 p-5">
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-teal/80">{p.city}</span>
+                      {statusTab === 'pending' ? (
+                        p.proposalStatus === 'changes_requested' ? (
+                          <Badge tone="warn">Returned</Badge>
+                        ) : (
+                          <Badge tone="teal">New</Badge>
+                        )
+                      ) : statusTab === 'approved' ? (
+                        <Badge tone="neutral">Upcoming</Badge>
+                      ) : (
+                        <Badge tone="neutral">Completed</Badge>
+                      )}
+                    </div>
+                    <h2 className="mb-1 text-lg font-bold leading-tight text-white line-clamp-2 transition-colors group-hover:text-teal">{p.title}</h2>
+                    <p className="text-[13px] text-graytext-mid line-clamp-1">{scaleLabel[p.scale]}</p>
+                  </div>
+                  <div className="border-t border-white/5 bg-black/20 px-5 py-3 text-[13px] font-medium text-graytext-light">
+                    By {p.organiser}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-                <div className="mt-5 grid grid-cols-2 gap-4 text-[14px] sm:grid-cols-4">
+      {/* Sliding Side-Sheet (Drawer) */}
+      {selectedId && current && (
+        <div className="relative z-50">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+            onClick={() => setSelectedId(null)}
+          />
+          
+          {/* Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 flex w-full max-w-2xl flex-col bg-onyx/90 backdrop-blur-3xl shadow-2xl border-l border-white/10 animate-fade-in-right">
+            
+            {/* Drawer Header */}
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-black/20">
+              <h2 className="text-lg font-bold text-white tracking-wide">Proposal Details</h2>
+              <button 
+                onClick={() => setSelectedId(null)}
+                className="rounded-full p-2 text-graytext-mid hover:bg-white/10 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+              <div className="space-y-10 pb-8">
+                
+                {/* Header info */}
+                <div>
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <Badge tone="gold">{scaleLabel[current.scale]}</Badge>
+                    <Badge tone="neutral">{current.city}</Badge>
+                    {current.proposalStatus === 'changes_requested' && (
+                      <Badge tone="warn">Previously returned</Badge>
+                    )}
+                  </div>
+                  <h2 className="text-[32px] font-bold leading-tight tracking-tight text-white">{current.title}</h2>
+                  <p className="mt-3 text-[15px] leading-relaxed text-graytext-light">
+                    {current.description || 'No description provided.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4 sm:grid-cols-4">
                   <Field label="Date" value={formatDate(current.startsAt)} />
                   <Field label="Venue" value={current.venue} />
                   <Field label="Capacity" value={String(current.capacity)} />
@@ -114,153 +188,187 @@ export default function ApprovalQueue() {
                 </div>
 
                 {/* Budget */}
-                <div className="mt-6">
-                  <div className="mb-2 text-caption font-semibold uppercase tracking-wider text-graytext-light">
+                <div className="border-t border-white/5 pt-8">
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-4">
                     Requested budget
-                  </div>
-                  <div className="overflow-hidden rounded-xl border border-white/8">
+                  </h3>
+                  <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-inner">
                     {current.budget.map((b, i) => (
                       <div
                         key={b.id}
                         className={cx(
-                          'flex items-center justify-between px-4 py-2.5 text-[14px]',
+                          'flex items-center justify-between px-5 py-3 text-[14px]',
                           i % 2 === 0 ? 'bg-white/[0.02]' : '',
                         )}
                       >
                         <span className="text-graytext-light">{b.label}</span>
-                        <span className="font-semibold text-offwhite">{inr(b.planned)}</span>
+                        <span className="font-mono text-offwhite">{inr(b.planned)}</span>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between border-t border-white/8 bg-teal/[0.06] px-4 py-2.5 text-[14px]">
-                      <span className="font-semibold text-teal">Total</span>
-                      <span className="font-bold text-teal">
+                    <div className="flex items-center justify-between border-t border-white/10 bg-teal/10 px-5 py-4 text-[14px]">
+                      <span className="font-semibold text-teal tracking-wide uppercase text-[12px]">Total Amount</span>
+                      <span className="font-mono font-bold text-teal text-[16px]">
                         {inr(current.budget.reduce((s, b) => s + b.planned, 0))}
                       </span>
                     </div>
                   </div>
                 </div>
-              </Card>
 
-              {/* Collaborating Orgs (PROPOSAL-04) */}
-              {current.collaborators && current.collaborators.length > 0 && (
-                <Card className="p-5">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="text-caption font-semibold uppercase tracking-wider text-graytext-light">
-                      Collaborating organisations
+                {/* Collaborating Orgs */}
+                {current.collaborators && current.collaborators.length > 0 && (
+                  <div className="border-t border-white/5 pt-8">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+                        Collaborating organisations
+                      </h3>
+                      {current.isMegaMeetup && (
+                        <Badge tone="gold">Mega Meetup</Badge>
+                      )}
                     </div>
-                    {current.isMegaMeetup && (
-                      <Badge tone="gold">⭐ Mega Meetup</Badge>
-                    )}
+                    <div className="grid gap-2">
+                      {current.collaborators.map((c: any) => (
+                        <div key={c.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                          <span className="flex-1 text-[14px] font-medium text-offwhite">{c.org || c.org_id}</span>
+                          {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                          <CollabStatus status={c.status} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    {current.collaborators.map((c: any) => (
-                      <div key={c.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.02]">
-                        <span className="flex-1 text-[14px] text-offwhite">{c.org || c.org_id}</span>
-                        {c.is_primary && <Badge tone="gold">Primary</Badge>}
-                        <CollabStatus status={c.status} />
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* Team Roster (PROPOSAL-04) */}
-              {current.teamMembers && current.teamMembers.length > 0 && (
-                <Card className="p-5">
-                  <div className="mb-3 text-caption font-semibold uppercase tracking-wider text-graytext-light">
-                    Event team
-                  </div>
-                  <div className="space-y-1.5">
-                    {current.teamMembers.map((t: any) => (
-                      <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.02]">
-                        <span className="flex-1 text-[14px] text-offwhite">{t.member || t.user_id}</span>
-                        <span className={`text-caption font-semibold ${t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid'}`}>
-                          {t.role}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* Decision panel */}
-
-              <Card className="p-6">
-                <label className="mb-2 block text-caption font-semibold uppercase tracking-wider text-graytext-light">
-                  Decision comment
-                </label>
-                <textarea
-                  rows={2}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Optional note to the organiser (required for changes)…"
-                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
-                />
-                {decisionMut.isError && (
-                  <p className="mt-2 text-caption text-red-300">
-                    {(decisionMut.error as Error).message}
-                  </p>
                 )}
-                <div className="flex justify-end gap-3 pt-2">
-                  {statusTab === 'pending' ? (
+
+                {/* Team Roster */}
+                {current.teamMembers && current.teamMembers.length > 0 && (
+                  <div className="border-t border-white/5 pt-8">
+                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-4">
+                      Event team
+                    </h3>
+                    <div className="grid gap-2">
+                      {current.teamMembers.map((t: any) => (
+                        <div key={t.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                          <span className="flex-1 text-[14px] font-medium text-offwhite">{t.member || t.user_id}</span>
+                          <span className={"text-[12px] font-bold uppercase tracking-wider " + (t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid')}>
+                            {t.role}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Audit trail */}
+                <div className="border-t border-white/5 pt-8">
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-6">
+                    Audit trail
+                  </h3>
+                  <div className="space-y-0">
+                    {audit.map((a, i) => (
+                      <div key={i} className="flex gap-4 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="h-3 w-3 rounded-full border-[2px] border-black bg-teal z-10" />
+                          {i < audit.length - 1 && <div className="absolute top-3 bottom-[-12px] left-[5px] w-[2px] bg-white/10" />}
+                        </div>
+                        <div className="-mt-1 pb-6">
+                          <div className="text-[14px] font-semibold text-offwhite mb-1">{a.action}</div>
+                          <div className="text-[12px] text-graytext-mid tracking-wide">
+                            {a.actor} | {new Date(a.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </div>
+                          {a.note && (
+                            <div className="mt-2 text-[13px] text-graytext-light italic border-l-2 border-white/10 pl-3">
+                              "{a.note}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky Action Footer */}
+            <div className="shrink-0 border-t border-white/10 bg-onyx/90 p-6 backdrop-blur-xl">
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 w-full">
+                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+                    Decision comment
+                  </label>
+                  <input
+                    type="text"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Optional note to the organiser (required for changes)..."
+                    className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
+                  />
+                  {decisionMut.isError && (
+                    <p className="mt-2 text-[12px] text-red-400">
+                      {(decisionMut.error as Error).message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex shrink-0 gap-2">
+                  {current.proposalStatus === 'submitted' || current.proposalStatus === 'changes_requested' ? (
                     <>
-                      <Button variant="ghost" onClick={() => setNote('')}>Clear</Button>
-                      <Button onClick={() => decide('approve')} disabled={decisionMut.isPending}>
-                        Approve & Publish
-                      </Button>
+                      {note && <Button variant="ghost" onClick={() => setNote('')}>Clear</Button>}
                       <Button variant="secondary" onClick={() => decide('changes')} disabled={decisionMut.isPending}>
                         Request Changes
                       </Button>
                       <Button variant="danger" onClick={() => decide('reject')} disabled={decisionMut.isPending}>
                         Reject
                       </Button>
+                      <Button onClick={() => decide('approve')} disabled={decisionMut.isPending} className="shadow-glow-teal">
+                        Approve & Publish
+                      </Button>
                     </>
                   ) : (
-                    <>
+                    new Date(current.startsAt) > new Date() ? (
                       <Button variant="danger" onClick={() => decide('revoke')} disabled={decisionMut.isPending}>
                         Revoke Approval
                       </Button>
-                    </>
+                    ) : (
+                      <div className="text-[12px] font-semibold text-graytext-mid self-center px-4">
+                        Cannot revoke past events
+                      </div>
+                    )
                   )}
                 </div>
-              </Card>
-
-              {/* Audit trail (FR-B4) */}
-              <Card className="p-6">
-                <h3 className="mb-4 text-h3 font-semibold text-gold">Audit trail</h3>
-                <div className="space-y-4">
-                  {audit.map((a, i) => (
-                    <div key={i} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className="h-2.5 w-2.5 rounded-full bg-teal" />
-                        {i < audit.length - 1 && <div className="w-px flex-1 bg-white/10" />}
-                      </div>
-                      <div className="-mt-1 pb-2">
-                        <div className="text-[14px] text-offwhite">{a.action}</div>
-                        <div className="text-caption text-graytext-mid">
-                          {a.actor} · {new Date(a.at).toLocaleString('en-IN')}
-                        </div>
-                        {a.note && (
-                          <div className="mt-1 text-caption text-graytext-light">“{a.note}”</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
+function TabButton({ active, onClick, label, count }: { active: boolean, onClick: () => void, label: string, count: number }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cx(
+        "flex items-center gap-2 rounded-xl px-5 py-2.5 text-[14px] font-semibold transition-all duration-300",
+        active 
+          ? "bg-teal/15 text-teal shadow-inner border border-teal/20" 
+          : "bg-white/[0.03] text-graytext-mid border border-white/5 hover:bg-white/[0.06] hover:text-offwhite hover:border-white/10"
+      )}
+    >
+      {label}
+      <span className={cx(
+        "flex items-center justify-center rounded-full px-2 py-0.5 text-[12px] min-w-[24px]",
+        active ? "bg-teal/20 text-teal font-bold" : "bg-black/30 text-graytext-mid"
+      )}>
+        {count}
+      </span>
+    </button>
+  )
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-caption uppercase tracking-wider text-graytext-mid">{label}</div>
-      <div className="text-offwhite">{value}</div>
+      <div className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-1">{label}</div>
+      <div className="text-[15px] font-medium text-offwhite truncate">{value}</div>
     </div>
   )
 }

@@ -50,6 +50,9 @@ class Base(db.Model):
         db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # --------------------------------------------------------------------------- #
 # Module A — Community: identity, orgs, memberships, PORs
@@ -136,6 +139,8 @@ class Organisation(Base):
 
     activities = db.relationship("Activity", back_populates="org")
     memberships = db.relationship("Membership", back_populates="org")
+    social_links = db.relationship("OrganisationSocialLink", back_populates="org", cascade="all, delete-orphan")
+    brand_kit = db.relationship("BrandKit", back_populates="org", uselist=False, cascade="all, delete-orphan")
 
     def to_dict(self, detail=False):
         data = {
@@ -183,7 +188,7 @@ class OrganisationSocialLink(Base):
     url = db.Column(db.String(300), nullable=False)
 
     org = db.relationship(
-        "Organisation", backref=db.backref("social_links", cascade="all, delete-orphan")
+        "Organisation", back_populates="social_links"
     )
 
     def to_dict(self):
@@ -213,7 +218,7 @@ class BrandKit(Base):
 
     org = db.relationship(
         "Organisation",
-        backref=db.backref("brand_kit", uselist=False, cascade="all, delete-orphan"),
+        back_populates="brand_kit",
     )
 
     def to_dict(self):
@@ -317,6 +322,8 @@ class Activity(Base):
     status = db.Column(db.String(20), default="upcoming")  # upcoming|live|completed|archived
     organiser_id = db.Column(db.String(32), db.ForeignKey("users.id"))
     tags = db.Column(db.JSON, default=list)
+    mail_template = db.Column(db.Text)
+    poster_url = db.Column(db.String(300))
 
     org = db.relationship("Organisation", back_populates="activities")
     organiser = db.relationship("User")
@@ -324,7 +331,17 @@ class Activity(Base):
     budget_lines = db.relationship("BudgetLine", back_populates="activity", cascade="all, delete-orphan")
     registrations = db.relationship("Registration", back_populates="activity", cascade="all, delete-orphan")
     expenses = db.relationship("Expense", back_populates="activity", cascade="all, delete-orphan")
-
+    team_members = db.relationship("ActivityTeamMember", back_populates="activity", cascade="all, delete-orphan")
+    tasks = db.relationship("ActivityTask", back_populates="activity", cascade="all, delete-orphan", order_by="(ActivityTask.position, ActivityTask.created_at, ActivityTask.id)")
+    schedule_items = db.relationship("EventScheduleItem", back_populates="activity", cascade="all, delete-orphan", order_by="(EventScheduleItem.position, EventScheduleItem.created_at, EventScheduleItem.id)")
+    form_fields = db.relationship("RegistrationFormField", back_populates="activity", cascade="all, delete-orphan", order_by="(RegistrationFormField.position, RegistrationFormField.created_at, RegistrationFormField.id)")
+    queries = db.relationship("EventQuery", back_populates="activity", cascade="all, delete-orphan")
+    polls = db.relationship("EventPoll", back_populates="activity", cascade="all, delete-orphan")
+    reimbursement_request = db.relationship("ReimbursementRequest", back_populates="activity", uselist=False, cascade="all, delete-orphan")
+    collaborators = db.relationship("ActivityCollaborator", back_populates="activity", cascade="all, delete-orphan")
+    campaign = db.relationship("CampaignPackage", back_populates="activity", uselist=False, cascade="all, delete-orphan")
+    announcements = db.relationship("Announcement", back_populates="activity", cascade="all, delete-orphan", order_by="(Announcement.created_at, Announcement.id)")
+    feedback = db.relationship("EventFeedback", back_populates="activity", cascade="all, delete-orphan")
     def registered_count(self):
         return sum(1 for r in self.registrations if r.status == "confirmed")
 
@@ -383,17 +400,26 @@ class Announcement(Base):
     title = db.Column(db.String(200))
     body = db.Column(db.Text)
 
-    activity = db.relationship("Activity", backref=db.backref("announcements", cascade="all, delete-orphan"))
+    activity = db.relationship("Activity", back_populates="announcements")
     sender = db.relationship("User")
 
     def to_dict(self):
+        # Determine sender role dynamically since chat is now 2-way
+        role = "Student"
+        if self.sender:
+            if self.sender.role == "admin":
+                role = "Admin"
+            elif self.sender.id == self.activity.organiser_id:
+                role = "Organiser"
+
         return {
             "id": self.id,
             "eventId": self.activity_id,
             "senderName": self.sender.name if self.sender else "Organising Team",
-            "senderRole": "Organiser",
+            "senderRole": role if self.sender else "Organiser",
             "title": self.title,
             "content": self.body,
+            "isAlert": bool(self.title),
             "createdAt": _iso(self.created_at),
         }
 
@@ -408,6 +434,7 @@ class Proposal(Base):
     status = db.Column(db.String(30), default="submitted")
 
     activity = db.relationship("Activity", back_populates="proposal")
+
 
     def to_dict(self):
         return {"id": self.id, "activity_id": self.activity_id, "status": self.status}
@@ -467,7 +494,7 @@ class ActivityCollaborator(Base):
     responded_at = db.Column(db.DateTime)
 
     activity = db.relationship(
-        "Activity", backref=db.backref("collaborators", cascade="all, delete-orphan")
+        "Activity", back_populates="collaborators"
     )
     org = db.relationship("Organisation")
 
@@ -515,7 +542,7 @@ class ActivityTeamMember(Base):
     added_by = db.Column(db.String(32), db.ForeignKey("users.id"))
 
     activity = db.relationship(
-        "Activity", backref=db.backref("team_members", cascade="all, delete-orphan")
+        "Activity", back_populates="team_members"
     )
     user = db.relationship("User", foreign_keys=[user_id])
 
@@ -557,14 +584,7 @@ class ActivityTask(Base):
     position = db.Column(db.Integer, nullable=False, default=0)
     created_by = db.Column(db.String(32), db.ForeignKey("users.id"))
 
-    activity = db.relationship(
-        "Activity",
-        backref=db.backref(
-            "tasks",
-            cascade="all, delete-orphan",
-            order_by="(ActivityTask.position, ActivityTask.created_at, ActivityTask.id)",
-        ),
-    )
+    activity = db.relationship("Activity", back_populates="tasks")
 
     def to_dict(self):
         return {
@@ -592,14 +612,7 @@ class EventScheduleItem(Base):
     owner_label = db.Column(db.String(120))     # for an owner who is not a platform user
     notes = db.Column(db.Text)
 
-    activity = db.relationship(
-        "Activity",
-        backref=db.backref(
-            "schedule_items",
-            cascade="all, delete-orphan",
-            order_by="(EventScheduleItem.position, EventScheduleItem.created_at, EventScheduleItem.id)",
-        ),
-    )
+    activity = db.relationship("Activity", back_populates="schedule_items")
 
     def to_dict(self):
         return {
@@ -632,14 +645,7 @@ class RegistrationFormField(Base):
     required = db.Column(db.Boolean, nullable=False, default=False)
     position = db.Column(db.Integer, nullable=False, default=0)
 
-    activity = db.relationship(
-        "Activity",
-        backref=db.backref(
-            "form_fields",
-            cascade="all, delete-orphan",
-            order_by="(RegistrationFormField.position, RegistrationFormField.created_at, RegistrationFormField.id)",
-        ),
-    )
+    activity = db.relationship("Activity", back_populates="form_fields")
 
     def to_dict(self):
         return {
@@ -683,7 +689,7 @@ class RegistrationFieldResponse(Base):
     value = db.Column(db.Text)
 
     registration = db.relationship(
-        "Registration", backref=db.backref("field_responses", cascade="all, delete-orphan")
+        "Registration", back_populates="field_responses"
     )
     field = db.relationship("RegistrationFormField")
 
@@ -722,7 +728,7 @@ class CampaignPackage(Base):
 
     activity = db.relationship(
         "Activity",
-        backref=db.backref("campaign", uselist=False, cascade="all, delete-orphan"),
+        back_populates="campaign",
     )
 
     def to_dict(self):
@@ -750,12 +756,15 @@ class Registration(Base):
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"), nullable=False, index=True)
     student_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     status = db.Column(db.String(20), default="confirmed")  # confirmed|waitlisted
+    qr_token = db.Column(db.String(64), unique=True, index=True, nullable=True)
+
     referred_by_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
 
     activity = db.relationship("Activity", back_populates="registrations")
     student = db.relationship("User", back_populates="registrations", foreign_keys=[student_id])
     referred_by = db.relationship("User", foreign_keys=[referred_by_id])
     attendance = db.relationship("Attendance", back_populates="registration", uselist=False, cascade="all, delete-orphan")
+    field_responses = db.relationship("RegistrationFieldResponse", back_populates="registration", cascade="all, delete-orphan")
 
     def to_dict(self):
         a = self.activity
@@ -765,9 +774,10 @@ class Registration(Base):
             "student_id": self.student_id,
             "student": self.student.name if self.student else None,
             "status": self.status,
-            "referred_by_id": self.referred_by_id,
-            "referrer": self.referred_by.name if self.referred_by else None,
             "attended": self.attendance is not None,
+            "referrer": self.referred_by.name if self.referred_by else None,
+            "qr_token": self.qr_token,
+            "referred_by_id": self.referred_by_id,
             # Embedded activity summary so the student's list renders without a join
             "activity": {
                 "id": a.id,
@@ -776,7 +786,7 @@ class Registration(Base):
                 "scale": a.scale,
                 "venue": a.venue,
                 "status": a.status,
-                "starts_at": _iso(a.starts_at),
+                "startsAt": _iso(a.starts_at),
             }
             if a
             else None,
@@ -808,6 +818,7 @@ class Notification(Base):
     __tablename__ = "notifications"
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False, index=True)
     activity_id = db.Column(db.String(32), db.ForeignKey("activities.id"))
+    target_role = db.Column(db.String(20), default="student", server_default="student")
     type = db.Column(db.String(20), default="update")
     title = db.Column(db.String(200))
     body = db.Column(db.Text)
@@ -979,6 +990,7 @@ class AuditLog(Base):
         }
 
 
+
 # --------------------------------------------------------------------------- #
 # Close-out, event channel, session & progression (v1.1 milestone)
 # --------------------------------------------------------------------------- #
@@ -1001,7 +1013,7 @@ class EventFeedback(Base):
     comment = db.Column(db.Text)
 
     activity = db.relationship(
-        "Activity", backref=db.backref("feedback", cascade="all, delete-orphan")
+        "Activity", back_populates="feedback"
     )
 
     def to_dict(self):
@@ -1031,8 +1043,9 @@ class EventPoll(Base):
     created_by = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=True)
 
     activity = db.relationship(
-        "Activity", backref=db.backref("polls", cascade="all, delete-orphan")
+        "Activity", back_populates="polls"
     )
+    votes = db.relationship("EventPollVote", back_populates="poll", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
@@ -1062,7 +1075,7 @@ class EventPollVote(Base):
     option_index = db.Column(db.Integer, nullable=False)
 
     poll = db.relationship(
-        "EventPoll", backref=db.backref("votes", cascade="all, delete-orphan")
+        "EventPoll", back_populates="votes"
     )
 
     def to_dict(self):
@@ -1101,7 +1114,7 @@ class EventQuery(Base):
     responded_at = db.Column(db.DateTime, nullable=True)
 
     activity = db.relationship(
-        "Activity", backref=db.backref("queries", cascade="all, delete-orphan")
+        "Activity", back_populates="queries"
     )
 
     def to_dict(self):
@@ -1194,12 +1207,7 @@ class ReimbursementRequest(Base):
     submitted_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
     note = db.Column(db.Text, nullable=True)
 
-    activity = db.relationship(
-        "Activity",
-        backref=db.backref(
-            "reimbursement_request", uselist=False, cascade="all, delete-orphan"
-        ),
-    )
+    activity = db.relationship("Activity", back_populates="reimbursement_request")
 
     def to_dict(self):
         return {
@@ -1229,4 +1237,19 @@ class SystemSetting(Base):
             "key": self.key,
             "value": self.value_json,
             "updated_at": _iso(self.updated_at),
+        }
+
+class CityAlertSubscription(Base):
+    __tablename__ = "city_alert_subscriptions"
+    __table_args__ = (db.UniqueConstraint("email", "city", name="uq_city_alert_email_city"),)
+
+    email = db.Column(db.String(255), nullable=False, index=True)
+    city = db.Column(db.String(100), nullable=False, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "city": self.city,
+            "created_at": _iso(self.created_at),
         }

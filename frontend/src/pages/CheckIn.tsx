@@ -1,17 +1,69 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
-import { useCheckIn, useEvent, useRoster, useScanQr } from '../lib/queries'
-import { Badge, Button, Card, Progress, SectionTitle } from '../components/ui'
+import { useCheckIn, useEvent, useRoster, useScanQr, useDashboard } from '../lib/queries'
+import { Button, Card, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
 
-// FR-D6: organiser marks registered students as attended (check-in) →
+// FR-D6: organiser marks registered students as attended (check-in) ->
 // the attendance record that powers points & fee utilisation
+
+function MissionControlHero() {
+  const [time, setTime] = useState(new Date())
+  
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <div className="relative mb-8 overflow-hidden rounded-[32px] border border-teal/20 bg-onyx p-8 shadow-[0_0_40px_rgba(92,230,201,0.1)]">
+      {/* Abstract Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_10%,transparent_100%)]" />
+      
+      {/* Glowing scanning line effect */}
+      <div className="absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b from-transparent via-teal to-transparent shadow-[0_0_20px_#5CE6C9] opacity-80" />
+
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative flex h-3 w-3 items-center justify-center">
+              <div className="absolute h-full w-full animate-ping rounded-full bg-teal opacity-75" />
+              <div className="relative h-1.5 w-1.5 rounded-full bg-teal" />
+            </div>
+            <div className="font-mono text-[13px] font-bold tracking-[0.2em] text-teal">
+              SYSTEM STATUS: OPERATIONAL
+            </div>
+          </div>
+          <h1 className="text-[40px] font-bold leading-none text-offwhite tracking-tight">
+            Command Center
+          </h1>
+          <p className="mt-3 text-[15px] text-graytext-mid max-w-md">
+            Global check-in uplink established. Select a live event below to initialize the optical scanner and record attendee arrivals.
+          </p>
+        </div>
+
+        {/* Real-time Clock */}
+        <div className="text-left md:text-right w-full md:w-auto p-6 md:p-0 rounded-2xl bg-black/40 md:bg-transparent border border-white/5 md:border-transparent">
+          <div className="font-mono text-[48px] font-bold text-offwhite tracking-tighter drop-shadow-[0_0_15px_rgba(92,230,201,0.2)]">
+            {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+          <div className="font-mono text-[12px] uppercase tracking-widest text-teal/70 mt-2">
+            {time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · LOCAL TIME
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CheckIn() {
-  const { id } = useParams()
-  const { data: e, isLoading, isError, error } = useEvent(id)
-  const { data: roster = [] } = useRoster(id)
+  const { data: dashboardData, isLoading: isDashLoading, isError: isDashError, error: dashError } = useDashboard()
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+
+  const { data: e, isLoading: isEventLoading, isError: isEventError, error: eventError } = useEvent(selectedEventId ?? undefined)
+  const { data: roster = [] } = useRoster(selectedEventId ?? undefined)
+
   const checkInMut = useCheckIn()
   const scanQrMut = useScanQr()
   const [q, setQ] = useState('')
@@ -19,7 +71,7 @@ export default function CheckIn() {
   const lastScannedId = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!id || !e) return
+    if (!selectedEventId || !e) return
 
     const scanner = new Html5QrcodeScanner(
       'qr-reader',
@@ -33,7 +85,7 @@ export default function CheckIn() {
         lastScannedId.current = decodedText
 
         scanQrMut.mutate(
-          { id, registration_id: decodedText },
+          { id: selectedEventId, registration_id: decodedText },
           {
             onSuccess: (res: any) => {
               setScanResult({
@@ -51,139 +103,197 @@ export default function CheckIn() {
           },
         )
       },
-      () => {}, // ignore continuous scan-frame errors — expected between reads
+      () => {}, // ignore continuous scan-frame errors
     )
 
     return () => {
       scanner.clear().catch(() => {})
     }
-  }, [id, e])
+  }, [selectedEventId, e]) // Depend on selectedEventId and e
 
-  if (isLoading) return <Loading label="Loading attendees…" />
-  if (isError) return <ErrorState error={error} />
-  if (!e) return <div>Event not found</div>
+  if (isDashLoading) return <Loading label="Loading check-in dashboard..." />
+  if (isDashError) return <ErrorState error={dashError} />
+
+  const events: any[] = dashboardData?.my_events ?? []
+  // Only show approved and not completed events
+  const liveEvents = events.filter((ev) => ev.proposal_status === 'approved' && ev.status !== 'completed')
 
   const checkedIn = roster.filter((a: any) => a.attended).length
-  const filtered = roster.filter((a: any) =>
+  const filtered = q.trim() === '' ? [] : roster.filter((a: any) =>
     (a.student ?? '').toLowerCase().includes(q.toLowerCase()),
   )
 
   const toggle = (reg: any) => {
-    if (reg.attended || checkInMut.isPending) return // check-in is one-way
+    if (reg.attended || checkInMut.isPending || !e) return // check-in is one-way
     checkInMut.mutate({ id: e.id, ids: [reg.id] })
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link to={`/events/${e.id}/manage`} className="mb-4 inline-block text-[13px] text-graytext-light hover:text-teal">
-        ← Manage event
-      </Link>
-      <SectionTitle
-        eyebrow={e.city + ' · Live check-in'}
-        title="Attendance"
-        sub="Tap a name as people arrive. Each check-in awards points and marks their ₹200 fee as used."
-      />
+    <div className="mx-auto max-w-5xl space-y-8 animate-fade-in">
+      {/* Hero & Event Selector */}
+      <div>
+        <MissionControlHero />
 
-      {/* Live counter */}
-      <Card className="mb-6 p-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-caption uppercase tracking-wider text-graytext-mid">Checked in</div>
-            <div className="text-[44px] font-bold leading-none text-teal">
-              {checkedIn}
-              <span className="text-[20px] text-graytext-mid">/{roster.length}</span>
-            </div>
-          </div>
-          <Badge tone="teal">
-            {roster.length ? Math.round((checkedIn / roster.length) * 100) : 0}% arrived
-          </Badge>
-        </div>
-        <div className="mt-4">
-          <Progress value={checkedIn} max={roster.length || 1} />
-        </div>
-      </Card>
-
-      <Card className="relative mb-8 overflow-hidden border-teal/20">
-        <div className="border-b border-white/5 bg-onyx p-4 text-center">
-          <h3 className="text-[14px] font-semibold text-offwhite">Scan QR ticket</h3>
-        </div>
-        <div id="qr-reader" className="min-h-[300px] w-full bg-black" />
-        {scanResult && (
-          <div
-            className={cx(
-              'absolute inset-x-0 bottom-0 p-4 text-center text-[14px] font-medium shadow-lg',
-              scanResult.status === 'success' && 'bg-teal text-onyx',
-              scanResult.status === 'duplicate' && 'bg-gold text-onyx',
-              scanResult.status === 'error' && 'bg-red-500 text-white',
+        <div className="mt-8">
+          <label className="text-caption uppercase tracking-wider text-graytext-mid mb-4 block">
+            Live Events
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {liveEvents.length === 0 ? (
+               <p className="text-[13px] text-gold col-span-full">You don't have any upcoming live events to manage.</p>
+            ) : (
+              liveEvents.map((ev) => {
+                const isSelected = selectedEventId === ev.id
+                return (
+                  <button
+                    key={ev.id}
+                    onClick={() => setSelectedEventId(isSelected ? null : ev.id)}
+                    className={cx(
+                      'relative overflow-hidden flex flex-col items-start rounded-2xl border p-5 text-left transition-all duration-300 ease-material will-change-transform',
+                      isSelected
+                        ? 'border-teal bg-teal/10 shadow-[0_0_20px_rgba(92,230,201,0.2)] -translate-y-1'
+                        : 'border-white/10 bg-onyx/50 hover:border-teal/50 hover:bg-white/5 hover:-translate-y-0.5'
+                    )}
+                  >
+                    {/* Glowing Accent for selected state */}
+                    {isSelected && (
+                      <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-teal to-transparent shadow-[0_0_10px_rgba(92,230,201,1)]" />
+                    )}
+                    
+                    <div className="mb-1 text-[16px] font-bold text-offwhite line-clamp-1">{ev.title}</div>
+                    <div className="text-[13px] text-graytext-mid line-clamp-1 flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-8-4.5-8-11a8 8 0 1 1 16 0c0 6.5-8 11-8 11z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {ev.city}
+                    </div>
+                  </button>
+                )
+              })
             )}
-          >
-            {scanResult.message}
           </div>
-        )}
-      </Card>
-
-      <div className="flex items-center gap-4 mb-4">
-        <div className="h-px flex-1 bg-white/10" />
-        <div className="text-caption font-medium uppercase tracking-wider text-graytext-mid">Manual fallback</div>
-        <div className="h-px flex-1 bg-white/10" />
+        </div>
       </div>
 
-      <div className="relative mb-4">
-        <input
-          value={q}
-          onChange={(ev) => setQ(ev.target.value)}
-          placeholder="Search name…"
-          className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/40 focus:outline-none"
-        />
-        <svg className="absolute left-4 top-3.5 text-graytext-mid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3-3" strokeLinecap="round" />
-        </svg>
-      </div>
-
-      {roster.length === 0 ? (
-        <Card className="p-10 text-center text-graytext-light">No registrations to check in.</Card>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((a: any) => (
-            <button
-              key={a.id}
-              onClick={() => toggle(a)}
-              disabled={a.attended}
-              className={cx(
-                'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all duration-300 ease-material',
-                a.attended
-                  ? 'border-teal/40 bg-teal/10'
-                  : 'border-white/8 bg-white/[0.02] hover:border-teal/30',
-              )}
-            >
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-teal/12 text-[13px] font-bold text-teal">
-                {(a.student ?? '?').split(' ').map((n: string) => n[0]).join('')}
-              </div>
-              <div className="flex-1">
-                <div className="text-[15px] font-medium text-offwhite">{a.student}</div>
-                <div className="font-mono text-caption text-graytext-mid">
-                  {a.id.slice(0, 8).toUpperCase()}
-                </div>
-              </div>
-              <div
-                className={cx(
-                  'grid h-8 w-8 place-items-center rounded-full transition-colors',
-                  a.attended ? 'bg-teal text-onyx' : 'border border-white/20 text-graytext-mid',
+      {/* Main Scanner Section - Only visible if an event is selected */}
+      {selectedEventId && (
+        <div className="animate-fade-up will-change-transform">
+          {isEventLoading ? (
+            <Loading label="Initializing scanner..." />
+          ) : isEventError ? (
+            <ErrorState error={eventError} />
+          ) : !e ? (
+            <div>Event not found</div>
+          ) : (
+            <div className="grid gap-8 lg:grid-cols-[1fr_350px] items-start">
+              
+              {/* Left Column: Scanner and Status */}
+              <div className="space-y-6">
+                
+                {/* Result Overlay */}
+                {scanResult && (
+                  <div className={cx(
+                    "rounded-2xl p-6 shadow-2xl animate-spring-up border",
+                    scanResult.status === 'success' ? 'bg-teal/10 border-teal/20 text-teal' :
+                    scanResult.status === 'duplicate' ? 'bg-gold/10 border-gold/20 text-gold' :
+                    'bg-red-500/10 border-red-500/20 text-red-400'
+                  )}>
+                    <div className="text-[18px] font-semibold">{scanResult.message}</div>
+                  </div>
                 )}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="m5 12 4 4L19 6" />
-                </svg>
+
+                {/* Scanner Container */}
+                <Card className="overflow-hidden border border-white/5 bg-black/40 p-1">
+                  <div id="qr-reader" className="overflow-hidden rounded-xl bg-black" />
+                  <style>{`
+                    #qr-reader { border: none !important; }
+                    #qr-reader__scan_region { background: #000; min-height: 300px; }
+                    #qr-reader__dashboard_section_csr span { color: #aaa !important; font-family: sans-serif; }
+                    #qr-reader__dashboard_section_swaplink { color: #5CE6C9 !important; text-decoration: none; margin-top: 10px; display: inline-block; }
+                    #qr-reader button {
+                      background: #1F4F59; color: #fff; border: 1px solid rgba(92,230,201,0.2); 
+                      padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: 0.2s;
+                    }
+                    #qr-reader button:hover { background: #5CE6C9; color: #000; }
+                  `}</style>
+                </Card>
               </div>
-            </button>
-          ))}
+
+              {/* Right Column: Roster & Stats */}
+              <div className="space-y-6">
+                {/* Stats Card */}
+                <div className="rounded-[24px] border border-white/10 bg-gradient-to-b from-teal/10 to-transparent p-6 text-center">
+                  <div className="text-caption uppercase tracking-widest text-teal mb-2">Live Headcount</div>
+                  <div className="text-[56px] font-bold leading-none text-offwhite drop-shadow-[0_0_15px_rgba(92,230,201,0.3)]">
+                    {checkedIn}
+                  </div>
+                  <div className="text-[16px] text-graytext-mid font-medium mt-1">
+                    of {roster.length} registered
+                  </div>
+                  <div className="mt-4 h-1.5 w-full rounded-full bg-black/50 overflow-hidden">
+                    <div 
+                      className="h-full bg-teal transition-all duration-1000 ease-out"
+                      style={{ width: `${roster.length ? (checkedIn / roster.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Manual Roster Search */}
+                <Card className="flex flex-col h-[500px]">
+                  <div className="p-4 border-b border-white/5 bg-black/20">
+                    <input
+                      type="text"
+                      placeholder="Search by name..."
+                      value={q}
+                      onChange={(evt) => setQ(evt.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-[14px] outline-none transition-colors focus:border-teal text-offwhite"
+                    />
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2">
+                    {q.trim() === '' ? (
+                      <div className="flex h-full flex-col items-center justify-center p-8 text-center text-graytext-mid">
+                        <svg className="mb-3 opacity-30" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <circle cx="11" cy="11" r="8" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35" />
+                        </svg>
+                        <p className="text-[13px]">Type a name to search the roster...</p>
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <div className="flex h-full flex-col items-center justify-center p-8 text-center text-graytext-mid">
+                        <p className="text-[13px]">No matches found for "{q}".</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filtered.map((r: any) => (
+                          <div
+                            key={r.id}
+                            className="flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
+                          >
+                            <div>
+                              <div className="text-[14px] font-medium text-offwhite">{r.student}</div>
+                              <div className="text-[12px] text-graytext-mid uppercase tracking-wider">{r.id.split('-').pop()}</div>
+                            </div>
+                            <Button
+                              variant={r.attended ? 'ghost' : 'secondary'}
+                              size="sm"
+                              onClick={() => toggle(r)}
+                              disabled={r.attended || checkInMut.isPending}
+                            >
+                              {r.attended ? 'Arrived' : 'Check in'}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+            </div>
+          )}
         </div>
       )}
-
-      <p className="mt-6 text-center text-caption text-graytext-mid">
-        Check-in is one-way — each tap writes an attendance record and awards points.
-      </p>
     </div>
   )
 }

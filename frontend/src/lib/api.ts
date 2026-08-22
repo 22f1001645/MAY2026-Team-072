@@ -365,6 +365,7 @@ export function adaptBrandKit(k: ApiBrandKit): BrandKit {
 }
 
 /* -------------------------------- endpoints ------------------------------ */
+let _explicitRefreshPromise: Promise<any> | null = null
 /** camelCase → wire name for a schedule-item patch (DESIGN-01). Keeping the map
  *  here rather than inline keeps this module the only place that knows the wire
  *  spelling of a schedule column. */
@@ -462,6 +463,12 @@ export const api = {
     _accessToken = res.access_token
     return res
   },
+  subscribeCityAlert: async (data: { email: string; city: string }) => {
+    return request<{ ok: boolean }>('/alerts/city', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
   register: async (data: { name: string; email: string; password: string; region_id: string; city?: string }) => {
     const res = await request<{ access_token: string; user: any }>('/auth/register', {
       method: 'POST',
@@ -475,15 +482,32 @@ export const api = {
     request('/auth/me/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   /** Rotate the refresh cookie and obtain a new access token. */
   refresh: async () => {
-    const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
-    _accessToken = res.access_token
-    return res
+    if (!_explicitRefreshPromise) {
+      _explicitRefreshPromise = (async () => {
+        try {
+          const res = await _rawRequest<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+          _accessToken = res.access_token
+          return res
+        } finally {
+          _explicitRefreshPromise = null
+        }
+      })()
+    }
+    return _explicitRefreshPromise
   },
   /** Revoke this device's session and clear the cookie. */
   logout: async () => {
-    const res = await request<{ message: string }>('/auth/logout', { method: 'POST' })
-    _accessToken = null
-    return res
+    _accessToken = null // Clear local auth token immediately
+    try {
+      const res = await Promise.race([
+        request<{ message: string }>('/auth/logout', { method: 'POST' }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+      ])
+      return res
+    } catch (e) {
+      console.warn('Logout slow or failed, forcing local fallback', e)
+      return { message: 'local fallback' }
+    }
   },
   /** User self-confirms their academic level + status (AUTH-04).
    *  Callers pass camelCase; this wrapper is the only module that knows the
@@ -538,20 +562,25 @@ export const api = {
     request(`/pors/${porId}/deactivate`, { method: 'PATCH' }),
 
   // Discovery (C)
-  events: (city?: string) =>
-    request<ApiActivity[]>(`/events${city && city !== 'All' ? `?city=${encodeURIComponent(city)}` : ''}`)
-      .then((rows) => rows.map(adaptEvent)),
+  events: (city?: string, scale?: string, dateRange?: string) => {
+    const params = new URLSearchParams()
+    if (city && city !== 'All') params.append('city', city)
+    if (scale && scale !== 'all' && scale !== 'All') params.append('scale', scale)
+    if (dateRange && dateRange !== 'all' && dateRange !== 'All') params.append('dateRange', dateRange)
+    const qs = params.toString()
+    return request<ApiActivity[]>(`/events${qs ? `?${qs}` : ''}`).then((rows) => rows.map(adaptEvent))
+  },
   event: (id: string) => request<ApiActivity>(`/events/${id}`).then(adaptEvent),
   updateEvent: (id: string, payload: any) =>
-    request(`/events/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  cancelEvent: (id: string) => request(`/events/${id}`, { method: 'DELETE' }),
+    request<ApiActivity>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(payload) }).then(adaptEvent),
+  cancelEvent: (id: string) =>
+    request<ApiActivity>(`/events/${id}`, { method: 'DELETE' }).then(adaptEvent),
 
   // Registration / attendance (D)
-  joinEvent: (id: string, referredBy?: string) =>
-    request(`/events/${id}/register`, {
-      method: 'POST',
-      body: JSON.stringify({ referred_by: referredBy }),
-    }),
+  joinEvent: (id: string, referredBy?: string) => request(`/events/${id}/register`, { 
+    method: 'POST',
+    body: JSON.stringify({ referred_by: referredBy })
+  }),
   leaveEvent: (id: string) => request(`/events/${id}/register`, { method: 'DELETE' }),
   myRegistrations: () => request<any[]>('/me/registrations'),
   roster: (id: string) => request<any[]>(`/events/${id}/registrations`),
@@ -560,18 +589,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ registration_ids }),
     }),
-  scanQr: (id: string, registration_id: string) =>
-    request<{ status: string; student_name: string; message?: string }>(`/events/${id}/scan`, {
+  scanQr: (id: string, qr_token: string) =>
+    request<{ status: string; student_name: string; student_id?: string; message?: string }>(`/events/${id}/scan`, {
       method: 'POST',
-      body: JSON.stringify({ registration_id }),
+      body: JSON.stringify({ qr_token, registration_id: qr_token }),
+
     }),
   broadcast: (id: string, title: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title, body }) }),
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
-    request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: 'Update', body }) }),
-  notifications: () => request<any[]>('/notifications'),
+    request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
+  notifications: (role: string = 'student') => request<any[]>(`/notifications?role=${role}`),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
+  clearNotifications: () => request('/notifications', { method: 'DELETE' }),
+  deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
 
   // Proposals / approval (B)
   submitProposal: (payload: any) =>
@@ -592,6 +624,8 @@ export const api = {
     request('/expenses', { method: 'POST', body: JSON.stringify(payload) }),
   reimbursements: () => request<any[]>('/reimbursements'),
   verifyExpense: (id: string) => request(`/expenses/${id}/verify`, { method: 'PATCH' }),
+  updateExpenseAmount: (id: string, amount: number) => 
+    request(`/expenses/${id}/amount`, { method: 'PATCH', body: JSON.stringify({ amount }) }),
 
   // Recognition (G)
   leaderboard: (city?: string) =>

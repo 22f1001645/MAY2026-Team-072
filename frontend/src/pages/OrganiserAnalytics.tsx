@@ -31,7 +31,7 @@ export default function OrganiserAnalytics() {
         </Card>
         <Card className="p-5">
           <div className="text-caption uppercase tracking-wider text-graytext-light">Active</div>
-          <div className="mt-1 text-[32px] font-bold text-teal">{activeCount}</div>
+          <div className="mt-1 text-32px font-bold text-offwhite">{activeCount}</div>
         </Card>
         <Card className="p-5">
           <div className="text-caption uppercase tracking-wider text-graytext-light">Dormant</div>

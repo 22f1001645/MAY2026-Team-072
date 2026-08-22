@@ -1,21 +1,24 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
-import { useUpdateProfile } from '../lib/queries'
+import { useNotifications, useUpdateProfile } from '../lib/queries'
 import type { Role } from '../lib/types'
 import { cx } from '../lib/format'
 import { Button, Card, Input, Mandala } from './ui'
 import NotificationsDropdown from './NotificationsDropdown'
 import ViewSwitcher from './ViewSwitcher'
 import AcademicStatusBanner from './AcademicStatusBanner'
+import { ProfileModal } from './ProfileModal'
+import { GlobalEventChatModal } from './GlobalEventChatModal'
 
 interface NavItem {
-  to: string
+  to?: string
   label: string
-  icon: ReactNode
+  icon?: ReactNode
+  subItems?: { to: string; label: string; icon: ReactNode }[]
 }
 
 // Navigation is a function of the POR, not the login (PRD P3 / §15 IA)
@@ -24,15 +27,18 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/discover', label: 'Discover', icon: <Icon d="M12 2 4 7v10l8 5 8-5V7z" /> },
     { to: '/me', label: 'My Registrations', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
-    { to: '/notifications', label: 'Notifications', icon: <Icon d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /> },
   ],
   organiser: [
     { to: '/organiser', label: 'Dashboard', icon: <Icon d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z" /> },
     { to: '/proposals/new', label: 'New Proposal', icon: <Icon d="M12 5v14M5 12h14" /> },
-    { to: '/events/ev-ekatva-hyd/manage', label: 'Registrations & Tasks', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
-    { to: '/events/ev-hyd-coffee/expenses', label: 'Reimbursement', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
-    { to: '/events/ev-ekatva-hyd/checkin', label: 'Check-in', icon: <Icon d="m5 12 4 4L19 6" /> },
-    { to: '/leaderboard', label: 'Leaderboard', icon: <Icon d="M6 21V10M12 21V4M18 21v-7" /> },
+    {
+      label: 'Organiser Hub',
+      subItems: [
+        { to: '/events/ev-ekatva-hyd/manage', label: 'Registrations & Tasks', icon: <Icon d="M4 6h16M4 12h16M4 18h10" /> },
+        { to: '/events/ev-hyd-coffee/expenses', label: 'Reimbursement', icon: <Icon d="M3 10h18M6 15h4M3 6h18v12H3z" /> },
+        { to: '/checkin', label: 'Check-in', icon: <Icon d="m5 12 4 4L19 6" /> },
+      ]
+    },
   ],
   admin: [
     { to: '/admin/approvals', label: 'Approval Queue', icon: <Icon d="m9 11 3 3 8-8M4 12v6a2 2 0 0 0 2 2h12" /> },
@@ -67,12 +73,70 @@ const ROLE_LABEL: Record<Role, string> = {
   admin: 'Admin',
 }
 
+function NavDropdown({ item }: { item: NavItem }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const isActive = item.subItems?.some(s => location.pathname === s.to)
+
+  return (
+    <div className="relative" ref={ref}>
+      <button 
+        onClick={() => setOpen(!open)}
+        className={cx("whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-200 focus:outline-none", 
+          isActive 
+            ? "bg-white/10 text-offwhite" 
+            : "text-graytext-light hover:text-offwhite hover:bg-white/5",
+          open && "text-offwhite bg-white/5"
+        )}
+      >
+        {item.label}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cx("transition-transform duration-200", open && "rotate-180")}>
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+        {open && (
+          <div className="absolute top-full left-0 mt-1.5 w-48 rounded-lg border border-white/10 bg-[#111] p-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] z-50 animate-fade-down origin-top-left">
+            {item.subItems?.map(sub => (
+              <Link
+                key={sub.to}
+                to={sub.to}
+                onClick={() => setOpen(false)}
+                className={cx("flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors focus:outline-none", 
+                  location.pathname === sub.to
+                    ? "bg-white/10 text-offwhite"
+                    : "text-graytext-mid hover:bg-white/5 hover:text-offwhite"
+                )}
+              >
+                <div className="flex-shrink-0 text-current opacity-70">{sub.icon}</div>
+                <span className="truncate">{sub.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+    </div>
+  )
+}
+
+
 export default function Layout({ children }: { children: ReactNode }) {
   const { role, name, city, capabilities } = useSession()
-  const { currentUser, logout, refreshUser } = useAuth()
+  const { currentUser, logout, refreshUser, isLoggingOut } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [editCityOpen, setEditCityOpen] = useState(false)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const location = useLocation()
 
   // The first data-derived nav entry in this file. `NAV` stays a static
@@ -82,14 +146,14 @@ export default function Layout({ children }: { children: ReactNode }) {
   const manageableOrgIds = capabilities?.manageableOrgIds
   const nav = useMemo(() => {
     const base = NAV[role]
-    if (!manageableOrgIds?.length) return base
+    if (!manageableOrgIds?.length || role === 'student') return base
     return [
       ...base,
       {
         to: `/orgs/${manageableOrgIds[0]}`,
         label: 'Organisation profile',
         icon: <Icon d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M9 8h2M9 12h2M9 16h2" />,
-      },
+      } as NavItem,
     ]
   }, [role, manageableOrgIds])
 
@@ -97,309 +161,256 @@ export default function Layout({ children }: { children: ReactNode }) {
   // status nudge off deep pages entirely; it is not a header strip.
   const isHomeRoute = location.pathname === '/discover' || location.pathname === '/organiser'
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
-
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
 
-  const { data: searchUsers = [] } = useQuery({
-    queryKey: ['search-users', searchQuery],
-    queryFn: () => api.users(searchQuery),
-    enabled: searchQuery.trim().length >= 1,
-  })
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
 
-  const { data: allEvents = [] } = useQuery({
-    queryKey: ['search-events'],
-    queryFn: () => api.events(),
-    enabled: searchQuery.trim().length >= 1,
-  })
-
-  const { data: allOrgs = [] } = useQuery({
-    queryKey: ['search-orgs'],
-    queryFn: () => api.orgs(),
-    enabled: searchQuery.trim().length >= 1,
-  })
-
-  const filteredEvents = allEvents.filter(
-    (e) =>
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
-
-  const filteredOrgs = allOrgs.filter(
-    (o) =>
-      o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.type.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const { data: notifications = [] } = useNotifications(role)
+  const unreadCount = notifications.filter((n: any) => !n.read).length
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchOpen(false)
-      }
-      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
-        setNotificationsOpen(false)
+      const target = e.target as Node
+      if (profileRef.current && !profileRef.current.contains(target)) {
+        setProfileOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (
-    <div className="min-h-screen lg:flex">
-      {/* Sidebar */}
-      <aside
-        className={cx(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/5 bg-brand-gradient transition-transform duration-300 ease-material lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:translate-x-0',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
-      >
-        <div className="flex items-center gap-2.5 px-5 py-6">
-          <Mandala size={34} />
-          <div>
-            <div className="text-[18px] font-bold leading-none tracking-wide text-offwhite">
-              EKATVA<span className="text-teal"> OS</span>
+    <div className="min-h-screen flex flex-col bg-onyx text-offwhite overflow-x-hidden">
+      
+      {/* Liquid Glass Header */}
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-white/5 bg-onyx/90 backdrop-blur-md px-5 py-3 lg:px-6">
+        
+        {/* Left: Branding & Navigation */}
+        <div className="flex items-center gap-6 z-20">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+            <Mandala size={26} />
+            <div className="hidden sm:block">
+              <div className="text-[14px] font-bold tracking-wide text-offwhite">
+                EKATVA<span className="text-teal"> OS</span>
+              </div>
             </div>
-            <div className="text-[9px] uppercase tracking-[0.28em] text-gold">
-              Unite · Inspire · Celebrate
-            </div>
+          </Link>
+
+          <div className="hidden lg:block w-px h-5 bg-white/10" />
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {nav.map(item => (
+              item.subItems ? (
+                <NavDropdown key={item.label} item={item} />
+              ) : (
+                <NavLink 
+                  key={item.to!} 
+                  to={item.to!}
+                  className={({ isActive }) => 
+                    cx("whitespace-nowrap px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-200 focus:outline-none", 
+                      isActive || location.pathname === item.to 
+                        ? "bg-white/10 text-offwhite" 
+                        : "text-graytext-light hover:text-offwhite hover:bg-white/5"
+                    )
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              )
+            ))}
+          </nav>
+        </div>
+
+        {/* Right: Tools & Profile */}
+        <div className="flex items-center gap-4 z-20">
+          
+          <div className="empty:hidden flex items-center">
+            <ViewSwitcher />
+            {capabilities?.isOrganiser && (
+              <div className="w-px h-5 bg-white/10 ml-2 mr-0" />
+            )}
           </div>
-        </div>
-
-        {/* Cause sits directly above effect: flipping the switcher visibly
-            rewrites the list beneath it (02-UI-SPEC S1). `empty:hidden` is what
-            keeps the absent case reserving no space — when the switcher renders
-            nothing, the wrapper's margins go with it. */}
-        <div className="px-3 my-3 empty:hidden">
-          <ViewSwitcher />
-        </div>
-
-        <nav className="mt-2 flex-1 space-y-1 px-3">
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                cx(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition duration-200 ease-material focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50',
-                  isActive || location.pathname === item.to
-                    ? 'bg-teal/12 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
-                    : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
-                )
-              }
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Signed-in identity + logout */}
-        <div className="border-t border-white/5 p-3">
-          <div className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5">
-            <div
+          
+          {/* Notifications */}
+          <div className="relative flex items-center" ref={notificationsRef}>
+            <button
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              aria-label="Notifications"
               className={cx(
-                'grid h-9 w-9 place-items-center rounded-full text-[14px] font-bold',
-                role === 'admin' ? 'bg-gold/15 text-gold' : 'bg-teal/15 text-teal',
+                "group flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-all duration-200 focus:outline-none",
+                notificationsOpen
+                  ? 'bg-white/10 text-offwhite'
+                  : 'text-graytext-mid hover:bg-white/5 hover:text-offwhite'
+              )}
+            >
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill={notificationsOpen ? "currentColor" : (unreadCount > 0 ? "currentColor" : "none")} 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={cx(
+                  "transition-transform duration-300",
+                  unreadCount > 0 && !notificationsOpen && "group-hover:animate-shake"
+                )}
+              >
+                <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+            </button>
+            {unreadCount > 0 && (
+              <div className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-teal px-1 ring-2 ring-onyx">
+                <span className="text-[10px] font-bold text-onyx leading-none">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              </div>
+            )}
+            {notificationsOpen && (
+              <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />
+            )}
+          </div>
+
+          {/* Profile Dropdown */}
+          <div className="relative hidden lg:block">
+            <button 
+              onClick={() => setProfileModalOpen(true)} 
+              className={cx(
+                "flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold transition-all focus:outline-none ring-2 ring-transparent",
+                role === 'admin' ? 'bg-gold/20 text-gold hover:ring-gold/40' : 'bg-teal/20 text-teal hover:ring-teal/40',
+                profileModalOpen && (role === 'admin' ? 'ring-gold/60' : 'ring-teal/60')
               )}
             >
               {name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-semibold text-offwhite">{name}</div>
-              <div className="truncate text-[11px] text-graytext-light">
-                {currentUser?.por ?? ROLE_LABEL[role]} ·{' '}
-                <button
-                  onClick={() => setEditCityOpen(true)}
-                  className="underline decoration-dotted underline-offset-2 hover:text-offwhite focus:outline-none"
-                  title="Edit city"
-                >
-                  {city}
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Sign out"
-              aria-label="Sign out"
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-graytext-mid transition-colors hover:bg-white/5 hover:text-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-              </svg>
             </button>
           </div>
-        </div>
-      </aside>
 
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Main column */}
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/5 bg-onyx/80 px-5 py-3.5 backdrop-blur-xl lg:px-8">
-          <button
-            className="text-graytext-light lg:hidden"
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-graytext-light hover:text-offwhite lg:hidden transition-colors"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
           >
             <Icon d="M4 6h16M4 12h16M4 18h16" />
           </button>
-          <div ref={searchRef} className="relative hidden sm:block">
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[13px] text-graytext-light focus-within:border-teal/50 focus-within:bg-black/40">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0 text-graytext-mid">
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3-3" strokeLinecap="round" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search events, people, orgs…"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setSearchOpen(true)
-                }}
-                onFocus={() => setSearchOpen(true)}
-                className="w-48 bg-transparent text-[13px] text-offwhite placeholder:text-graytext-mid focus:outline-none md:w-64"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery('')
-                    setSearchOpen(false)
-                  }}
-                  aria-label="Clear search"
-                  className="text-graytext-mid hover:text-offwhite text-[12px] px-1"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+        </div>
+      </header>
 
-            {/* Global Search Dropdown */}
-            {searchOpen && searchQuery.trim().length >= 1 && (
-              <div className="absolute left-0 top-full mt-2 w-80 md:w-96 rounded-2xl border border-white/10 bg-onyx/95 p-3 shadow-2xl backdrop-blur-xl z-50 max-h-96 overflow-y-auto space-y-3">
-                {/* Events Section */}
-                {filteredEvents.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-teal mb-1 px-2">Events ({filteredEvents.length})</div>
-                    <div className="space-y-1">
-                      {filteredEvents.slice(0, 3).map((evt) => (
-                        <button
-                          key={evt.id}
-                          type="button"
-                          onClick={() => {
-                            setSearchOpen(false)
-                            navigate(`/events/${evt.id}`)
-                          }}
-                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
-                        >
-                          <div className="text-[13px] font-semibold text-offwhite">{evt.title}</div>
-                          <div className="text-[11px] text-graytext-light">{evt.city} · {evt.startsAt}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* People / Members Section */}
-                {searchUsers.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-gold mb-1 px-2">People / Members ({searchUsers.length})</div>
-                    <div className="space-y-1">
-                      {searchUsers.slice(0, 3).map((usr) => (
-                        <button
-                          key={usr.id}
-                          type="button"
-                          onClick={() => {
-                            setSearchOpen(false)
-                            if (role === 'admin') navigate('/admin/orgs')
-                          }}
-                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
-                        >
-                          <div className="text-[13px] font-semibold text-offwhite">{usr.name}</div>
-                          <div className="text-[11px] text-graytext-light">{usr.email} · {usr.city}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Organisations Section */}
-                {filteredOrgs.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-1 px-2">Organisations ({filteredOrgs.length})</div>
-                    <div className="space-y-1">
-                      {filteredOrgs.slice(0, 3).map((org) => (
-                        <button
-                          key={org.id}
-                          type="button"
-                          onClick={() => {
-                            setSearchOpen(false)
-                            if (role === 'admin') navigate('/admin/orgs')
-                            else navigate('/discover')
-                          }}
-                          className="w-full rounded-xl p-2 text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50"
-                        >
-                          <div className="text-[13px] font-semibold text-offwhite">{org.name}</div>
-                          <div className="text-[11px] text-graytext-light">Type: {org.type}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {filteredEvents.length === 0 && searchUsers.length === 0 && filteredOrgs.length === 0 && (
-                  <div className="p-4 text-center text-[13px] text-graytext-mid">No matching events, people, or orgs found.</div>
-                )}
+      {/* Mobile Nav Overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[60] bg-onyx/95 backdrop-blur-xl lg:hidden flex flex-col animate-[fadeIn_0.2s_ease-out]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <div className="flex items-center gap-2.5">
+              <Mandala size={30} />
+              <div className="text-[16px] font-bold leading-none tracking-wide text-offwhite">
+                EKATVA<span className="text-teal"> OS</span>
               </div>
-            )}
+            </div>
+            <button 
+              onClick={() => setMobileOpen(false)} 
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-graytext-light hover:text-offwhite transition-colors"
+            >
+              ✕
+            </button>
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-caption text-graytext-mid sm:block">
-              v1 · City-meetup lifecycle
-            </span>
-            <div className="relative" ref={notificationsRef}>
-              <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                aria-label="Notifications"
-                className={cx("grid h-9 w-9 place-items-center rounded-full border border-white/8 text-graytext-light hover:text-teal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/50", notificationsOpen ? 'bg-white/10 text-offwhite' : 'bg-white/5')}
+          
+          <nav className="flex-1 overflow-y-auto p-5 space-y-2">
+            {nav.map(item => (
+              item.subItems ? (
+                <div key={item.label} className="space-y-1">
+                  <div className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-graytext-mid mt-2">{item.label}</div>
+                  {item.subItems.map(sub => (
+                    <NavLink 
+                      key={sub.to} 
+                      to={sub.to} 
+                      onClick={() => setMobileOpen(false)} 
+                      className={({ isActive }) => 
+                        cx(
+                          'flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition duration-200 focus:outline-none',
+                          isActive || location.pathname === sub.to
+                            ? 'bg-teal/10 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
+                            : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
+                        )
+                      }
+                    >
+                      {sub.icon} {sub.label}
+                    </NavLink>
+                  ))}
+                </div>
+              ) : (
+                <NavLink 
+                  key={item.to!} 
+                  to={item.to!} 
+                  onClick={() => setMobileOpen(false)} 
+                  className={({ isActive }) => 
+                    cx(
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition duration-200 focus:outline-none',
+                      isActive || location.pathname === item.to
+                        ? 'bg-teal/10 text-teal shadow-[inset_2px_0_0_#5CE6C9]'
+                        : 'text-graytext-light hover:bg-white/5 hover:text-offwhite',
+                    )
+                  }
+                >
+                  {item.icon} {item.label}
+                </NavLink>
+              )
+            ))}
+          </nav>
+          
+          <div className="border-t border-white/5 p-5 bg-black/20">
+            <div className="flex items-center gap-3">
+              <div
+                className={cx(
+                  'grid h-10 w-10 place-items-center rounded-full text-[14px] font-bold',
+                  role === 'admin' ? 'bg-gold/15 text-gold' : 'bg-teal/15 text-teal',
+                )}
               >
-                <Icon d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                {name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-semibold text-offwhite">{name}</div>
+                <div className="truncate text-[12px] text-graytext-light">
+                  {currentUser?.por ?? ROLE_LABEL[role]} · {city}
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-graytext-mid hover:bg-white/5 hover:text-red-400 focus:outline-none transition-colors disabled:opacity-50"
+              >
+                {isLoggingOut ? (
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                )}
               </button>
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-teal ring-2 ring-onyx" />
-              {notificationsOpen && (
-                <NotificationsDropdown onClose={() => setNotificationsOpen(false)} />
-              )}
             </div>
           </div>
-        </header>
+        </div>
+      )}
 
-        <main className="relative flex-1 px-5 py-7 lg:px-8 lg:py-9">
-          <div className="mx-auto max-w-6xl animate-fade-up">
-            {isHomeRoute && <AcademicStatusBanner />}
-            {children}
-          </div>
-        </main>
+      {/* Main Content */}
+      <main className="relative flex-1 px-5 py-7 lg:px-8 lg:py-9">
+        <div className="mx-auto max-w-7xl animate-fade-up">
+          {isHomeRoute && <AcademicStatusBanner />}
+          {children}
+        </div>
+      </main>
 
-        <footer className="border-t border-white/5 px-5 py-5 text-center text-caption text-graytext-mid lg:px-8">
-          Ekatva OS · CodeCrafters Team-072 · A community operating system for the
-          IIT Madras BS ecosystem — <span className="text-gold">Unite. Inspire. Celebrate.</span>
-        </footer>
-      </div>
+      {/* Footer */}
+      <footer className="mt-auto border-t border-white/5 px-5 py-6 text-center text-[13px] text-graytext-mid lg:px-8">
+        Ekatva OS · CodeCrafters Team-072 · A community operating system for the
+        IIT Madras BS ecosystem — <span className="text-gold">Unite. Inspire. Celebrate.</span>
+      </footer>
 
       {editCityOpen && (
         <EditCityModal
@@ -408,11 +419,17 @@ export default function Layout({ children }: { children: ReactNode }) {
           onSaved={refreshUser}
         />
       )}
+
+      <ProfileModal 
+        isOpen={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+      />
+      <GlobalEventChatModal />
     </div>
   )
 }
 
-function EditCityModal({
+export function EditCityModal({
   currentCity,
   onClose,
   onSaved,

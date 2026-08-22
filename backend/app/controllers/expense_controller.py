@@ -28,6 +28,18 @@ def verify(expense_id):
     return jsonify(expense_service.advance(expense_id, g.current_user).to_dict()), 200
 
 
+@expense_bp.patch("/expenses/<expense_id>/amount")
+@admin_required
+def update_amount(expense_id):
+    """Allow admins to partially approve a reimbursement by lowering the amount."""
+    data = request.get_json() or {}
+    new_amount = data.get("amount")
+    if new_amount is None:
+        from ..errors import bad_request
+        return bad_request("Missing amount")
+    return jsonify(expense_service.update_amount(expense_id, int(new_amount), g.current_user).to_dict()), 200
+
+
 @expense_bp.get("/reimbursements")
 @admin_required
 def queue():

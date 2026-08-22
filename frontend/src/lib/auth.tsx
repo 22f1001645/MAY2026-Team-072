@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, setOnSessionExpired } from './api'
 import { useToast } from '../components/ui'
 import type { Account, Capabilities, Role } from './types'
@@ -24,8 +25,10 @@ interface AuthCtx {
     region_id: string
     city?: string
   }) => Promise<{ ok: boolean; error?: string }>
-  logout: () => void
+  logout: () => Promise<void>
+  updateCurrentUser: (updates: Partial<Account>) => void
   refreshUser: () => Promise<void>
+  isLoggingOut: boolean
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -34,9 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<Account | null>(null)
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { addToast } = useToast()
+  const queryClient = useQueryClient()
 
   // Register session expiry callback (D-06). api.ts calls this once per failed
   // refresh, so the toast and the redirect happen once however many requests
@@ -113,12 +118,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
+    setIsLoggingOut(true)
     try {
       await api.logout()
     } finally {
-      setCurrentUser(null)
-      setCapabilities(null)
-      navigate('/login')
+      // Clear react-query cache so data doesn't leak to the next login session
+      queryClient.clear()
+      // Use a hard redirect so AppShell is completely bypassed and destroyed. 
+      // This ensures AppShell doesn't catch the unauthenticated state mid-render 
+      // and redirect us back with state={{ from: '/organiser' }}
+      window.location.href = '/login'
     }
   }
 
@@ -128,8 +137,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCapabilities(user.capabilities)
   }
 
+  const updateCurrentUser = (updates: Partial<Account>) => {
+    setCurrentUser((prev) => (prev ? { ...prev, ...updates } : prev))
+  }
+
   return (
-    <Ctx.Provider value={{ currentUser, capabilities, loading, login, register, logout, refreshUser }}>
+    <Ctx.Provider value={{ currentUser, capabilities, loading, isLoggingOut, login, register, logout, refreshUser, updateCurrentUser }}>
       {children}
     </Ctx.Provider>
   )
@@ -149,12 +162,6 @@ export const DEMO_ACCOUNTS = [
 ]
 
 // Where each role lands after login.
-//
-// This is the one place `localStorage['ekatva_view']` is read (D-15): an
-// organiser who last used Student view comes back to the student home instead
-// of the organiser dashboard. It is read to pick a *landing route* only —
-// never to decide what the switcher renders, which is derived from the URL.
 export const homeFor = (role: Role) => {
-  if (role === 'organiser' && localStorage.getItem('ekatva_view') === 'student') return '/discover'
   return role === 'admin' ? '/admin/approvals' : role === 'organiser' ? '/organiser' : '/discover'
 }

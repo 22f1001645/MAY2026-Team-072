@@ -10,6 +10,7 @@ generated — retrofitting it later would mean rewriting migration history.
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 from sqlalchemy import MetaData
 
 # Alembic's documented recommended set. `ix_%(column_0_label)s` reproduces
@@ -24,6 +25,9 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
-db = SQLAlchemy(metadata=MetaData(naming_convention=NAMING_CONVENTION))
+metadata = MetaData(naming_convention=NAMING_CONVENTION)
+db = SQLAlchemy(metadata=metadata)
 migrate = Migrate()
 jwt = JWTManager()
+from flask_apscheduler import APScheduler
+scheduler = APScheduler()

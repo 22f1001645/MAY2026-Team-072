@@ -176,11 +176,15 @@ def reset_destructive(app):
     require_dev_database(app)
 
     with app.app_context():
+        db_url = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+        if not (db_url.startswith("sqlite://") or "localhost" in db_url or "127.0.0.1" in db_url):
+            raise RuntimeError("reset_db() refused to run against a non-dev DATABASE_URL")
+        print("Dropping all tables...")
+        # drop_all doesn't drop alembic_version, so we must drop it manually or use create_all+stamp
         db.drop_all()
         db.session.execute(text("DROP TABLE IF EXISTS alembic_version"))
         db.session.commit()
         alembic_upgrade(directory=MIGRATIONS_DIR)
-
 
 def _get_or_create_org(name, org_type, city):
     """Fetch an Organisation by its natural key, creating it only if absent.
@@ -366,7 +370,7 @@ def seed_demo_data(app):
             council_tier=COUNCIL_UPPER_HOUSE,
         ))
 
-        now = datetime(2026, 7, 23, 10, 0, 0)
+        now = datetime.utcnow()
 
         def make_activity(org, title, city, scale, days, venue, desc, cap, organiser, status,
                           budget, approved=True):
@@ -437,10 +441,7 @@ def seed_demo_data(app):
                                label="Private room booking", amount=5000, status="approved",
                                bill_name="venue-receipt.jpg", submitted_by=saiteja.id))
 
-        # A welcome notification for Arav
-        db.session.add(Notification(user_id=arav.id, activity_id=fest.id, type="reminder",
-                                    title="Tomorrow: Bangalore Board-Game Night",
-                                    body="5:30 PM at Cubbon Park Reads. Bring a friend."))
+
 
         db.session.commit()
 

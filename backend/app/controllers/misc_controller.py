@@ -23,7 +23,9 @@ def health():
 @misc_bp.get("/notifications")
 @auth_required
 def notifications():
-    items = NotificationRepository.for_user(g.current_user.id)
+    from flask import request
+    role = request.args.get("role", "student")
+    items = NotificationRepository.for_user(g.current_user.id, target_role=role)
     return jsonify([n.to_dict() for n in items]), 200
 
 
@@ -33,6 +35,26 @@ def mark_notifications_read():
     from ..models import Notification
     db.session.query(Notification).filter_by(user_id=g.current_user.id, read=False).update({"read": True})
     db.session.commit()
+    return jsonify({"ok": True}), 200
+
+
+@misc_bp.delete("/notifications")
+@auth_required
+def clear_notifications():
+    from ..models import Notification
+    db.session.query(Notification).filter_by(user_id=g.current_user.id).delete()
+    db.session.commit()
+    return jsonify({"ok": True}), 200
+
+
+@misc_bp.delete("/notifications/<notif_id>")
+@auth_required
+def delete_notification(notif_id):
+    from ..models import Notification
+    notif = db.session.query(Notification).filter_by(id=notif_id, user_id=g.current_user.id).first()
+    if notif:
+        db.session.delete(notif)
+        db.session.commit()
     return jsonify({"ok": True}), 200
 
 
@@ -79,3 +101,27 @@ def dashboard():
             "attended": sum(1 for r in regs if r.attendance is not None),
         }
     ), 200
+
+@misc_bp.post("/alerts/city")
+def subscribe_to_city_alerts():
+    from flask import request
+    from ..schemas import CityAlertSubscriptionCreate
+    from ..models import CityAlertSubscription
+    from ..errors import bad_request
+
+    schema = CityAlertSubscriptionCreate()
+    errors = schema.validate(request.json or {})
+    if errors:
+        return bad_request("Invalid data", details=errors)
+
+    data = schema.load(request.json)
+    email = data["email"].lower().strip()
+    city = data["city"].strip()
+
+    existing = db.session.query(CityAlertSubscription).filter_by(email=email, city=city).first()
+    if not existing:
+        sub = CityAlertSubscription(email=email, city=city)
+        db.session.add(sub)
+        db.session.commit()
+    
+    return jsonify({"ok": True, "message": "Subscribed successfully"}), 201

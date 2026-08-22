@@ -13,7 +13,7 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id):
         "scale": "local_meetup",
         "city": "Hyderabad",
         "org_id": org_id,
-        "starts_at": "2026-08-15T10:00:00",
+        "starts_at": "2026-09-15T10:00:00",
         "venue": "Test Venue",
         "capacity": 1,
         "description": "Testing waitlist logic",

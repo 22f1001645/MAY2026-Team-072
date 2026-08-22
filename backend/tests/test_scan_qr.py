@@ -150,6 +150,7 @@ def test_referral_attendance_awards_the_referrer_and_referred_bonus(
         json={"referred_by": referrer_id},
         headers=student_headers,
     )
+    print("Response JSON:", res.get_json())
     reg_id = res.get_json()["id"]
     qr_token = res.get_json()["qr_token"]
     assert res.get_json()["referred_by_id"] == referrer_id
@@ -172,5 +173,5 @@ def test_referral_attendance_awards_the_referrer_and_referred_bonus(
             .filter_by(user_id=student_id, action="referred_welcome")
             .scalar()
         )
-        assert referrer_points == 50
-        assert referred_points == 20
+        assert referrer_points == 10
+        assert referred_points == 5

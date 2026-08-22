@@ -144,6 +144,13 @@ class OrgSchema(Schema):
     bio = fields.Str(required=False, allow_none=True)
     logo_url = fields.Str(required=False, allow_none=True)
     banner_url = fields.Str(required=False, allow_none=True)
+    website = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    instagram = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    linkedin = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    x = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    youtube = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    facebook = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    github = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
 
 
 class OrgProfileSchema(Schema):

@@ -108,6 +108,10 @@ export default function Orgs() {
 
   const [societyTagline, setSocietyTagline] = useState('')
   const [societyDescription, setSocietyDescription] = useState('')
+  const [societyWebsite, setSocietyWebsite] = useState('')
+  const [societyInstagram, setSocietyInstagram] = useState('')
+  const [societyLinkedin, setSocietyLinkedin] = useState('')
+  const [societyX, setSocietyX] = useState('')
   const [societyLogoFile, setSocietyLogoFile] = useState<File | null>(null)
   const [societyLogoPreview, setSocietyLogoPreview] = useState<string | null>(null)
   const [societyBannerFile, setSocietyBannerFile] = useState<File | null>(null)
@@ -193,6 +197,10 @@ export default function Orgs() {
     setCategoryDropdownOpen(false)
     setSocietyTagline('')
     setSocietyDescription('')
+    setSocietyWebsite('')
+    setSocietyInstagram('')
+    setSocietyLinkedin('')
+    setSocietyX('')
     setSocietyLogoFile(null)
     setSocietyLogoPreview(null)
     setSocietyBannerFile(null)
@@ -279,6 +287,10 @@ export default function Orgs() {
     formData.append('category', societyCategory)
     if (societyTagline.trim()) formData.append('tagline', societyTagline.trim())
     if (societyDescription.trim()) formData.append('description', societyDescription.trim())
+    if (societyWebsite.trim()) formData.append('website', societyWebsite.trim())
+    if (societyInstagram.trim()) formData.append('instagram', societyInstagram.trim())
+    if (societyLinkedin.trim()) formData.append('linkedin', societyLinkedin.trim())
+    if (societyX.trim()) formData.append('x', societyX.trim())
     if (societyLogoFile) formData.append('logo', societyLogoFile)
     if (societyBannerFile) formData.append('banner', societyBannerFile)
 
@@ -1243,6 +1255,48 @@ export default function Orgs() {
                         />
                       </label>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Online Presence & Social Links (Optional) */}
+              <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+                <span className="text-caption font-semibold text-offwhite flex items-center gap-1.5">
+                  <span>🔗</span> Online Links & Social Media <span className="text-graytext-mid font-normal text-[11px]">(Optional)</span>
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">Official Website</label>
+                    <Input
+                      placeholder="https://society.example.org"
+                      value={societyWebsite}
+                      onChange={(e) => setSocietyWebsite(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">Instagram URL</label>
+                    <Input
+                      placeholder="https://instagram.com/..."
+                      value={societyInstagram}
+                      onChange={(e) => setSocietyInstagram(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">LinkedIn URL</label>
+                    <Input
+                      placeholder="https://linkedin.com/company/..."
+                      value={societyLinkedin}
+                      onChange={(e) => setSocietyLinkedin(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">X (Twitter) URL</label>
+                    <Input
+                      placeholder="https://x.com/..."
+                      value={societyX}
+                      onChange={(e) => setSocietyX(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>

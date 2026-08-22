@@ -314,10 +314,25 @@ export default function OrgProfile() {
 
           {(canEdit || hasLinks) && (
             <div className="mt-2 border-t border-white/5 pt-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[12px] font-semibold uppercase tracking-wider text-graytext-mid">Links & Socials</span>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTab('links')
+                      setEditModalOpen(true)
+                    }}
+                    className="text-[12px] font-medium text-teal hover:text-teal-accent hover:underline flex items-center gap-1 transition-colors"
+                  >
+                    <span>🔗</span> {hasLinks ? 'Edit links' : '+ Add links'}
+                  </button>
+                )}
+              </div>
               {hasLinks ? (
                 <SocialLinksRow links={org.socialLinks} website={effectiveWebsite} />
               ) : (
-                <p className="text-caption text-graytext-mid">No links yet.</p>
+                <p className="text-caption text-graytext-mid">No links added yet.</p>
               )}
               {canEdit && needsAttention > 0 && (
                 <div className="mt-3">

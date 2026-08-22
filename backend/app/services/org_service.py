@@ -1,8 +1,9 @@
 from ..constants import HOUSE_POR_TYPES, SOCIETY_POR_TYPES
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Membership, Organisation, PORAssignment
+from ..models import Membership, Organisation, OrganisationSocialLink, PORAssignment
 from ..repositories.repos import AuditRepository, OrgRepository, UserRepository
+from ..url_safety import check_social_url, check_website_url
 
 
 def create_org(data: dict, admin) -> Organisation:
@@ -23,6 +24,13 @@ def create_org(data: dict, admin) -> Organisation:
     logo_url = data.get("logo_url")
     banner_url = data.get("banner_url")
 
+    website = None
+    if data.get("website") and str(data.get("website")).strip():
+        val, err = check_website_url(str(data.get("website")).strip())
+        if err:
+            raise ApiError("Invalid website URL.", err, 400, {"field": "website"})
+        website = val
+
     org = Organisation(
         name=name,
         type=org_type,
@@ -32,8 +40,19 @@ def create_org(data: dict, admin) -> Organisation:
         bio=bio,
         logo_url=logo_url,
         banner_url=banner_url,
+        website=website,
     )
     db.session.add(org)
+    db.session.flush()
+
+    for platform in ["instagram", "linkedin", "x", "youtube", "facebook", "github"]:
+        val = data.get(platform)
+        if val and str(val).strip():
+            url, err = check_social_url(str(val).strip(), platform)
+            if err:
+                raise ApiError(f"Invalid {platform} URL.", err, 400, {"platform": platform})
+            db.session.add(OrganisationSocialLink(org_id=org.id, platform=platform, url=url))
+
     AuditRepository.record("organisation", org.id, f"Created {org_type}: {org.name}", admin, org.name)
     db.session.commit()
     return org

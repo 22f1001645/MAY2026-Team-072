@@ -1,7 +1,7 @@
 from ..constants import PROPOSAL_APPROVED, EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Notification, Registration, Announcement, ContributionPoint, User
+from ..models import Notification, Registration, Announcement
 from ..repositories.repos import ActivityRepository, RegistrationRepository
 import secrets
 
@@ -30,8 +30,6 @@ def register(activity_id: str, student, referred_by_id: str = None) -> Registrat
     qr_token = secrets.token_urlsafe(32)
     reg = Registration(activity_id=activity_id, student_id=student.id, status=reg_status, referred_by_id=referred_by_id, qr_token=qr_token)
     db.session.add(reg)
-    if referred_by_id:
-        db.session.add(ContributionPoint(user_id=referred_by_id, amount=50, reason=f'Referral bonus for {activity.title}', activity_id=activity_id))
 
     if is_waitlisted:
         title = "You're on the waitlist"

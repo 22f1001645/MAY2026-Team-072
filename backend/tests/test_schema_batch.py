@@ -25,16 +25,20 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "28e263e26786" # 28e263e26786 — add main branch columns
+HEAD_REVISION = "f53685e71b8e" # f53685e71b8e — add target_role to notifications
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 8
+EXPECTED_REVISION_COUNT = 10
 # 7th: f997686e136b adds organisations.website — ORG-02 decision D-03 models the
 # organisation's own site as a distinct column rather than a `platform` row on
 # organisation_social_links, so the host-allowlist guarantee stays true of every
 # social-link row without a carve-out. Additive, nullable, no reseed.
+# 9th: fb6abd48384e adds city_alert_subscriptions — student-dashboard feature,
+# additive new table, no reseed.
+# 10th: f53685e71b8e adds notifications.target_role — student-dashboard feature,
+# additive nullable column, no reseed.
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {

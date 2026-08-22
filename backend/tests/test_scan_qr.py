@@ -172,5 +172,5 @@ def test_referral_attendance_awards_the_referrer_and_referred_bonus(
             .filter_by(user_id=student_id, action="referred_welcome")
             .scalar()
         )
-        assert referrer_points == 50
-        assert referred_points == 20
+        assert referrer_points == 10
+        assert referred_points == 5

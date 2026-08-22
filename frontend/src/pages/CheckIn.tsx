@@ -67,6 +67,7 @@ export default function CheckIn() {
   const checkInMut = useCheckIn()
   const scanQrMut = useScanQr()
   const [q, setQ] = useState('')
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [scanResult, setScanResult] = useState<{ status: 'success' | 'duplicate' | 'error'; message: string } | null>(null)
   const lastScannedId = useRef<string | null>(null)
 
@@ -124,8 +125,17 @@ export default function CheckIn() {
   )
 
   const toggle = (reg: any) => {
-    if (reg.attended || checkInMut.isPending || !e) return // check-in is one-way
-    checkInMut.mutate({ id: e.id, ids: [reg.id] })
+    if (reg.attended || pendingIds.has(reg.id) || !e) return // check-in is one-way
+    setPendingIds(prev => new Set(prev).add(reg.id))
+    checkInMut.mutate({ id: e.id, ids: [reg.id] }, {
+      onSettled: () => {
+        setPendingIds(prev => {
+          const next = new Set(prev)
+          next.delete(reg.id)
+          return next
+        })
+      }
+    })
   }
 
   return (
@@ -278,7 +288,7 @@ export default function CheckIn() {
                               variant={r.attended ? 'ghost' : 'secondary'}
                               size="sm"
                               onClick={() => toggle(r)}
-                              disabled={r.attended || checkInMut.isPending}
+                              disabled={r.attended || pendingIds.has(r.id)}
                             >
                               {r.attended ? 'Arrived' : 'Check in'}
                             </Button>

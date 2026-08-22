@@ -11,6 +11,8 @@ import { cover, daysUntil, formatDate, formatTime, scaleLabel, cx, googleCalenda
 import EventChat from '../components/EventChat'
 import CollabStatus from '../components/CollabStatus'
 import { viewFromPathname } from '../components/ViewSwitcher'
+import PublicEventLanding from './PublicEventLanding'
+import InviteSearchBlock from '../components/InviteSearchBlock'
 
 /**
  * EventDetail also serves the shared registration link, which a visitor opens
@@ -34,7 +36,7 @@ export default function EventDetail() {
   const navigate = useNavigate()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: myRegs = [] } = useMyRegistrations(!!currentUser)
-  const { data: announcements = [] } = useAnnouncements(id)
+  const { data: announcements = [] } = useAnnouncements(currentUser ? id : undefined)
   const registerMut = useRegister()
   const unregisterMut = useUnregister()
   const respondCollabMut = useRespondCollab()
@@ -45,9 +47,12 @@ export default function EventDetail() {
   // The `currentUser` term is stated rather than inferred: without it an
   // anonymous visitor whose `role` is not 'student' would open the organiser
   // face of the page. It cannot happen today (role falls back to 'student'),
-  // which is exactly why it is worth pinning here.
+  // which is exactly why it is worth pinning here. We also enforce that they 
+  // must be actively viewing the page from the /organiser path via the toggle.
   const canManage =
-    !!currentUser && (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
+    viewFromPathname(location.pathname) === 'organiser' && 
+    !!currentUser && 
+    (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
@@ -62,6 +67,11 @@ export default function EventDetail() {
         </Link>
       </Card>
     )
+
+  // RENDER CINEMATIC PUBLIC LANDING PAGE IF NOT LOGGED IN
+  if (!currentUser) {
+    return <PublicEventLanding e={e} refId={refId} />
+  }
 
   const registration = myRegs.find((r: any) => r.activity_id === e.id)
   const registered = !!registration
@@ -389,27 +399,11 @@ export default function EventDetail() {
                           : 'A confirmation and reminders will reach you. See you there.'}
                       </p>
                     </div>
-                    {/* Share Invite Link */}
+                    {/* Invite Friends Block */}
                     {!isWaitlisted && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-4 w-full text-gold hover:text-gold border border-gold/20 hover:bg-gold/10"
-                        onClick={() => {
-                          const inviteUrl = `${window.location.origin}/events/${e.id}?ref=${currentUser?.id ?? currentUserId ?? ''}`
-                          navigator.clipboard.writeText(inviteUrl)
-                          addToast('Invite link copied! Earn points for every friend who registers.')
-                        }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2 inline-block">
-                          <circle cx="18" cy="5" r="3"></circle>
-                          <circle cx="6" cy="12" r="3"></circle>
-                          <circle cx="18" cy="19" r="3"></circle>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
-                        Share invite link
-                      </Button>
+                      <div className="mt-4">
+                        <InviteSearchBlock eventId={e.id} />
+                      </div>
                     )}
 
                     <div className="mt-2 flex gap-2">

@@ -829,6 +829,7 @@ class Notification(Base):
     type = db.Column(db.String(20), default="update")
     title = db.Column(db.String(200))
     body = db.Column(db.Text)
+    action_url = db.Column(db.String(500), nullable=True)
     read = db.Column(db.Boolean, default=False)
 
     activity = db.relationship("Activity")
@@ -839,6 +840,7 @@ class Notification(Base):
             "type": self.type,
             "title": self.title,
             "body": self.body,
+            "action_url": self.action_url,
             "read": self.read,
             "activity_id": self.activity_id,
             "activity_title": self.activity.title if self.activity else None,

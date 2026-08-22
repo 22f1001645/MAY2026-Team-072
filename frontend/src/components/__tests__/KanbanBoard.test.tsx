@@ -117,7 +117,8 @@ describe('KanbanBoard', () => {
     const user = userEvent.setup()
     const { onUpdate } = renderBoard({ tasks: [task({ id: 't-1', status: 'todo' })] })
 
-    await user.selectOptions(screen.getByLabelText('Task status'), 'in_progress')
+    await user.click(screen.getByLabelText('Task status'))
+    await user.click(screen.getByRole('button', { name: 'In Progress' }))
 
     expect(onUpdate).toHaveBeenCalledTimes(1)
     const [id, patch] = onUpdate.mock.calls[0]
@@ -132,7 +133,8 @@ describe('KanbanBoard', () => {
 
     await user.click(screen.getByRole('button', { name: '+ Add task' }))
     await user.type(screen.getByPlaceholderText('Task title'), 'Print the banners')
-    await user.selectOptions(screen.getByLabelText('Assignee'), 'u-2')
+    await user.click(screen.getByLabelText('Assignee'))
+    await user.click(screen.getByText('Arav Menon · Logistics'))
     await user.type(screen.getByLabelText('Deadline'), '2026-09-01')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 

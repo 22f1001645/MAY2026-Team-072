@@ -58,16 +58,16 @@ describe('FormFieldRow', () => {
   it('renders the label and type controls, and no options editor, for a text field', () => {
     renderRow()
     expect(labelInput()).toHaveValue('T-shirt size')
-    expect(screen.getByLabelText('Field type')).toHaveValue('text')
+    expect(screen.getByLabelText('Field type')).toHaveTextContent('Text')
     expect(optionsInput()).not.toBeInTheDocument()
   })
 
-  it('offers exactly the types the server named', () => {
+  it('offers exactly the types the server named', async () => {
+    const user = userEvent.setup()
     renderRow({ fieldTypes: ['text', 'dropdown'] })
-    const values = Array.from(
-      screen.getByLabelText('Field type').querySelectorAll('option'),
-    ).map(o => (o as HTMLOptionElement).value)
-    expect(values).toEqual(['text', 'dropdown'])
+    await user.click(screen.getByLabelText('Field type'))
+    expect(screen.getByRole('button', { name: 'Text' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dropdown' })).toBeInTheDocument()
   })
 
   it('reveals the options editor once the type is dropdown', () => {

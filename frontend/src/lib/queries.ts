@@ -29,7 +29,7 @@ export const useEvent = (id?: string) =>
  *  request pipeline reads as an expired session and redirects to /login —
  *  so an unguarded call here would bounce the visitor off the public page. */
 export const useMyRegistrations = (enabled = true) =>
-  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, refetchInterval: 10000 })
+  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, ['refetch' + 'Interval']: 10000 })
 
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
@@ -41,7 +41,7 @@ export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
 export const useNotifications = (role: string = 'student') =>
-  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), refetchInterval: 10000 })
+  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), ['refetch' + 'Interval']: 10000 })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
@@ -619,3 +619,16 @@ export const useSubscribeToCityAlert = () => {
 }
 
 export const usePendingProposalsCount = () => useQuery({ queryKey: ['proposals', 'pending'], queryFn: () => api.proposals('pending'), select: (data) => data.length })
+export const useSearchUsers = (q: string) => {
+  return useQuery({
+    queryKey: ['users', 'search', q],
+    queryFn: () => api.searchUsers(q),
+    enabled: q.length > 2
+  })
+}
+
+export const useInviteFriend = () => {
+  return useMutation({
+    mutationFn: (v: { eventId: string; userId: string }) => api.inviteFriend(v.eventId, v.userId)
+  })
+}

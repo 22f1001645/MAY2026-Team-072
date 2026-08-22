@@ -1,4 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { useNotifications, useMarkNotificationsRead, useClearNotifications, useDeleteNotification } from '../lib/queries'
 import { Badge, Mandala } from './ui'
@@ -45,6 +46,7 @@ function ago(iso?: string) {
 }
 
 export default function NotificationsDropdown({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate()
   const { role } = useSession()
   const { data: items = [], isLoading, isError } = useNotifications(role)
   const markReadMutation = useMarkNotificationsRead()
@@ -201,7 +203,14 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
             return (
               <div
                 key={n.id}
-                onClick={() => setExpandedId(isExpanded ? null : n.id)}
+                onClick={() => {
+                  if (n.action_url) {
+                    navigate(n.action_url)
+                    onClose()
+                  } else {
+                    setExpandedId(isExpanded ? null : n.id)
+                  }
+                }}
                 className={cx(
                   'cursor-pointer rounded-2xl p-4 transition-all duration-300 flex gap-4 relative overflow-hidden group',
                   !n.read 

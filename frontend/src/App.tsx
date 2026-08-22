@@ -165,7 +165,7 @@ function AppShell() {
         {/* Readable by anyone signed in; the editing surface inside it is gated
             on capabilities.manageableOrgIds. Registering it here rather than
             beside the public routes is what makes it protected for free. */}
-        <Route path="/orgs/:orgId" element={<RequireStudent><OrgProfile /></RequireStudent>} />
+        <Route path="/orgs/:orgId" element={<OrgProfile />} />
 
         {/* Organiser */}
         <Route path="/organiser" element={<RequireOrganiser><OrganiserDashboard /></RequireOrganiser>} />

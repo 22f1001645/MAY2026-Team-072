@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import {
   useCapabilities,
   useOrgProfile,
@@ -47,10 +48,11 @@ export default function OrgProfile() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { addToast } = useToast()
+  const { currentUser } = useAuth()
 
   const { data: capabilities } = useCapabilities()
   const manageableOrgIds = capabilities?.manageableOrgIds ?? NO_ORGS
-  const canEdit = manageableOrgIds.includes(orgId)
+  const canEdit = currentUser?.role === 'admin' || manageableOrgIds.includes(orgId)
 
   const { data: org, isLoading, isError, error } = useOrgProfile(orgId)
 

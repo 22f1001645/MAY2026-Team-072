@@ -23,9 +23,7 @@ def health():
 @misc_bp.get("/notifications")
 @auth_required
 def notifications():
-    from flask import request
-    role = request.args.get("role", "student")
-    items = NotificationRepository.for_user(g.current_user.id, target_role=role)
+    items = NotificationRepository.for_user(g.current_user.id)
     return jsonify([n.to_dict() for n in items]), 200
 
 

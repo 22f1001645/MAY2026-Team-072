@@ -58,16 +58,24 @@ describe('FormFieldRow', () => {
   it('renders the label and type controls, and no options editor, for a text field', () => {
     renderRow()
     expect(labelInput()).toHaveValue('T-shirt size')
-    expect(screen.getByLabelText('Field type')).toHaveValue('text')
+    // The type control is a custom popover, not a native <select>: it shows the
+    // selected type as its own label and only renders the choices once opened.
+    expect(screen.getByLabelText('Field type')).toHaveTextContent('Text')
     expect(optionsInput()).not.toBeInTheDocument()
   })
 
-  it('offers exactly the types the server named', () => {
+  it('offers exactly the types the server named', async () => {
+    const user = userEvent.setup()
     renderRow({ fieldTypes: ['text', 'dropdown'] })
-    const values = Array.from(
-      screen.getByLabelText('Field type').querySelectorAll('option'),
-    ).map(o => (o as HTMLOptionElement).value)
-    expect(values).toEqual(['text', 'dropdown'])
+
+    await user.click(screen.getByLabelText('Field type'))
+
+    // Scoped to the popover the trigger owns, so the row's own buttons (the
+    // trigger itself, the remove ✕) cannot be mistaken for type choices.
+    const trigger = screen.getByLabelText('Field type')
+    const popover = trigger.parentElement!.querySelector('div')!
+    const choices = Array.from(popover.querySelectorAll('button')).map(b => b.textContent)
+    expect(choices).toEqual(['Text', 'Dropdown'])
   })
 
   it('reveals the options editor once the type is dropdown', () => {

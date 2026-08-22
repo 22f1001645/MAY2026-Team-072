@@ -40,8 +40,17 @@ export const useLeaderboard = (city?: string) =>
 export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
+/** Notifications for the current view. The view is applied HERE, on the result,
+ *  never as a request parameter — it must not reach the wire (D-18). One query
+ *  key for every view, so switching views re-filters cached rows instead of
+ *  refetching. */
 export const useNotifications = (role: string = 'student') =>
-  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), refetchInterval: 10000 })
+  useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.notifications(),
+    refetchInterval: 10000,
+    select: (rows: any[]) => rows.filter((n) => (n.target_role ?? 'student') === role),
+  })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
@@ -626,6 +635,13 @@ export const useDraftExpensesMutation = () => {
       qc.invalidateQueries({ queryKey: ['expenses', activityId] }),
   })
 }
+
+/** REIMB-01: attach a receipt or invoice, before the row is drafted or after. */
+export const useUploadExpenseBill = () =>
+  useMutation({
+    mutationFn: ({ activityId, file }: { activityId: string; file: File }) =>
+      api.uploadExpenseBill(activityId, file),
+  })
 
 /** FEEDBACK-01: auto-save challenges/learnings on blur; Meetup Head submit. */
 export const usePatchReportMutation = () => {

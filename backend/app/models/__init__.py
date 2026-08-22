@@ -830,6 +830,9 @@ class Notification(Base):
         return {
             "id": self.id,
             "type": self.type,
+            # Which view this notification belongs to. The client filters on it,
+            # because the view never travels to the server (D-18).
+            "target_role": self.target_role,
             "title": self.title,
             "body": self.body,
             "read": self.read,

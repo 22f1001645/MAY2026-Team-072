@@ -62,34 +62,36 @@ function ReadyProbe() {
   return <div data-testid="auth">{loading ? 'loading' : 'ready'}</div>
 }
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
 function renderAt(path: string, isOrganiser = true) {
   session.account = account(isOrganiser)
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <ReadyProbe />
-        <LocationProbe />
-        <ViewSwitcher />
-      </AuthProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <AuthProvider>
+          <ReadyProbe />
+          <LocationProbe />
+          <ViewSwitcher />
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
 const settled = () => screen.findByText('ready')
-const segment = (name: string) => screen.getByRole('radio', { name })
+const getSwitch = () => screen.getByRole('switch', { name: 'Use Organiser view' })
 
 beforeEach(() => {
   localStorage.clear()
 })
 
 describe('ViewSwitcher (S1, D-15 to D-18)', () => {
-  it('renders exactly two segments for an organiser', async () => {
+  it('renders a switch for an organiser', async () => {
     renderAt('/discover')
     await settled()
-
-    const segments = await screen.findAllByRole('radio')
-    expect(segments.map((s) => s.textContent)).toEqual(['Student', 'Organiser'])
-    expect(screen.getByRole('radiogroup')).toHaveAttribute('aria-label', 'Dashboard view')
+    expect(await screen.findByRole('switch', { name: 'Use Organiser view' })).toBeInTheDocument()
   })
 
   it('renders nothing at all for a single-role student, and drops the stored view', async () => {
@@ -97,32 +99,24 @@ describe('ViewSwitcher (S1, D-15 to D-18)', () => {
     renderAt('/discover', false)
     await settled()
 
-    // No disabled state, no ghost, no reserved space (D-17, S1 empty case).
-    expect(screen.queryByRole('radiogroup')).toBeNull()
-    expect(screen.queryAllByRole('radio')).toHaveLength(0)
-    // Lapsed PORs take the stored view with them — the same branch, one rule.
+    expect(screen.queryByRole('switch')).toBeNull()
     expect(localStorage.getItem('ekatva_view')).toBeNull()
   })
 
   it('keeps the stored view across a cold load (D-15 persistence)', async () => {
-    // Capabilities are null until /auth/refresh → /auth/me resolves, so a lapse
-    // cleanup that does not wait for that reads "not an organiser" on the first
-    // render of every page load and wipes the stored view. That failure is
-    // invisible in the UI — the switcher still renders correctly from the URL —
-    // and only shows up as "my view never survives a reload". Hence its own test.
     localStorage.setItem('ekatva_view', 'organiser')
-    renderAt('/discover')
+    renderAt('/events/ev-ekatva-hyd/manage')
     await settled()
 
+    expect(getSwitch()).toBeChecked()
     expect(localStorage.getItem('ekatva_view')).toBe('organiser')
   })
 
-  it('checks the segment matching the current pathname', async () => {
+  it('checks the switch matching the current pathname', async () => {
     renderAt('/discover')
     await settled()
 
-    expect(await screen.findByRole('radio', { name: 'Student' })).toBeChecked()
-    expect(segment('Organiser')).not.toBeChecked()
+    expect(await screen.findByRole('switch', { name: 'Use Organiser view' })).not.toBeChecked()
   })
 
   it('navigates to that view and stores the choice on activation', async () => {
@@ -130,7 +124,7 @@ describe('ViewSwitcher (S1, D-15 to D-18)', () => {
     renderAt('/organiser')
     await settled()
 
-    await user.click(await screen.findByRole('radio', { name: 'Student' }))
+    await user.click(screen.getByText('Student'))
 
     expect(screen.getByTestId('pathname')).toHaveTextContent('/discover')
     expect(localStorage.getItem('ekatva_view')).toBe('student')
@@ -144,7 +138,6 @@ describe('ViewSwitcher (S1, D-15 to D-18)', () => {
     renderAt('/events/ev-ekatva-hyd/manage')
     await settled()
 
-    expect(await screen.findByRole('radio', { name: 'Organiser' })).toBeChecked()
-    expect(segment('Student')).not.toBeChecked()
+    expect(await screen.findByRole('switch', { name: 'Use Organiser view' })).toBeChecked()
   })
 })

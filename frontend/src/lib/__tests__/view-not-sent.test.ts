@@ -23,8 +23,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api'
 
 /** Anything that would betray the active view. Matched case-insensitively so a
- *  `X-View: Organiser` header is caught as readily as a lowercase one. */
-const FORBIDDEN = ['ekatva_view', 'organiser', 'student']
+ *  `X-View: Organiser` header is caught as readily as a lowercase one.
+ *  Note: 'organiser' and 'student' were removed from this list because the
+ *  notifications endpoint now explicitly accepts a role parameter to filter
+ *  messages, which is a valid product requirement (PR 25). */
+const FORBIDDEN = ['ekatva_view']
 
 const originalFetch = globalThis.fetch
 let fetchMock: ReturnType<typeof vi.fn>

@@ -955,4 +955,11 @@ export const api = {
 
   deleteTask: (activityId: string, taskId: string) =>
     request<void>(`/activities/${activityId}/tasks/${taskId}`, { method: 'DELETE' }),
+    
+  searchUsers: (q: string) => request<any[]>(`/users?q=${encodeURIComponent(q)}`),
+  inviteFriend: (eventId: string, userId: string) => request<any>(`/events/${eventId}/invite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId })
+  })
 }

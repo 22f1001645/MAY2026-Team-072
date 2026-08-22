@@ -157,3 +157,30 @@ def test_event_tags_fetching(client, app, rc_headers, admin_headers):
     event = [e for e in events if e["id"] == activity_id][0]
     assert "Testing" in event["tags"]
     assert "Tagging" in event["tags"]
+
+def test_invite_friend(client, app, student_headers, admin_headers, rc_headers):
+    # Setup an event
+    with app.app_context():
+        from app.models import User, Organisation
+        o_id = Organisation.query.filter_by(name="Hyderabad Regional Chapter").first().id
+        s_id = User.query.filter_by(email="arav@ekatva.os").first().id
+        s2 = User.query.filter_by(email="crew@ekatva.os").first()
+        s2_id = s2.id
+
+    activity_id = _setup_approved_event(client, rc_headers, admin_headers, o_id)
+
+    # Student 1 invites Student 2
+    res = client.post(f"/api/v1/events/{activity_id}/invite", json={"user_id": s2_id}, headers=student_headers)
+    assert res.status_code == 201
+    assert res.get_json()["type"] == "invite"
+
+    # Verify notification was created for Student 2
+    with app.app_context():
+        from app.models import Notification
+        notifs = Notification.query.filter_by(user_id=s2_id).all()
+        assert len(notifs) >= 1
+        invite_notifs = [n for n in notifs if n.type == "invite"]
+        assert len(invite_notifs) == 1
+        notif = invite_notifs[0]
+        assert "invited you to" in notif.title
+        assert activity_id in notif.body

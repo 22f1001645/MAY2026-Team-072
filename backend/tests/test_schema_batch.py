@@ -25,7 +25,7 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "f53685e71b8e" # f53685e71b8e – add target role to notifications
+HEAD_REVISION = "f53685e71b8e" # f53685e71b8e — add target role to notifications
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update – deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a

@@ -1,7 +1,7 @@
 from ..constants import PROPOSAL_APPROVED, EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Notification, Registration, Announcement
+from ..models import Notification, Registration, Announcement, User
 from ..repositories.repos import ActivityRepository, RegistrationRepository
 import secrets
 

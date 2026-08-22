@@ -1,7 +1,7 @@
 """Marshmallow schemas — request validation only (422 on failure).
 
 Responses are shaped by each model's to_dict(); these guard the write paths."""
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, ValidationError, fields, validate, validates
 
 from ..constants import (
     ACADEMIC_LEVELS,
@@ -13,6 +13,7 @@ from ..constants import (
     COLLAB_DECLINED,
     FORM_FIELD_TYPES,
     SOCIAL_PLATFORM_KEYS,
+    STUDENT_EMAIL_DOMAIN,
     TASK_STATUSES,
     TEAM_ROLES,
     UPLOAD_URL_PATTERN,
@@ -26,6 +27,18 @@ class RegisterSchema(Schema):
     password = fields.Str(required=True, validate=validate.Length(min=6))
     region_id = fields.Str(required=True)            # Official 10-region anchor
     city = fields.Str(load_default=None, allow_none=True)  # Specific city (optional)
+
+    @validates("email")
+    def validate_student_email(self, value):
+        """Only IIT Madras online-degree student addresses are permitted.
+
+        The domain is a single constant (STUDENT_EMAIL_DOMAIN) so the rule lives
+        in one place. Lowercase before comparing so casing accidents are not
+        a silent bypass."""
+        if not value.lower().endswith(f"@{STUDENT_EMAIL_DOMAIN}"):
+            raise ValidationError(
+                f"Only @{STUDENT_EMAIL_DOMAIN} email addresses are accepted."
+            )
 
 
 class LoginSchema(Schema):
@@ -122,9 +135,15 @@ class PORSchema(Schema):
 
 
 class OrgSchema(Schema):
-    name = fields.Str(required=True)
-    type = fields.Str(required=True, validate=validate.OneOf(["house", "society", "region", "council"]))
-    city = fields.Str(required=True)
+    name = fields.Str(required=True, validate=validate.Length(min=1, max=150))
+    type = fields.Str(load_default="society", validate=validate.OneOf(["house", "society", "region", "council"]))
+    city = fields.Str(required=False, allow_none=True, load_default="Online")
+    category = fields.Str(required=False, allow_none=True, validate=validate.Length(max=80))
+    tagline = fields.Str(required=False, allow_none=True, validate=validate.Length(max=255))
+    description = fields.Str(required=False, allow_none=True)
+    bio = fields.Str(required=False, allow_none=True)
+    logo_url = fields.Str(required=False, allow_none=True)
+    banner_url = fields.Str(required=False, allow_none=True)
 
 
 class OrgProfileSchema(Schema):

@@ -35,6 +35,73 @@ def test_create_org_by_admin(client, admin_headers):
     assert body["type"] == "society"
 
 
+def test_create_society_with_metadata_and_branding(client, admin_headers):
+    res = client.post(
+        "/api/v1/orgs",
+        json={
+            "name": "Kala Arts Society",
+            "type": "society",
+            "category": "Arts",
+            "tagline": "Unleash your inner artist",
+            "description": "Platform for painting, sketching, and digital arts.",
+            "logo_url": "/api/v1/uploads/kala_logo.png",
+            "banner_url": "/api/v1/uploads/kala_banner.png",
+        },
+        headers=admin_headers,
+    )
+    assert res.status_code == 201
+    body = res.get_json()
+    assert body["name"] == "Kala Arts Society"
+    assert body["category"] == "Arts"
+    assert body["tagline"] == "Unleash your inner artist"
+    assert body["description"] == "Platform for painting, sketching, and digital arts."
+    assert body["logo_url"] == "/api/v1/uploads/kala_logo.png"
+    assert body["banner_url"] == "/api/v1/uploads/kala_banner.png"
+
+
+def test_create_society_duplicate_name_returns_409(client, admin_headers):
+    client.post(
+        "/api/v1/orgs",
+        json={"name": "Literary Guild", "type": "society", "category": "Literature"},
+        headers=admin_headers,
+    )
+    res = client.post(
+        "/api/v1/orgs",
+        json={"name": "literary guild", "type": "society", "category": "Literature"},
+        headers=admin_headers,
+    )
+    assert res.status_code == 409
+    assert res.get_json()["code"] == "name_taken"
+
+
+def test_create_society_multipart_form_with_uploads(client, admin_headers):
+    import io
+    # 1x1 PNG bytes
+    png_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82"
+    
+    data = {
+        "name": "Sports & Fitness Club",
+        "type": "society",
+        "category": "Sports",
+        "tagline": "Fitness for everyone",
+        "description": "All campus sports and fitness events.",
+        "logo": (io.BytesIO(png_bytes), "logo.png"),
+        "banner": (io.BytesIO(png_bytes), "banner.png"),
+    }
+    res = client.post(
+        "/api/v1/orgs",
+        data=data,
+        content_type="multipart/form-data",
+        headers=admin_headers,
+    )
+    assert res.status_code == 201
+    body = res.get_json()
+    assert body["name"] == "Sports & Fitness Club"
+    assert body["category"] == "Sports"
+    assert body["logo_url"].startswith("/api/v1/uploads/")
+    assert body["banner_url"].startswith("/api/v1/uploads/")
+
+
 def test_create_org_by_student_forbidden(client, student_headers):
     res = client.post(
         "/api/v1/orgs",
@@ -263,7 +330,7 @@ def test_duplicate_secretary_assignment_blocked(client, admin_headers):
 def test_duplicate_rc_assignment_blocked(client, admin_headers):
     house = Organisation.query.filter_by(type="house").first()
     region = Organisation.query.filter_by(type="region").first()
-    student = User.query.filter_by(role="student").first()
+    student = User.query.filter_by(email="arav@ekatva.os").first()
 
     # First RC assignment
     res1 = client.post(

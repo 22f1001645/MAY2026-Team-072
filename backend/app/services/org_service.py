@@ -1,3 +1,4 @@
+from ..constants import HOUSE_POR_TYPES, SOCIETY_POR_TYPES
 from ..errors import ApiError
 from ..extensions import db
 from ..models import Membership, Organisation, PORAssignment
@@ -5,9 +6,35 @@ from ..repositories.repos import AuditRepository, OrgRepository, UserRepository
 
 
 def create_org(data: dict, admin) -> Organisation:
-    org = Organisation(name=data["name"], type=data["type"], city=data["city"])
+    name = (data.get("name") or "").strip()
+    if not name:
+        raise ApiError("Organisation name is required.", "name_required", 400)
+
+    # Enforce unique organisation / society name
+    existing = Organisation.query.filter(db.func.lower(Organisation.name) == name.lower()).first()
+    if existing:
+        raise ApiError(f"An organisation or society named '{name}' already exists.", "name_taken", 409)
+
+    org_type = data.get("type", "society")
+    city = data.get("city") or "Online"
+    category = data.get("category")
+    tagline = data.get("tagline")
+    bio = data.get("description") or data.get("bio")
+    logo_url = data.get("logo_url")
+    banner_url = data.get("banner_url")
+
+    org = Organisation(
+        name=name,
+        type=org_type,
+        city=city,
+        category=category,
+        tagline=tagline,
+        bio=bio,
+        logo_url=logo_url,
+        banner_url=banner_url,
+    )
     db.session.add(org)
-    AuditRepository.record("organisation", org.id, "Seeded organisation", admin, org.name)
+    AuditRepository.record("organisation", org.id, f"Created {org_type}: {org.name}", admin, org.name)
     db.session.commit()
     return org
 
@@ -23,27 +50,43 @@ def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin, regio
         raise ApiError("Member not found by ID or email", "user_not_found", 404)
     user_id = user.id
 
-    # Guardrail 0: House-scoped POR types must only be assigned to House orgs
-    HOUSE_ONLY_POR_TYPES = {"House Secretary", "Deputy House Secretary", "Regional Coordinator", "Web Admin"}
-    if por_type in HOUSE_ONLY_POR_TYPES and org.type != "house":
+    # Guardrail 0a: Entity-scoped POR types must only be assigned to matching org types
+    house_only_por_types = set(HOUSE_POR_TYPES)
+    society_only_por_types = set(SOCIETY_POR_TYPES)
+
+    if por_type in house_only_por_types and org.type != "house":
         raise ApiError(
             f"'{por_type}' can only be assigned to a Forest House, not a {org.type}.",
             "invalid_org_type_for_por",
             400,
         )
+    if por_type in society_only_por_types and org.type != "society":
+        raise ApiError(
+            f"'{por_type}' can only be assigned to a Society, not a {org.type}.",
+            "invalid_org_type_for_por",
+            400,
+        )
+
+    # Guardrail 0b: Regional Coordinator requires a region selection
+    if por_type == "Regional Coordinator" and not region_id:
+        raise ApiError("Region selection is required for Regional Coordinator assignment", "region_required", 400)
 
     # Auto-determine council tier from position type
     upper_positions = {"House Secretary", "Deputy House Secretary"}
     lower_positions = {"Regional Coordinator"}
+    society_leadership = {"Society Secretary", "Society Deputy Secretary"}
     if por_type in upper_positions:
         council_tier = "upper_house_council"
     elif por_type in lower_positions:
         council_tier = "lower_house_council"
+    elif por_type in society_leadership:
+        council_tier = "society_core"
     else:
         council_tier = None
 
-    # Guardrail 1: House Secretary / Deputy House Secretary uniqueness per House
-    if por_type in upper_positions:
+    # Guardrail 1: Single-seat positions uniqueness per Org (House or Society)
+    single_seat_positions = upper_positions | society_leadership
+    if por_type in single_seat_positions:
         existing = (
             PORAssignment.query.join(Membership)
             .filter(
@@ -62,8 +105,6 @@ def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin, regio
 
     # Guardrail 2: Regional Coordinator uniqueness per House + Region pair
     if por_type == "Regional Coordinator":
-        if not region_id:
-            raise ApiError("Region selection is required for Regional Coordinator assignment", "region_required", 400)
         existing = (
             PORAssignment.query.join(Membership)
             .filter(
@@ -82,6 +123,25 @@ def assign_por(org_id: str, user_id: str, por_type: str, term: str, admin, regio
                 "rc_slot_already_filled",
                 409,
             )
+
+    # Guardrail 3: A student cannot hold the same PoR type more than once at a
+    # time across any org.
+    existing_for_user = (
+        PORAssignment.query.join(Membership)
+        .filter(
+            Membership.user_id == user_id,
+            PORAssignment.por_type == por_type,
+            PORAssignment.active == True,
+        )
+        .first()
+    )
+    if existing_for_user:
+        raise ApiError(
+            f"{user.name} already holds an active '{por_type}' assignment. "
+            "Deactivate the existing one before assigning a new one.",
+            "user_already_has_por",
+            409,
+        )
 
     # A POR is always scoped to a Membership (create one if needed)
     membership = OrgRepository.membership_for(user_id, org_id)

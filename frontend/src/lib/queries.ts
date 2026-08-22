@@ -83,8 +83,12 @@ export const useHouses = () =>
 export const usePors = () =>
   useQuery({ queryKey: ['pors'], queryFn: api.pors })
 
-export const useUsers = (q?: string) =>
-  useQuery({ queryKey: ['users', q], queryFn: () => api.users(q) })
+export const useUsers = (q?: string, enabled?: boolean) =>
+  useQuery({
+    queryKey: ['users', q],
+    queryFn: () => api.users(q),
+    enabled: enabled !== undefined ? enabled : (q !== undefined ? q.trim().length > 0 : true),
+  })
 
 // ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ----
 
@@ -298,7 +302,20 @@ export const useDeleteNotification = () => {
 export const useCreateOrg = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string; type: string; city: string }) => api.createOrg(data),
+    mutationFn: (
+      data:
+        | FormData
+        | {
+            name: string
+            type?: string
+            city?: string
+            category?: string
+            tagline?: string
+            description?: string
+            logo_url?: string
+            banner_url?: string
+          },
+    ) => api.createOrg(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['orgs'] }),
   })
 }

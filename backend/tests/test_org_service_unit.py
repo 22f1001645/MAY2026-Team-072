@@ -16,6 +16,52 @@ def test_create_org(app):
     assert org.city == "Test City"
 
 
+def test_create_society_with_all_fields(app):
+    admin = User.query.filter_by(role="admin").first()
+    data = {
+        "name": "Rhythm Dance Society",
+        "type": "society",
+        "category": "Dance",
+        "tagline": "Expressing through movement",
+        "description": "A vibrant society for classical and modern dance enthusiasts.",
+        "logo_url": "/api/v1/uploads/logo123.png",
+        "banner_url": "/api/v1/uploads/banner123.png",
+    }
+    org = org_service.create_org(data, admin)
+    assert org.id is not None
+    assert org.name == "Rhythm Dance Society"
+    assert org.category == "Dance"
+    assert org.tagline == "Expressing through movement"
+    assert org.bio == "A vibrant society for classical and modern dance enthusiasts."
+    assert org.logo_url == "/api/v1/uploads/logo123.png"
+    assert org.banner_url == "/api/v1/uploads/banner123.png"
+
+    d = org.to_dict()
+    assert d["category"] == "Dance"
+    assert d["tagline"] == "Expressing through movement"
+    assert d["description"] == "A vibrant society for classical and modern dance enthusiasts."
+    assert d["banner_url"] == "/api/v1/uploads/banner123.png"
+
+
+def test_create_society_duplicate_name_rejected(app):
+    admin = User.query.filter_by(role="admin").first()
+    data = {"name": "Unique Tech Society", "type": "society", "category": "Tech"}
+    org_service.create_org(data, admin)
+
+    with pytest.raises(ApiError) as exc:
+        org_service.create_org({"name": "unique tech society", "type": "society"}, admin)
+    assert exc.value.code == "name_taken"
+    assert exc.value.status == 409
+
+
+def test_create_society_empty_name_rejected(app):
+    admin = User.query.filter_by(role="admin").first()
+    with pytest.raises(ApiError) as exc:
+        org_service.create_org({"name": "   ", "type": "society"}, admin)
+    assert exc.value.code == "name_required"
+    assert exc.value.status == 400
+
+
 def test_assign_por_success(app):
     admin = User.query.filter_by(role="admin").first()
     house = Organisation.query.filter_by(type="house").first()

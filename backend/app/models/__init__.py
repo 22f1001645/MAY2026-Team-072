@@ -851,6 +851,16 @@ class Expense(Base):
     status = db.Column(db.String(20), default="submitted")
     bill_name = db.Column(db.String(200))
     submitted_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    # REIMB-02 (decision D-10): the link to the event's social post, attached at
+    # the Meetup Head's final submit. Nullable because it is meaningless on a
+    # draft row — REIMB-01 lets any team member build the expense list long
+    # before anyone has posted anything. The requirement is enforced at the one
+    # moment it is true (expense_service.draft_and_submit), not by the column.
+    #
+    # Every value written here has already passed app.url_safety, which caps a
+    # URL at MAX_SOCIAL_URL_LENGTH (300), so 500 is deliberate headroom rather
+    # than a second, weaker bound competing with the validator.
+    social_post_url = db.Column(db.String(500), nullable=True)
 
     activity = db.relationship("Activity", back_populates="expenses")
     budget_line = db.relationship("BudgetLine", back_populates="expenses")
@@ -867,6 +877,7 @@ class Expense(Base):
             "status": self.status,
             "bill_name": self.bill_name,
             "submitted_by": self.submitted_by,
+            "social_post_url": self.social_post_url,
         }
 
 

@@ -45,22 +45,10 @@ const POR_TYPES = [
   'Web Admin',
 ]
 
-const REGIONS = [
-  'Delhi (Delhi-NCR)',
-  'Chennai (Tamil Nadu)',
-  'Bengaluru (Karnataka, Kerala)',
-  'Hyderabad (AP & Telangana)',
-  'Mumbai (Maharashtra, Gujarat)',
-  'Kolkata (WB, NE, Odisha)',
-  'Patna (Bihar, Jharkhand, Chhattisgarh)',
-  'Chandigarh (Punjab, HP, RJ, J&K)',
-  'Lucknow (UP, Gwalior)',
-  'International',
-]
 
 export default function Orgs() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities' | 'members'>('houses')
+  const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities' | 'members' | 'brand-kits'>('houses')
   const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
 
   const [userSearch, setUserSearch] = useState('')
@@ -70,8 +58,8 @@ export default function Orgs() {
   const { data: pors = [] } = usePors()
   const { data: users = [] } = useUsers(userSearch.trim())
   const { data: allUsers = [] } = useUsers() // for the members tab
-  const { data: houses = [] } = useQuery({ queryKey: ['houses'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'house')) })
-  const { data: regions = [] } = useQuery({ queryKey: ['regions'], queryFn: () => api.orgs().then(r => r.filter((o: any) => o.type === 'region')) })
+  const { data: houses = [] } = useHouses()
+  const { data: regions = [] } = useRegions()
 
   const createOrgMutation = useCreateOrg()
   const assignPorMutation = useAssignPor()
@@ -159,15 +147,13 @@ export default function Orgs() {
     e.preventDefault()
     setAssignmentError(null)
     if (!userId.trim() || !selectedHouseId) return
-    const regionOrg = regions.find((r: any) => r.name === selectedRegion)
-
     assignPorMutation.mutate(
       {
         orgId: selectedHouseId,
         user_id: userId.trim(),
         por_type: selectedPorType,
         term: porTerm,
-        region_id: isRC ? regionOrg?.id : undefined,
+        region_id: isRC ? selectedRegion || undefined : undefined,
       },
       {
         onSuccess: () => {
@@ -195,6 +181,7 @@ export default function Orgs() {
     ['cities', `Regions & Cities`],
     ['pors', `POR Directory (${pors.length})`],
     ['members', `Members`],
+    ['brand-kits', `Brand Kits`],
   ] as const
 
   const selectedUserObj = users.find((u: any) => u.id === userId || u.email === userId)
@@ -674,7 +661,50 @@ export default function Orgs() {
         </div>
       )}
 
-      {/* ---- SEED ORGANISATION MODAL ---- */}
+      {/* ---- BRAND KITS TAB (Phase 4 audit surface) ---- */}
+      {tab === 'brand-kits' && (
+        <div>
+          <p className="mb-5 text-[14px] text-graytext-light">
+            Brand Kits are set by each organisation's POR holders (Phase 4). Review logos, palettes, and social links across all organisations at a glance.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {orgs.map((o: any) => (
+              <Card key={o.id} hover onClick={() => navigate(`/orgs/${o.id}`)} className="p-5 cursor-pointer">
+                <div className="flex items-start gap-3">
+                  <OrgLogo org={o} size={40} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-offwhite text-[14px] truncate">{o.name}</span>
+                      <Badge tone={ORG_TONE[o.type] || 'neutral'}>{o.type}</Badge>
+                    </div>
+                    {o.brand_kit ? (
+                      <div className="mt-2 space-y-1.5">
+                        {o.brand_kit.palette?.length > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            {o.brand_kit.palette.slice(0, 5).map((hex: string, i: number) => (
+                              <span key={i} className="h-4 w-4 rounded-full border border-white/10" style={{ backgroundColor: hex }} />
+                            ))}
+                            <span className="text-caption text-graytext-mid">{o.brand_kit.palette.length} colours</span>
+                          </div>
+                        )}
+                        {o.brand_kit.social_links?.length > 0 && (
+                          <div className="text-caption text-teal">{o.brand_kit.social_links.length} social link{o.brand_kit.social_links.length !== 1 ? 's' : ''}</div>
+                        )}
+                        {o.brand_kit.voice_tone && (
+                          <div className="text-caption text-graytext-mid line-clamp-1 italic">"{o.brand_kit.voice_tone}"</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-caption text-graytext-mid italic">No brand kit set yet</div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {showSeedModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md p-6">
@@ -794,7 +824,14 @@ export default function Orgs() {
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
                     Region <span className="text-amber-400">(required for RC)</span>
                   </label>
-                  <Select value={selectedRegion} onChange={(e) => setSelectedRegion(e.target.value)} options={[{ label: '-- Select Region --', value: '' }, ...REGIONS.map((r) => ({ label: r, value: r }))]} />
+                  <Select
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    options={[
+                      { label: '-- Select Region --', value: '' },
+                      ...regions.map((r: any) => ({ label: r.name, value: r.id })),
+                    ]}
+                  />
                 </div>
               )}
 

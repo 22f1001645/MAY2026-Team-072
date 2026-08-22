@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useCities, useOrgs, useSubmitProposal } from '../lib/queries'
+import { useCities, useHouses, useOrgs, useSubmitProposal } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle, FormSelect, FormDatePicker } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
@@ -35,6 +35,7 @@ const TEAM_ROLES = [
 // FR-B1: submit a proposal with scale, date, venue, description, capacity + budget
 export default function ProposalNew() {
   const nav = useNavigate()
+  const { data: houses = [] } = useHouses()
   const { data: orgs = [] } = useOrgs()
   const { data: cities = [] } = useCities()
   const submitMut = useSubmitProposal()
@@ -107,7 +108,7 @@ export default function ProposalNew() {
     if (!teamValid || !isStep1Valid || !isStep2Valid) return
     const payload = {
       title: form.title,
-      org_id: form.org_id || orgs[0]?.id,
+      org_id: form.org_id || houses[0]?.id,
       city: form.city || cities[0]?.name,
       scale,
       venue: form.venue,
@@ -518,7 +519,7 @@ export default function ProposalNew() {
             </p>
           ) : (
             <p className="mt-2 text-caption text-teal">
-              {collabOrgIds.length} org{collabOrgIds.length > 1 ? 's' : ''} selected
+              {collabOrgIds.length} organisation{collabOrgIds.length > 1 ? 's' : ''} selected
               {collabOrgIds.length >= 2 && ' · invite accepted by all → Mega Meetup!'}
             </p>
           )}

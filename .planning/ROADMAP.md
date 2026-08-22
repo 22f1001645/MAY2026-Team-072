@@ -247,7 +247,18 @@ Plans:
   4. Any team member can draft the post-event reflection and expense entries, but only the assigned Meetup Head can submit either — and reimbursement submission requires a social-post link alongside bills.
   5. Only people with a real Attendance record are prompted for and can submit a rating (once each), and the QR-verified attendance count is what points, fee-utilisation and budget-reasonableness use — photo evidence never overrides it.
 
-**Plans**: TBD
+**Plans**: 2/9 plans executed
+
+- [x] 06-01-PLAN.md
+- [x] 06-02-PLAN.md
+- [ ] 06-03-PLAN.md
+- [ ] 06-04-PLAN.md
+- [ ] 06-05-PLAN.md
+- [ ] 06-06-PLAN.md
+- [ ] 06-07-PLAN.md
+- [ ] 06-08-PLAN.md
+- [ ] 06-09-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 7: Progression Gating
@@ -294,7 +305,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
-| 6. Event Execution & Close-Out | 0/TBD | Not started | - |
+| 6. Event Execution & Close-Out | 2/9 | In Progress|  |
 | 7. Progression Gating | 0/TBD | Not started | - |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
 

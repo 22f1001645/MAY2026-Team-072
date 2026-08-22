@@ -85,10 +85,23 @@ def lower_house_council():
     return jsonify([p.to_dict() for p in pors]), 200
 
 
+from .upload_controller import save_image_upload
+
+
 @community_bp.post("/orgs")
 @admin_required
 def create_org():
-    data = OrgSchema().load(request.get_json() or {})
+    if request.content_type and "multipart/form-data" in request.content_type:
+        raw = dict(request.form)
+        logo_file = request.files.get("logo") or request.files.get("logo_file")
+        if logo_file and logo_file.filename:
+            raw["logo_url"] = save_image_upload(logo_file, max_bytes=2 * 1024 * 1024)
+        banner_file = request.files.get("banner") or request.files.get("banner_file")
+        if banner_file and banner_file.filename:
+            raw["banner_url"] = save_image_upload(banner_file, max_bytes=5 * 1024 * 1024)
+        data = OrgSchema().load(raw)
+    else:
+        data = OrgSchema().load(request.get_json() or {})
     return jsonify(org_service.create_org(data, g.current_user).to_dict()), 201
 
 

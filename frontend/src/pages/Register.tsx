@@ -8,6 +8,8 @@ import { useRegions, useCitiesForRegion } from '../lib/queries'
 import { api } from '../lib/api'
 import { useQueryClient } from '@tanstack/react-query'
 
+const STUDENT_EMAIL_DOMAIN = 'ds.study.iitm.ac.in'
+
 export default function Register() {
   const { register } = useAuth()
   const nav = useNavigate()
@@ -47,6 +49,8 @@ export default function Register() {
     e.preventDefault()
     setError('')
     if (!form.region_id) return setError('Please select your region.')
+    if (!form.email.toLowerCase().endsWith(`@${STUDENT_EMAIL_DOMAIN}`))
+      return setError(`Only @${STUDENT_EMAIL_DOMAIN} email addresses are accepted.`)
     if (form.password.length < 6) return setError('Password must be at least 6 characters.')
     if (form.password !== form.confirm) return setError('Passwords do not match.')
 
@@ -106,9 +110,14 @@ export default function Register() {
             required
             value={form.email}
             onChange={set('email')}
-            placeholder="22f1001234@ds.study.iitm.ac.in"
+            placeholder={`22f1001234@${STUDENT_EMAIL_DOMAIN}`}
+            pattern={`[^@]+@${STUDENT_EMAIL_DOMAIN.replace('.', '\\.')}`}
+            title={`Must be an @${STUDENT_EMAIL_DOMAIN} address`}
             className={inputCls}
           />
+          <p className="mt-1.5 text-[12px] text-graytext-mid">
+            Only <span className="text-teal font-medium">@{STUDENT_EMAIL_DOMAIN}</span> student addresses are accepted.
+          </p>
         </Field>
 
         {/* Step 1: Region (required) */}

@@ -274,14 +274,17 @@ export function adaptMe(u: ApiMe): Account {
 
 /* ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ---------- */
 
-/** Wire shape of an organisation row — `GET /orgs` and the profile routes. */
 export interface ApiOrganisation {
   id: string
   name: string
   type: string
   city: string
+  category?: string | null
+  tagline?: string | null
+  description?: string | null
   bio?: string | null
   logo_url?: string | null
+  banner_url?: string | null
   website?: string | null
 }
 
@@ -339,8 +342,12 @@ export function adaptOrganisation(o: ApiOrganisation): Organisation {
     name: o.name,
     type: o.type as Organisation['type'],
     city: o.city,
-    bio: o.bio ?? null,
+    category: o.category ?? null,
+    tagline: o.tagline ?? null,
+    description: o.description ?? o.bio ?? null,
+    bio: o.bio ?? o.description ?? null,
     logoUrl: absoluteUploadUrl(o.logo_url),
+    bannerUrl: absoluteUploadUrl(o.banner_url),
     website: o.website ?? null,
   }
 }
@@ -554,8 +561,24 @@ export const api = {
   pors: () => request<any[]>('/pors'),
   users: (q?: string) =>
     request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-  createOrg: (data: { name: string; type: string; city: string }) =>
-    request('/orgs', { method: 'POST', body: JSON.stringify(data) }),
+  createOrg: (
+    data:
+      | FormData
+      | {
+          name: string
+          type?: string
+          city?: string
+          category?: string
+          tagline?: string
+          description?: string
+          logo_url?: string
+          banner_url?: string
+        },
+  ) =>
+    request<ApiOrganisation>('/orgs', {
+      method: 'POST',
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    }).then(adaptOrganisation),
   assignPor: (orgId: string, data: { user_id: string; por_type: string; term?: string; region_id?: string }) =>
     request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
   deactivatePor: (porId: string) =>

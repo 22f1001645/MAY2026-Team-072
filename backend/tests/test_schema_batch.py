@@ -35,6 +35,10 @@ EXPECTED_REVISION_COUNT = 11
 # organisation's own site as a distinct column rather than a `platform` row on
 # organisation_social_links, so the host-allowlist guarantee stays true of every
 # social-link row without a carve-out. Additive, nullable, no reseed.
+# 9th: fb6abd48384e adds city_alert_subscriptions — student-dashboard feature,
+# additive new table, no reseed.
+# 10th: f53685e71b8e adds notifications.target_role — student-dashboard feature,
+# additive nullable column, no reseed.
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {

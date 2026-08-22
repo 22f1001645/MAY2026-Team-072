@@ -6,3 +6,6 @@
 testsprite_tests\tmp\config.json
 /.claude/
 .gstack/
+.claude-flow/
+.venv/
+node_modules/

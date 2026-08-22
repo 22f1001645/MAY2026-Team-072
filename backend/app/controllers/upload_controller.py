@@ -106,3 +106,28 @@ def serve_upload(filename):
 def served_path(filename: str) -> str:
     """The `logo_url` value for a stored file — the one place the path is built."""
     return f"{UPLOAD_URL_PREFIX}{filename}"
+
+
+def save_image_upload(file_storage, max_bytes: int = 5 * 1024 * 1024) -> str:
+    """Validate and save an uploaded image (PNG, JPEG, WebP) up to max_bytes, returning its served path."""
+    from uuid import uuid4
+    from ..errors import ApiError
+
+    file_storage.stream.seek(0, 2)
+    size = file_storage.stream.tell()
+    file_storage.stream.seek(0)
+    if size > max_bytes:
+        mb = max_bytes // (1024 * 1024)
+        raise ApiError(f"Image must be {mb} MB or smaller.", "payload_too_large", 413)
+
+    head = file_storage.read(IMAGE_MAGIC_BYTES)
+    file_storage.seek(0)
+
+    ext = sniff_image_ext(head)
+    if ext is None:
+        raise ApiError("That file isn't a PNG, JPEG or WebP.", "invalid_image", 400)
+
+    name = f"{uuid4().hex}{ext}"
+    file_storage.save(str(upload_dir() / name))
+    return served_path(name)
+

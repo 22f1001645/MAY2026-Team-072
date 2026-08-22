@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Badge, Button, Input } from './ui'
 import { cx } from '../lib/format'
 import type { OrgProfile } from '../lib/types'
+import { HOUSE_META } from '../pages/Orgs'
 
 /* The social links editor — ORG-02, 04-UI-SPEC.md S4.
  *
@@ -147,7 +148,8 @@ export function SocialLinksEditor({
   /* Seeded once from the page's own profile query — there is no second fetch,
    * and `Save links` is the busy interaction state for this section. */
   const [values, setValues] = useState<Record<string, string>>(() => {
-    const seed: Record<string, string> = { website: org.website ?? '' }
+    const defaultHouseWebsite = org.type === 'house' ? HOUSE_META[org.name]?.website : undefined
+    const seed: Record<string, string> = { website: org.website || defaultHouseWebsite || '' }
     for (const key of PLATFORM_KEYS) seed[key] = ''
     for (const link of org.socialLinks) seed[link.platform] = link.url
     return seed

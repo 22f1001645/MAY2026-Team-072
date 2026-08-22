@@ -17,6 +17,7 @@ import { BrandKitEditor } from '../components/BrandKitEditor'
 import { SocialLinksEditor } from '../components/SocialLinksEditor'
 import { SocialLinksRow } from '../components/SocialLinksRow'
 import { cx } from '../lib/format'
+import { HOUSE_META } from './Orgs'
 
 const ORG_TYPE_LABEL: Record<string, string> = {
   house: 'Forest House',
@@ -152,7 +153,8 @@ export default function OrgProfile() {
     setLogoNotice(null)
   }
 
-  const hasLinks = org.socialLinks.length > 0 || !!org.website
+  const effectiveWebsite = org.website || (org.type === 'house' ? HOUSE_META[org.name]?.website ?? null : null)
+  const hasLinks = org.socialLinks.length > 0 || !!effectiveWebsite
   const needsAttention = org.withheldPlatforms.length
 
   const submitProfile = () => {
@@ -313,7 +315,7 @@ export default function OrgProfile() {
           {(canEdit || hasLinks) && (
             <div className="mt-2 border-t border-white/5 pt-6">
               {hasLinks ? (
-                <SocialLinksRow links={org.socialLinks} website={org.website} />
+                <SocialLinksRow links={org.socialLinks} website={effectiveWebsite} />
               ) : (
                 <p className="text-caption text-graytext-mid">No links yet.</p>
               )}

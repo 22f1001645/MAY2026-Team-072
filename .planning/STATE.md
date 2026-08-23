@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 08
-current_phase_name: event-announcements-polls-queries
-status: executing
+current_phase: 4
+current_phase_name: Organisation Profile & Brand Kit
+status: planning
 stopped_at: Completed 08-06-PLAN.md — Phase 08 closed out
-last_updated: "2026-08-23T18:53:57.051Z"
+last_updated: "2026-08-23T20:51:19.199Z"
 last_activity: 2026-08-24
-last_activity_desc: 08-06 closed out Phase 08 (permanent channel test suite, CHAT-04 polling gate, ROADMAP/REQUIREMENTS close-out)
+last_activity_desc: Phase 08 complete, transitioned to Phase 4
 progress:
   total_phases: 8
   completed_phases: 8
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 ## Current Position
 
-Phase: 08 (event-announcements-polls-queries) — COMPLETE (6/6 plans), manual UAT outstanding
+Phase: 4 — Organisation Profile & Brand Kit
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
 Phase: 07 (progression-gating) — COMPLETE, verification outstanding
-Plan: 6 of 6
-Status: Phase 08 complete — all 8 phases executed; manual UAT outstanding on Phases 04, 05, 08
-Last activity: 2026-08-24 — 08-06 closed out Phase 08 (permanent channel test suite, CHAT-04 polling gate, ROADMAP/REQUIREMENTS close-out)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-24 — Phase 08 complete, transitioned to Phase 4
 
 Progress: [██████████] 100% (8/8 phases executed)
 
@@ -42,7 +42,7 @@ Progress: [██████████] 100% (8/8 phases executed)
 
 **Velocity:**
 
-- Total plans completed: 7
+- Total plans completed: 17
 - Average duration: —
 - Total execution time: 0.0 hours
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100% (8/8 phases executed)
 |-------|-------|-------|----------|
 | 02 | 7 | - | - |
 | 03 | 4 | - | - |
+| 08 | 6 | - | - |
 
 **Recent Trend:**
 

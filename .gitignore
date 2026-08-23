@@ -9,3 +9,4 @@ testsprite_tests\tmp\config.json
 .claude-flow/
 .venv/
 node_modules/
+gsd-core/

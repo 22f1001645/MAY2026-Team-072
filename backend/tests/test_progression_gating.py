@@ -50,7 +50,7 @@ def _seed_org(name, typ="society", city="Chennai"):
 
 
 def _seed_completed_meetup(org, city, scale, days_ago=30, proposal_status="approved",
-                           organiser_id=None):
+                           organiser_id=None, activity_status="upcoming"):
     """Seed one past-dated Activity in `city` plus its Proposal row.
 
     `Activity.status` is deliberately left at "upcoming". Eligibility must pass
@@ -72,7 +72,7 @@ def _seed_completed_meetup(org, city, scale, days_ago=30, proposal_status="appro
         venue="Somewhere",
         starts_at=datetime.now() - timedelta(days=days_ago),
         capacity=50,
-        status="upcoming",
+        status=activity_status,
         organiser_id=organiser_id,
     )
     _db.session.add(a)
@@ -278,6 +278,17 @@ class TestEligibilityExclusions:
                                    proposal_status="rejected")
             _seed_completed_meetup(org, "Hyderabad", "regional_meetup",
                                    proposal_status="revoked")
+        self._locked(app, client, seed)
+
+    def test_cancelled_meetups_do_not_count(self, app, client):
+        """CR-01: cancel_event() leaves Proposal.status == "approved", so the
+        cancelled activity would otherwise satisfy the (approved + past) formula
+        for an event that never happened."""
+        def seed(org):
+            _seed_completed_meetup(org, "Hyderabad", "local_meetup",
+                                   activity_status="cancelled")
+            _seed_completed_meetup(org, "Hyderabad", "regional_meetup",
+                                   activity_status="cancelled")
         self._locked(app, client, seed)
 
     def test_future_meetups_do_not_count(self, app, client):

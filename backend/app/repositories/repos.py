@@ -5,6 +5,7 @@ from datetime import datetime, UTC, timedelta
 
 from sqlalchemy.orm import joinedload
 
+from ..constants import EVENT_CANCELLED
 from ..extensions import db
 from ..models import (
     Activity,
@@ -227,17 +228,21 @@ class ActivityRepository:
         Activity.status is deliberately NOT the completion test: sync_past_events()
         in this same class flips that column to "completed" on any past-dated
         activity with no reference to proposal status, so reading it would count
-        a proposal that was rejected, revoked or never decided.
+        a proposal that was rejected, revoked or never decided. It IS a valid
+        *dis*qualifier though — cancel_event() sets status to "cancelled" without
+        touching Proposal.status, so a cancelled-but-approved meetup would
+        otherwise count toward the fest gate.
 
-        datetime.now() is naive on purpose — Activity.starts_at is a naive
-        DateTime column, and an aware datetime.now(UTC) here would compare an
-        offset-aware value against naive stored values.
+        The comparison value is naive on purpose — Activity.starts_at is a naive
+        DateTime column — but it must be naive *UTC*, which is what the column
+        stores, not local wall clock.
         """
         return (
             Activity.query.filter(
                 Activity.org_id == org_id,
                 Activity.city == city,
                 Activity.scale == scale,
+                Activity.status != EVENT_CANCELLED,
                 Activity.starts_at < datetime.now(),
             )
             .join(Proposal)

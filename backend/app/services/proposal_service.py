@@ -24,7 +24,12 @@ from ..constants import (
     TEAM_ROLES,
     TEAM_ROLE_MEETUP_HEAD,
 )
-from .progression_service import assert_fest_eligible
+from .progression_service import (
+    assert_fest_collaborators_accepted,
+    assert_fest_eligible,
+    fest_eligibility,
+    record_unlock,
+)
 from .settings_service import get_recognition_points
 from ..errors import ApiError
 from ..extensions import db
@@ -306,6 +311,19 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
                     409,
                 )
 
+        # PROG-01/PROG-02/PROG-04, enforcement checkpoint 2 of 2. Both facts can
+        # change while a proposal waits in the queue: the qualifying meetup can be
+        # revoked, and an invited org can decline. Checking only at submit would
+        # enforce the rule against the honest caller alone (T-07-07, T-07-08).
+        # No admin carve-out, even though only an admin reaches this branch.
+        #
+        # Placement above the first write is load-bearing: decide() has no
+        # rollback path, so a guard below it would leave proposal.status mutated
+        # in the session after the raise (T-07-05).
+        if activity.scale == "regional_fest":
+            assert_fest_eligible(activity.org_id, activity.city)
+            assert_fest_collaborators_accepted(activity)
+
         proposal.status = PROPOSAL_APPROVED
         # On approval the Activity auto-publishes as a live event (FR-C1)
         activity.status = EVENT_UPCOMING
@@ -321,6 +339,14 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         )
         _notify(activity.organiser_id, activity.id, "approval",
                 "Proposal approved", f"'{activity.title}' is live on the city feed.")
+
+        # PROG-03: an approval can be the thing that completes the pair, so the
+        # marker is written here rather than only on fest approvals — otherwise
+        # the sponsorship banner would appear one fest after the scale card
+        # unlocked, and the two surfaces would disagree (assumption A1).
+        # Inside this transaction, with no commit of its own.
+        if fest_eligibility(activity.org_id, activity.city)["fest_eligible"]:
+            record_unlock(activity.org_id, activity.city)
     elif decision == "changes":
         if not note:
             raise ApiError("A note is required when requesting changes", "note_required", 400)

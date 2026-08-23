@@ -12,8 +12,10 @@ PRIMARY organisation (Activity.org_id). A meetup it merely accepted a
 collaboration invite on does not count — the narrower reading, matching the
 existing `meetups_in_region_month` quota precedent.
 """
-from ..constants import FEST_COLLAB_THRESHOLD
+from ..constants import COLLAB_ACCEPTED, FEST_COLLAB_THRESHOLD
 from ..errors import ApiError
+from ..extensions import db
+from ..models import OrgProgressionUnlock
 from ..repositories.repos import ActivityRepository
 
 # The two halves of the track record, in the order the UI lists them.
@@ -67,3 +69,47 @@ def assert_fest_eligible(org_id: str, city: str) -> None:
         "fest_locked",
         403,
     )
+
+
+def assert_fest_collaborators_accepted(activity) -> None:
+    """PROG-02 (D-01, accepted half): refuse a fest whose partners have not agreed.
+
+    Counts ACCEPTED invites, never the named list — a proposal can name six
+    organisations without a single one of them having said yes, and approving it
+    would commit five other organisations to an event they never agreed to
+    (threat T-07-08). The primary org is already one of these rows, auto-accepted
+    at submit.
+
+    Mirrors Activity.is_mega_meetup's expression rather than adding a second
+    @property beside it: that one is PROPOSAL-03's threshold, this one is
+    PROG-02's, and a shared helper would invite a future edit to move both.
+    """
+    accepted = sum(1 for c in activity.collaborators if c.status == COLLAB_ACCEPTED)
+    if accepted >= FEST_COLLAB_THRESHOLD:
+        return
+    raise ApiError(
+        f"A Regional Fest needs {FEST_COLLAB_THRESHOLD} collaborating organisations "
+        f"to have accepted their invitations; only {accepted} of "
+        f"{FEST_COLLAB_THRESHOLD} have accepted so far (counting your own "
+        f"organisation).",
+        "fest_collaborators_required",
+        403,
+    )
+
+
+def record_unlock(org_id: str, city: str) -> OrgProgressionUnlock:
+    """PROG-03: mark that this org has reached fest tier in this city.
+
+    Get-or-create, deliberately not try/except IntegrityError: this runs inside
+    decide()'s transaction, and a caught integrity error there would force a
+    rollback that also discarded the approval it was recording (T-07-09).
+
+    Does not commit — the caller's own commit is what makes the marker and the
+    approval that earned it land together or not at all.
+    """
+    existing = OrgProgressionUnlock.query.filter_by(org_id=org_id, city=city).first()
+    if existing:
+        return existing
+    unlock = OrgProgressionUnlock(org_id=org_id, city=city)
+    db.session.add(unlock)
+    return unlock

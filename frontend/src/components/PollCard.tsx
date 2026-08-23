@@ -31,7 +31,11 @@ export default function PollCard({
   // and a card rendered off one of those would otherwise throw on `.reduce`.
   const counts = poll.vote_counts ?? []
   const total = counts.reduce((sum, n) => sum + n, 0)
-  const showResults = poll.my_vote !== null || closed
+  // Same hazard, same defence: `my_vote` is absent on those responses too, and
+  // `undefined !== null` is true — which flipped the card to an all-zero result
+  // view with no way to vote, for exactly the case the line above guards.
+  const myVote = poll.my_vote ?? null
+  const showResults = myVote !== null || closed
 
   return (
     <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
@@ -47,7 +51,7 @@ export default function PollCard({
           {poll.options.map((option, i) => {
             const count = counts[i] ?? 0
             const pct = total === 0 ? 0 : Math.round((count / total) * 100)
-            const mine = poll.my_vote === i
+            const mine = myVote === i
             return (
               <div key={i}>
                 <div className="mb-1 flex items-center justify-between gap-2 text-[13px]">
@@ -69,7 +73,7 @@ export default function PollCard({
           })}
           <p className="pt-1 text-caption text-graytext-mid">
             {total} {total === 1 ? 'vote' : 'votes'}
-            {poll.my_vote === null && closed && ' · you did not vote'}
+            {myVote === null && closed && ' · you did not vote'}
           </p>
         </div>
       ) : (

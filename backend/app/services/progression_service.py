@@ -113,3 +113,35 @@ def record_unlock(org_id: str, city: str) -> OrgProgressionUnlock:
     unlock = OrgProgressionUnlock(org_id=org_id, city=city)
     db.session.add(unlock)
     return unlock
+
+
+def progression_for(org, city=None) -> dict:
+    """The payload behind GET /orgs/<org_id>/progression — two callers, one route.
+
+    With a city it is the fest card's lock state (D-04); without one it is the
+    organisation profile's sponsorship banner (D-05). The `unlocks` list ignores
+    the city parameter in both cases, which is what saves the profile page from
+    needing a third route.
+
+    Counts are None rather than 0 when no city was asked about: the form has not
+    been told which city yet, and "0 completed" is a different statement from
+    "not asked". Never None for `unlocks` — an org with no unlocks is an empty
+    list, so the client renders one shape.
+    """
+    facts = fest_eligibility(org.id, city) if city else {
+        "local_meetups_completed": None,
+        "regional_meetups_completed": None,
+        "requirements_met": 0,
+        "requirements_total": len(FEST_REQUIRED_SCALES),
+        "fest_eligible": False,
+        "collaborator_threshold": FEST_COLLAB_THRESHOLD,
+    }
+    return {
+        "org_id": org.id,
+        "city": city or None,
+        **facts,
+        "unlocks": [
+            u.to_dict()
+            for u in OrgProgressionUnlock.query.filter_by(org_id=org.id).all()
+        ],
+    }

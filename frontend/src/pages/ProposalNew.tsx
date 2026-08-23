@@ -82,10 +82,10 @@ export default function ProposalNew() {
   }, [manageableHouses.length])
 
   // PROG-01 / D-04: the fest lock must describe the SAME org+city the submit payload
-  // carries, so these mirror the fallbacks used in submit() below exactly. Querying the
-  // raw form fields would let the caption name a different city than the request.
-  const effectiveOrgId = form.org_id || manageableHouses[0]?.id
-  const effectiveCity = form.city || cities[0]?.name
+  // carries. Both are now the explicitly chosen values — submit() no longer falls back
+  // to the first entry of either list, so there is nothing to mirror.
+  const effectiveOrgId = form.org_id
+  const effectiveCity = form.city
   const {
     data: progression,
     isLoading: progLoading,
@@ -147,7 +147,11 @@ export default function ProposalNew() {
   const meetupHeadCount = teamRows.filter(r => r.role === 'Meetup Head').length
   const teamValid = teamRows.length > 0 && meetupHeadCount === 1
 
-  const isStep1Valid = !!(form.title && (form.org_id || manageableHouses.length > 0) && (form.city || cities.length > 0) && form.starts_at && form.capacity && form.venue && form.description)
+  // org_id and city must be CHOSEN, not merely available: the proposal is an audited,
+  // state-changing act on behalf of an organisation, and the fest lock is evaluated
+  // against this exact pair. The auto-select effect above still fills org_id for the
+  // single-house case, so the common path is unchanged.
+  const isStep1Valid = !!(form.title && form.org_id && form.city && form.starts_at && form.capacity && form.venue && form.description)
   
   const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
   const isBudgetValid = cap === null || cap === 0 || total <= cap
@@ -167,8 +171,8 @@ export default function ProposalNew() {
     if (!teamValid || !isStep1Valid || !isStep2Valid) return
     const payload = {
       title: form.title,
-      org_id: form.org_id || manageableHouses[0]?.id,
-      city: form.city || cities[0]?.name,
+      org_id: form.org_id,
+      city: form.city,
       scale,
       venue: form.venue,
       starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : '',

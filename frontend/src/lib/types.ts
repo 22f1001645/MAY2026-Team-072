@@ -375,3 +375,48 @@ export interface FestEligibility {
    *  length check. */
   unlocks: OrgUnlock[]
 }
+
+// ── Phase 8: Event channel — polls and queries (CHAT-01/CHAT-02) ─────────────
+//
+// Snake_case on purpose, like `Notification` above and unlike `AnnouncementMessage`:
+// nothing adapts these in api.ts, so the type must describe the wire shape the
+// server actually sends. A camelCase type with no adapter behind it is a type
+// that is wrong at runtime.
+
+/** One poll as the LIST endpoint returns it. `vote_counts`/`my_vote` are added
+ *  by `channel_service.list_polls`, not by `EventPoll.to_dict()` — the create
+ *  and close responses carry the row alone, hence the `Omit<>` on those two
+ *  callers in api.ts. */
+export interface EventPoll {
+  id: string
+  activity_id: string
+  question: string
+  options: string[]
+  status: 'open' | 'closed'
+  closes_at: string | null
+  /** One count per option, index-aligned with `options`. */
+  vote_counts: number[]
+  /** The signed-in caller's chosen option index, or `null` if they have not
+   *  voted (and always `null` for an anonymous viewer). */
+  my_vote: number | null
+}
+
+export interface EventPollVote {
+  id: string
+  poll_id: string
+  user_id: string
+  option_index: number
+}
+
+export interface EventQuery {
+  id: string
+  activity_id: string
+  user_id: string
+  body: string
+  status: 'open' | 'answered'
+  response_body: string | null
+  responded_by: string | null
+  responded_at: string | null
+  /** Creation time. Named `at` by the server, like `Notification.at`. */
+  at: string
+}

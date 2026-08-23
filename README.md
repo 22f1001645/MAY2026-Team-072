@@ -14,7 +14,7 @@
 
 **Ekatva OS** is an enterprise-grade community operating platform engineered for the students, organisers, societies, forest houses, regional chapters, and administrative leadership of the **IIT Madras BS in Data Science and Applications / Electronic Systems** degree programs.
 
-Ekatva OS streamlines the entire end-to-end lifecycle of student initiatives—from collaborative proposals and budget guardrails to AI-driven promotional campaigns, live QR-scanner check-ins, multi-stage expense reimbursements, and gamified recognition.
+Built to the **Unified PRD v2.2** specification, Ekatva OS streamlines the entire end-to-end lifecycle of student initiatives—from collaborative proposals and budget guardrails to AI-driven promotional campaigns, live QR-scanner check-ins, multi-stage expense reimbursements, and gamified recognition.
 
 ---
 

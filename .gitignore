@@ -10,3 +10,4 @@ testsprite_tests\tmp\config.json
 .venv/
 node_modules/
 gsd-core/
+.planning/

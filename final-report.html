@@ -3319,19 +3319,14 @@
               </td>
             </tr>
             <tr>
-              <td><code>/events/{id}</code></td>
-              <td>Event Details &amp; RSVP</td>
-              <td>Interactive venue maps, organiser team attribution, one-click RSVP, and in-app attendee chat</td>
-            </tr>
-            <tr>
-              <td><code>/my-registrations</code></td>
-              <td>My Tickets &amp; Digital Passes</td>
-              <td>Calendar integration, countdown timer, and cryptographically signed QR digital passes</td>
+              <td><code>/events/{id}/register</code></td>
+              <td>Registration &amp; Auto-Waitlist</td>
+              <td>One-click RSVP; auto-waitlisted when capacity reached; auto-promoted on cancellation</td>
             </tr>
             <tr>
               <td><code>/leaderboard</code></td>
               <td>Contribution Ledger</td>
-              <td>Real-time points tally: Attend (30 pts), Organise (50 pts), Volunteer (20 pts), global rank podium</td>
+              <td>Real-time points tally: Attend (30 pts), Organise (50 pts), Volunteer (20 pts)</td>
             </tr>
             <tr>
               <td><code>/notifications</code></td>
@@ -3340,29 +3335,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div class="ss-grid" style="margin-top: 24px; margin-bottom: 40px">
-        <div class="ss-frame"><img src="images/fig07_discover.png"
-            alt="Figure 7: Discover Page — City-Filtered Event Feed" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 7 — Event Discovery Feed: Personalized welcome, featured fests, and city filter pills</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig07b_my_registrations.png"
-            alt="Figure 7b: My Tickets & Registrations Calendar" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 7b — My Tickets &amp; Registrations: Calendar integration, countdown, and active passes</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig07c_event_details.png"
-            alt="Figure 7c: Event Details & RSVP Confirmation" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 7c — Event Details Page: Maps embed, Meetup Head info, and confirmed RSVP</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig14_qr_checkin.png"
-            alt="Figure 14: Ekatva Digital Pass with Signed QR Token" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 14 — Attendee Digital Pass: Cryptographically signed short-TTL QR code for door check-in</div>
-        </div>
-        <div class="ss-frame" style="grid-column: span 2"><img src="images/fig16_leaderboard.png"
-            alt="Figure 16: Community Leaderboard & Contribution Ledger" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 16 — Community Leaderboard: Global rankings podium, tier progress, and itemized points ledger</div>
-        </div>
       </div>
 
       <h3 class="h3">9.2 Organiser Experience</h3>
@@ -3398,45 +3370,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div class="ss-grid" style="margin-top: 24px; margin-bottom: 40px">
-        <div class="ss-frame"><img src="images/fig11_organiser_dashboard.png"
-            alt="Figure 11: Organiser Dashboard & Multi-Role View Switcher" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 11 — Organiser Dashboard: Multi-role view switcher (Student/Organiser mode) and event metrics</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig11b_user_profile.png"
-            alt="Figure 11b: User Identity, Region & Points Modal" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 11b — User Identity &amp; POR Modal: Region selection, institutional identity, and lifetime points</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig08a_proposal_core.png"
-            alt="Figure 8a: New Proposal Form — Step 1: Core Details" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 8a — New Proposal (Step 1): Scale selector, date/venue, and host house binding</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig08b_proposal_budget.png"
-            alt="Figure 8b: New Proposal Form — Step 2: Line-Item Budget & Hard Cap" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 8b — New Proposal (Step 2): Line-item budget breakdown and ₹2,000 allowance cap</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig08_new_proposal.png"
-            alt="Figure 8: New Proposal Form — Step 3: Team Roster, Collaborators & Quota Guard" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 8 — New Proposal (Step 3): Meetup Head assignment, collaborating entities, and monthly quota guard</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig12_campaign_schedule.png"
-            alt="Figure 12: Event Campaign Creator & Schedule" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 12 — Campaign Creator: Run-of-show schedule presets, poster upload, and Meetup Head push-live gate</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig13_kanban_board.png"
-            alt="Figure 13: Live Team Kanban Workspace" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 13 — Live Team Kanban Workspace: Persisted task boards with team assignees and status stages</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig14b_qr_scanner.png"
-            alt="Figure 14b: Command Center Optical QR Scanner" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 14b — Command Center: Live optical QR scanner &amp; duplicate check-in idempotency guard</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig15_reimbursement.png"
-            alt="Figure 15: Multi-Stage Reimbursement Pipeline" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 15 — Reimbursement Queue: Line-item receipts, social proof link, and multi-stage verification</div>
-        </div>
       </div>
 
       <h3 class="h3">9.3 Administrator &amp; Governance Experience</h3>
@@ -3475,29 +3408,6 @@
         </table>
       </div>
 
-      <div class="ss-grid" style="margin-top: 24px; margin-bottom: 40px">
-        <div class="ss-frame"><img src="images/fig09a_approval_queue.png"
-            alt="Figure 9a: Admin Proposal Approval Queue" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 9a — Proposal Approval Queue: Multi-status pipeline tracking pending, approved, and completed meetups</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig09_admin_approval.png"
-            alt="Figure 9: Admin Proposal Review & Decision Panel" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 9 — Proposal Review Drawer: Itemized budget breakdown, collaborator commitments, and decision controls</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig10_admin_orgs.png"
-            alt="Figure 10: Admin Organisations, PORs & Cities Directory" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 10 — Org &amp; POR Leadership Directory: 12 Forest Houses, societies, and role authorization matrix</div>
-        </div>
-        <div class="ss-frame"><img src="images/fig17_notifications.png"
-            alt="Figure 17: Notification Center & Activity Broadcasts" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 17 — Notification Drawer: Real-time broadcast inbox and proposal submission alerts</div>
-        </div>
-        <div class="ss-frame" style="grid-column: span 2"><img src="images/fig18_analytics.png"
-            alt="Figure 18: Admin Community Analytics Dashboard" style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 18 — Community Analytics: Retention metrics, city-level attendance rankings, and ₹200 fee utilisation</div>
-        </div>
-      </div>
-
       <h3 class="h3">9.4 Feature Walkthrough — 20 Key Features</h3>
 
       <div class="feat-group-hd">Foundation — Phases 1 &amp; 2</div>
@@ -3512,8 +3422,10 @@
             <code>is_meetup_head</code>.
           </p>
         </div>
-        <div class="ss-frame" style="padding:16px;background:var(--bg-code);border:1px solid var(--bd-mid);text-align:left">
-          <div style="font-family:var(--font-mono);font-size:11px;color:var(--teal);margin-bottom:8px">backend/app/rbac.py · Predicate Engine</div>
+        <div class="ss-frame"
+          style="padding:16px;background:var(--bg-code);border:1px solid var(--bd-mid);text-align:left">
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--teal);margin-bottom:8px">
+            backend/app/rbac.py · Predicate Engine</div>
           <pre class="cb" style="margin:0;font-size:11.5px;line-height:1.45"><code>def can_manage_activity(user, activity):
     if user.role == "admin": return True
     if activity.organiser_id == user.id: return True
@@ -3593,13 +3505,15 @@ def can_participate_in_activity(user, activity):
       <div class="feat-row">
         <div class="feat-c">
           <div class="feat-n">FEATURE 17–20</div>
-          <div class="feat-t">Digital Pass &amp; QR Check-In · Reimbursement · Gamified Leaderboard</div>
-          <p class="feat-p">Signed short-TTL QR tokens per registration with live camera optical scanning. Any team member scans — idempotent re-scan prevention.
-            Volunteer points require verified crew membership. 4-step reimbursement pipeline. Gamified leaderboard with live podium and itemized contribution points ledger.</p>
+          <div class="feat-t">QR Check-In · Reimbursement · Leaderboard · Org Profile</div>
+          <p class="feat-p">Signed short-TTL QR tokens per registration. Any team member scans — idempotent re-scan.
+            Volunteer points require verified crew membership. 4-step reimbursement pipeline. Gamified leaderboard. All
+            4 org types get editable bio, logo, social links (URL-safety validated) + AI brand kit drafting.</p>
         </div>
-        <div class="ss-frame"><img src="images/fig14_qr_checkin.png" alt="Ekatva Digital Pass with QR Check-In"
+        <div class="ss-frame"><img src="images/fig10c_brand_kit.png" alt="Organisation Profile & Brand Kit Builder"
             style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Feature 17–20 — Digital Pass with Signed QR Token, Live Camera Scan &amp; Contribution Ledger</div>
+          <div class="ss-cap">Feature 17–20 — Organisation Profile: Custom bio, logo upload, and AI-assisted Brand Kit
+            builder</div>
         </div>
       </div>
 
@@ -3673,6 +3587,10 @@ def can_participate_in_activity(user, activity):
           <div class="ss-cap">Figure 9a — Proposal Approval Queue: Awaiting decision, approved, and completed meetup
             pipeline</div>
         </div>
+        <div class="ss-frame"><img src="images/fig09b_admin_approved.png" alt="Figure 9b: Admin Approved Meetup Roster & Revocation Action"
+            style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 9b — Approved Meetup Pipeline: Live roster across cities with itemized budget and revocation controls</div>
+        </div>
         <div class="ss-frame"><img src="images/fig10_admin_orgs.png"
             alt="Figure 10: Admin Organisations, PORs & Cities Directory" style="background:#090d0b;object-fit:contain">
           <div class="ss-cap">Figure 10 — Org &amp; POR Leadership Directory: 12 Forest Houses, Regions, and role
@@ -3698,17 +3616,20 @@ def can_participate_in_activity(user, activity):
           <div class="ss-cap">Figure 18 — Community Analytics: Retention rates, regional participation, and ₹200 fee
             utilisation</div>
         </div>
-        <div class="ss-frame"><img src="images/fig12_campaign_schedule.png" alt="Figure 12: Event Campaign Creator & Schedule"
-            style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 12 — Campaign Creator: Brand voice mail draft, poster upload, and run-of-show schedule</div>
+        <div class="ss-frame"><img src="images/fig12_campaign_schedule.png"
+            alt="Figure 12: Event Campaign Creator & Schedule" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 12 — Campaign Creator: Brand voice mail draft, poster upload, and run-of-show
+            schedule</div>
         </div>
         <div class="ss-frame"><img src="images/fig13_kanban_board.png" alt="Figure 13: Live Team Kanban Workspace"
             style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 13 — Live Team Kanban Workspace: Task boards with assignees, deadlines, and status columns</div>
+          <div class="ss-cap">Figure 13 — Live Team Kanban Workspace: Task boards with assignees, deadlines, and status
+            columns</div>
         </div>
-        <div class="ss-frame"><img src="images/fig15_reimbursement.png" alt="Figure 15: Multi-Stage Reimbursement Pipeline"
-            style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Figure 15 — Reimbursement Queue: Line-item bills, social proof link, and approval workflow</div>
+        <div class="ss-frame"><img src="images/fig15_reimbursement.png"
+            alt="Figure 15: Multi-Stage Reimbursement Pipeline" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 15 — Reimbursement Queue: Line-item bills, social proof link, and approval workflow
+          </div>
         </div>
       </div>
     </div>

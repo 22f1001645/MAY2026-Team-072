@@ -19,9 +19,11 @@ from app.extensions import db as _db
 from app.models import (
     Activity,
     Organisation,
+    OrgProgressionUnlock,
     Proposal,
     User,
 )
+from app.repositories.repos import ActivityRepository
 
 
 # --------------------------------------------------------------------------- #
@@ -178,3 +180,168 @@ class TestFestLock:
             assert res.get_json()["code"] == "fest_locked", email
         with app.app_context():
             assert Activity.query.filter_by(scale="regional_fest").count() == 0
+
+
+# --------------------------------------------------------------------------- #
+# PROG-02: the named-collaborator threshold at submit (D-01, named half)
+# --------------------------------------------------------------------------- #
+
+class TestFestCollaboratorThreshold:
+    def test_fest_named_shortfall_refused(self, app, client):
+        """PROG-02: short of the threshold, with the shortfall named numerically."""
+        org_id, head_id = _region_and_head(app)
+        short_by_one = FEST_COLLAB_THRESHOLD - 2  # + the primary = threshold - 1
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            _seed_track_record(org, "Hyderabad")
+            collab_ids = _seed_secondary_orgs(short_by_one)
+        res = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(org_id, head_id, collaborating_org_ids=collab_ids),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert res.status_code == 403, res.get_json()
+        assert res.get_json()["code"] == "fest_collaborators_required"
+        assert (f"{short_by_one + 1} of {FEST_COLLAB_THRESHOLD}"
+                in res.get_json()["error"])
+
+    def test_fest_named_threshold_boundary(self, app, client):
+        """PROG-02: threshold - 1 secondaries is enough, because primary counts."""
+        org_id, head_id = _region_and_head(app)
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            _seed_track_record(org, "Hyderabad")
+            collab_ids = _seed_secondary_orgs(FEST_COLLAB_THRESHOLD - 1)
+        res = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(org_id, head_id, collaborating_org_ids=collab_ids),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert res.status_code == 201, res.get_json()
+
+    def test_duplicate_collaborator_ids_do_not_satisfy_threshold(self, app, client):
+        """T-07-04: the count reads the deduped list, never the raw request list."""
+        org_id, head_id = _region_and_head(app)
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            _seed_track_record(org, "Hyderabad")
+            partner_id = _seed_secondary_orgs(1)[0]
+        res = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(
+                org_id, head_id,
+                collaborating_org_ids=[partner_id] * FEST_COLLAB_THRESHOLD,
+            ),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert res.status_code == 403, res.get_json()
+        assert res.get_json()["code"] == "fest_collaborators_required"
+        assert f"2 of {FEST_COLLAB_THRESHOLD}" in res.get_json()["error"]
+
+
+# --------------------------------------------------------------------------- #
+# PROG-01 exclusions: what does NOT count toward eligibility
+# --------------------------------------------------------------------------- #
+
+class TestEligibilityExclusions:
+    def _locked(self, app, client, seed, city="Hyderabad"):
+        """Seed something that must not count, then assert the fest is still locked."""
+        org_id, head_id = _region_and_head(app)
+        with app.app_context():
+            seed(Organisation.query.filter_by(type="region").first())
+        res = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(org_id, head_id, city=city),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert res.status_code == 403, res.get_json()
+        assert res.get_json()["code"] == "fest_locked"
+        assert "0 of 2" in res.get_json()["error"]
+
+    def test_eligibility_is_per_city(self, app, client):
+        """D-03: a completed pair in Chennai does not unlock a fest in Hyderabad."""
+        self._locked(app, client, lambda org: _seed_track_record(org, "Chennai"))
+
+    def test_unapproved_past_meetups_do_not_count(self, app, client):
+        """PROG-01: rejected and revoked proposals are not a track record."""
+        def seed(org):
+            _seed_completed_meetup(org, "Hyderabad", "local_meetup",
+                                   proposal_status="rejected")
+            _seed_completed_meetup(org, "Hyderabad", "regional_meetup",
+                                   proposal_status="revoked")
+        self._locked(app, client, seed)
+
+    def test_future_meetups_do_not_count(self, app, client):
+        """PROG-01: the formula is approved AND starts_at < now()."""
+        def seed(org):
+            _seed_completed_meetup(org, "Hyderabad", "local_meetup", days_ago=-30)
+            _seed_completed_meetup(org, "Hyderabad", "regional_meetup", days_ago=-20)
+        self._locked(app, client, seed)
+
+    def test_status_completed_is_not_the_eligibility_source(self, app, client):
+        """Regression pin: Activity.status == "completed" must not unlock.
+
+        sync_past_events() flips that column on any past-dated activity with no
+        reference to proposal status, so reading it would count a proposal that
+        was never approved.
+        """
+        def seed(org):
+            _seed_completed_meetup(org, "Hyderabad", "local_meetup",
+                                   proposal_status="submitted")
+            _seed_completed_meetup(org, "Hyderabad", "regional_meetup",
+                                   proposal_status="submitted")
+            ActivityRepository.sync_past_events()
+            assert Activity.query.filter_by(status="completed").count() == 2
+        self._locked(app, client, seed)
+
+
+# --------------------------------------------------------------------------- #
+# PROG-04 / T-07-01: refusals write nothing, forged unlock rows grant nothing
+# --------------------------------------------------------------------------- #
+
+class TestRefusalIntegrity:
+    def test_refused_submit_writes_nothing(self, app, client):
+        """T-07-05: both guards sit above the write marker."""
+        org_id, head_id = _region_and_head(app)
+        with app.app_context():
+            before = (Activity.query.count(), Proposal.query.count())
+
+        locked = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(org_id, head_id),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert locked.get_json()["code"] == "fest_locked"
+
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            _seed_track_record(org, "Hyderabad")
+            after_seed = (Activity.query.count(), Proposal.query.count())
+        # the fest_locked refusal wrote nothing; the only delta is the seeded pair
+        assert after_seed == (before[0] + 2, before[1] + 2)
+
+        short = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(org_id, head_id, collaborating_org_ids=[]),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert short.get_json()["code"] == "fest_collaborators_required"
+
+        with app.app_context():
+            assert (Activity.query.count(), Proposal.query.count()) == after_seed
+            assert Activity.query.filter_by(title="Hyderabad Regional Fest").count() == 0
+
+    def test_forged_unlock_row_does_not_grant_eligibility(self, app, client):
+        """T-07-01: org_progression_unlocks is a record, never an input."""
+        org_id, head_id = _region_and_head(app)
+        with app.app_context():
+            _db.session.add(OrgProgressionUnlock(org_id=org_id, city="Hyderabad"))
+            _db.session.commit()
+            assert OrgProgressionUnlock.query.count() == 1
+        res = client.post(
+            "/api/v1/activities",
+            json=_fest_payload(org_id, head_id),
+            headers=_auth(client, "rc@ekatva.os", "rc12345"),
+        )
+        assert res.status_code == 403, res.get_json()
+        assert res.get_json()["code"] == "fest_locked"

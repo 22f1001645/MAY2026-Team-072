@@ -9,6 +9,7 @@ from ..constants import (
     COLLAB_PENDING,
     EVENT_UPCOMING,
     EVENT_CANCELLED,
+    FEST_COLLAB_THRESHOLD,
     MEETUPS_PER_CITY_PER_MONTH,
     MEGA_MEETUP_THRESHOLD,
     ORG_MANAGER_PORS,
@@ -121,6 +122,23 @@ def submit_proposal(data: dict, organiser) -> Activity:
             )
         seen_org_ids.add(collab_org_id)
         valid_collab_orgs.append(collab_org)
+
+    # PROG-02 (D-01, named half): a Regional Fest must name at least
+    # FEST_COLLAB_THRESHOLD organisations INCLUDING the primary. Counted off
+    # valid_collab_orgs, never data["collaborating_org_ids"] — the raw request
+    # list is undeduplicated, so six repeats of one id would otherwise pass.
+    # The accepted-count half of this rule is enforced at approve time; it could
+    # never pass here, on a proposal whose invites have not been answered yet.
+    if data["scale"] == "regional_fest":
+        named = len(valid_collab_orgs) + 1
+        if named < FEST_COLLAB_THRESHOLD:
+            raise ApiError(
+                f"A Regional Fest needs at least {FEST_COLLAB_THRESHOLD} collaborating "
+                f"organisations; this proposal names {named} of {FEST_COLLAB_THRESHOLD} "
+                f"(counting your own organisation).",
+                "fest_collaborators_required",
+                403,
+            )
 
     # --- All validation passed; write to DB ---
 

@@ -219,6 +219,32 @@ class ActivityRepository:
         ).join(Proposal).filter(Proposal.status == "approved")
         return q.count()
 
+    @staticmethod
+    def completed_meetups_by_scale(org_id: str, city: str, scale: str) -> int:
+        """PROG-01: how many meetups of `scale` this org has actually completed
+        in `city`. "Completed" is (approved proposal AND start date in the past).
+
+        Activity.status is deliberately NOT the completion test: sync_past_events()
+        in this same class flips that column to "completed" on any past-dated
+        activity with no reference to proposal status, so reading it would count
+        a proposal that was rejected, revoked or never decided.
+
+        datetime.now() is naive on purpose — Activity.starts_at is a naive
+        DateTime column, and an aware datetime.now(UTC) here would compare an
+        offset-aware value against naive stored values.
+        """
+        return (
+            Activity.query.filter(
+                Activity.org_id == org_id,
+                Activity.city == city,
+                Activity.scale == scale,
+                Activity.starts_at < datetime.now(),
+            )
+            .join(Proposal)
+            .filter(Proposal.status == "approved")
+            .count()
+        )
+
     # Keep old method for backward compat with existing tests
     @staticmethod
     def meetups_in_city_month(city, ref: datetime):

@@ -23,6 +23,7 @@ from ..constants import (
     TEAM_ROLES,
     TEAM_ROLE_MEETUP_HEAD,
 )
+from .progression_service import assert_fest_eligible
 from .settings_service import get_recognition_points
 from ..errors import ApiError
 from ..extensions import db
@@ -67,6 +68,11 @@ def submit_proposal(data: dict, organiser) -> Activity:
                 "budget_cap_exceeded",
                 400,
             )
+
+    # PROG-01/PROG-04: fest tier is earned, not requested. No admin carve-out —
+    # the ROLE_ADMIN bypass above covers the POR check only.
+    if data["scale"] == "regional_fest":
+        assert_fest_eligible(data["org_id"], data["city"])
 
     # PROPOSAL-02: validate team roster — exactly one Meetup Head required.
     team = data.get("team", [])

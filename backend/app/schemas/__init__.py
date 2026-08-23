@@ -160,6 +160,27 @@ class BroadcastSchema(Schema):
     body = fields.Str(required=True)
 
 
+class PollCreateSchema(Schema):
+    """CHAT-01 poll creation. The 2-6 option bound is the schema's job, not the
+    service's — an option list of one is not a poll and a list of twenty is not
+    something the results bar can render."""
+
+    question = fields.Str(required=True, validate=validate.Length(min=5, max=300))
+    options = fields.List(
+        fields.Str(validate=validate.Length(min=1, max=100)),
+        required=True,
+        validate=validate.Length(min=2, max=6),
+    )
+    closes_at = fields.DateTime(load_default=None, allow_none=True)
+
+
+class PollVoteSchema(Schema):
+    """The upper bound on option_index depends on the poll being voted on, so it
+    lives in channel_service where the poll's own options are in hand."""
+
+    option_index = fields.Int(required=True, validate=validate.Range(min=0))
+
+
 class CheckInSchema(Schema):
     registration_ids = fields.List(fields.Str(), required=True)
 

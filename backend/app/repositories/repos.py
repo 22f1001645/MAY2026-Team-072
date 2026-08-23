@@ -155,7 +155,7 @@ class ActivityRepository:
         if scale and scale != "All":
             q = q.filter(Activity.scale == scale)
         if date_range:
-            now = datetime.now()
+            now = datetime.utcnow()
             if date_range == "this_week":
                 q = q.filter(Activity.starts_at <= now + timedelta(days=7))
             elif date_range == "this_month":

@@ -7,6 +7,9 @@ import type {
   BrandKit,
   CollabStatus,
   EkatvaEvent,
+  EventPoll,
+  EventPollVote,
+  EventQuery,
   FestEligibility,
   OrgProfile,
   OrgUnlock,
@@ -683,6 +686,46 @@ export const api = {
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
+
+  // Channel polls (CHAT-01). Only `polls()` answers with vote counts and the
+  // caller's own vote — `channel_service.list_polls` computes those, while
+  // create and close return `EventPoll.to_dict()` alone. Typing all three as a
+  // full `EventPoll` would promise two fields that are not on the wire.
+  polls: (activityId: string) => request<EventPoll[]>(`/events/${activityId}/polls`),
+  createPoll: (
+    activityId: string,
+    data: { question: string; options: string[]; closes_at?: string | null },
+  ) =>
+    request<Omit<EventPoll, 'vote_counts' | 'my_vote'>>(`/events/${activityId}/polls`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  castVote: (activityId: string, pollId: string, option_index: number) =>
+    request<EventPollVote>(`/events/${activityId}/polls/${pollId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ option_index }),
+    }),
+  closePoll: (activityId: string, pollId: string) =>
+    request<Omit<EventPoll, 'vote_counts' | 'my_vote'>>(
+      `/events/${activityId}/polls/${pollId}/close`,
+      { method: 'PATCH' },
+    ),
+
+  // Channel queries / Q&A (CHAT-02). `/queries/mine` takes no user parameter —
+  // the server scopes it to the signed-in caller (D-11), so a registrant can
+  // only ever read back their own questions.
+  myQueries: (activityId: string) => request<EventQuery[]>(`/events/${activityId}/queries/mine`),
+  orgQueries: (activityId: string) => request<EventQuery[]>(`/events/${activityId}/queries`),
+  submitQuery: (activityId: string, body: string) =>
+    request<EventQuery>(`/events/${activityId}/queries`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  respondQuery: (activityId: string, queryId: string, response_body: string) =>
+    request<EventQuery>(`/events/${activityId}/queries/${queryId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ response_body }),
+    }),
   /** Every notification addressed to the signed-in user. The current view is
    *  deliberately NOT a parameter here — it is a rendering concern that must
    *  never reach the wire (D-18), so callers filter the result on the

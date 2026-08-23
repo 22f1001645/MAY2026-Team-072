@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: progression-gating
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-08-23T07:32:10.215Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-08-23T07:46:46.112Z"
 last_activity: 2026-08-23
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 50
-  completed_plans: 47
+  completed_plans: 48
   percent: 75
 ---
 
@@ -31,11 +31,11 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 Phase: 07 (progression-gating) — EXECUTING
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-23 — Phase 07 execution started
 
-Progress: [█████████░] 94% (6/8 phases complete; Phase 07 next)
+Progress: [██████████] 96% (6/8 phases complete; Phase 07 next)
 
 ## Performance Metrics
 
@@ -106,6 +106,7 @@ Progress: [█████████░] 94% (6/8 phases complete; Phase 07 ne
 | Phase 06 P09 | — | — | — |
 | Phase 07 P01 | 40min | 2 tasks | 5 files |
 | Phase 07 P02 | 55min | 3 tasks | 5 files |
+| Phase 07 P03 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -234,6 +235,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 07-01: the progression gate has no admin carve-out; the assertion lives inside test_direct_submit_of_locked_scale_is_403 rather than as a 14th case, because the plan pins the file at 13
 - [Phase ?]: A1: record_unlock fires on every successful approval that leaves the org fest-eligible, not only on fest approvals
 - [Phase ?]: A2: GET /orgs/<id>/progression is auth_required, not can_manage_org_required — an admin proposing for an org holds no POR in it
+- [Phase ?]: 07-03: shipped the progression hook as useOrgProgression, resolving the UI-SPEC naming conflict — 07-04 must not create a second hook under useFestEligibility
 
 ### Pending Todos
 
@@ -254,8 +256,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-23T07:32:10.121Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-08-23T07:46:46.053Z
+Stopped at: Completed 07-03-PLAN.md
 Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

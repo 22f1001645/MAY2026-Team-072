@@ -546,3 +546,72 @@ class TestUnlockMarker:
         assert _approve(client, first).status_code == 200
         assert _approve(client, second).status_code == 200
         assert self._unlocks(app, org_id) == 1
+
+
+# --------------------------------------------------------------------------- #
+# The read surface: GET /orgs/<org_id>/progression (D-04, D-05)
+# --------------------------------------------------------------------------- #
+
+class TestProgressionEndpoint:
+    def _get(self, client, org_id, city=None):
+        url = f"/api/v1/orgs/{org_id}/progression"
+        if city:
+            url += f"?city={city}"
+        return client.get(url, headers=_auth(client, *RC))
+
+    def test_progression_endpoint_returns_both_counts(self, app, client):
+        """D-04: the two halves are served separately, already counted.
+
+        The caption is "1 of 2 completed", so requirements_met and
+        requirements_total travel too rather than leaving the client to derive
+        them from a boolean.
+        """
+        org_id, _ = _region_and_head(app)
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            _seed_completed_meetup(org, "Hyderabad", "local_meetup")
+        body = self._get(client, org_id, "Hyderabad").get_json()
+        assert body["local_meetups_completed"] == 1
+        assert body["regional_meetups_completed"] == 0
+        assert body["requirements_met"] == 1
+        assert body["requirements_total"] == 2
+        assert body["fest_eligible"] is False
+        assert body["collaborator_threshold"] == FEST_COLLAB_THRESHOLD
+        assert body["org_id"] == org_id
+        assert body["city"] == "Hyderabad"
+
+    def test_progression_endpoint_lists_unlocks(self, app, client):
+        """D-05: no city param still returns the org's unlock list for the banner."""
+        org_id, _ = _region_and_head(app)
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            rc_id = User.query.filter_by(email=RC[0]).first().id
+            _seed_completed_meetup(org, "Hyderabad", "local_meetup", days_ago=400,
+                                   organiser_id=rc_id)
+            rid = _seed_completed_meetup(
+                org, "Hyderabad", "regional_meetup", days_ago=200,
+                proposal_status="submitted", organiser_id=rc_id,
+            ).id
+        assert _approve(client, rid).status_code == 200
+
+        body = self._get(client, org_id).get_json()
+        assert body["city"] is None
+        assert body["local_meetups_completed"] is None
+        assert body["regional_meetups_completed"] is None
+        assert body["fest_eligible"] is False
+        assert [u["city"] for u in body["unlocks"]] == ["Hyderabad"]
+
+    def test_progression_endpoint_empty_unlocks_is_empty_array(self, app, client):
+        """An org that has unlocked nothing is a 200 with [], never an error."""
+        org_id, _ = _region_and_head(app)
+        res = self._get(client, org_id, "Hyderabad")
+        assert res.status_code == 200
+        assert res.get_json()["unlocks"] == []
+
+    def test_progression_endpoint_guards(self, app, client):
+        """404 for an unknown org, 401 with no token (D-04)."""
+        org_id, _ = _region_and_head(app)
+        missing = self._get(client, "no-such-org")
+        assert missing.status_code == 404
+        assert missing.get_json()["code"] == "not_found"
+        assert client.get(f"/api/v1/orgs/{org_id}/progression").status_code == 401

@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, Input, Progress, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import OrgQueriesPanel from '../components/OrgQueriesPanel'
 import { cx, daysUntil } from '../lib/format'
 
 // FR-F1 (thin): registration list + basic task assignment
@@ -25,7 +26,7 @@ export default function ManageEvent() {
   const { data: roster = [] } = useRoster(id)
   const { data: announcements = [] } = useAnnouncements(id)
   const alerts = announcements.filter((a: any) => a.isAlert)
-  const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks' | 'alerts'>('roster')
+  const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks' | 'alerts' | 'questions'>('roster')
   const [alertOpen, setAlertOpen] = useState(false)
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
@@ -118,7 +119,7 @@ export default function ManageEvent() {
 
       {/* Tabs */}
       <div className="mb-5 flex gap-2 border-b border-white/8">
-        {(['roster', 'referrers', 'tasks', 'alerts'] as const).map((t) => (
+        {(['roster', 'referrers', 'tasks', 'alerts', 'questions'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t as any)}
@@ -127,7 +128,7 @@ export default function ManageEvent() {
               tab === t ? 'text-teal' : 'text-graytext-mid hover:text-offwhite',
             )}
           >
-            {t === 'roster' ? `Registration list (${roster.length})` : t === 'referrers' ? 'Top Referrers' : t === 'tasks' ? 'Team tasks' : `Push Alerts History (${alerts.length})`}
+            {t === 'roster' ? `Registration list (${roster.length})` : t === 'referrers' ? 'Top Referrers' : t === 'tasks' ? 'Team tasks' : t === 'alerts' ? `Push Alerts History (${alerts.length})` : 'Attendee Q&A'}
             {tab === t && (
               <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-teal" />
             )}
@@ -218,7 +219,7 @@ export default function ManageEvent() {
             <Button variant="secondary">Open the task board</Button>
           </Link>
         </Card>
-      ) : (
+      ) : tab === 'alerts' ? (
         <Card className="p-5">
           {alerts.length === 0 ? (
             <div className="p-10 text-center text-graytext-light">No push alerts sent yet.</div>
@@ -234,6 +235,8 @@ export default function ManageEvent() {
             </div>
           )}
         </Card>
+      ) : (
+        <OrgQueriesPanel activityId={e.id} />
       )}
 
       {alertOpen && <PushAlertModal eventId={e.id} onClose={() => setAlertOpen(false)} />}

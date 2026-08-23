@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Badge, Button, Card, Input, useToast } from './ui'
 import { usePolls, useCreatePoll } from '../lib/queries'
 import PollCard from './PollCard'
+import QuerySection from './QuerySection'
 import { cx } from '../lib/format'
 
 /** Mirrors `PollCreateSchema` (backend/app/schemas/__init__.py) so a malformed
@@ -161,13 +162,12 @@ export default function EventChannelSection({
               </Button>
             ))}
 
-          {/* TODO(08-05): the Q&A sub-section mounts here. `QuerySection.tsx`
-           *  does not exist yet — plan 08-05 creates it, and this plan ran
-           *  ahead of it. Wiring is two lines:
-           *    import QuerySection from './QuerySection'
-           *    <div className="border-t border-white/5 pt-3"><QuerySection activityId={activityId} /></div>
-           *  Nothing is rendered in the meantime, deliberately: a "coming soon"
-           *  placeholder would be a stub attendees can see. */}
+          {/* CHAT-02 — the Q&A half of the channel. Its audience is the same as
+           *  the section's, and `useMyQueries` scopes it to the caller's own
+           *  questions, so no extra gate is needed here. */}
+          <div className="border-t border-white/5 pt-3">
+            <QuerySection activityId={activityId} />
+          </div>
         </div>
       )}
     </Card>

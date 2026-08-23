@@ -3319,14 +3319,19 @@
               </td>
             </tr>
             <tr>
-              <td><code>/events/{id}/register</code></td>
-              <td>Registration &amp; Auto-Waitlist</td>
-              <td>One-click RSVP; auto-waitlisted when capacity reached; auto-promoted on cancellation</td>
+              <td><code>/events/{id}</code></td>
+              <td>Event Details &amp; RSVP</td>
+              <td>Interactive venue maps, organiser team attribution, one-click RSVP, and in-app attendee chat</td>
+            </tr>
+            <tr>
+              <td><code>/my-registrations</code></td>
+              <td>My Tickets &amp; Digital Passes</td>
+              <td>Calendar integration, countdown timer, and cryptographically signed QR digital passes</td>
             </tr>
             <tr>
               <td><code>/leaderboard</code></td>
               <td>Contribution Ledger</td>
-              <td>Real-time points tally: Attend (30 pts), Organise (50 pts), Volunteer (20 pts)</td>
+              <td>Real-time points tally: Attend (30 pts), Organise (50 pts), Volunteer (20 pts), global rank podium</td>
             </tr>
             <tr>
               <td><code>/notifications</code></td>
@@ -3335,6 +3340,29 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="ss-grid" style="margin-top: 24px; margin-bottom: 40px">
+        <div class="ss-frame"><img src="images/fig07_discover.png"
+            alt="Figure 7: Discover Page — City-Filtered Event Feed" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 7 — Event Discovery Feed: Personalized welcome, featured fests, and city filter pills</div>
+        </div>
+        <div class="ss-frame"><img src="images/fig07b_my_registrations.png"
+            alt="Figure 7b: My Tickets & Registrations Calendar" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 7b — My Tickets &amp; Registrations: Calendar integration, countdown, and active passes</div>
+        </div>
+        <div class="ss-frame"><img src="images/fig07c_event_details.png"
+            alt="Figure 7c: Event Details & RSVP Confirmation" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 7c — Event Details Page: Maps embed, Meetup Head info, and confirmed RSVP</div>
+        </div>
+        <div class="ss-frame"><img src="images/fig14_qr_checkin.png"
+            alt="Figure 14: Ekatva Digital Pass with Signed QR Token" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 14 — Attendee Digital Pass: Cryptographically signed short-TTL QR code for door check-in</div>
+        </div>
+        <div class="ss-frame" style="grid-column: span 2"><img src="images/fig16_leaderboard.png"
+            alt="Figure 16: Community Leaderboard & Contribution Ledger" style="background:#090d0b;object-fit:contain">
+          <div class="ss-cap">Figure 16 — Community Leaderboard: Global rankings podium, tier progress, and itemized points ledger</div>
+        </div>
       </div>
 
       <h3 class="h3">9.2 Organiser Experience</h3>
@@ -3503,15 +3531,13 @@ def can_participate_in_activity(user, activity):
       <div class="feat-row">
         <div class="feat-c">
           <div class="feat-n">FEATURE 17–20</div>
-          <div class="feat-t">QR Check-In · Reimbursement · Leaderboard · Org Profile</div>
-          <p class="feat-p">Signed short-TTL QR tokens per registration. Any team member scans — idempotent re-scan.
-            Volunteer points require verified crew membership. 4-step reimbursement pipeline. Gamified leaderboard. All
-            4 org types get editable bio, logo, social links (URL-safety validated) + AI brand kit drafting.</p>
+          <div class="feat-t">Digital Pass &amp; QR Check-In · Reimbursement · Gamified Leaderboard</div>
+          <p class="feat-p">Signed short-TTL QR tokens per registration with live camera optical scanning. Any team member scans — idempotent re-scan prevention.
+            Volunteer points require verified crew membership. 4-step reimbursement pipeline. Gamified leaderboard with live podium and itemized contribution points ledger.</p>
         </div>
-        <div class="ss-frame"><img src="images/fig10c_brand_kit.png" alt="Organisation Profile & Brand Kit Builder"
+        <div class="ss-frame"><img src="images/fig14_qr_checkin.png" alt="Ekatva Digital Pass with QR Check-In"
             style="background:#090d0b;object-fit:contain">
-          <div class="ss-cap">Feature 17–20 — Organisation Profile: Custom bio, logo upload, and AI-assisted Brand Kit
-            builder</div>
+          <div class="ss-cap">Feature 17–20 — Digital Pass with Signed QR Token, Live Camera Scan &amp; Contribution Ledger</div>
         </div>
       </div>
 

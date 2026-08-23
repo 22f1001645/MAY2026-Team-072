@@ -12,6 +12,8 @@ PRIMARY organisation (Activity.org_id). A meetup it merely accepted a
 collaboration invite on does not count — the narrower reading, matching the
 existing `meetups_in_region_month` quota precedent.
 """
+from sqlalchemy.exc import IntegrityError
+
 from ..constants import COLLAB_ACCEPTED, FEST_COLLAB_THRESHOLD
 from ..errors import ApiError
 from ..extensions import db
@@ -100,9 +102,15 @@ def assert_fest_collaborators_accepted(activity) -> None:
 def record_unlock(org_id: str, city: str) -> OrgProgressionUnlock:
     """PROG-03: mark that this org has reached fest tier in this city.
 
-    Get-or-create, deliberately not try/except IntegrityError: this runs inside
-    decide()'s transaction, and a caught integrity error there would force a
-    rollback that also discarded the approval it was recording (T-07-09).
+    Get-or-create, with the insert wrapped in a SAVEPOINT. A plain check-then-
+    insert is not atomic: two admins approving qualifying proposals for the same
+    org+city concurrently both see no row, both insert, and uq_org_progression
+    fires at the caller's commit — a 500 that discards the whole approval
+    (T-07-09). A bare try/except IntegrityError has the same problem, because
+    recovering from it needs a rollback of the outer transaction.
+
+    begin_nested() is what makes the recovery cheap: the rollback discards only
+    the marker, leaving decide()'s approval intact.
 
     Does not commit — the caller's own commit is what makes the marker and the
     approval that earned it land together or not at all.
@@ -111,7 +119,13 @@ def record_unlock(org_id: str, city: str) -> OrgProgressionUnlock:
     if existing:
         return existing
     unlock = OrgProgressionUnlock(org_id=org_id, city=city)
-    db.session.add(unlock)
+    try:
+        with db.session.begin_nested():
+            db.session.add(unlock)
+    except IntegrityError:
+        # Someone else recorded the same unlock between the check and the
+        # insert. The marker is the point, not who wrote it.
+        return OrgProgressionUnlock.query.filter_by(org_id=org_id, city=city).first()
     return unlock
 
 

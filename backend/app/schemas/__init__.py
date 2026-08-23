@@ -181,6 +181,20 @@ class PollVoteSchema(Schema):
     option_index = fields.Int(required=True, validate=validate.Range(min=0))
 
 
+class QuerySubmitSchema(Schema):
+    """CHAT-02 question to the organising team. The 5-character floor keeps a
+    stray keypress from becoming a question the team must triage."""
+
+    body = fields.Str(required=True, validate=validate.Length(min=5, max=1000))
+
+
+class QueryRespondSchema(Schema):
+    """CHAT-03 team answer. Longer bound than the question because an answer
+    routinely carries the detail the question asked for."""
+
+    response_body = fields.Str(required=True, validate=validate.Length(min=1, max=2000))
+
+
 class CheckInSchema(Schema):
     registration_ids = fields.List(fields.Str(), required=True)
 

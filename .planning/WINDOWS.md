@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 5
+open_count: 6
 waived_count: 0
 fixed_count: 1
-total_count: 6
-last_updated: 2026-08-23T17:50:20.847Z
+total_count: 7
+last_updated: 2026-08-23T19:44:58.484Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-08-23T17:50:20.847Z
 | 4 | 07 | deviation | backend/tests/test_progression_gating.py |  | 07-01 plan named POST /api/v1/proposals; the real submit route is POST /api/v1/activities — tests corrected, plan text still wrong | open |  | 2026-08-23T06:21:37.142Z |  |
 | 5 | 08 | deviation | backend/app/services/channel_service.py |  | 08-02 submit_query gate widened to can_participate_in_activity (plan specified a literal RegistrationRepository.find) | open |  | 2026-08-23T16:57:43.978Z |  |
 | 6 | 08 | stub | frontend/src/components/EventChannelSection.tsx | 158 | Q&A sub-section is not mounted — QuerySection.tsx (plan 08-05) does not exist yet; two-line wiring is marked TODO(08-05) in place | fixed |  | 2026-08-23T17:34:39.022Z | 2026-08-23T17:50:20.847Z |
+| 7 | 08 | deviation | backend/tests/test_org_service_unit.py |  | Full backend suite hangs (CPU-bound, not I/O-wait) partway through this file after merging origin/main (dc8f9b2..91ac345) into the phase-08 branch. Not caused by Phase 8 work: 08-06 ran the full suite standalone pre-merge and got 496 collected / 495 pass clean. Killed after ~40min CPU time at ~56-72% progress. Needs isolated repro (pytest -k test_org_service_unit -x) to pin exact test and root cause -- likely interacts with the merged backend/app/repositories/repos.py changes. | open |  | 2026-08-23T19:44:58.484Z |  |
 
 ````json
 [
@@ -95,6 +96,18 @@ last_updated: 2026-08-23T17:50:20.847Z
     "reason": "",
     "recorded_at": "2026-08-23T17:34:39.022Z",
     "resolved_at": "2026-08-23T17:50:20.847Z"
+  },
+  {
+    "id": 7,
+    "kind": "deviation",
+    "phase": "08",
+    "file": "backend/tests/test_org_service_unit.py",
+    "line": null,
+    "description": "Full backend suite hangs (CPU-bound, not I/O-wait) partway through this file after merging origin/main (dc8f9b2..91ac345) into the phase-08 branch. Not caused by Phase 8 work: 08-06 ran the full suite standalone pre-merge and got 496 collected / 495 pass clean. Killed after ~40min CPU time at ~56-72% progress. Needs isolated repro (pytest -k test_org_service_unit -x) to pin exact test and root cause -- likely interacts with the merged backend/app/repositories/repos.py changes.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-23T19:44:58.484Z",
+    "resolved_at": null
   }
 ]
 ````

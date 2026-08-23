@@ -36,6 +36,7 @@ from app.extensions import db
 from app.models import (
     Activity,
     ActivityTeamMember,
+    AuditLog,
     EventPoll,
     EventQuery,
     Organisation,
@@ -228,3 +229,162 @@ def test_respond_query_still_permitted_after_the_event_ends(client):
     body = res.get_json()
     assert body["status"] == QUERY_ANSWERED
     assert body["response_body"] == "Yes — step-free entry via the north gate."
+
+
+# --------------------------------------------------------------------------- #
+# The phase end to end (ROADMAP Phase 8 criteria 1, 2 and 4)                   #
+# --------------------------------------------------------------------------- #
+
+def test_channel_end_to_end(client):
+    """The whole phase in one pass, over the real HTTP stack.
+
+    Organiser creates a poll, the registrant votes once and cannot vote twice,
+    the registrant asks the team a question, the team answers it once. Written
+    as one test rather than four because it is the ordering that is being
+    checked — each step consumes the id the previous one minted, which is what
+    the frontend does and what four isolated tests would not catch."""
+    activity = _seed_activity(status=EVENT_LIVE)
+    aid = activity.id
+    org_h = _organiser(client)
+    student_h = _registrant(client)
+
+    # 1. The team creates a poll (CHAT-01).
+    res = client.post(
+        f"/api/v1/events/{aid}/polls",
+        json={
+            "question": "Which slot suits you?",
+            "options": ["Saturday morning", "Sunday evening"],
+        },
+        headers=org_h,
+    )
+    assert res.status_code == 201, res.get_json()
+    poll_id = res.get_json()["id"]
+
+    # 2. The registrant votes exactly once.
+    res = client.post(
+        f"/api/v1/events/{aid}/polls/{poll_id}/vote",
+        json={"option_index": 1},
+        headers=student_h,
+    )
+    assert res.status_code == 201, res.get_json()
+
+    res = client.post(
+        f"/api/v1/events/{aid}/polls/{poll_id}/vote",
+        json={"option_index": 0},
+        headers=student_h,
+    )
+    assert res.status_code == 409, res.get_json()
+    assert res.get_json()["code"] == "already_voted"
+
+    # The tally is a lens over the votes, and `my_vote` is per-caller: the voter
+    # sees their own choice, the organiser (who did not vote) sees None.
+    polls = client.get(f"/api/v1/events/{aid}/polls", headers=student_h).get_json()
+    assert polls[0]["vote_counts"] == [0, 1]
+    assert polls[0]["my_vote"] == 1
+    assert client.get(
+        f"/api/v1/events/{aid}/polls", headers=org_h
+    ).get_json()[0]["my_vote"] is None
+
+    # 3. The registrant asks the team a question (CHAT-02).
+    res = client.post(
+        f"/api/v1/events/{aid}/queries",
+        json={"body": "Is the venue wheelchair accessible?"},
+        headers=student_h,
+    )
+    assert res.status_code == 201, res.get_json()
+    query_id = res.get_json()["id"]
+
+    # 4. The team answers it, once (CHAT-03).
+    answer = "Yes — step-free entry via the north gate."
+    res = client.post(
+        f"/api/v1/events/{aid}/queries/{query_id}/respond",
+        json={"response_body": answer},
+        headers=org_h,
+    )
+    assert res.status_code == 200, res.get_json()
+    assert res.get_json()["status"] == QUERY_ANSWERED
+
+    res = client.post(
+        f"/api/v1/events/{aid}/queries/{query_id}/respond",
+        json={"response_body": "Second thoughts."},
+        headers=org_h,
+    )
+    assert res.status_code == 409, res.get_json()
+    assert res.get_json()["code"] == "already_answered"
+
+    # The asker sees their own question with the answer attached.
+    mine = client.get(f"/api/v1/events/{aid}/queries/mine", headers=student_h).get_json()
+    assert len(mine) == 1
+    assert mine[0]["response_body"] == answer
+
+
+def test_a_registrant_never_sees_another_registrants_query(client):
+    """CHAT-02's support-ticket model, enforced server-side.
+
+    `/queries` is the team's view and `/queries/mine` is scoped to the caller —
+    so the second registrant's request for the team view is a 403, and their own
+    view is empty rather than a window onto the first registrant's question."""
+    activity = _seed_activity(status=EVENT_LIVE)
+    aid = activity.id
+    other = User.query.filter_by(email="head@ekatva.os").first()
+    db.session.add(
+        Registration(
+            activity_id=aid, student_id=other.id, status=REGISTRATION_CONFIRMED
+        )
+    )
+    db.session.commit()
+
+    client.post(
+        f"/api/v1/events/{aid}/queries",
+        json={"body": "Is the venue wheelchair accessible?"},
+        headers=_registrant(client),
+    )
+
+    other_h = _auth(client, "head@ekatva.os", "head12345")
+    assert client.get(f"/api/v1/events/{aid}/queries", headers=other_h).status_code == 403
+    assert client.get(f"/api/v1/events/{aid}/queries/mine", headers=other_h).get_json() == []
+
+
+def test_only_the_teams_moderation_actions_are_audited(client):
+    """CHAT-03 ships the audit trail with the feature (08-CONTEXT D-16).
+
+    Create, close and respond are the team acting on the community's behalf and
+    are logged. A vote and a question are routine attendee activity and are not
+    — an audit row per vote would bury the moderation trail it exists to show."""
+    activity = _seed_activity(status=EVENT_LIVE)
+    aid = activity.id
+    org_h = _organiser(client)
+    student_h = _registrant(client)
+
+    poll_id = client.post(
+        f"/api/v1/events/{aid}/polls",
+        json={"question": "Which slot suits you?", "options": ["Sat", "Sun"]},
+        headers=org_h,
+    ).get_json()["id"]
+    client.post(
+        f"/api/v1/events/{aid}/polls/{poll_id}/vote",
+        json={"option_index": 0},
+        headers=student_h,
+    )
+    client.patch(f"/api/v1/events/{aid}/polls/{poll_id}/close", headers=org_h)
+
+    query_id = client.post(
+        f"/api/v1/events/{aid}/queries",
+        json={"body": "Is the venue wheelchair accessible?"},
+        headers=student_h,
+    ).get_json()["id"]
+    client.post(
+        f"/api/v1/events/{aid}/queries/{query_id}/respond",
+        json={"response_body": "Yes."},
+        headers=org_h,
+    )
+
+    poll_actions = [
+        a.action for a in AuditLog.query.filter_by(entity="poll", entity_id=poll_id).all()
+    ]
+    assert sorted(poll_actions) == ["Poll closed", "Poll created"]
+
+    query_actions = [
+        a.action for a in AuditLog.query.filter_by(entity="query", entity_id=query_id).all()
+    ]
+    assert query_actions == ["Query answered"]

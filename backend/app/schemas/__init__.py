@@ -165,7 +165,8 @@ class CheckInSchema(Schema):
 
 
 class ScanSchema(Schema):
-    registration_id = fields.Str(required=True)
+    qr_token = fields.Str(required=False, allow_none=True)
+    registration_id = fields.Str(required=False, allow_none=True)
 
 
 class ProfileSchema(Schema):

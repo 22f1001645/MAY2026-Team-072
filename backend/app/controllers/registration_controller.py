@@ -1,5 +1,6 @@
 from flask import Blueprint, g, jsonify, request
 
+from ..errors import ApiError
 from ..rbac import auth_required, can_manage_activity_required, organiser_required
 from ..schemas import BroadcastSchema, CheckInSchema, ScanSchema, VolunteerSchema
 from ..services import attendance_service, registration_service
@@ -43,11 +44,12 @@ def check_in(activity_id):
 @registration_bp.post("/events/<activity_id>/scan")
 @can_manage_activity_required
 def scan(activity_id):
-    """QR camera check-in — scans the registration id shown on a student's ticket."""
+    """QR camera check-in — scans the registration QR token or ID shown on a student's ticket."""
     data = ScanSchema().load(request.get_json() or {})
-    # In earlier iteration, it used QR token. If ScanSchema uses registration_id, we will stick to it.
-    # To support both if needed, but I'll stick to what was here.
-    result = attendance_service.scan_qr(activity_id, data["registration_id"], g.current_user)
+    token = data.get("qr_token") or data.get("registration_id")
+    if not token:
+        raise ApiError("qr_token or registration_id is required", "missing_token", 400)
+    result = attendance_service.scan_qr(activity_id, token, g.current_user)
     return jsonify(result), 200
 
 

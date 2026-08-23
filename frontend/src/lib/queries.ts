@@ -108,6 +108,28 @@ export const useOrgProfile = (orgId?: string) =>
     enabled: !!orgId,
   })
 
+// ---- Phase 7: progression gating (PROG-01…PROG-03) ----
+
+/** The one read of progression state, serving both Phase 7 surfaces: called
+ *  with a city it drives the proposal form's fest-card lock, called without one
+ *  it drives the profile's sponsorship banner.
+ *
+ *  `city ?? null` in the key keeps those two calls as distinct cache entries.
+ *  Collapsed into one key they would overwrite each other and the banner would
+ *  flicker between an org-wide answer and a city-specific one (D-04, D-05).
+ *
+ *  The key change is the *only* refetch trigger: no polling interval and no
+ *  refetch on window focus. Eligibility changes when an admin approves, and the
+ *  `useDecision` invalidation below is what reports that — polling for it would
+ *  be the structural mistake the 05-09 no-polling gate exists to catch. */
+export const useOrgProgression = (orgId?: string, city?: string) =>
+  useQuery({
+    queryKey: ['orgProgression', orgId, city ?? null],
+    queryFn: () => api.orgProgression(orgId!, city),
+    enabled: !!orgId,
+    refetchOnWindowFocus: false,
+  })
+
 /** Gated on the manage flag as well as the id. `GET /orgs/<id>/brand-kit` is
  *  `can_manage_org_required`, so a non-manager would get a 403 — and the rule
  *  is that the request is **never issued**, not that the error is swallowed.
@@ -196,6 +218,11 @@ export const useDecision = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['proposals'] })
       qc.invalidateQueries({ queryKey: ['events'] })
+      // An approval is what can complete an org's local+regional pair, and the
+      // server writes the unlock row in the same transaction. Without this the
+      // fest card stays locked and the sponsorship banner stays absent until a
+      // manual reload — the two states PROG-01 and PROG-03 exist to show.
+      qc.invalidateQueries({ queryKey: ['orgProgression'] })
     },
   })
 }

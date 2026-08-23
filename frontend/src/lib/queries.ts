@@ -814,6 +814,11 @@ export const useCastVote = () => {
   return useMutation({
     mutationFn: (v: { id: string; pollId: string; option_index: number }) =>
       api.castVote(v.id, v.pollId, v.option_index),
+    // Returned rather than fired and forgotten: TanStack holds the mutation
+    // pending until this settles, which keeps the ballot disabled through the
+    // refetch. Without it the card re-renders from the stale `my_vote: null`
+    // with its buttons live again, and a second click earns a 409
+    // already_voted toast for what looked like a first interaction.
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
   })
 }

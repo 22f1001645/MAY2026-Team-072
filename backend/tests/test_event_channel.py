@@ -350,6 +350,23 @@ def test_channel_end_to_end(client):
     assert mine[0]["response_body"] == answer
 
 
+def test_a_stranger_cannot_read_an_events_polls(client):
+    """Poll questions and tallies are the registrants' surface, not the web's.
+
+    Activity ids are enumerable from the public city feed, so a route on
+    `auth_required` alone hands every logged-in student every event's polls and
+    per-option counts. `/queries` is team-gated against the same leak; this is
+    the read half of the pair. A nonexistent event 404s for the same reason."""
+    activity = _seed_activity(with_registration=False)
+    _seed_poll(activity)
+    stranger = _auth(client, "head@ekatva.os", "head12345")
+
+    res = client.get(f"/api/v1/events/{activity.id}/polls", headers=stranger)
+    assert res.status_code == 403, res.get_json()
+
+    assert client.get("/api/v1/events/no-such-event/polls", headers=stranger).status_code == 404
+
+
 def test_a_registrant_never_sees_another_registrants_query(client):
     """CHAT-02's support-ticket model, enforced server-side.
 

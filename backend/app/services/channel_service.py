@@ -98,8 +98,12 @@ def create_poll(activity_id, question, options, closes_at, current_user) -> Even
     return poll
 
 
-def list_polls(activity_id, viewer_id=None) -> list:
+def list_polls(activity_id, viewer_id) -> list:
     """Every poll on the event, newest first, with counts and the caller's vote.
+
+    The caller is always known: the route is `can_participate_in_activity_required`,
+    which 404s an unknown event and 403s a non-registrant before this runs, so
+    there is no anonymous branch to defend.
 
     `joinedload` is not an optimisation here so much as the difference between
     one query and one-per-poll: the counts are computed in Python over the
@@ -119,7 +123,7 @@ def list_polls(activity_id, viewer_id=None) -> list:
         ]
         payload["my_vote"] = next(
             (v.option_index for v in poll.votes if v.user_id == viewer_id), None
-        ) if viewer_id else None
+        )
         result.append(payload)
     return result
 

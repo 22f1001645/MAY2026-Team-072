@@ -5,15 +5,21 @@ surface rather than more registration plumbing.
 
 The guards are asymmetric on purpose: creating and closing a poll, and reading
 or answering queries, is the team's authority over THIS event
-(`can_manage_activity_required`), while reading polls, voting, and submitting a
-query are open to any authenticated caller at the route and narrowed to actual
-registrants inside `channel_service`, which is where the registration row can be
-seen. `/queries/mine` is auth_required rather than team-gated because it is
-scoped to `g.current_user` in the service and can only ever return the caller's
-own questions (D-11)."""
+(`can_manage_activity_required`), while reading polls is the registrant's view
+of it (`can_participate_in_activity_required` — the same predicate `cast_vote`
+and `submit_query` apply inside the service, where the registration row can be
+seen). Voting and submitting a query stay `auth_required` at the route because
+the service must answer 409 for a closed event before it answers 403 for a
+stranger, and a route-level guard would invert that order. `/queries/mine` is
+auth_required rather than team-gated because it is scoped to `g.current_user` in
+the service and can only ever return the caller's own questions (D-11)."""
 from flask import Blueprint, g, jsonify, request
 
-from ..rbac import auth_required, can_manage_activity_required
+from ..rbac import (
+    auth_required,
+    can_manage_activity_required,
+    can_participate_in_activity_required,
+)
 from ..schemas import (
     PollCreateSchema,
     PollVoteSchema,
@@ -40,11 +46,9 @@ def create_poll(activity_id):
 
 
 @channel_bp.get("/events/<activity_id>/polls")
-@auth_required
+@can_participate_in_activity_required
 def list_polls(activity_id):
-    polls = channel_service.list_polls(
-        activity_id, g.current_user.id if g.current_user else None
-    )
+    polls = channel_service.list_polls(activity_id, g.current_user.id)
     return jsonify(polls), 200
 
 

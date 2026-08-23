@@ -63,7 +63,7 @@ export default function KanbanWorkspace() {
 
   const isLive = campaignQuery.data?.status === CAMPAIGN_LIVE
   const teamMembers = (event.teamMembers ?? []).map((m) => ({
-    userId: m.user_id,
+    userId: m.userId,
     name: m.member ?? 'Unnamed',
     role: m.role,
   }))

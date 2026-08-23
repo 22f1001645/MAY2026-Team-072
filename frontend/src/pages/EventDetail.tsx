@@ -178,13 +178,13 @@ export default function EventDetail() {
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
-                  const canRespond = c.status === 'pending' && capabilities?.manageableOrgIds?.includes(c.org_id)
+                  const canRespond = c.status === 'pending' && capabilities?.manageableOrgIds?.includes(c.orgId)
                   return (
                     <div key={c.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[14px] font-medium text-offwhite truncate">{c.org || c.org_id}</span>
-                          {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                          <span className="text-[14px] font-medium text-offwhite truncate">{c.org || c.orgId}</span>
+                          {c.isPrimary && <Badge tone="gold">Primary</Badge>}
                         </div>
                         <div className="mt-1 flex items-center gap-2">
                           <CollabStatus status={c.status} />
@@ -228,7 +228,7 @@ export default function EventDetail() {
                       {(t.member || '?').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium text-offwhite truncate">{t.member || t.user_id}</div>
+                      <div className="text-[13px] font-medium text-offwhite truncate">{t.member || t.userId}</div>
                       <div className={`text-[11px] font-semibold ${t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid'}`}>
                         {t.role}
                       </div>
@@ -297,11 +297,11 @@ export default function EventDetail() {
               const roster = e.teamMembers ?? []
               const currentHead = roster.find((t: any) => t.role === 'Meetup Head')
               const candidates = roster.filter((t: any) => t.role !== 'Meetup Head')
-              const newHead = roster.find((t: any) => t.user_id === reassignUserId)
+              const newHead = roster.find((t: any) => t.userId === reassignUserId)
               return (
                 <div className="space-y-4">
                   <p className="text-[14px] text-graytext-light">
-                    Currently {currentHead ? (currentHead.member ?? currentHead.user_id) : 'unassigned'}.
+                    Currently {currentHead ? (currentHead.member ?? currentHead.userId) : 'unassigned'}.
                   </p>
                   {candidates.length === 0 ? (
                     <p className="text-caption text-graytext-mid">No other team members on the roster to reassign to.</p>
@@ -311,13 +311,13 @@ export default function EventDetail() {
                       onChange={(evt) => setReassignUserId(evt.target.value)}
                       options={[
                         { label: 'Select a team member…', value: '' },
-                        ...candidates.map((t: any) => ({ label: t.member ?? t.user_id, value: t.user_id })),
+                        ...candidates.map((t: any) => ({ label: t.member ?? t.userId, value: t.userId })),
                       ]}
                     />
                   )}
                   {newHead && (
                     <p role="alert" className="text-caption text-gold">
-                      {newHead.member ?? newHead.user_id} will immediately become the sole accountable person for this event's budget and execution.
+                      {newHead.member ?? newHead.userId} will immediately become the sole accountable person for this event's budget and execution.
                     </p>
                   )}
                   {reassignMut.isError && (

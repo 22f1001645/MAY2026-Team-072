@@ -37,7 +37,7 @@ export default function ApprovalQueue() {
    * collaborator's org — the proposing organisation. Advisory only: the server
    * re-counts accepted invites on approve (T-07-08). */
   const isFest = current?.scale === 'regional_fest'
-  const primaryOrgId = current?.collaborators?.find((c) => c.is_primary)?.org_id
+  const primaryOrgId = current?.collaborators?.find((c) => c.isPrimary)?.orgId
   const { data: progression } = useOrgProgression(isFest ? primaryOrgId : undefined)
   const acceptedCount = current?.collaborators?.filter((c) => c.status === 'accepted').length ?? 0
   const collabThreshold = progression?.collaboratorThreshold
@@ -257,8 +257,8 @@ export default function ApprovalQueue() {
                     <div className="grid gap-2">
                       {current.collaborators.map((c: any) => (
                         <div key={c.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                          <span className="flex-1 text-[14px] font-medium text-offwhite">{c.org || c.org_id}</span>
-                          {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                          <span className="flex-1 text-[14px] font-medium text-offwhite">{c.org || c.orgId}</span>
+                          {c.isPrimary && <Badge tone="gold">Primary</Badge>}
                           <CollabStatus status={c.status} />
                         </div>
                       ))}
@@ -275,7 +275,7 @@ export default function ApprovalQueue() {
                     <div className="grid gap-2">
                       {current.teamMembers.map((t: any) => (
                         <div key={t.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                          <span className="flex-1 text-[14px] font-medium text-offwhite">{t.member || t.user_id}</span>
+                          <span className="flex-1 text-[14px] font-medium text-offwhite">{t.member || t.userId}</span>
                           <span className={"text-[12px] font-bold uppercase tracking-wider " + (t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid')}>
                             {t.role}
                           </span>

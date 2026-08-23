@@ -232,23 +232,25 @@ export interface AnnouncementMessage {
 
 export type CollabStatus = 'pending' | 'accepted' | 'declined'
 
+/** camelCase like every other type in this module. The snake→camel adaptation
+ *  happens once, in adaptEvent(); components never see the wire shape. */
 export interface Collaborator {
   id: string
-  activity_id: string
-  org_id: string
+  activityId: string
+  orgId: string
   org: string | null
-  is_primary: boolean
+  isPrimary: boolean
   status: CollabStatus
-  responded_at: string | null
+  respondedAt: string | null
 }
 
 export interface TeamMember {
   id: string
-  activity_id: string
-  user_id: string
+  activityId: string
+  userId: string
   member: string | null
   role: string
-  added_by: string | null
+  addedBy: string | null
 }
 
 /** One row of the event agenda (DESIGN-01). Snake→camelCase adaptation

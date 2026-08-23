@@ -25,6 +25,18 @@ from ..models import (
 )
 
 
+def _month_window(ref: datetime):
+    """[first instant of ref's month, first instant of the next month).
+
+    The upper bound is the point: an unbounded `starts_at >= start` counts every
+    later month too, so one approved meetup in March makes every January and
+    February proposal permanently unapprovable with a message naming a month
+    that has nothing in it.
+    """
+    start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return start, (start + timedelta(days=32)).replace(day=1)
+
+
 class UserRepository:
     @staticmethod
     def by_email(email: str):
@@ -204,10 +216,11 @@ class ActivityRepository:
         """FR-B2 quota: counts meetups in a Region per month (via Activity.org_id).
         Excludes rejected proposals so they don't consume the quota.
         For backward compat, also accepts a city string as fallback."""
-        start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start, end = _month_window(ref)
         q = Activity.query.filter(
             Activity.org_id == org_id,
             Activity.starts_at >= start,
+            Activity.starts_at < end,
             Activity.scale.in_(["local_meetup", "regional_meetup"]),
         ).join(Proposal).filter(~Proposal.status.in_(["rejected", "revoked"]))
         return q.count()
@@ -215,10 +228,11 @@ class ActivityRepository:
     @staticmethod
     def approved_meetups_in_region_month(org_id: str, ref: datetime):
         """Used strictly during Admin decision to ensure an approved meetup doesn't violate quota."""
-        start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start, end = _month_window(ref)
         q = Activity.query.filter(
             Activity.org_id == org_id,
             Activity.starts_at >= start,
+            Activity.starts_at < end,
             Activity.scale.in_(["local_meetup", "regional_meetup"]),
         ).join(Proposal).filter(Proposal.status == "approved")
         return q.count()

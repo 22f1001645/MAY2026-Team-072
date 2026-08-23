@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ApiError } from '../lib/api'
 import { inr } from '../lib/mock'
 import { useAudit, useDecision, useOrgProgression, useProposals } from '../lib/queries'
 import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
@@ -331,7 +332,7 @@ export default function ApprovalQueue() {
                   {decisionMut.isError && (
                     <div className="mt-2">
                       <ErrorStrip
-                        heading="Not approvable yet"
+                        heading={decisionHeading((decisionMut.error as ApiError).code)}
                         body={(decisionMut.error as Error).message}
                       />
                     </div>
@@ -399,6 +400,22 @@ function TabButton({ active, onClick, label, count }: { active: boolean, onClick
  * put — never a toast, which would expire in 3.5s. Same local-function idiom as
  * OrgProfile.tsx's ErrorStrip (07-UI-SPEC §1); the body is the server's message
  * verbatim, since it already names the shortfall by number. */
+/* The strip renders for EVERY decision, not just approve — request-changes,
+ * reject and revoke fail through the same mutation. Keying the heading on the
+ * server's code (same idiom as ProposalNew's ERROR_HEADINGS) stops an empty
+ * request-changes note from being reported as "Not approvable yet". */
+const DECISION_HEADINGS: Record<string, string> = {
+  fest_locked: "Regional Fest isn't unlocked for this organisation",
+  fest_collaborators_required: 'Not every collaborator has accepted',
+  quota_exceeded: 'Quota already used this month',
+  note_required: 'A note is required to request changes',
+  already_decided: 'This proposal has already been decided',
+  proposal_not_found: "This proposal couldn't be found",
+}
+function decisionHeading(code?: string) {
+  return (code && DECISION_HEADINGS[code]) || "Couldn't record that decision"
+}
+
 function ErrorStrip({ heading, body }: { heading: string; body?: string }) {
   return (
     <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-[14px] text-red-300">

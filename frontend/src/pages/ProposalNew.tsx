@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useCities, useOrgs, useSubmitProposal } from '../lib/queries'
+import { useCities, useOrgs, useSubmitProposal, useOrgProgression } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle, FormSelect, FormDatePicker } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
@@ -72,6 +72,7 @@ export default function ProposalNew() {
   const [collabSearch, setCollabSearch] = useState('')
   const [done, setDone] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [festReverted, setFestReverted] = useState(false)
 
   // Auto-select org when there's exactly one manageable house
   useEffect(() => {
@@ -79,6 +80,49 @@ export default function ProposalNew() {
       setForm(f => ({ ...f, org_id: manageableHouses[0].id }))
     }
   }, [manageableHouses.length])
+
+  // PROG-01 / D-04: the fest lock must describe the SAME org+city the submit payload
+  // carries, so these mirror the fallbacks used in submit() below exactly. Querying the
+  // raw form fields would let the caption name a different city than the request.
+  const effectiveOrgId = form.org_id || manageableHouses[0]?.id
+  const effectiveCity = form.city || cities[0]?.name
+  const {
+    data: progression,
+    isLoading: progLoading,
+    isError: progError,
+  } = useOrgProgression(effectiveOrgId, effectiveCity)
+
+  // Fails closed: indeterminate, in-flight and errored states all leave the card locked.
+  const festLocked = !progression?.festEligible
+  // Only a RESOLVED ineligible answer may mutate `scale`. Loading and error are not
+  // "ineligible" — reverting on them would flip the selection while the query is in flight.
+  const festIneligible = !progLoading && !progError && !!progression && !progression.festEligible
+
+  useEffect(() => {
+    if (festIneligible && scale === 'regional_fest') {
+      setScale('regional_meetup')
+      setFestReverted(true)
+    }
+  }, [festIneligible, scale])
+
+  const festLockCaption = (() => {
+    if (!effectiveOrgId || !effectiveCity) return { lines: [], summary: 'Pick a city to check eligibility.' }
+    if (progLoading) return { lines: [], summary: 'Checking eligibility…' }
+    if (progError || !progression) return { lines: [], summary: "Couldn't check eligibility. The server enforces this on submit." }
+    return {
+      lines: [
+        { label: 'Local meetup', met: (progression.localMeetupsCompleted ?? 0) > 0 },
+        { label: 'Regional meetup', met: (progression.regionalMeetupsCompleted ?? 0) > 0 },
+      ],
+      // Both numerals come straight from the server — no client arithmetic.
+      summary: `Locked · ${progression.requirementsMet} of ${progression.requirementsTotal} completed`,
+    }
+  })()
+
+  const chooseScale = (s: ActivityScale) => {
+    setFestReverted(false)
+    setScale(s)
+  }
 
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
@@ -198,29 +242,76 @@ export default function ProposalNew() {
           <Card className="p-6">
             <Label>Activity scale</Label>
           <div className="grid gap-3 sm:grid-cols-3">
-            {(['local_meetup', 'regional_meetup', 'regional_fest'] as ActivityScale[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScale(s)}
-                className={
-                  'rounded-xl border p-4 text-left transition-all duration-300 ease-material ' +
-                  (scale === s
-                    ? 'border-teal bg-teal/10'
-                    : 'border-white/10 bg-white/[0.02] hover:border-teal/40')
-                }
-              >
-                <div className="text-[14px] font-semibold text-offwhite">{scaleLabel[s]}</div>
-                <div className="text-caption text-graytext-mid">
-                  {s === 'local_meetup'
-                    ? '30–50 people'
-                    : s === 'regional_meetup'
-                      ? '75–100 · funded'
-                      : '230+ · sponsors'}
-                </div>
-              </button>
-            ))}
+            {(['local_meetup', 'regional_meetup', 'regional_fest'] as ActivityScale[]).map((s) => {
+              const sub =
+                s === 'local_meetup'
+                  ? '30–50 people'
+                  : s === 'regional_meetup'
+                    ? '75–100 · funded'
+                    : '230+ · sponsors'
+
+              // PROG-01: only regional_fest can ever be locked. aria-disabled, never the
+              // `disabled` attribute — the card must stay in tab order so a keyboard user
+              // can reach the reason via aria-describedby.
+              if (s === 'regional_fest' && festLocked)
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-disabled="true"
+                    aria-describedby="fest-lock-reason"
+                    onClick={() => {}}
+                    className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left opacity-60 cursor-not-allowed transition-all duration-300 ease-material"
+                  >
+                    <div className="flex items-center gap-1.5 text-[14px] font-semibold text-graytext-mid">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <rect x="4" y="11" width="16" height="10" rx="2" />
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                      </svg>
+                      {scaleLabel[s]}
+                    </div>
+                    <div className="text-caption text-graytext-mid">{sub}</div>
+                    <div
+                      id="fest-lock-reason"
+                      role="status"
+                      aria-live="polite"
+                      className="mt-2 space-y-0.5 text-caption"
+                    >
+                      {festLockCaption.lines.map((l) => (
+                        <div key={l.label} className={l.met ? 'text-teal' : 'text-graytext-mid'}>
+                          {l.met
+                            ? `✓ ${l.label} in ${effectiveCity}`
+                            : `${l.label} in ${effectiveCity} — not yet`}
+                        </div>
+                      ))}
+                      <div className="font-semibold text-graytext-light">{festLockCaption.summary}</div>
+                    </div>
+                  </button>
+                )
+
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => chooseScale(s)}
+                  className={
+                    'rounded-xl border p-4 text-left transition-all duration-300 ease-material ' +
+                    (scale === s
+                      ? 'border-teal bg-teal/10'
+                      : 'border-white/10 bg-white/[0.02] hover:border-teal/40')
+                  }
+                >
+                  <div className="text-[14px] font-semibold text-offwhite">{scaleLabel[s]}</div>
+                  <div className="text-caption text-graytext-mid">{sub}</div>
+                </button>
+              )
+            })}
           </div>
+          {festReverted && (
+            <div className="mt-3 rounded-xl border border-gold/20 bg-gold/[0.06] px-4 py-2 text-caption text-graytext-light animate-fade-up">
+              Regional Fest isn't unlocked in {effectiveCity} yet — switched back to Regional Meetup.
+            </div>
+          )}
         </Card>
 
         {/* Core details */}

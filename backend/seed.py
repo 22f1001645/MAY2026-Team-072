@@ -427,6 +427,20 @@ def seed_demo_data(app):
             [("Coffee tab", 9000), ("Venue", 5000)],
         )
 
+        # A completed regional meetup, so the Hyderabad chapter clears the PROG-01
+        # pair (one local + one regional completed in the same city) and fest tier
+        # is actually reachable from fresh seed data. Without it the locked fest
+        # card and the sponsorship banner cannot be demonstrated without editing
+        # the database by hand. Past-dated and approved: eligibility reads the
+        # proposal status and the start date, never Activity.status.
+        make_activity(
+            orgs["hyd_region"], "Hyderabad Regional Meetup — Winter Edition", "Hyderabad",
+            "regional_meetup", -45, "JNTU Auditorium, Kukatpally",
+            "The whole region in one room: lightning talks, a project fair and dinner.",
+            120, saiteja, "completed",
+            [("Venue & AV", 20000), ("Meals (120)", 35000)],
+        )
+
         db.session.flush()
 
         # Registrations

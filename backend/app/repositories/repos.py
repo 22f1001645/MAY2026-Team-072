@@ -142,7 +142,7 @@ class ActivityRepository:
         if scale and scale != "All":
             q = q.filter(Activity.scale == scale)
         if date_range:
-            now = datetime.now()
+            now = datetime.utcnow()
             if date_range == "this_week":
                 q = q.filter(Activity.starts_at <= now + timedelta(days=7))
             elif date_range == "this_month":
@@ -184,7 +184,7 @@ class ActivityRepository:
     @staticmethod
     def sync_past_events():
         """Lazy cron to mark past events as completed."""
-        now = datetime.now()
+        now = datetime.utcnow()
         past_events = Activity.query.filter(
             Activity.status.in_(["upcoming", "live"]),
             Activity.starts_at < now

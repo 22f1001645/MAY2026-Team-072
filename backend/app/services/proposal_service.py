@@ -345,6 +345,13 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         # the sponsorship banner would appear one fest after the scale card
         # unlocked, and the two surfaces would disagree (assumption A1).
         # Inside this transaction, with no commit of its own.
+        #
+        # The flush is load-bearing, not tidiness: fest_eligibility() re-queries
+        # the proposals table, and THIS approval is one of the rows it must see.
+        # Autoflush happens to do it today; disabling autoflush (a common
+        # hardening step) would silently stop the marker being written, with no
+        # error and both PROG-03 surfaces going quiet.
+        db.session.flush()
         if fest_eligibility(activity.org_id, activity.city)["fest_eligible"]:
             record_unlock(activity.org_id, activity.city)
     elif decision == "changes":

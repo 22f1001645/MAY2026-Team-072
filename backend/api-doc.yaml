@@ -1,0 +1,2097 @@
+openapi: 3.0.3
+info:
+  title: Ekatva OS REST API Specification
+  description: |
+    # Ekatva OS — Unified REST API Specification
+    The Community Operating System for the IIT Madras BS Degree Ecosystem.
+    Built by Team-072 (BSCS3001 Software Engineering Project, May 2026 Term).
+
+    ### Authentication
+    The API uses Bearer JWT tokens passed via the `Authorization: Bearer <token>` header, with refresh tokens managed securely via HTTP-only cookies.
+    
+    ### Standard Response Formats
+    - Success responses return JSON payloads (`application/json`).
+    - Error responses follow a standard envelope: `{ "error": "Human readable message", "code": "error_code" }`.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development Server
+  - url: https://api.ekatva.os/api/v1
+    description: Production Environment
+
+tags:
+  - name: Health & System
+    description: Server health and status endpoints
+  - name: Auth & Identity
+    description: Authentication, session management, user profiles, and capabilities
+  - name: Community & Organisations
+    description: Forest houses, clubs, societies, regional chapters, and POR governance
+  - name: Organisation Profiles
+    description: Public profiles, brand kits, social links, logos, and city progression
+  - name: Proposals & Approvals
+    description: Proposal submissions, admin queues, approvals, audit logs, and collaborations
+  - name: Events & Discovery
+    description: Published event feeds, details, editing, and cancellations
+  - name: Registrations & Attendance
+    description: Event signups, QR attendance scanner, volunteer credits, and broadcasts
+  - name: Campaigns & Forms
+    description: Promotional packages, marketing emails, custom signup fields, and registration slugs
+  - name: Event Schedules
+    description: Agenda timelines, session items, presets, and progression unlock validation
+  - name: Tasks & Operations
+    description: Crew operational tasks and assignment checklists
+  - name: Activity Timeline
+    description: Chronological unified audit trails and event milestones
+  - name: Expenses & Reimbursements
+    description: Multi-stage expense approval pipeline, bill uploads, and bulk verifications
+  - name: Reports & Feedback
+    description: Post-event reflections, attendee reviews, ratings, and feedback summaries
+  - name: Gamification & Recognition
+    description: Student point ledgers, activity tier bonuses, and city leaderboards
+  - name: Notifications & Dashboard
+    description: In-app notifications and role-tailored dashboard telemetry
+  - name: Admin & Analytics
+    description: Ecosystem analytics, student activity fee utilisation, and point rules
+  - name: Media & Static Uploads
+    description: Logos, campaign posters, and bill receipts
+
+paths:
+  # ---------------------------------------------------------------------------
+  # Health & System
+  # ---------------------------------------------------------------------------
+  /health:
+    get:
+      tags: [Health & System]
+      summary: API Health Check
+      description: Returns health status, service identifier, and API version.
+      responses:
+        '200':
+          description: Service is operational
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "ok" }
+                  service: { type: string, example: "ekatva-os-api" }
+                  version: { type: string, example: "v1" }
+
+  # ---------------------------------------------------------------------------
+  # Auth & Identity
+  # ---------------------------------------------------------------------------
+  /auth/register:
+    post:
+      tags: [Auth & Identity]
+      summary: Register Student Account (FR-A1)
+      description: Self-service registration for new students in the IIT Madras BS ecosystem.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, city]
+              properties:
+                name: { type: string, example: "Aarav Mehta" }
+                email: { type: string, format: email, example: "aarav@ekatva.os" }
+                password: { type: string, format: password, example: "student123" }
+                city: { type: string, example: "Hyderabad" }
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+
+  /auth/login:
+    post:
+      tags: [Auth & Identity]
+      summary: User Login (FR-A1)
+      description: Authenticates user credentials and returns JWT tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, example: "admin@ekatva.os" }
+                password: { type: string, format: password, example: "admin123" }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Auth & Identity]
+      summary: Refresh Access Token
+      description: Exchanges a valid HTTP-only refresh cookie for a fresh access token.
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth & Identity]
+      summary: User Logout
+      description: Revokes the current session and clears authentication cookies.
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Successfully logged out" }
+
+  /auth/me:
+    get:
+      tags: [Auth & Identity]
+      summary: Get Current User Identity & Capabilities (FR-A3)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user profile and computed capability permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithCapabilities'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me/profile:
+    patch:
+      tags: [Auth & Identity]
+      summary: Update Personal Profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                city: { type: string, example: "Bengaluru" }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/academic-status:
+    patch:
+      tags: [Auth & Identity]
+      summary: Update Academic Status (Student Self-Declaration)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [academic_level, academic_status]
+              properties:
+                academic_level: { type: string, enum: [foundation, diploma, degree] }
+                academic_status: { type: string, enum: [active, drop, suspended, graduated] }
+      responses:
+        '200':
+          description: Academic status recorded
+
+  /admin/users/{user_id}/academic-status:
+    patch:
+      tags: [Auth & Identity]
+      summary: Admin Academic Status Override
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [academic_level, academic_status]
+              properties:
+                academic_level: { type: string, enum: [foundation, diploma, degree] }
+                academic_status: { type: string, enum: [active, drop, suspended, graduated] }
+      responses:
+        '200':
+          description: Status overridden by admin
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{user_id}/impersonate:
+    post:
+      tags: [Auth & Identity]
+      summary: Impersonate User (Admin Dev Tool)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Switched user session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  # ---------------------------------------------------------------------------
+  # Community & Organisations
+  # ---------------------------------------------------------------------------
+  /cities:
+    get:
+      tags: [Community & Organisations]
+      summary: List Supported Cities (FR-A1)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of registered cities with regional affiliations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+
+  /orgs:
+    get:
+      tags: [Community & Organisations]
+      summary: List All Organisations (FR-A1)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of houses, societies, clubs, and regions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organisation'
+    post:
+      tags: [Community & Organisations]
+      summary: Create Organisation (Admin) (FR-A1)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, type]
+              properties:
+                name: { type: string, example: "Quantum Computing Society" }
+                type: { type: string, enum: [house, society, region, council] }
+                city: { type: string, example: "Chennai" }
+                category: { type: string, example: "Technical" }
+                description: { type: string }
+                logo: { type: string, format: binary }
+                banner: { type: string, format: binary }
+      responses:
+        '201':
+          description: Organisation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organisation'
+
+  /houses:
+    get:
+      tags: [Community & Organisations]
+      summary: List Forest Houses (FR-A1)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All 12 Forest Houses
+
+  /regions:
+    get:
+      tags: [Community & Organisations]
+      summary: List Geographic Regions
+      description: Public endpoint used by student registration forms.
+      responses:
+        '200':
+          description: List of regions
+
+  /regions/{region_id}/cities:
+    get:
+      tags: [Community & Organisations]
+      summary: List Cities in Region
+      parameters:
+        - name: region_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cities belonging to the given region
+    post:
+      tags: [Community & Organisations]
+      summary: Add City to Region (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: region_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, example: "Pune" }
+      responses:
+        '201':
+          description: City created
+
+  /councils/upper-house:
+    get:
+      tags: [Community & Organisations]
+      summary: List Upper House Council Members
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Active Secretaries and Deputy Secretaries
+
+  /councils/lower-house:
+    get:
+      tags: [Community & Organisations]
+      summary: List Lower House Council Members
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Active Regional Coordinators
+
+  /pors:
+    get:
+      tags: [Community & Organisations]
+      summary: List All Active PORs (FR-A2)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of positions of responsibility assignments
+
+  /orgs/{id}/pors:
+    post:
+      tags: [Community & Organisations]
+      summary: Assign Position of Responsibility (Admin) (FR-A2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, por_type]
+              properties:
+                user_id: { type: string }
+                por_type: { type: string, example: "Regional Coordinator" }
+                term: { type: string, example: "May 2026" }
+      responses:
+        '201':
+          description: POR assigned
+
+  /pors/{id}/deactivate:
+    patch:
+      tags: [Community & Organisations]
+      summary: Deactivate POR Assignment (Admin) (FR-A5)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: POR marked inactive
+
+  /users:
+    get:
+      tags: [Community & Organisations]
+      summary: Search Users / Student Roster (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of matching users
+
+  # ---------------------------------------------------------------------------
+  # Organisation Profiles & Progression (Phase 4)
+  # ---------------------------------------------------------------------------
+  /orgs/{org_id}/profile:
+    get:
+      tags: [Organisation Profiles]
+      summary: Get Organisation Public Profile (ORG-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Org profile with brand kit, social links, and bio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgProfile'
+    patch:
+      tags: [Organisation Profiles]
+      summary: Update Organisation Profile (ORG-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tagline: { type: string }
+                bio: { type: string }
+                brand_color: { type: string, example: "#6366f1" }
+                accent_color: { type: string, example: "#ec4899" }
+                instagram_url: { type: string }
+                linkedin_url: { type: string }
+                discord_url: { type: string }
+                github_url: { type: string }
+                website_url: { type: string }
+      responses:
+        '200':
+          description: Profile updated
+
+  /orgs/{org_id}/logo:
+    post:
+      tags: [Organisation Profiles]
+      summary: Upload Organisation Logo (ORG-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Logo saved and profile returned
+
+  /orgs/{org_id}/social-links:
+    put:
+      tags: [Organisation Profiles]
+      summary: Replace Social Links (ORG-02)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instagram_url: { type: string, nullable: true }
+                linkedin_url: { type: string, nullable: true }
+                discord_url: { type: string, nullable: true }
+                github_url: { type: string, nullable: true }
+                website_url: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Social links updated
+
+  /orgs/{org_id}/progression:
+    get:
+      tags: [Organisation Profiles]
+      summary: Get Organisation City Progression (PROG-01, PROG-03)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: city
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Fest-tier unlock qualifications and past event track record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgProgression'
+
+  # ---------------------------------------------------------------------------
+  # Proposals & Approvals
+  # ---------------------------------------------------------------------------
+  /activities:
+    post:
+      tags: [Proposals & Approvals]
+      summary: Submit Meetup/Fest Proposal (Organiser) (FR-B1, FR-B2)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalSubmit'
+      responses:
+        '201':
+          description: Proposal submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Quota guardrail violated
+
+  /proposals:
+    get:
+      tags: [Proposals & Approvals]
+      summary: Proposal Queue (Admin) (FR-B3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, default: "pending", enum: [pending, approved, changes_requested, rejected] }
+      responses:
+        '200':
+          description: Proposals filtered by status
+
+  /proposals/{activity_id}:
+    get:
+      tags: [Proposals & Approvals]
+      summary: Proposal Details (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Full proposal details
+
+  /proposals/{activity_id}/decision:
+    post:
+      tags: [Proposals & Approvals]
+      summary: Record Proposal Decision (Admin) (FR-B3, FR-B4, FR-C1)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approve, changes, reject] }
+                note: { type: string }
+      responses:
+        '200':
+          description: Decision applied; event published if approved
+
+  /activities/{activity_id}/audit:
+    get:
+      tags: [Proposals & Approvals]
+      summary: Event Audit Trail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Historical decisions and edits on this activity
+
+  /audit-log:
+    get:
+      tags: [Proposals & Approvals]
+      summary: Global Audit Log (Admin) (FR-B4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System-wide admin and governance audit entries
+
+  /activities/{activity_id}/collaborators/{collab_id}/respond:
+    post:
+      tags: [Proposals & Approvals]
+      summary: Respond to Collaboration Invite (PROPOSAL-06)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: collab_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [accepted, declined] }
+      responses:
+        '200':
+          description: Collaboration status updated
+
+  /activities/{activity_id}/reassign-meetup-head:
+    post:
+      tags: [Proposals & Approvals]
+      summary: Reassign Meetup Head (PROPOSAL-05)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_meetup_head_user_id]
+              properties:
+                new_meetup_head_user_id: { type: string }
+      responses:
+        '200':
+          description: Meetup Head reassigned
+
+  # ---------------------------------------------------------------------------
+  # Events & Discovery
+  # ---------------------------------------------------------------------------
+  /events:
+    get:
+      tags: [Events & Discovery]
+      summary: City Event Discovery Feed (FR-C2, FR-C4)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+        - name: scale
+          in: query
+          schema: { type: string, enum: [local_meetup, regional_meetup, regional_fest] }
+        - name: dateRange
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Published events list
+
+  /events/{activity_id}:
+    get:
+      tags: [Events & Discovery]
+      summary: Event Details & Public Preview (FR-C3)
+      description: Supports both UUID and URL slug resolution. Public preview available for anonymous callers.
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Event detail object
+    put:
+      tags: [Events & Discovery]
+      summary: Edit Event Details (Organiser)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                starts_at: { type: string, format: date-time }
+                venue: { type: string }
+      responses:
+        '200':
+          description: Event updated
+    delete:
+      tags: [Events & Discovery]
+      summary: Cancel Event (Organiser)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Event marked cancelled
+
+  # ---------------------------------------------------------------------------
+  # Registrations & Attendance
+  # ---------------------------------------------------------------------------
+  /events/{activity_id}/register:
+    post:
+      tags: [Registrations & Attendance]
+      summary: Register for Event (Student) (FR-D1, FR-D2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                custom_answers:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Registered (confirmed or waitlisted)
+        '409':
+          description: Already registered
+    delete:
+      tags: [Registrations & Attendance]
+      summary: Unregister from Event
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unregistered and waitlist advanced
+
+  /events/{activity_id}/registrations:
+    get:
+      tags: [Registrations & Attendance]
+      summary: Event Attendee Roster (Organiser)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of registered attendees
+
+  /events/{activity_id}/attendance:
+    post:
+      tags: [Registrations & Attendance]
+      summary: Batch Check-In Attendees (FR-D6, FR-G1)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [registration_ids]
+              properties:
+                registration_ids:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Attendance checked in and points awarded
+
+  /events/{activity_id}/scan:
+    post:
+      tags: [Registrations & Attendance]
+      summary: QR Code Camera Check-In Scanner (CAMPAIGN-06)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, description: "Signed QR token payload" }
+      responses:
+        '200':
+          description: Scan verified and check-in logged
+
+  /events/{activity_id}/broadcast:
+    post:
+      tags: [Registrations & Attendance]
+      summary: Broadcast Push Alert to Registrants (FR-D3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: { type: string }
+                body: { type: string }
+      responses:
+        '200':
+          description: Broadcast delivered to all attendee notifications
+
+  /me/registrations:
+    get:
+      tags: [Registrations & Attendance]
+      summary: Current User Event Registrations (FR-D5)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of registered and waitlisted events for current user
+
+  /events/{activity_id}/volunteer:
+    post:
+      tags: [Registrations & Attendance]
+      summary: Award Volunteer Recognition Points (FR-G3)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: string }
+                role_name: { type: string, default: "Volunteer" }
+      responses:
+        '200':
+          description: 20 points awarded to volunteer
+
+  /events/{activity_id}/announcements:
+    get:
+      tags: [Registrations & Attendance]
+      summary: List Event Announcements & Chat
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Announcements timeline
+
+  /events/{activity_id}/invite:
+    post:
+      tags: [Registrations & Attendance]
+      summary: Send Friend Invitation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Invitation sent
+
+  # ---------------------------------------------------------------------------
+  # Campaigns & Forms (Phase 5)
+  # ---------------------------------------------------------------------------
+  /activities/{activity_id}/campaign:
+    get:
+      tags: [Campaigns & Forms]
+      summary: Get Campaign Package State (CAMPAIGN-04)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Campaign metadata, slug, mail draft, poster, and live status
+
+  /activities/{activity_id}/campaign/generate-slug:
+    post:
+      tags: [Campaigns & Forms]
+      summary: Mint Campaign Registration Slug (CAMPAIGN-04)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unique registration slug and shareable link
+
+  /activities/{activity_id}/campaign/poster:
+    post:
+      tags: [Campaigns & Forms]
+      summary: Upload Campaign Poster (CAMPAIGN-03)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [poster]
+              properties:
+                poster: { type: string, format: binary }
+      responses:
+        '200':
+          description: Poster uploaded
+
+  /activities/{activity_id}/campaign/generate-mail:
+    post:
+      tags: [Campaigns & Forms]
+      summary: Generate AI Marketing Email Draft (CAMPAIGN-01, CAMPAIGN-02)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: AI-drafted subject and body template
+
+  /activities/{activity_id}/campaign/mail:
+    patch:
+      tags: [Campaigns & Forms]
+      summary: Save Edited Campaign Email (CAMPAIGN-02)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, body]
+              properties:
+                subject: { type: string }
+                body: { type: string }
+      responses:
+        '200':
+          description: Mail draft saved
+
+  /activities/{activity_id}/campaign/push-live:
+    post:
+      tags: [Campaigns & Forms]
+      summary: Push Campaign Live (Meetup Head only) (CAMPAIGN-06)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Campaign activated and registration URL made live
+
+  /activities/{activity_id}/form-fields:
+    get:
+      tags: [Campaigns & Forms]
+      summary: List Custom Form Fields (CAMPAIGN-05)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Custom questions attached to this registration form
+    post:
+      tags: [Campaigns & Forms]
+      summary: Create Custom Form Field (CAMPAIGN-05)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormFieldCreate'
+      responses:
+        '201':
+          description: Form field created
+
+  /activities/{activity_id}/form-fields/{field_id}:
+    patch:
+      tags: [Campaigns & Forms]
+      summary: Update Custom Form Field (CAMPAIGN-05)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: field_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label: { type: string }
+                required: { type: boolean }
+                options: { type: array, items: { type: string } }
+      responses:
+        '200':
+          description: Field updated
+    delete:
+      tags: [Campaigns & Forms]
+      summary: Delete Custom Form Field (CAMPAIGN-05)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: field_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Field deleted
+
+  /activities/{activity_id}/register:
+    get:
+      tags: [Campaigns & Forms]
+      summary: Get Complete Registration Form Schema (AC-23)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Consolidated core fields + custom fields
+
+  # ---------------------------------------------------------------------------
+  # Event Schedules (Phase 5)
+  # ---------------------------------------------------------------------------
+  /activities/{activity_id}/schedule:
+    get:
+      tags: [Event Schedules]
+      summary: List Schedule Items (PLAN-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of agenda sessions
+    post:
+      tags: [Event Schedules]
+      summary: Add Schedule Item (PLAN-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleItemInput'
+      responses:
+        '201':
+          description: Schedule item created
+
+  /activities/{activity_id}/schedule/{item_id}:
+    patch:
+      tags: [Event Schedules]
+      summary: Update Schedule Item
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: item_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleItemInput'
+      responses:
+        '200':
+          description: Schedule item updated
+    delete:
+      tags: [Event Schedules]
+      summary: Remove Schedule Item
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: item_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Item deleted
+
+  /activities/{activity_id}/schedule/unlock:
+    get:
+      tags: [Event Schedules]
+      summary: Check Schedule Progression Unlock
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unlock verification state
+
+  /schedule-presets:
+    get:
+      tags: [Event Schedules]
+      summary: List Schedule Presets & Templates
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Predefined schedule blueprints for quick insertion
+
+  # ---------------------------------------------------------------------------
+  # Tasks & Operations (Phase 5)
+  # ---------------------------------------------------------------------------
+  /activities/{activity_id}/tasks:
+    get:
+      tags: [Tasks & Operations]
+      summary: List Activity Tasks (PLAN-04)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Crew task checklist
+    post:
+      tags: [Tasks & Operations]
+      summary: Create Activity Task (PLAN-04)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, example: "Arrange HDMI cables" }
+                assigned_user_id: { type: string }
+                phase: { type: string, enum: [pre_event, during_event, post_event] }
+                priority: { type: string, enum: [low, medium, high] }
+                due_date: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Task created
+
+  /activities/{activity_id}/tasks/{task_id}:
+    patch:
+      tags: [Tasks & Operations]
+      summary: Update Task Status / Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                done: { type: boolean }
+                assigned_user_id: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Task updated
+    delete:
+      tags: [Tasks & Operations]
+      summary: Delete Task
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Task deleted
+
+  # ---------------------------------------------------------------------------
+  # Activity Timeline (Phase 5)
+  # ---------------------------------------------------------------------------
+  /activities/{activity_id}/timeline:
+    get:
+      tags: [Activity Timeline]
+      summary: Activity Unified Timeline Feed (PLAN-05)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Chronological list of all proposals, decisions, updates, and milestones
+
+  # ---------------------------------------------------------------------------
+  # Expenses & Reimbursements (Phase 5/6)
+  # ---------------------------------------------------------------------------
+  /expenses:
+    post:
+      tags: [Expenses & Reimbursements]
+      summary: Submit Single Expense (FR-E2)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseInput'
+      responses:
+        '201':
+          description: Expense submitted
+
+  /activities/{activity_id}/expenses:
+    patch:
+      tags: [Expenses & Reimbursements]
+      summary: Save Draft Expenses or Submit Reimbursement Pack (REIMB-01, REIMB-02)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expenses, submit]
+              properties:
+                expenses:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ExpenseDraftItem'
+                submit: { type: boolean }
+                social_post_url: { type: string }
+      responses:
+        '200':
+          description: Expenses saved/submitted
+
+  /activities/{activity_id}/expenses/bill:
+    post:
+      tags: [Expenses & Reimbursements]
+      summary: Upload Receipt / Bill Document (REIMB-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [bill]
+              properties:
+                bill: { type: string, format: binary }
+      responses:
+        '200':
+          description: Bill stored and filename returned
+
+  /events/{activity_id}/expenses:
+    get:
+      tags: [Expenses & Reimbursements]
+      summary: List Expenses for Activity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of expenses
+
+  /expenses/{expense_id}/verify:
+    patch:
+      tags: [Expenses & Reimbursements]
+      summary: Advance Reimbursement Pipeline Stage (Admin) (FR-E3, FR-E4)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: expense_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Status advanced (Submitted -> Verified -> Approved -> Paid)
+
+  /expenses/{expense_id}/amount:
+    patch:
+      tags: [Expenses & Reimbursements]
+      summary: Adjust Expense Approved Amount (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: expense_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: integer }
+      responses:
+        '200':
+          description: Amount adjusted
+
+  /reimbursements:
+    get:
+      tags: [Expenses & Reimbursements]
+      summary: Reimbursements Queue (Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All expenses across activities
+
+  /expenses/bulk-verify:
+    patch:
+      tags: [Expenses & Reimbursements]
+      summary: Bulk Verify Expenses (Admin) (FR-E3)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expense_ids]
+              properties:
+                expense_ids:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: All expenses marked verified
+
+  # ---------------------------------------------------------------------------
+  # Reports & Feedback (Phase 6)
+  # ---------------------------------------------------------------------------
+  /activities/{activity_id}/report:
+    post:
+      tags: [Reports & Feedback]
+      summary: Submit Post-Event Report (Organiser) (FR-F2)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [summary]
+              properties:
+                summary: { type: string }
+      responses:
+        '201':
+          description: Report submitted and activity completed
+    patch:
+      tags: [Reports & Feedback]
+      summary: Save Draft or Submit Post-Event Reflection (FEEDBACK-01)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportReflectionInput'
+      responses:
+        '200':
+          description: Reflection saved
+    get:
+      tags: [Reports & Feedback]
+      summary: Fetch Post-Event Report
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Report details
+
+  /activities/{activity_id}/feedback:
+    post:
+      tags: [Reports & Feedback]
+      summary: Submit Attendee Feedback Rating (FEEDBACK-02)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5, example: 5 }
+                comment: { type: string, example: "Inspiring meetup with great discussions!" }
+      responses:
+        '201':
+          description: Feedback recorded
+
+  /activities/{activity_id}/feedback/me:
+    get:
+      tags: [Reports & Feedback]
+      summary: Get Current User's Feedback on Activity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: User's feedback or submission status
+
+  # ---------------------------------------------------------------------------
+  # Gamification & Recognition
+  # ---------------------------------------------------------------------------
+  /leaderboard:
+    get:
+      tags: [Gamification & Recognition]
+      summary: City / National Points Leaderboard (FR-G5)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Ranked leaderboard of contributors
+
+  /me/points:
+    get:
+      tags: [Gamification & Recognition]
+      summary: Current Student Points Ledger (FR-G4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Contribution points breakdown and ledger entries
+
+  # ---------------------------------------------------------------------------
+  # Notifications & Dashboard
+  # ---------------------------------------------------------------------------
+  /notifications:
+    get:
+      tags: [Notifications & Dashboard]
+      summary: Fetch User Notifications (FR-D4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notifications feed
+    delete:
+      tags: [Notifications & Dashboard]
+      summary: Clear All Notifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notifications purged
+
+  /notifications/read:
+    patch:
+      tags: [Notifications & Dashboard]
+      summary: Mark All Notifications Read
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Read status updated
+
+  /notifications/{notif_id}:
+    delete:
+      tags: [Notifications & Dashboard]
+      summary: Delete Single Notification
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: notif_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Notification deleted
+
+  /dashboard:
+    get:
+      tags: [Notifications & Dashboard]
+      summary: Role-Based Dashboard Telemetry (FR-F4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics tailored for student, organiser, or admin
+
+  # ---------------------------------------------------------------------------
+  # Admin & Analytics
+  # ---------------------------------------------------------------------------
+  /analytics:
+    get:
+      tags: [Admin & Analytics]
+      summary: Ecosystem Community Analytics (FR-H1 to FR-H4)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Metrics across events, cities, attendance rates, and growth
+
+  /analytics/fee-utilisation:
+    get:
+      tags: [Admin & Analytics]
+      summary: Activity Fee Utilisation by City (FR-H5)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Rs 100 student activity fee allocation and utilisation
+
+  /admin/settings/points:
+    get:
+      tags: [Admin & Analytics]
+      summary: Get Points Multipliers & Rules
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Points system configuration
+    put:
+      tags: [Admin & Analytics]
+      summary: Update Points Multipliers & Rules
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Configuration updated
+
+  # ---------------------------------------------------------------------------
+  # Media & Static Uploads
+  # ---------------------------------------------------------------------------
+  /uploads/{filename}:
+    get:
+      tags: [Media & Static Uploads]
+      summary: Serve Uploaded Media Asset (Images & PDFs)
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Binary file stream with nosniff headers
+
+# =============================================================================
+# Components & Schemas
+# =============================================================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid, or expired authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Forbidden:
+      description: Insufficient role permissions or missing POR authority
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    BadRequest:
+      description: Malformed payload or validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string, example: "Invalid credentials" }
+        code: { type: string, example: "unauthorized" }
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, example: "Aarav Mehta" }
+        email: { type: string, format: email, example: "aarav@ekatva.os" }
+        role: { type: string, enum: [student, admin] }
+        city: { type: string, example: "Hyderabad" }
+        academic_level: { type: string, example: "diploma" }
+        academic_status: { type: string, example: "active" }
+
+    UserWithCapabilities:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            capabilities:
+              type: object
+              properties:
+                can_propose: { type: boolean }
+                can_review_proposals: { type: boolean }
+                can_verify_expenses: { type: boolean }
+                pors:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PORAssignment'
+
+    City:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, example: "Hyderabad" }
+        region_id: { type: string }
+        region_name: { type: string, example: "South Region" }
+
+    Organisation:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, example: "Coding Club" }
+        type: { type: string, enum: [house, society, region, council] }
+        city: { type: string, example: "Chennai" }
+        logo_url: { type: string, nullable: true }
+        banner_url: { type: string, nullable: true }
+        tagline: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+
+    OrgProfile:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string }
+        city: { type: string }
+        logo_url: { type: string, nullable: true }
+        tagline: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        brand_kit:
+          type: object
+          properties:
+            brand_color: { type: string }
+            accent_color: { type: string }
+        social_links:
+          type: object
+          properties:
+            instagram_url: { type: string, nullable: true }
+            linkedin_url: { type: string, nullable: true }
+            discord_url: { type: string, nullable: true }
+            github_url: { type: string, nullable: true }
+            website_url: { type: string, nullable: true }
+
+    OrgProgression:
+      type: object
+      properties:
+        org_id: { type: string }
+        city: { type: string }
+        qualifies_for_fest: { type: boolean }
+        completed_meetups_in_city: { type: integer }
+        min_required_meetups: { type: integer, example: 3 }
+        reasons:
+          type: array
+          items: { type: string }
+
+    PORAssignment:
+      type: object
+      properties:
+        id: { type: string }
+        user_id: { type: string }
+        org_id: { type: string }
+        por_type: { type: string, example: "Secretary" }
+        term: { type: string, example: "May 2026" }
+        active: { type: boolean }
+        council_tier: { type: string, nullable: true }
+
+    ProposalSubmit:
+      type: object
+      required: [title, org_id, city, scale, venue, starts_at, capacity]
+      properties:
+        title: { type: string, example: "Hyderabad Hackathon 2026" }
+        org_id: { type: string }
+        city: { type: string, example: "Hyderabad" }
+        scale: { type: string, enum: [local_meetup, regional_meetup, regional_fest] }
+        venue: { type: string, example: "T-Hub, Gachibowli" }
+        starts_at: { type: string, format: date-time }
+        capacity: { type: integer, example: 100 }
+        description: { type: string }
+        budget:
+          type: array
+          items:
+            type: object
+            required: [label, planned]
+            properties:
+              label: { type: string, example: "Refreshments" }
+              planned: { type: integer, example: 5000 }
+        collaborator_org_ids:
+          type: array
+          items: { type: string }
+        team_members:
+          type: array
+          items:
+            type: object
+            required: [user_id, role]
+            properties:
+              user_id: { type: string }
+              role: { type: string, example: "Logistics Lead" }
+
+    Activity:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        org: { type: string }
+        city: { type: string }
+        scale: { type: string }
+        status: { type: string, enum: [published, completed, cancelled] }
+        proposal_status: { type: string, enum: [pending, approved, changes_requested, rejected] }
+        starts_at: { type: string, format: date-time }
+        venue: { type: string }
+        description: { type: string }
+        capacity: { type: integer }
+        registered: { type: integer }
+        attended: { type: integer }
+        budget: { type: array, items: { type: object } }
+        collaborators: { type: array, items: { type: object } }
+        team_members: { type: array, items: { type: object } }
+
+    FormFieldCreate:
+      type: object
+      required: [field_type, label]
+      properties:
+        field_type: { type: string, enum: [text, number, select, checkbox, textarea] }
+        label: { type: string, example: "Dietary Preference" }
+        required: { type: boolean, default: false }
+        options:
+          type: array
+          items: { type: string }
+          example: ["Vegetarian", "Non-Vegetarian", "Vegan"]
+
+    ScheduleItemInput:
+      type: object
+      required: [title, start_time, end_time]
+      properties:
+        title: { type: string, example: "Keynote: Building Scalable Systems" }
+        speaker: { type: string, example: "Prof. Andrew Ng" }
+        start_time: { type: string, example: "10:00 AM" }
+        end_time: { type: string, example: "11:00 AM" }
+        description: { type: string }
+        order: { type: integer, default: 0 }
+
+    ExpenseInput:
+      type: object
+      required: [activity_id, label, amount]
+      properties:
+        activity_id: { type: string }
+        budget_line_id: { type: string, nullable: true }
+        label: { type: string, example: "Venue Sound System Rental" }
+        amount: { type: integer, example: 4500 }
+        bill_name: { type: string, default: "receipt.pdf" }
+
+    ExpenseDraftItem:
+      type: object
+      properties:
+        id: { type: string }
+        budget_line_id: { type: string, nullable: true }
+        label: { type: string }
+        amount: { type: integer }
+        bill_name: { type: string, nullable: true }
+        status: { type: string, enum: [draft, submitted, verified, approved, paid] }
+
+    ReportReflectionInput:
+      type: object
+      properties:
+        summary: { type: string }
+        challenges: { type: string }
+        learnings: { type: string }
+        status: { type: string, enum: [draft, submitted] }

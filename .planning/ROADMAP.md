@@ -273,8 +273,25 @@ Plans:
   3. A `regional_fest` proposal with fewer than 6 accepted collaborating organisations is rejected with a reason naming the shortfall.
   4. An org that reaches fest tier sees a recorded "Sponsorship & outreach tools unlocked" state surfaced in the UI, with no CRM tooling behind it (deliberately out of scope).
 
-**Plans**: TBD
+**Plans**: 5/5 plans executed
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [x] 07-01-PLAN.md — Tracer: server-computed fest eligibility end-to-end — `FEST_COLLAB_THRESHOLD`, `completed_meetups_by_scale`, `progression_service`, the submit-time 403, plus the named-collaborator threshold (PROG-01, PROG-02, PROG-04)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 07-02-PLAN.md — Approve-time re-check + accepted-collaborator count + `OrgProgressionUnlock` write + `GET /orgs/<org_id>/progression` + seed check (PROG-01/02/03/04)
+- [x] 07-03-PLAN.md — Frontend data layer: `FestEligibility`/`OrgUnlock` types, the single `api.ts` adapter, `useOrgProgression` and the approve-time cache invalidation (PROG-01, PROG-03)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 07-04-PLAN.md — `ProposalNew`: locked Regional Fest card with its four caption states, guarded auto-revert, fest collaborator counter, two error headings (PROG-01, PROG-02, PROG-04)
+- [x] 07-05-PLAN.md — [CHECKPOINT] `ApprovalQueue` accepted count + refusal `ErrorStrip`, `OrgProfile` sponsorship banner, phase manual UAT (PROG-02, PROG-03, PROG-04)
+
+**Wave structure**: a tracer, then two independent chains. The backend chain (01 → 02) is sequential because both plans edit `progression_service.py`, `proposal_service.py` and the new test file. The frontend chain (03 → 04, 03 → 05) is sequential on the data layer only; `ProposalNew.tsx` and `ApprovalQueue.tsx`/`OrgProfile.tsx` share no files, so Wave 3 runs two plans in parallel, as does Wave 2 across the two halves. Zero migrations and zero new packages in any plan.
 
 ### Phase 8: Event Announcements, Polls & Queries
 
@@ -325,7 +342,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
-| 7. Progression Gating | 0/TBD | Not started | - |
+| 7. Progression Gating | 5/5 | In Progress|  |
 | 8. Event Announcements, Polls & Queries | 0/6 | Planning | - |
 
 ## Coverage

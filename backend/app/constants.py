@@ -411,3 +411,10 @@ BUDGET_ABSOLUTE_CEILING = 20_000          # ₹20,000 hard upper bound
 # no stored flag, so it tracks real-time accept/decline state without drifting.
 MEGA_MEETUP_THRESHOLD = 3
 
+# --- Regional Fest collaborator threshold (PROG-02) ---
+# Minimum number of collaborating orgs INCLUDING the primary, same convention as
+# MEGA_MEETUP_THRESHOLD above. Checked twice with two different definitions
+# (D-01): NAMED orgs at submit (the proposer cannot know who will accept yet),
+# and ACCEPTED orgs at approve (the admin decides on real consent).
+FEST_COLLAB_THRESHOLD = 6
+

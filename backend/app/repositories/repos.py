@@ -5,6 +5,7 @@ from datetime import datetime, UTC, timedelta
 
 from sqlalchemy.orm import joinedload
 
+from ..constants import EVENT_CANCELLED
 from ..extensions import db
 from ..models import (
     Activity,
@@ -22,6 +23,18 @@ from ..models import (
     RefreshTokenBlocklist,
     User,
 )
+
+
+def _month_window(ref: datetime):
+    """[first instant of ref's month, first instant of the next month).
+
+    The upper bound is the point: an unbounded `starts_at >= start` counts every
+    later month too, so one approved meetup in March makes every January and
+    February proposal permanently unapprovable with a message naming a month
+    that has nothing in it.
+    """
+    start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return start, (start + timedelta(days=32)).replace(day=1)
 
 
 class UserRepository:
@@ -184,7 +197,10 @@ class ActivityRepository:
     @staticmethod
     def sync_past_events():
         """Lazy cron to mark past events as completed."""
-        now = datetime.utcnow()
+        # Naive, but naive UTC — Activity.starts_at stores naive UTC (the API
+        # takes ISO-8601 'Z' timestamps), so datetime.now() would compare it
+        # against local wall clock and drift by the host's offset.
+        now = datetime.now(UTC).replace(tzinfo=None)
         past_events = Activity.query.filter(
             Activity.status.in_(["upcoming", "live"]),
             Activity.starts_at < now
@@ -200,10 +216,11 @@ class ActivityRepository:
         """FR-B2 quota: counts meetups in a Region per month (via Activity.org_id).
         Excludes rejected proposals so they don't consume the quota.
         For backward compat, also accepts a city string as fallback."""
-        start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start, end = _month_window(ref)
         q = Activity.query.filter(
             Activity.org_id == org_id,
             Activity.starts_at >= start,
+            Activity.starts_at < end,
             Activity.scale.in_(["local_meetup", "regional_meetup"]),
         ).join(Proposal).filter(~Proposal.status.in_(["rejected", "revoked"]))
         return q.count()
@@ -211,13 +228,45 @@ class ActivityRepository:
     @staticmethod
     def approved_meetups_in_region_month(org_id: str, ref: datetime):
         """Used strictly during Admin decision to ensure an approved meetup doesn't violate quota."""
-        start = ref.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start, end = _month_window(ref)
         q = Activity.query.filter(
             Activity.org_id == org_id,
             Activity.starts_at >= start,
+            Activity.starts_at < end,
             Activity.scale.in_(["local_meetup", "regional_meetup"]),
         ).join(Proposal).filter(Proposal.status == "approved")
         return q.count()
+
+    @staticmethod
+    def completed_meetups_by_scale(org_id: str, city: str, scale: str) -> int:
+        """PROG-01: how many meetups of `scale` this org has actually completed
+        in `city`. "Completed" is (approved proposal AND start date in the past).
+
+        Activity.status is deliberately NOT the completion test: sync_past_events()
+        in this same class flips that column to "completed" on any past-dated
+        activity with no reference to proposal status, so reading it would count
+        a proposal that was rejected, revoked or never decided. It IS a valid
+        *dis*qualifier though — cancel_event() sets status to "cancelled" without
+        touching Proposal.status, so a cancelled-but-approved meetup would
+        otherwise count toward the fest gate.
+
+        The comparison value is naive on purpose — Activity.starts_at is a naive
+        DateTime column — but it must be naive *UTC*, which is what the column
+        stores, not local wall clock. datetime.now() here would open the gate a
+        timezone offset early on a UTC-ahead host and late on a UTC-behind one.
+        """
+        return (
+            Activity.query.filter(
+                Activity.org_id == org_id,
+                Activity.city == city,
+                Activity.scale == scale,
+                Activity.status != EVENT_CANCELLED,
+                Activity.starts_at < datetime.now(UTC).replace(tzinfo=None),
+            )
+            .join(Proposal)
+            .filter(Proposal.status == "approved")
+            .count()
+        )
 
     # Keep old method for backward compat with existing tests
     @staticmethod

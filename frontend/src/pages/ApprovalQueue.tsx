@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import type { ApiError } from '../lib/api'
 import { inr } from '../lib/mock'
-import { useAudit, useDecision, useProposals } from '../lib/queries'
+import { useAudit, useDecision, useOrgProgression, useProposals, useEventReport, useRoster, useAnnouncements } from '../lib/queries'
 import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
@@ -30,6 +31,16 @@ export default function ApprovalQueue() {
   const current = [...pendingData, ...approvedData].find((p) => p.id === selectedId)
   
   const { data: audit = [] } = useAudit(current?.id)
+
+  /* PROG-02 (D-01/D-02): the fest collaborator threshold is server-sourced, never a
+   * literal. The proposal payload does not carry it, so it is read from the primary
+   * collaborator's org — the proposing organisation. Advisory only: the server
+   * re-counts accepted invites on approve (T-07-08). */
+  const isFest = current?.scale === 'regional_fest'
+  const primaryOrgId = current?.collaborators?.find((c) => c.isPrimary)?.orgId
+  const { data: progression } = useOrgProgression(isFest ? primaryOrgId : undefined)
+  const acceptedCount = current?.collaborators?.filter((c) => c.status === 'accepted').length ?? 0
+  const collabThreshold = progression?.collaboratorThreshold
 
   if (pLoad || aLoad) return <Loading label="Loading the approval queue..." />
   if (pErr) return <ErrorState error={pError} />
@@ -225,11 +236,29 @@ export default function ApprovalQueue() {
                         <Badge tone="gold">Mega Meetup</Badge>
                       )}
                     </div>
+                    {/* PROG-02: how many organisations have actually accepted, above the
+                        per-row badges — the admin sees why an approve will be refused
+                        before attempting it. Suppressed until the server-sourced
+                        threshold arrives rather than guessing the number. */}
+                    {isFest && collabThreshold != null && (
+                      <p className="mb-3 text-caption font-semibold uppercase tracking-wider text-graytext-mid">
+                        Collaborators ·{' '}
+                        <span
+                          className={cx(
+                            'transition-colors duration-200',
+                            acceptedCount >= collabThreshold ? 'text-teal' : 'text-gold',
+                          )}
+                        >
+                          {acceptedCount} of {collabThreshold}
+                        </span>{' '}
+                        accepted
+                      </p>
+                    )}
                     <div className="grid gap-2">
                       {current.collaborators.map((c: any) => (
                         <div key={c.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                          <span className="flex-1 text-[14px] font-medium text-offwhite">{c.org || c.org_id}</span>
-                          {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                          <span className="flex-1 text-[14px] font-medium text-offwhite">{c.org || c.orgId}</span>
+                          {c.isPrimary && <Badge tone="gold">Primary</Badge>}
                           <CollabStatus status={c.status} />
                         </div>
                       ))}
@@ -246,7 +275,7 @@ export default function ApprovalQueue() {
                     <div className="grid gap-2">
                       {current.teamMembers.map((t: any) => (
                         <div key={t.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                          <span className="flex-1 text-[14px] font-medium text-offwhite">{t.member || t.user_id}</span>
+                          <span className="flex-1 text-[14px] font-medium text-offwhite">{t.member || t.userId}</span>
                           <span className={"text-[12px] font-bold uppercase tracking-wider " + (t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid')}>
                             {t.role}
                           </span>
@@ -283,6 +312,21 @@ export default function ApprovalQueue() {
                     ))}
                   </div>
                 </div>
+
+                {/* Post-Event Reflection (FEEDBACK-01) — for completed events */}
+                {statusTab === 'completed' && (
+                  <PostEventReflection activityId={current.id} />
+                )}
+
+                {/* Attendee Roster — available for approved and completed events */}
+                {statusTab !== 'pending' && (
+                  <RosterPanel activityId={current.id} />
+                )}
+
+                {/* Broadcast Push Alerts sent — available for approved and completed events */}
+                {statusTab !== 'pending' && (
+                  <AlertsAudit activityId={current.id} />
+                )}
               </div>
             </div>
 
@@ -301,9 +345,12 @@ export default function ApprovalQueue() {
                     className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
                   />
                   {decisionMut.isError && (
-                    <p className="mt-2 text-[12px] text-red-400">
-                      {(decisionMut.error as Error).message}
-                    </p>
+                    <div className="mt-2">
+                      <ErrorStrip
+                        heading={decisionHeading((decisionMut.error as ApiError).code)}
+                        body={(decisionMut.error as Error).message}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -364,6 +411,35 @@ function TabButton({ active, onClick, label, count }: { active: boolean, onClick
   )
 }
 
+/* PROG-04 (T-07-17): a refusal the admin has to act on renders inline and stays
+ * put — never a toast, which would expire in 3.5s. Same local-function idiom as
+ * OrgProfile.tsx's ErrorStrip (07-UI-SPEC §1); the body is the server's message
+ * verbatim, since it already names the shortfall by number. */
+/* The strip renders for EVERY decision, not just approve — request-changes,
+ * reject and revoke fail through the same mutation. Keying the heading on the
+ * server's code (same idiom as ProposalNew's ERROR_HEADINGS) stops an empty
+ * request-changes note from being reported as "Not approvable yet". */
+const DECISION_HEADINGS: Record<string, string> = {
+  fest_locked: "Regional Fest isn't unlocked for this organisation",
+  fest_collaborators_required: 'Not every collaborator has accepted',
+  quota_exceeded: 'Quota already used this month',
+  note_required: 'A note is required to request changes',
+  already_decided: 'This proposal has already been decided',
+  proposal_not_found: "This proposal couldn't be found",
+}
+function decisionHeading(code?: string) {
+  return (code && DECISION_HEADINGS[code]) || "Couldn't record that decision"
+}
+
+function ErrorStrip({ heading, body }: { heading: string; body?: string }) {
+  return (
+    <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-[14px] text-red-300">
+      <div className="font-semibold">{heading}</div>
+      {body && <div className="mt-1">{body}</div>}
+    </div>
+  )
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -372,3 +448,154 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+
+function PostEventReflection({ activityId }: { activityId: string }) {
+  const { data: report, isLoading, isError } = useEventReport(activityId)
+
+  return (
+    <div className="border-t border-white/5 pt-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+          Post-Event Reflection
+        </h3>
+        {report && (
+          <Badge tone={report.status === 'submitted' ? 'success' : 'warn'}>
+            {report.status === 'submitted' ? 'Submitted' : 'Draft'}
+          </Badge>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="py-3 text-[13px] text-graytext-mid">Loading reflection...</div>
+      ) : isError || !report || (!report.challenges && !report.learnings && !report.summary) ? (
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-[13px] text-graytext-mid italic">
+          No reflection filed by the Meetup Head yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {report.summary && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-1">Summary</div>
+              <p className="text-[14px] text-offwhite whitespace-pre-wrap leading-relaxed">{report.summary}</p>
+            </div>
+          )}
+          {report.challenges && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-gold mb-1">Challenges Faced</div>
+              <p className="text-[14px] text-offwhite whitespace-pre-wrap leading-relaxed">{report.challenges}</p>
+            </div>
+          )}
+          {report.learnings && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-teal mb-1">Key Learnings</div>
+              <p className="text-[14px] text-offwhite whitespace-pre-wrap leading-relaxed">{report.learnings}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RosterPanel({ activityId }: { activityId: string }) {
+  const [open, setOpen] = useState(false)
+  const { data: roster = [], isLoading } = useRoster(activityId)
+
+  const checkedInCount = roster.filter((r: any) => r.attended).length
+
+  return (
+    <div className="border-t border-white/5 pt-8">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+            Attendee Roster
+          </h3>
+          <p className="text-[12px] text-graytext-light mt-0.5">
+            {roster.length} registered · {checkedInCount} checked in
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setOpen(!open)}
+          className="text-[12px] h-8"
+        >
+          {open ? 'Hide Attendees' : 'View Attendees'}
+        </Button>
+      </div>
+
+      {open && (
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
+          {isLoading ? (
+            <div className="p-6 text-center text-[13px] text-graytext-mid">Loading attendee list...</div>
+          ) : roster.length === 0 ? (
+            <div className="p-6 text-center text-[13px] text-graytext-mid">No registered attendees yet.</div>
+          ) : (
+            <div className="max-h-64 overflow-y-auto custom-scrollbar">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02] text-caption uppercase tracking-wider text-graytext-mid">
+                    <th className="px-4 py-2.5 text-left font-semibold">Attendee</th>
+                    <th className="px-4 py-2.5 text-left font-semibold">Reg ID</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {roster.map((r: any) => (
+                    <tr key={r.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-offwhite">
+                        {r.student || r.name || 'Anonymous'}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-[11px] text-graytext-mid">
+                        {r.id.slice(0, 8).toUpperCase()}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {r.attended ? (
+                          <Badge tone="success">Checked in</Badge>
+                        ) : (
+                          <Badge tone="neutral">Registered</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AlertsAudit({ activityId }: { activityId: string }) {
+  const { data: announcements = [], isLoading } = useAnnouncements(activityId)
+  const alerts = announcements.filter((a: any) => a.isAlert)
+
+  if (isLoading) return null
+  if (alerts.length === 0) return null
+
+  return (
+    <div className="border-t border-white/5 pt-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+          Broadcast Push Alerts ({alerts.length})
+        </h3>
+        <Badge tone="gold">Audit</Badge>
+      </div>
+      <div className="space-y-3">
+        {alerts.map((a: any) => (
+          <div key={a.id} className="rounded-xl border border-gold/20 bg-gold/5 p-4">
+            <div className="text-[14px] font-semibold text-gold mb-1">{a.title}</div>
+            <div className="text-[13px] text-graytext-light leading-relaxed whitespace-pre-wrap">{a.content}</div>
+            <div className="mt-2 text-[11px] text-graytext-mid uppercase tracking-wider font-mono">
+              {new Date(a.createdAt || a.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+              {a.senderName && ` · Sent by ${a.senderName}`}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+

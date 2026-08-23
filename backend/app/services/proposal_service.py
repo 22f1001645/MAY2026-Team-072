@@ -9,7 +9,8 @@ from ..constants import (
     COLLAB_PENDING,
     EVENT_UPCOMING,
     EVENT_CANCELLED,
-    MEETUPS_PER_CITY_PER_MONTH,
+    FEST_COLLAB_THRESHOLD,
+    MEETUPS_PER_REGION_PER_MONTH,
     MEGA_MEETUP_THRESHOLD,
     ORG_MANAGER_PORS,
     PROPOSAL_APPROVED,
@@ -22,6 +23,13 @@ from ..constants import (
     ROLE_ADMIN,
     TEAM_ROLES,
     TEAM_ROLE_MEETUP_HEAD,
+)
+from .progression_service import (
+    assert_fest_collaborators_accepted,
+    assert_fest_eligible,
+    clear_unlock_if_ineligible,
+    fest_eligibility,
+    record_unlock,
 )
 from .settings_service import get_recognition_points
 from ..errors import ApiError
@@ -68,6 +76,11 @@ def submit_proposal(data: dict, organiser) -> Activity:
                 400,
             )
 
+    # PROG-01/PROG-04: fest tier is earned, not requested. No admin carve-out —
+    # the ROLE_ADMIN bypass above covers the POR check only.
+    if data["scale"] == "regional_fest":
+        assert_fest_eligible(data["org_id"], data["city"])
+
     # PROPOSAL-02: validate team roster — exactly one Meetup Head required.
     team = data.get("team", [])
     meetup_heads = [m for m in team if m["role"] == TEAM_ROLE_MEETUP_HEAD]
@@ -92,7 +105,7 @@ def submit_proposal(data: dict, organiser) -> Activity:
     # Quota guardrail (FR-B2): one meetup per region per month.
     if data["scale"] in ("local_meetup", "regional_meetup"):
         count = ActivityRepository.meetups_in_region_month(data["org_id"], data["starts_at"])
-        if count >= MEETUPS_PER_CITY_PER_MONTH:
+        if count >= MEETUPS_PER_REGION_PER_MONTH:
             raise ApiError(
                 f"Quota guardrail: this region already has a meetup this month",
                 "quota_exceeded",
@@ -115,6 +128,23 @@ def submit_proposal(data: dict, organiser) -> Activity:
             )
         seen_org_ids.add(collab_org_id)
         valid_collab_orgs.append(collab_org)
+
+    # PROG-02 (D-01, named half): a Regional Fest must name at least
+    # FEST_COLLAB_THRESHOLD organisations INCLUDING the primary. Counted off
+    # valid_collab_orgs, never data["collaborating_org_ids"] — the raw request
+    # list is undeduplicated, so six repeats of one id would otherwise pass.
+    # The accepted-count half of this rule is enforced at approve time; it could
+    # never pass here, on a proposal whose invites have not been answered yet.
+    if data["scale"] == "regional_fest":
+        named = len(valid_collab_orgs) + 1
+        if named < FEST_COLLAB_THRESHOLD:
+            raise ApiError(
+                f"A Regional Fest needs at least {FEST_COLLAB_THRESHOLD} collaborating "
+                f"organisations; this proposal names {named} of {FEST_COLLAB_THRESHOLD} "
+                f"(counting your own organisation).",
+                "fest_collaborators_required",
+                403,
+            )
 
     # --- All validation passed; write to DB ---
 
@@ -275,12 +305,25 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         # FR-B2: Enforce the 1-meetup-per-month quota before allowing approval
         if activity.scale in ["local_meetup", "regional_meetup"]:
             count = ActivityRepository.approved_meetups_in_region_month(activity.org_id, activity.starts_at)
-            if count >= 1:
+            if count >= MEETUPS_PER_REGION_PER_MONTH:
                 raise ApiError(
                     f"Quota exceeded: An approved meetup already exists in {activity.starts_at.strftime('%B %Y')} for this region.",
                     "quota_exceeded",
                     409,
                 )
+
+        # PROG-01/PROG-02/PROG-04, enforcement checkpoint 2 of 2. Both facts can
+        # change while a proposal waits in the queue: the qualifying meetup can be
+        # revoked, and an invited org can decline. Checking only at submit would
+        # enforce the rule against the honest caller alone (T-07-07, T-07-08).
+        # No admin carve-out, even though only an admin reaches this branch.
+        #
+        # Placement above the first write is load-bearing: decide() has no
+        # rollback path, so a guard below it would leave proposal.status mutated
+        # in the session after the raise (T-07-05).
+        if activity.scale == "regional_fest":
+            assert_fest_eligible(activity.org_id, activity.city)
+            assert_fest_collaborators_accepted(activity)
 
         proposal.status = PROPOSAL_APPROVED
         # On approval the Activity auto-publishes as a live event (FR-C1)
@@ -297,6 +340,21 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         )
         _notify(activity.organiser_id, activity.id, "approval",
                 "Proposal approved", f"'{activity.title}' is live on the city feed.")
+
+        # PROG-03: an approval can be the thing that completes the pair, so the
+        # marker is written here rather than only on fest approvals — otherwise
+        # the sponsorship banner would appear one fest after the scale card
+        # unlocked, and the two surfaces would disagree (assumption A1).
+        # Inside this transaction, with no commit of its own.
+        #
+        # The flush is load-bearing, not tidiness: fest_eligibility() re-queries
+        # the proposals table, and THIS approval is one of the rows it must see.
+        # Autoflush happens to do it today; disabling autoflush (a common
+        # hardening step) would silently stop the marker being written, with no
+        # error and both PROG-03 surfaces going quiet.
+        db.session.flush()
+        if fest_eligibility(activity.org_id, activity.city)["fest_eligible"]:
+            record_unlock(activity.org_id, activity.city)
     elif decision == "changes":
         if not note:
             raise ApiError("A note is required when requesting changes", "note_required", 400)
@@ -319,6 +377,12 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
             db.session.delete(point)
 
         _notify(activity.organiser_id, activity.id, "update", "Approval Revoked", note or "The admin has revoked the approval for this event.")
+
+        # PROG-03, the other direction: this revocation may have taken away the
+        # half of the track record that earned the unlock. Same flush-then-
+        # recompute as the approve branch above.
+        db.session.flush()
+        clear_unlock_if_ineligible(activity.org_id, activity.city)
 
     db.session.commit()
     return activity

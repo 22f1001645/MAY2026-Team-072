@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth'
 import {
   useCapabilities,
   useOrgProfile,
+  useOrgProgression,
   useReplaceSocialLinks,
   useUpdateOrgProfile,
   useUploadOrgLogo,
@@ -17,6 +18,7 @@ import { BrandKitEditor } from '../components/BrandKitEditor'
 import { SocialLinksEditor } from '../components/SocialLinksEditor'
 import { SocialLinksRow } from '../components/SocialLinksRow'
 import { cx } from '../lib/format'
+import type { OrgUnlock } from '../lib/types'
 import { HOUSE_META } from './Orgs'
 
 const ORG_TYPE_LABEL: Record<string, string> = {
@@ -56,6 +58,11 @@ export default function OrgProfile() {
   const canEdit = currentUser?.role === 'admin' || manageableOrgIds.includes(orgId)
 
   const { data: org, isLoading, isError, error } = useOrgProfile(orgId)
+
+  /* PROG-03 (D-04/D-05): no city argument — `unlocks` comes back for every city the
+   * org has unlocked, so the banner needs no second endpoint. Display only; the row
+   * grants no capability anywhere (T-07-01). */
+  const { data: progression } = useOrgProgression(orgId)
 
   const [activeTab, setActiveTab] = useState<'public' | 'internal'>('public')
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -292,6 +299,8 @@ export default function OrgProfile() {
           />
         </div>
       </div>
+
+      <SponsorshipBanner canEdit={canEdit} orgName={org.name} unlocks={progression?.unlocks ?? []} />
 
       <div className="grid grid-cols-1 gap-12 md:grid-cols-[300px_1fr]">
         {/* Left Sidebar */}
@@ -549,6 +558,64 @@ function LockedControl({
       </Button>
       <p className="mt-2 text-caption text-graytext-light">{reason}</p>
     </div>
+  )
+}
+
+/* PROG-03 (D-05): the standing marker that this organisation reached fest tier, and
+ * in which cities. Shown to the org's own managers only, on the page's existing
+ * `canEdit` signal (T-07-16) — no second, weaker authorization check.
+ *
+ * Nothing here is clickable: it is a status, not a notification and not a control.
+ * The sponsorship tooling itself is out of scope this milestone, so a stale or
+ * forged unlock row grants nothing (T-07-01). Not dismissible, not collapsible. */
+function SponsorshipBanner({
+  canEdit,
+  orgName,
+  unlocks,
+}: {
+  canEdit: boolean
+  orgName: string
+  unlocks: OrgUnlock[]
+}) {
+  // An org that has not reached fest tier is not shown a locked promise.
+  if (!canEdit || unlocks.length === 0) return null
+
+  return (
+    <section
+      aria-label="Sponsorship and outreach status"
+      className="mb-8 flex items-start gap-3 rounded-xl border border-gold/20 bg-gold/[0.06] p-4 animate-fade-up"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-gold shrink-0 mt-0.5"
+        aria-hidden
+      >
+        <circle cx="7.5" cy="15.5" r="4.5" />
+        <path d="M10.7 12.3 21 2" />
+        <path d="m17 6 3 3" />
+      </svg>
+      <div>
+        <div className="text-[14px] font-semibold text-gold">Sponsorship & outreach tools unlocked</div>
+        <p className="mt-1 text-caption text-graytext-light">
+          {orgName} reached fest tier here. The tooling itself arrives in a later release — there's
+          nothing to set up yet.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {unlocks.map((u) => (
+            <Badge key={u.id} tone="gold">
+              {u.city}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 

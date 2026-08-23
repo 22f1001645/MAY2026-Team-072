@@ -43,7 +43,7 @@ export default function ManageEvent() {
   // fallback here only enables a button the server then answers with a 403.
   const isMeetupHead = !!e.teamMembers?.some(
     (m: any) =>
-      (m.userId === currentUser?.id || m.user_id === currentUser?.id) &&
+      m.userId === currentUser?.id &&
       m.role === 'Meetup Head',
   )
 

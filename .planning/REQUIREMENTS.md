@@ -92,10 +92,10 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Progression Gating
 
-- [ ] **PROG-01**: An org's eligibility to propose `regional_fest` scale in a given city unlocks once that org has completed, in that same city, at least one `local_meetup` and at least one `regional_meetup` (computed server-side as `approved AND starts_at < now()`, not `status == completed`, which never flips without a report)
-- [ ] **PROG-02**: A `regional_fest` proposal additionally requires at least 6 collaborating Organisations (PROPOSAL-01) named on the proposal
-- [ ] **PROG-03**: Reaching fest-tier eligibility sets a server-recorded "Sponsorship & outreach tools unlocked" flag for that org/city, surfaced as UI messaging — the sponsorship/CRM tooling itself stays out of scope this milestone (see v2)
-- [ ] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
+- [x] **PROG-01**: An org's eligibility to propose `regional_fest` scale in a given city unlocks once that org has completed, in that same city, at least one `local_meetup` and at least one `regional_meetup` (computed server-side as `approved AND starts_at < now()`, not `status == completed`, which never flips without a report)
+- [x] **PROG-02**: A `regional_fest` proposal additionally requires at least 6 collaborating Organisations (PROPOSAL-01) named on the proposal
+- [x] **PROG-03**: Reaching fest-tier eligibility sets a server-recorded "Sponsorship & outreach tools unlocked" flag for that org/city, surfaced as UI messaging — the sponsorship/CRM tooling itself stays out of scope this milestone (see v2)
+- [x] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
 
 ### Event Announcements, Polls & Queries
 
@@ -172,7 +172,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | TIMELINE-01, TIMELINE-02 | Phase 6 | Complete (06-01) |
 | FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
 | REIMB-01, REIMB-02 | Phase 6 | Complete (06-02 — backend; frontend panel in 06-04) |
-| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Pending |
+| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Complete |
 | CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
 
 **Coverage:**

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 04
-current_phase_name: event-execution-close-out
-status: complete
-stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-08-23T00:45:56.871Z"
-last_activity: 2026-08-22
-last_activity_desc: "Phase 6 complete: all 9 plans executed and merged, UAT passed 9/10, 3 UAT-found defects fixed"
+current_phase: 07
+current_phase_name: progression-gating
+status: verifying
+stopped_at: Completed 07-05-PLAN.md
+last_updated: "2026-08-23T08:51:27.547Z"
+last_activity: 2026-08-23
+last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 45
-  completed_plans: 45
-  percent: 75
+  completed_phases: 7
+  total_plans: 50
+  completed_plans: 50
+  percent: 88
 ---
 
 # Project State
@@ -24,18 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 07 — Progression Gating (not started; Phase 06 complete)
+**Current focus:** Phase 07 — progression-gating
 
 ## Current Position
 
-Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
+Phase: 07 (progression-gating) — EXECUTING
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
-Plan: 9/9 (all Phase 06 plans executed and merged to main)
-Status: Phase 6 is done. QR-01–04, TIMELINE-01/02, FEEDBACK-01/02 and REIMB-01/02 all shipped and passed manual UAT (9/10 tests passed; test 7, live QR scan, needs a camera and is manual-only). Three defects the UAT pass found were fixed: the bill upload endpoint didn't exist (added POST /api/v1/activities/<id>/expenses/bill), the frontend granted Meetup Head to the organiser/admin when the server grants it to neither, and the Submit Reflection click was being swallowed by its own auto-save blur handler.
-Last activity: 2026-08-22 — Phase 6 complete: all 9 plans executed and merged, UAT passed 9/10, 3 UAT-found defects fixed
+Plan: 5 of 5
+Status: Phase complete — ready for verification
+Last activity: 2026-08-23 — Phase 07 execution started
 
-Progress: [████████░░] 75% (6/8 phases complete; Phase 07 next)
+Progress: [██████████] 100% (6/8 phases complete; Phase 07 next)
 
 ## Performance Metrics
 
@@ -104,6 +104,11 @@ Progress: [████████░░] 75% (6/8 phases complete; Phase 07 ne
 | Phase 06 P07 | — | — | — |
 | Phase 06 P08 | — | — | — |
 | Phase 06 P09 | — | — | — |
+| Phase 07 P01 | 40min | 2 tasks | 5 files |
+| Phase 07 P02 | 55min | 3 tasks | 5 files |
+| Phase 07 P03 | 12min | 2 tasks | 4 files |
+| Phase 07 P04 | 9min | 2 tasks | 1 files |
+| Phase 07 P05 | 65min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -226,6 +231,16 @@ Recent decisions affecting current work:
 - [Phase ?]: Conditional authority splits across layers: the broad predicate (can_manage_activity) guards the route, the body-dependent one (is_meetup_head, gated on the submit flag) lives in the service — a route guard cannot read the body (06-02)
 - [Phase ?]: Endpoints that both save and transition in one call check every gate BEFORE touching a row, so a refused call leaves the working document untouched (06-02)
 - [Phase ?]: social_post_url is searched across the six ORG-02 platforms rather than taking a platform parameter; malformed keeps social_url_scheme, well-formed-but-not-social keeps social_url_host (D-09, 06-02)
+- [Phase ?]: 07-01: A3 adopted — fest eligibility counts only activities the org owns as primary (Activity.org_id); an accepted collaboration invite does not unlock fest tier, matching the meetups_in_region_month precedent and the narrower security posture
+- [Phase ?]: 07-01: the completion test is (Proposal.status == approved AND starts_at < now()), never Activity.status — sync_past_events() writes that column with no reference to proposal status, so reading it would count a rejected proposal as a track record
+- [Phase ?]: 07-01: the submit-side fest collaborator count reads valid_collab_orgs (post-dedup), never data['collaborating_org_ids'] — six repeats of one id would otherwise clear the threshold (T-07-04)
+- [Phase ?]: 07-01: the progression gate has no admin carve-out; the assertion lives inside test_direct_submit_of_locked_scale_is_403 rather than as a 14th case, because the plan pins the file at 13
+- [Phase ?]: A1: record_unlock fires on every successful approval that leaves the org fest-eligible, not only on fest approvals
+- [Phase ?]: A2: GET /orgs/<id>/progression is auth_required, not can_manage_org_required — an admin proposing for an org holds no POR in it
+- [Phase ?]: 07-03: shipped the progression hook as useOrgProgression, resolving the UI-SPEC naming conflict — 07-04 must not create a second hook under useFestEligibility
+- [Phase ?]: 07-04: the fest auto-revert needed a useEffect, not render-time derivation — it must write user-owned scale state
+- [Phase ?]: 07-05: fest collaborator threshold in the approval queue is read via the primary collaborator's org_id rather than widening EkatvaEvent/adaptEvent for one page
+- [Phase ?]: 07-05: the PROG-03 sponsorship banner is display-only — no button, link or gated affordance, so a stale unlock row grants nothing
 
 ### Pending Todos
 
@@ -246,8 +261,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-23T00:45:56.772Z
-Stopped at: Phase 7 UI-SPEC approved
-Resume file: .planning/phases/07-progression-gating/07-UI-SPEC.md
+Last session: 2026-08-23T08:51:27.486Z
+Stopped at: Completed 07-05-PLAN.md
+Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

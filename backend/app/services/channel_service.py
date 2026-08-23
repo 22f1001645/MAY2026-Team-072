@@ -147,6 +147,19 @@ def list_polls(activity_id, viewer_id) -> list:
     return result
 
 
+def _is_duplicate_vote(exc: IntegrityError) -> bool:
+    """Is this IntegrityError the one-vote-per-poll constraint, or another one?
+
+    The two dialects report it differently and neither is negotiable: Postgres
+    names the constraint (`violates unique constraint "uq_poll_vote"`), SQLite
+    names its columns instead (`UNIQUE constraint failed: event_poll_votes.
+    poll_id, event_poll_votes.user_id`). Both markers are checked so the same
+    code answers 409 on the dev database and in production. A foreign-key or
+    NOT NULL failure on this table matches neither."""
+    detail = str(getattr(exc, "orig", exc))
+    return "uq_poll_vote" in detail or "event_poll_votes.user_id" in detail
+
+
 def cast_vote(activity_id, poll_id, option_index, current_user) -> EventPollVote:
     activity = _activity_or_404(activity_id)
     _assert_channel_open(activity)
@@ -168,10 +181,15 @@ def cast_vote(activity_id, poll_id, option_index, current_user) -> EventPollVote
     db.session.add(vote)
     try:
         db.session.commit()
-    except IntegrityError:
-        # uq_poll_vote. A vote is routine attendee activity, so it writes no
-        # audit row — only the team's moderation actions do (D-16).
+    except IntegrityError as exc:
+        # Only uq_poll_vote means "already voted". The insert also carries FKs on
+        # poll_id and user_id and a NOT NULL on option_index, and reporting one
+        # of those as `already_voted` would send a bug report chasing the wrong
+        # constraint — so anything else re-raises. A vote is routine attendee
+        # activity, so it writes no audit row either way (D-16).
         db.session.rollback()
+        if not _is_duplicate_vote(exc):
+            raise
         raise ApiError("You have already voted on this poll", "already_voted", 409)
     return vote
 

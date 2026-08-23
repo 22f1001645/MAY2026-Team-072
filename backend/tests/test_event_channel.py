@@ -38,6 +38,7 @@ from app.constants import (
     REGISTRATION_CONFIRMED,
 )
 from app.extensions import db
+from app.services import channel_service
 from app.models import (
     Activity,
     ActivityTeamMember,
@@ -372,6 +373,23 @@ def test_channel_end_to_end(client):
     mine = client.get(f"/api/v1/events/{aid}/queries/mine", headers=student_h).get_json()
     assert len(mine) == 1
     assert mine[0]["response_body"] == answer
+
+
+@pytest.mark.parametrize(
+    "detail, is_duplicate",
+    [
+        # SQLite (dev) names the columns; Postgres (prod) names the constraint.
+        ("UNIQUE constraint failed: event_poll_votes.poll_id, event_poll_votes.user_id", True),
+        ('duplicate key value violates unique constraint "uq_poll_vote"', True),
+        ("FOREIGN KEY constraint failed", False),
+        ("NOT NULL constraint failed: event_poll_votes.option_index", False),
+    ],
+)
+def test_only_the_one_vote_constraint_reads_as_already_voted(detail, is_duplicate):
+    """A bare `except IntegrityError` told an attendee whose user row had gone
+    that they had already voted. Both dialects' wording for the real constraint
+    is pinned here because neither is guessable from the other."""
+    assert channel_service._is_duplicate_vote(Exception(detail)) is is_duplicate
 
 
 def test_a_poll_past_closes_at_refuses_votes_and_reads_as_closed(client):

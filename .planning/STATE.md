@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: event-announcements-polls-queries
 status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-08-23T17:22:38.822Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-08-23T17:36:36.033Z"
 last_activity: 2026-08-23
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 56
-  completed_plans: 53
+  completed_plans: 54
   percent: 88
 ---
 
@@ -32,11 +32,11 @@ Phase: 08 (event-announcements-polls-queries) — EXECUTING
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
 Phase: 07 (progression-gating) — COMPLETE, verification outstanding
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-23 — Phase 08 execution started
 
-Progress: [██████████] 95% (7/8 phases complete; Phase 08 in progress)
+Progress: [██████████] 96% (7/8 phases complete; Phase 08 in progress)
 
 ## Performance Metrics
 
@@ -113,6 +113,7 @@ Progress: [██████████] 95% (7/8 phases complete; Phase 08 in
 | Phase 08 P01 | 45min | 3 tasks | 4 files |
 | Phase 08 P02 | 40min | 2 tasks | 3 files |
 | Phase 08 P03 | 25min | 3 tasks | 3 files |
+| Phase 08 P04 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -255,6 +256,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 8] 08-03: createPoll/closePoll are typed Omit<EventPoll,'vote_counts'|'my_vote'> because EventPoll.to_dict() carries neither — only channel_service.list_polls computes them
 - [Phase ?]: [Phase 8] 08-03: useCreatePoll destructures id out of its variables before building the body — PollCreateSchema is a plain marshmallow Schema (unknown=RAISE), so the plan's literal pass-through would have 422'd every poll creation
 - [Phase ?]: [Phase 8] 08-03: channel queries poll on a jittered 15s +/- 3s interval and stop in a backgrounded tab (D-13/D-14) — the deliberate opposite of the Kanban board's AC-35 gate, which the added intervals were checked against by running the suite
+- [Phase ?]: Q&A left as a marked non-rendering seam in EventChannelSection rather than a placeholder — QuerySection.tsx (08-05) had not been created when 08-04 ran
 
 ### Pending Todos
 
@@ -275,8 +277,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-23T17:22:12.070Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-08-23T17:36:35.974Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

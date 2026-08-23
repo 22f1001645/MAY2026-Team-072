@@ -306,7 +306,7 @@ Plans:
   4. Every poll and query moderation action (create, close, respond) lands in the audit log, shipping with the feature (08-CONTEXT.md D-16). Query-submission rate-limiting stays out of scope for this milestone (no live deploy target — resolved 2026-08-06, see Blockers/Concerns).
   5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
 
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 **UI hint**: yes
 
 Plans:
@@ -321,7 +321,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 08-04-PLAN.md — Frontend: `PollCard.tsx` + `EventChannelSection.tsx` + `EventDetail.tsx` wiring (CHAT-01)
+- [x] 08-04-PLAN.md — Frontend: `PollCard.tsx` + `EventChannelSection.tsx` + `EventDetail.tsx` wiring (CHAT-01)
 - [ ] 08-05-PLAN.md — Frontend: `QuerySection.tsx` (registrant) + `OrgQueriesPanel.tsx` (ManageEvent) (CHAT-02)
 
 **Wave 4** *(blocked on Wave 3)*
@@ -343,7 +343,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
 | 7. Progression Gating | 5/5 | In Progress|  |
-| 8. Event Announcements, Polls & Queries | 3/6 | In Progress|  |
+| 8. Event Announcements, Polls & Queries | 4/6 | In Progress|  |
 
 ## Coverage
 

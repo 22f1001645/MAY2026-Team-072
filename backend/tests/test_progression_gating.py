@@ -9,7 +9,7 @@ org lookup by type, helper functions to obtain auth headers. Helpers are
 duplicated from test_proposal_collaboration.py rather than imported — this
 project keeps per-module helper blocks.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from app.constants import (
     FEST_COLLAB_THRESHOLD,
@@ -297,6 +297,29 @@ class TestEligibilityExclusions:
             _seed_completed_meetup(org, "Hyderabad", "local_meetup", days_ago=-30)
             _seed_completed_meetup(org, "Hyderabad", "regional_meetup", days_ago=-20)
         self._locked(app, client, seed)
+
+    def test_completion_boundary_is_utc_not_local(self, app):
+        """CR-02: starts_at is stored as naive UTC. Comparing it against local
+        wall clock counts a meetup that has not started yet by the host's
+        offset (5h30m of false positives on an IST host)."""
+        with app.app_context():
+            org = Organisation.query.filter_by(type="region").first()
+            a = Activity(
+                org_id=org.id,
+                title="Starts in three hours",
+                city="Hyderabad",
+                scale="local_meetup",
+                venue="Somewhere",
+                starts_at=datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=3),
+                capacity=50,
+                status="upcoming",
+            )
+            _db.session.add(a)
+            _db.session.flush()
+            _db.session.add(Proposal(activity_id=a.id, status="approved"))
+            _db.session.commit()
+            assert ActivityRepository.completed_meetups_by_scale(
+                org.id, "Hyderabad", "local_meetup") == 0
 
     def test_status_completed_is_not_the_eligibility_source(self, app, client):
         """Regression pin: Activity.status == "completed" must not unlock.

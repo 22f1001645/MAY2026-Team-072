@@ -185,7 +185,10 @@ class ActivityRepository:
     @staticmethod
     def sync_past_events():
         """Lazy cron to mark past events as completed."""
-        now = datetime.now()
+        # Naive, but naive UTC — Activity.starts_at stores naive UTC (the API
+        # takes ISO-8601 'Z' timestamps), so datetime.now() would compare it
+        # against local wall clock and drift by the host's offset.
+        now = datetime.now(UTC).replace(tzinfo=None)
         past_events = Activity.query.filter(
             Activity.status.in_(["upcoming", "live"]),
             Activity.starts_at < now
@@ -235,7 +238,8 @@ class ActivityRepository:
 
         The comparison value is naive on purpose — Activity.starts_at is a naive
         DateTime column — but it must be naive *UTC*, which is what the column
-        stores, not local wall clock.
+        stores, not local wall clock. datetime.now() here would open the gate a
+        timezone offset early on a UTC-ahead host and late on a UTC-behind one.
         """
         return (
             Activity.query.filter(
@@ -243,7 +247,7 @@ class ActivityRepository:
                 Activity.city == city,
                 Activity.scale == scale,
                 Activity.status != EVENT_CANCELLED,
-                Activity.starts_at < datetime.now(),
+                Activity.starts_at < datetime.now(UTC).replace(tzinfo=None),
             )
             .join(Proposal)
             .filter(Proposal.status == "approved")

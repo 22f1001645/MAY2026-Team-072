@@ -80,10 +80,12 @@ def unregister(activity_id: str, student) -> None:
     reg = RegistrationRepository.find(activity_id, student.id)
     if not reg:
         raise ApiError("You are not registered", "not_registered", 404)
+        
+    if reg.attendance is not None:
+        raise ApiError("You cannot cancel your registration after you have already checked in.", "already_checked_in", 400)
+        
     activity_title = reg.activity.title
     
-    # Delete student's chat history for this event
-    Announcement.query.filter_by(activity_id=activity_id, sender_id=student.id).delete()
     was_confirmed = (reg.status == "confirmed")
     db.session.delete(reg)
     db.session.flush()

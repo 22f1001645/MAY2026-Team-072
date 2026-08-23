@@ -743,6 +743,15 @@ export const usePatchReportMutation = () => {
   })
 }
 
+/** FEEDBACK-01: fetch post-event report for an activity. */
+export const useEventReport = (id?: string) =>
+  useQuery({
+    queryKey: ['report', id],
+    queryFn: () => api.getReport(id!),
+    enabled: !!id,
+    retry: false,
+  })
+
 /** FEEDBACK-02: attendee submits a 1-5 star rating after attending. */
 export const useSubmitFeedbackMutation = () => {
   const qc = useQueryClient()

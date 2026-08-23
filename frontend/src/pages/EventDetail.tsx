@@ -411,18 +411,19 @@ export default function EventDetail() {
                     )}
 
                     <div className="mt-2 flex gap-2">
-                      <Button
-                        variant="ghost"
-                        className="w-full"
-                        disabled={unregisterMut.isPending}
-                        onClick={() => {
-                          localStorage.removeItem('cal_' + e.id)
-                          setAddedToCalendar(false)
-                          unregisterMut.mutate(e.id)
-                        }}
-                      >
-                        {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          disabled={unregisterMut.isPending || registration?.attended}
+                          title={registration?.attended ? "You cannot cancel after you have checked in." : undefined}
+                          onClick={() => {
+                            localStorage.removeItem('cal_' + e.id)
+                            setAddedToCalendar(false)
+                            unregisterMut.mutate(e.id)
+                          }}
+                        >
+                          {unregisterMut.isPending ? 'Cancelling…' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
+                        </Button>
                       {!isWaitlisted && (
                         <Button
                           variant="ghost"

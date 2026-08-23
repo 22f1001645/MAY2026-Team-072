@@ -1157,6 +1157,10 @@ export const api = {
       body: JSON.stringify(patch),
     }),
 
+  // getReport — fetch post-event report (FEEDBACK-01)
+  getReport: (activityId: string) =>
+    request<any>(`/activities/${activityId}/report`),
+
   // submitFeedback — attendee 1-5 star rating after attending (FEEDBACK-02)
   submitFeedback: (activityId: string, body: { rating: number; comment?: string }) =>
     request<any>(`/activities/${activityId}/feedback`, {

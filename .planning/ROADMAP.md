@@ -289,8 +289,27 @@ Plans:
   4. Query submission is rate-limited and every moderation action lands in the audit log — both shipping with the feature, not after it.
   5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
 
-**Plans**: TBD
+**Plans**: 0/6 plans executed
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [ ] 08-01-PLAN.md — Tracer: `channel_service.py` + `channel_controller.py` + poll endpoints CRUD (CHAT-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 08-02-PLAN.md — Query/Q&A backend endpoints (`/events/<id>/queries`) + response API (CHAT-02, CHAT-03)
+- [ ] 08-03-PLAN.md — Frontend data layer: types, API client, TanStack hooks with 15s±3s polling (CHAT-01, CHAT-02, CHAT-04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 08-04-PLAN.md — Frontend: `PollCard.tsx` + `EventChannelSection.tsx` + `EventDetail.tsx` wiring (CHAT-01)
+- [ ] 08-05-PLAN.md — Frontend: `QuerySection.tsx` (registrant) + `OrgQueriesPanel.tsx` (ManageEvent) (CHAT-02)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 08-06-PLAN.md — Server-side registration-window guard, smoke verification, and close-out (CHAT-01, CHAT-02, CHAT-03, CHAT-04)
 
 ## Progress
 
@@ -307,7 +326,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
 | 7. Progression Gating | 0/TBD | Not started | - |
-| 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
+| 8. Event Announcements, Polls & Queries | 0/6 | Planning | - |
 
 ## Coverage
 

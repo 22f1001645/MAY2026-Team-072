@@ -172,7 +172,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | TIMELINE-01, TIMELINE-02 | Phase 6 | Complete (06-01) |
 | FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
 | REIMB-01, REIMB-02 | Phase 6 | Complete (06-02 — backend; frontend panel in 06-04) |
-| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Pending |
+| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Complete |
 | CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
 
 **Coverage:**

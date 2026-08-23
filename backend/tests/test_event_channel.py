@@ -11,8 +11,13 @@ What it pins, and why these and not more:
   with an explicit closed state, not merely hidden in the UI — so the assertion
   is on the 409 and its `registration_window_closed` code, which the frontend
   reads out of the error envelope.
+* That the guard gates on a status the application can reach at all. It once
+  required `status == "live"`, which nothing ever assigns, so every write path
+  was a 409 in production while this suite passed against hand-seeded rows.
+  `test_the_channel_is_open_on_the_status_approval_produces` is the test that
+  would have caught it, and `_seed_activity` now defaults to that status.
 * The asymmetry that makes the guard correct rather than merely strict:
-  `create_poll`, `cast_vote` and `submit_query` are scoped to the live window,
+  `create_poll`, `cast_vote` and `submit_query` are scoped to the open window,
   while `close_poll` and `respond_query` deliberately are NOT (08-CONTEXT D-17).
   A future "tidy-up" that gated all five uniformly would leave a team unable to
   close a poll or answer a late question after their own event ended, and it is
@@ -24,9 +29,9 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.constants import (
+    EVENT_ARCHIVED,
     EVENT_CANCELLED,
     EVENT_COMPLETED,
-    EVENT_LIVE,
     EVENT_UPCOMING,
     POLL_CLOSED,
     QUERY_ANSWERED,
@@ -72,8 +77,13 @@ def _registrant(client):
     return _auth(client, "arav@ekatva.os", "student123")
 
 
-def _seed_activity(status=EVENT_LIVE, with_registration=True):
+def _seed_activity(status=EVENT_UPCOMING, with_registration=True):
     """One activity, its organiser, and (by default) one confirmed registrant.
+
+    The default status is `upcoming` because that is the only status an approved
+    proposal ever produces (`proposal_service` lines 160/330) — seeding anything
+    else by hand would let these tests pass against a row the product cannot
+    make, which is exactly how the original `live`-only guard survived review.
 
     Users are fetched by email and the org by type, matching the rest of the
     suite — never by insertion position, so a later addition to _seed_minimal
@@ -135,11 +145,33 @@ def _seed_query(activity, body="Is the venue wheelchair accessible?"):
 # The registration-window guard (ROADMAP Phase 8 criterion 3)                  #
 # --------------------------------------------------------------------------- #
 
-CLOSED_STATUSES = [EVENT_COMPLETED, EVENT_CANCELLED, EVENT_UPCOMING]
+CLOSED_STATUSES = [EVENT_COMPLETED, EVENT_ARCHIVED, EVENT_CANCELLED]
+
+
+def test_the_channel_is_open_on_the_status_approval_produces(client):
+    """The guard must gate on a status the application can actually reach.
+
+    `upcoming` is what an approved proposal yields and the only status a real
+    event ever has, so if it is refused here every write path in the phase is
+    dead in production regardless of what the parametrised tests below prove."""
+    activity = _seed_activity()
+    res = client.post(
+        f"/api/v1/events/{activity.id}/polls",
+        json={"question": "Which slot suits you?", "options": ["Sat", "Sun"]},
+        headers=_organiser(client),
+    )
+    assert res.status_code == 201, res.get_json()
+
+    res = client.post(
+        f"/api/v1/events/{activity.id}/queries",
+        json={"body": "Is the venue wheelchair accessible?"},
+        headers=_registrant(client),
+    )
+    assert res.status_code == 201, res.get_json()
 
 
 @pytest.mark.parametrize("status", CLOSED_STATUSES)
-def test_create_poll_refused_when_event_not_live(client, status):
+def test_create_poll_refused_once_the_channel_closes(client, status):
     """CHAT-01 scopes poll creation to the registration window."""
     activity = _seed_activity(status=status)
     res = client.post(
@@ -152,7 +184,7 @@ def test_create_poll_refused_when_event_not_live(client, status):
 
 
 @pytest.mark.parametrize("status", CLOSED_STATUSES)
-def test_vote_refused_when_event_not_live(client, status):
+def test_vote_refused_once_the_channel_closes(client, status):
     activity = _seed_activity(status=status)
     poll = _seed_poll(activity)
     res = client.post(
@@ -165,7 +197,7 @@ def test_vote_refused_when_event_not_live(client, status):
 
 
 @pytest.mark.parametrize("status", CLOSED_STATUSES)
-def test_submit_query_refused_when_event_not_live(client, status):
+def test_submit_query_refused_once_the_channel_closes(client, status):
     activity = _seed_activity(status=status)
     res = client.post(
         f"/api/v1/events/{activity.id}/queries",
@@ -198,7 +230,7 @@ def test_window_guard_precedes_the_registration_check(client):
 
 def test_close_poll_still_permitted_after_the_event_ends(client):
     """`close_poll` is ungated on purpose — see the module docstring."""
-    activity = _seed_activity(status=EVENT_LIVE)
+    activity = _seed_activity()
     poll = _seed_poll(activity)
 
     activity.status = EVENT_COMPLETED
@@ -214,7 +246,7 @@ def test_close_poll_still_permitted_after_the_event_ends(client):
 
 def test_respond_query_still_permitted_after_the_event_ends(client):
     """A question asked in the last ten minutes is answered after the event."""
-    activity = _seed_activity(status=EVENT_LIVE)
+    activity = _seed_activity()
     query = _seed_query(activity)
 
     activity.status = EVENT_COMPLETED
@@ -243,7 +275,7 @@ def test_channel_end_to_end(client):
     as one test rather than four because it is the ordering that is being
     checked — each step consumes the id the previous one minted, which is what
     the frontend does and what four isolated tests would not catch."""
-    activity = _seed_activity(status=EVENT_LIVE)
+    activity = _seed_activity()
     aid = activity.id
     org_h = _organiser(client)
     student_h = _registrant(client)
@@ -324,7 +356,7 @@ def test_a_registrant_never_sees_another_registrants_query(client):
     `/queries` is the team's view and `/queries/mine` is scoped to the caller —
     so the second registrant's request for the team view is a 403, and their own
     view is empty rather than a window onto the first registrant's question."""
-    activity = _seed_activity(status=EVENT_LIVE)
+    activity = _seed_activity()
     aid = activity.id
     other = User.query.filter_by(email="head@ekatva.os").first()
     db.session.add(
@@ -351,7 +383,7 @@ def test_only_the_teams_moderation_actions_are_audited(client):
     Create, close and respond are the team acting on the community's behalf and
     are logged. A vote and a question are routine attendee activity and are not
     — an audit row per vote would bury the moderation trail it exists to show."""
-    activity = _seed_activity(status=EVENT_LIVE)
+    activity = _seed_activity()
     aid = activity.id
     org_h = _organiser(client)
     student_h = _registrant(client)

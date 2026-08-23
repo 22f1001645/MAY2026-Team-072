@@ -6,9 +6,13 @@ a registrant asks the team a question, one team member answers it once.
 
 Three rules shape everything here:
 
-* `_assert_channel_open` gates the surfaces that belong to the event's live
-  window — creating a poll, voting on one, and submitting a query. `close_poll`
-  and `respond_query` are deliberately NOT gated, because wrapping up a poll or
+* `_assert_channel_open` gates the surfaces that belong to the event's open
+  window — creating a poll, voting on one, and submitting a query. The window is
+  the same one `registration_service.register` honours: an event is open from
+  approval (`upcoming`) until it is completed, archived or cancelled. Gating on
+  `status == "live"` instead would close the channel on every event that exists,
+  because nothing in the application ever assigns that status. `close_poll` and
+  `respond_query` are deliberately NOT gated, because wrapping up a poll or
   answering a lingering question after the event has ended is exactly when a
   team needs to (D-17).
 * Voting once per poll is enforced by `uq_poll_vote` in the database, never by a
@@ -25,7 +29,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from ..constants import (
-    EVENT_LIVE,
+    EVENT_ARCHIVED,
+    EVENT_CANCELLED,
+    EVENT_COMPLETED,
     POLL_CLOSED,
     POLL_OPEN,
     QUERY_ANSWERED,
@@ -45,8 +51,15 @@ def _activity_or_404(activity_id: str):
     return activity
 
 
+# The statuses that close the channel. Stated as the closed set rather than the
+# open one so a status added later defaults to open, and so the set can be read
+# beside `registration_service.register` — which opens registration for exactly
+# the complement of this.
+CHANNEL_CLOSED_STATUSES = (EVENT_COMPLETED, EVENT_ARCHIVED, EVENT_CANCELLED)
+
+
 def _assert_channel_open(activity):
-    if activity.status != EVENT_LIVE:
+    if activity.status in CHANNEL_CLOSED_STATUSES:
         raise ApiError(
             "Posting to this event is no longer available.",
             "registration_window_closed",

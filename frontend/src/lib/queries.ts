@@ -300,8 +300,30 @@ export const useBroadcast = () =>
       api.broadcast(v.id, v.title, v.body),
   })
 
+/** CHAT-04's refresh interval, shared by every event-channel query: 15s with
+ *  ±3s of jitter (D-13).
+ *
+ *  The jitter is the point, not decoration. A fixed interval synchronises every
+ *  open tab on an event to the same tick — thirty registrants become thirty
+ *  simultaneous requests every fifteen seconds, arriving as spikes rather than
+ *  spread out. TanStack re-evaluates this on each schedule, so tabs that start
+ *  together drift apart instead of locking in step.
+ *
+ *  Paired everywhere with `refetchIntervalInBackground: false` (D-14): a tab
+ *  left open on another monitor stops polling entirely, which is the larger
+ *  saving of the two. Unlike the Kanban board (AC-35, deliberately never
+ *  polled), a channel IS the live surface — an announcement nobody sees until
+ *  they reload is an announcement that did not happen. */
+const channelRefetchInterval = () => 15_000 + Math.random() * 6_000 - 3_000
+
 export const useAnnouncements = (id?: string) =>
-  useQuery({ queryKey: ['announcements', id], queryFn: () => api.announcements(id!), enabled: !!id })
+  useQuery({
+    queryKey: ['announcements', id],
+    queryFn: () => api.announcements(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
 
 export const usePostAnnouncement = () => {
   const qc = useQueryClient()
@@ -744,3 +766,90 @@ export const useMyFeedback = (id?: string) =>
     queryFn: () => api.myFeedback(id!),
     enabled: !!id,
   })
+
+// ---------------------------------------------------------------------------
+// Phase 8: Event channel — announcements, polls and Q&A (CHAT-01/02/04)
+// ---------------------------------------------------------------------------
+
+/** CHAT-01: every poll on the event, with counts and the caller's own vote. */
+export const usePolls = (id?: string) =>
+  useQuery({
+    queryKey: ['polls', id],
+    queryFn: () => api.polls(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
+
+export const useCreatePoll = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    // `id` is deliberately NOT spread into the body: PollCreateSchema is a
+    // plain marshmallow Schema, whose `unknown` defaults to RAISE, so an extra
+    // key answers 422 rather than being ignored.
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string
+      question: string
+      options: string[]
+      closes_at?: string | null
+    }) => api.createPoll(id, data),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
+  })
+}
+
+export const useCastVote = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; pollId: string; option_index: number }) =>
+      api.castVote(v.id, v.pollId, v.option_index),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
+  })
+}
+
+export const useClosePoll = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; pollId: string }) => api.closePoll(v.id, v.pollId),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
+  })
+}
+
+/** CHAT-02: the registrant's own questions and their answers (D-11). */
+export const useMyQueries = (id?: string) =>
+  useQuery({
+    queryKey: ['queries', 'mine', id],
+    queryFn: () => api.myQueries(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
+
+/** CHAT-02: every question on the event, for the organising team (D-09). */
+export const useOrgQueries = (id?: string) =>
+  useQuery({
+    queryKey: ['queries', 'org', id],
+    queryFn: () => api.orgQueries(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
+
+export const useSubmitQuery = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; body: string }) => api.submitQuery(v.id, v.body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['queries', 'mine', v.id] }),
+  })
+}
+
+export const useRespondQuery = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; queryId: string; response_body: string }) =>
+      api.respondQuery(v.id, v.queryId, v.response_body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['queries', 'org', v.id] }),
+  })
+}

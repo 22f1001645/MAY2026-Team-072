@@ -38,11 +38,22 @@ created: 2026-08-23
 
 ## Per-Task Verification Map
 
-*Populated by the planner once task IDs exist — see 07-RESEARCH.md "Phase Requirements → Test Map" for the full 22-case mapping (PROG-01/02/03/04 → `backend/tests/test_progression_gating.py::test_*`) that this table will be built from.*
+Built from 07-RESEARCH.md "Phase Requirements → Test Map". Two deltas from that 22-case list: `test_refusals_write_nothing` is split into `test_refused_submit_writes_nothing` (07-01) and `test_refused_approve_writes_nothing` (07-02) so each lands with the checkpoint it guards; and two cases are added — `test_forged_unlock_row_does_not_grant_eligibility` (threat T-07-01, which nothing in the 22 asserted) and `test_progression_endpoint_empty_unlocks_is_empty_array` (the zero-unlocks edge). 25 automated cases total.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | PROG-01/02/03/04 | see 07-RESEARCH.md §Security Domain | server computes eligibility live, never trusts a stored flag | integration | `pytest tests/test_progression_gating.py -q` | ❌ W0 | ⬜ pending |
+| 07-01 T1 | 07-01 | 1 | PROG-01, PROG-04 | T-07-02 | A locked org's direct `POST /proposals` with `scale: regional_fest` returns 403 `fest_locked` from a live computation | integration | `pytest tests/test_progression_gating.py -q` (4 cases) | ❌ W0 — created by this task | ⬜ pending |
+| 07-01 T2 | 07-01 | 1 | PROG-01, PROG-02, PROG-04 | T-07-01, T-07-03, T-07-04, T-07-05 | Dedup before counting; unapproved/future/other-city meetups excluded; a forged unlock row grants nothing; a refused submit writes nothing | integration | `pytest -q --tb=short` (13 cases cumulative) | ✅ after T1 | ⬜ pending |
+| 07-02 T1 | 07-02 | 2 | PROG-01, PROG-02, PROG-03, PROG-04 | T-07-07, T-07-08, T-07-05, T-07-09 | Approve-time re-check closes the TOCTOU window; accepted-count enforces consent; refused approve mutates nothing; unlock row is idempotent | integration | `pytest -q --tb=short` (21 cases cumulative) | ✅ | ⬜ pending |
+| 07-02 T2 | 07-02 | 2 | PROG-01, PROG-03 | T-07-06, T-07-10 | Read route serialises the same function the write paths assert on; 404/401 guards; `city` is a bound filter value only | integration | `pytest tests/test_progression_gating.py tests/test_blueprint_registration.py -q` (25 cases) | ✅ | ⬜ pending |
+| 07-02 T3 | 07-02 | 2 | PROG-01 | — | Seeded demo data can reach fest tier, so the manual gate is reachable | integration | `pytest -q --tb=short` | ✅ | ⬜ pending |
+| 07-03 T1 | 07-03 | 2 | PROG-01, PROG-03 | T-07-13 | snake→camel adapted once in `lib/api.ts`; threshold read from the server | build | `cd frontend && npm run build` | ✅ exists | ⬜ pending |
+| 07-03 T2 | 07-03 | 2 | PROG-01, PROG-03 | T-07-12 | Refetch on org/city change only; no polling, no focus refetch | build | `cd frontend && npm run build` | ✅ exists | ⬜ pending |
+| 07-04 T1 | 07-04 | 3 | PROG-01, PROG-04 | T-07-11, T-07-14, T-07-15 | Lock fails closed on loading and fetch error; `aria-disabled` keeps the reason reachable; query matches the submit payload's org/city | build + manual | `cd frontend && npm run build`; manual steps 1-6, 10 at 07-05 T3 | ✅ exists | ⬜ pending |
+| 07-04 T2 | 07-04 | 3 | PROG-02, PROG-04 | T-07-13 | Threshold from the server; submit stays enabled; server message rendered verbatim | build | `cd frontend && npm run build` | ✅ exists | ⬜ pending |
+| 07-05 T1 | 07-05 | 3 | PROG-02, PROG-04 | T-07-08, T-07-17 | Refusal is a persistent `role="alert"` strip, never a toast | build | `cd frontend && npm run build` | ✅ exists | ⬜ pending |
+| 07-05 T2 | 07-05 | 3 | PROG-03 | T-07-01, T-07-16 | Banner is display-only with nothing gated on the row; visibility uses the page's existing `canEdit` | build + manual | `cd frontend && npm run build`; manual steps 7-9 at 07-05 T3 | ✅ exists | ⬜ pending |
+| 07-05 T3 | 07-05 | 3 | PROG-01, PROG-03 | — | The two manual-only states below, signed off | manual checkpoint | full `workflow.test_command` green first | n/a | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,7 +61,9 @@ created: 2026-08-23
 
 ## Wave 0 Requirements
 
-- [ ] `backend/tests/test_progression_gating.py` — new file, stubs for PROG-01/02/03/04 (22 automated cases mapped in 07-RESEARCH.md)
+No separate Wave 0 plan exists — the tracer (07-01 Task 1) creates the test file and its helpers as its first move, writing them before the implementation, so the Wave 0 gap closes inside Wave 1.
+
+- [ ] `backend/tests/test_progression_gating.py` — new file, created by 07-01 Task 1; 25 automated cases for PROG-01/02/03/04 by the end of 07-02
 - [ ] `_seed_completed_meetup()` helper inside that file (no shared fixtures module in this project; per-module helpers are the convention — copy the `_auth`/`_seed_org` block pattern from `test_proposal_collaboration.py:38-83`)
 - [ ] Framework install: none needed — pytest, pytest-cov, and the `app`/`client` fixtures are already present
 

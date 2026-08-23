@@ -273,7 +273,7 @@ Plans:
   3. A `regional_fest` proposal with fewer than 6 accepted collaborating organisations is rejected with a reason naming the shortfall.
   4. An org that reaches fest tier sees a recorded "Sponsorship & outreach tools unlocked" state surfaced in the UI, with no CRM tooling behind it (deliberately out of scope).
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 **UI hint**: yes
 
 Plans:
@@ -288,7 +288,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 07-04-PLAN.md — `ProposalNew`: locked Regional Fest card with its four caption states, guarded auto-revert, fest collaborator counter, two error headings (PROG-01, PROG-02, PROG-04)
+- [x] 07-04-PLAN.md — `ProposalNew`: locked Regional Fest card with its four caption states, guarded auto-revert, fest collaborator counter, two error headings (PROG-01, PROG-02, PROG-04)
 - [ ] 07-05-PLAN.md — [CHECKPOINT] `ApprovalQueue` accepted count + refusal `ErrorStrip`, `OrgProfile` sponsorship banner, phase manual UAT (PROG-02, PROG-03, PROG-04)
 
 **Wave structure**: a tracer, then two independent chains. The backend chain (01 → 02) is sequential because both plans edit `progression_service.py`, `proposal_service.py` and the new test file. The frontend chain (03 → 04, 03 → 05) is sequential on the data layer only; `ProposalNew.tsx` and `ApprovalQueue.tsx`/`OrgProfile.tsx` share no files, so Wave 3 runs two plans in parallel, as does Wave 2 across the two halves. Zero migrations and zero new packages in any plan.
@@ -323,7 +323,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
-| 7. Progression Gating | 3/5 | In Progress|  |
+| 7. Progression Gating | 4/5 | In Progress|  |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
 
 ## Coverage

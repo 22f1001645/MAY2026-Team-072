@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 4
+open_count: 5
 waived_count: 0
 fixed_count: 0
-total_count: 4
-last_updated: 2026-08-23T06:21:37.142Z
+total_count: 5
+last_updated: 2026-08-23T16:57:43.978Z
 ---
 
 # Broken Windows Ledger
@@ -19,6 +19,7 @@ last_updated: 2026-08-23T06:21:37.142Z
 | 2 | 04 | unmet-truth | frontend/src/components/ui.tsx |  | The shared Dialog primitive does not trap focus or restore it to the trigger, which 04-UI-SPEC's Accessibility Contract requires; 04-07 added Esc and initial focus locally in OrgProfile.tsx | open |  | 2026-08-13T22:31:38.745Z |  |
 | 3 | 04 | deviation | frontend/src/pages/Orgs.tsx |  | 04-07 Task 3's spacing-diff grep is unsatisfiable (href/rel share a line with a className); replaced by a before/after spacing-token multiset comparison, which is identical | open |  | 2026-08-13T22:31:39.380Z |  |
 | 4 | 07 | deviation | backend/tests/test_progression_gating.py |  | 07-01 plan named POST /api/v1/proposals; the real submit route is POST /api/v1/activities — tests corrected, plan text still wrong | open |  | 2026-08-23T06:21:37.142Z |  |
+| 5 | 08 | deviation | backend/app/services/channel_service.py |  | 08-02 submit_query gate widened to can_participate_in_activity (plan specified a literal RegistrationRepository.find) | open |  | 2026-08-23T16:57:43.978Z |  |
 
 ````json
 [
@@ -68,6 +69,18 @@ last_updated: 2026-08-23T06:21:37.142Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-23T06:21:37.142Z",
+    "resolved_at": null
+  },
+  {
+    "id": 5,
+    "kind": "deviation",
+    "phase": "08",
+    "file": "backend/app/services/channel_service.py",
+    "line": null,
+    "description": "08-02 submit_query gate widened to can_participate_in_activity (plan specified a literal RegistrationRepository.find)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-23T16:57:43.978Z",
     "resolved_at": null
   }
 ]

@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: event-announcements-polls-queries
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-08-23T16:00:23.880Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-08-23T16:57:16.155Z"
 last_activity: 2026-08-23
-last_activity_desc: Phase 08 execution started, 08-01 complete
+last_activity_desc: Phase 08 backend complete (polls + Q&A), 08-02 done
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 56
-  completed_plans: 51
+  completed_plans: 52
   percent: 88
 ---
 
@@ -32,11 +32,11 @@ Phase: 08 (event-announcements-polls-queries) — EXECUTING
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
 Phase: 07 (progression-gating) — COMPLETE, verification outstanding
-Plan: 1 of 6 (08-01 poll backend complete)
-Status: Executing — 08-02 next
-Last activity: 2026-08-23 — Phase 08 execution started, 08-01 complete
+Plan: 2 of 6 (08-01 poll backend + 08-02 query backend complete)
+Status: Executing — 08-03 next
+Last activity: 2026-08-23 — Phase 08 backend complete (polls + Q&A), frontend plans next
 
-Progress: [█████████░] 91% (7/8 phases complete; Phase 08 in progress)
+Progress: [█████████░] 93% (7/8 phases complete; Phase 08 in progress)
 
 ## Performance Metrics
 
@@ -111,6 +111,7 @@ Progress: [█████████░] 91% (7/8 phases complete; Phase 08 in
 | Phase 07 P04 | 9min | 2 tasks | 1 files |
 | Phase 07 P05 | 65min | 3 tasks | 3 files |
 | Phase 08 P01 | 45min | 3 tasks | 4 files |
+| Phase 08 P02 | 40min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -246,6 +247,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 8] 08-01: cast_vote's participation gate is rbac.can_participate_in_activity, not a raw RegistrationRepository.find — the predicate already excludes cancelled registrations and already admits organisers, which the literal find() does not
 - [Phase ?]: [Phase 8] 08-01: _poll_or_404 checks the poll belongs to the activity in the URL — the route guard authorises against the path's activity, so a bare poll id would be votable and closable through any other event
 - [Phase ?]: [Phase 8] 08-01: create_poll flushes before AuditRepository.record so entity_id is the poll's real id, avoiding the Phase 6 'expense submitted' bug where the audit row belonged to nothing
+- [Phase ?]: [Phase 8] 08-02: submit_query's participation gate is rbac.can_participate_in_activity, matching 08-01's cast_vote — a cancelled registration must not grant the right to ask, and an organiser with no registration row must still be able to (D-08)
+- [Phase ?]: [Phase 8] 08-02: _query_or_404 scopes the query to the activity in the URL — can_manage_activity_required authorises against the path's activity, so a bare query id would be answerable through any other event
+- [Phase ?]: [Phase 8] 08-02: GET /queries/mine is auth_required, not team-gated — it takes no user parameter and is filtered on g.current_user in the service, so a stronger route guard would only lock a registrant out of their own questions (D-11)
 
 ### Pending Todos
 
@@ -266,8 +270,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-23T15:59:08.362Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-08-23T16:57:16.084Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

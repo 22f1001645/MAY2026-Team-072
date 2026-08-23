@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
 - [x] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement (completed 2026-08-22, see 06-UAT.md)
 - [ ] **Phase 7: Progression Gating** - Fest-scale proposals unlock from an org's own track record, enforced server-side
-- [ ] **Phase 8: Event Announcements, Polls & Queries** - One official, moderated event channel — never a chat room
+- [ ] **Phase 8: Event Announcements, Polls & Queries** - Structured polls + Q&A layered onto the event's existing announcements and open chat (D-01: EventChat stays)
 
 ## Phase Details
 
@@ -295,15 +295,15 @@ Plans:
 
 ### Phase 8: Event Announcements, Polls & Queries
 
-**Goal**: A live event has exactly one official channel that carries announcements, polls and attendee questions — and cannot become a chat room.
+**Goal**: A live event's polls and Q&A are structured, moderated channels — organiser-created polls voted once each, and attendee questions answered once by the team — layered onto the event's existing announcement broadcast and pre-existing open chat, without becoming a second freeform chat room themselves.
 **Depends on**: Phase 1, Phase 5
 **Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04
 **Success Criteria** (what must be TRUE):
 
   1. The organising team can post announcements and create polls scoped to an event's registration window, and registrants see them and can vote exactly once each.
-  2. A registrant can submit a query to the team and cancel their registration — and can do nothing else: no replies to other attendees, no open feed, no peer-to-peer messaging.
+  2. A registrant can submit a query to the team; the team answers once and only the asker sees the response — polls and queries stay structured and non-public, even though the pre-existing EventChat remains available separately for open two-way discussion (08-CONTEXT.md D-01: CHAT-02's "no open chat" is treated as aspirational).
   3. Posting to an event whose registration window has closed is rejected server-side with an explicit closed-state message, not merely hidden in the UI.
-  4. Query submission is rate-limited and every moderation action lands in the audit log — both shipping with the feature, not after it.
+  4. Every poll and query moderation action (create, close, respond) lands in the audit log, shipping with the feature (08-CONTEXT.md D-16). Query-submission rate-limiting stays out of scope for this milestone (no live deploy target — resolved 2026-08-06, see Blockers/Concerns).
   5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
 
 **Plans**: 0/6 plans executed

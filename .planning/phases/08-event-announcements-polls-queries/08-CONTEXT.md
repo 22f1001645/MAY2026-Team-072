@@ -41,6 +41,12 @@ The existing **EventChat** (open two-way free chat between organisers and regist
 - **D-14:** refetchIntervalInBackground: false on all channel queries - backgrounded tabs stop polling. — Reversibility: reversible
 - **D-15:** No cursor-based ?after=<ts> parameter needed for this phase - full-list refetch is acceptable given the data volumes (meetup scale). The cursor indexes (ix_announcement_cursor, ix_event_query_cursor) already exist in the DB for a future optimization.
 
+### Pre-Execution Review Additions (added before any 08-0X plan ran)
+
+- **D-16:** `create_poll`/`close_poll` (08-01) and `respond_query` (08-02) each write an `AuditRepository.record()` entry — closes the CHAT-03 "audit-log entry ships in the same phase" gap; this was never one of the 5 areas put to the user during discuss-phase, only found on plan-vs-requirement review. `cast_vote`/`submit_query` stay unlogged (routine attendee activity, not a moderation action, matches the existing convention e.g. task CRUD). — Reversibility: reversible
+- **D-17:** `create_poll` is gated by `_assert_channel_open` (EVENT_LIVE only), matching CHAT-01's "scoped to the registration window." `close_poll` and `respond_query` stay ungated so the team can wrap up a poll or answer a lingering question after the event ends. — Reversibility: reversible
+- **D-18:** Plan 08-04 (`EventChannelSection`, imports `QuerySection` from 08-05) moved from Wave 3 to Wave 4, after 08-05. The two plans shared a real code dependency (an import) with no overlapping `files_modified` entries, so the orchestrator's intra-wave overlap check would not have caught them running in parallel. 08-06 moved from Wave 4 to Wave 5 accordingly. — Reversibility: reversible
+
 </decisions>
 
 <canonical_refs>
@@ -105,8 +111,8 @@ The existing **EventChat** (open two-way free chat between organisers and regist
 
 - Cursor-based polling (?after=<ts>) - The DB indexes are in place (ix_announcement_cursor, ix_event_query_cursor). Implementing cursor params is deferred to a future optimization phase; full-list refetch is sufficient for meetup-scale data.
 - Rate limiting on query submissions (CHAT-03) - ROADMAP.md notes this was resolved as out-of-scope since there is no live deployment target. Rate limiting remains deferred.
-- Registration-window gate on posting (CHAT-03 server-side rejection) - Defer to a follow-up or address in the plan if time allows.
-- Audit-log writes for poll/query moderation actions - AuditLog infrastructure exists but no audit writes are in the channel code. Deferred.
+
+Registration-window gating and audit-log writes are NO LONGER deferred — see D-16/D-17 below (added during pre-execution review).
 
 </deferred>
 

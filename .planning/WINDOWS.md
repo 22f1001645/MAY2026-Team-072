@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 6
+open_count: 5
 waived_count: 0
-fixed_count: 0
+fixed_count: 1
 total_count: 6
-last_updated: 2026-08-23T17:34:39.022Z
+last_updated: 2026-08-23T17:50:20.847Z
 ---
 
 # Broken Windows Ledger
@@ -20,7 +20,7 @@ last_updated: 2026-08-23T17:34:39.022Z
 | 3 | 04 | deviation | frontend/src/pages/Orgs.tsx |  | 04-07 Task 3's spacing-diff grep is unsatisfiable (href/rel share a line with a className); replaced by a before/after spacing-token multiset comparison, which is identical | open |  | 2026-08-13T22:31:39.380Z |  |
 | 4 | 07 | deviation | backend/tests/test_progression_gating.py |  | 07-01 plan named POST /api/v1/proposals; the real submit route is POST /api/v1/activities — tests corrected, plan text still wrong | open |  | 2026-08-23T06:21:37.142Z |  |
 | 5 | 08 | deviation | backend/app/services/channel_service.py |  | 08-02 submit_query gate widened to can_participate_in_activity (plan specified a literal RegistrationRepository.find) | open |  | 2026-08-23T16:57:43.978Z |  |
-| 6 | 08 | stub | frontend/src/components/EventChannelSection.tsx | 158 | Q&A sub-section is not mounted — QuerySection.tsx (plan 08-05) does not exist yet; two-line wiring is marked TODO(08-05) in place | open |  | 2026-08-23T17:34:39.022Z |  |
+| 6 | 08 | stub | frontend/src/components/EventChannelSection.tsx | 158 | Q&A sub-section is not mounted — QuerySection.tsx (plan 08-05) does not exist yet; two-line wiring is marked TODO(08-05) in place | fixed |  | 2026-08-23T17:34:39.022Z | 2026-08-23T17:50:20.847Z |
 
 ````json
 [
@@ -91,10 +91,10 @@ last_updated: 2026-08-23T17:34:39.022Z
     "file": "frontend/src/components/EventChannelSection.tsx",
     "line": 158,
     "description": "Q&A sub-section is not mounted — QuerySection.tsx (plan 08-05) does not exist yet; two-line wiring is marked TODO(08-05) in place",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-23T17:34:39.022Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-23T17:50:20.847Z"
   }
 ]
 ````

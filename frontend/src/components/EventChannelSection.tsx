@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Badge, Button, Card, Input, useToast } from './ui'
 import { usePolls, useCreatePoll } from '../lib/queries'
+import { ErrorState } from './states'
 import PollCard from './PollCard'
 import QuerySection from './QuerySection'
 import { cx } from '../lib/format'
@@ -31,7 +32,7 @@ export default function EventChannelSection({
   const [question, setQuestion] = useState('')
   const [options, setOptions] = useState(['', ''])
 
-  const { data: polls = [], isLoading } = usePolls(activityId)
+  const { data: polls = [], isLoading, isError, error } = usePolls(activityId)
   const createPollMut = useCreatePoll()
   const { addToast } = useToast()
 
@@ -97,6 +98,10 @@ export default function EventChannelSection({
         <div className="mt-4 space-y-3">
           {isLoading ? (
             <p className="text-caption text-graytext-mid">Loading polls…</p>
+          ) : isError ? (
+            // "No polls yet" is a claim about the event; on a 403 or an
+            // unreachable backend it is a claim the client cannot make.
+            <ErrorState error={error} />
           ) : polls.length === 0 ? (
             <p className="text-caption text-graytext-mid">
               {canManage ? 'No polls yet — publish one below.' : 'No polls yet.'}

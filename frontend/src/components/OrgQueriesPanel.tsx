@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Badge, Button, Card, Textarea, useToast } from './ui'
+import { ErrorState } from './states'
 import { useOrgQueries, useRespondQuery } from '../lib/queries'
 
 /** Mirrors `QueryRespondSchema` — the answer bound is wider than the question's. */
@@ -16,7 +17,7 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
   // half-typed answer under every open question on the list.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
 
-  const { data: queries = [], isLoading } = useOrgQueries(activityId)
+  const { data: queries = [], isLoading, isError, error } = useOrgQueries(activityId)
   const respondMut = useRespondQuery()
   const { addToast } = useToast()
 
@@ -55,6 +56,11 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
 
       {isLoading ? (
         <p className="text-caption text-graytext-mid">Loading questions…</p>
+      ) : isError ? (
+        // Never the empty state on failure: "no questions from attendees yet"
+        // told an organiser with confidence that a 403 or a stopped backend was
+        // silence from the community.
+        <ErrorState error={error} />
       ) : sorted.length === 0 ? (
         <div className="p-10 text-center text-graytext-light">
           No questions from attendees yet.

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Badge, Button, Textarea, useToast } from './ui'
+import { ErrorState } from './states'
 import { useMyQueries, useSubmitQuery } from '../lib/queries'
 
 /** Mirrors `QuerySubmitSchema` (backend/app/schemas/__init__.py) — the 5-char
@@ -17,7 +18,7 @@ const BODY_MAX = 1000
 export default function QuerySection({ activityId }: { activityId: string }) {
   const [body, setBody] = useState('')
 
-  const { data: queries = [], isLoading } = useMyQueries(activityId)
+  const { data: queries = [], isLoading, isError, error } = useMyQueries(activityId)
   const submitMut = useSubmitQuery()
   const { addToast } = useToast()
 
@@ -66,6 +67,10 @@ export default function QuerySection({ activityId }: { activityId: string }) {
 
       {isLoading ? (
         <p className="text-caption text-graytext-mid">Loading your questions…</p>
+      ) : isError ? (
+        // A failed fetch is not "you have asked nothing" — the second reading
+        // is what a registrant would act on, and it is the wrong one.
+        <ErrorState error={error} />
       ) : queries.length === 0 ? (
         <p className="text-caption text-graytext-mid">
           No questions asked yet. Have a question about logistics or food? Ask the organizing team

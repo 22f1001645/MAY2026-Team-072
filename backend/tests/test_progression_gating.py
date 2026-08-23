@@ -581,6 +581,20 @@ class TestUnlockMarker:
         assert _approve(client, second).status_code == 200
         assert self._unlocks(app, org_id) == 1
 
+    def test_unlock_row_cleared_when_revoke_breaks_the_pair(self, app, client):
+        """WR-04: the marker means "is at fest tier", not "once was".
+
+        assert_fest_eligible re-locks the fest card on revoke, so a marker left
+        standing would have the sponsorship banner and the fest card making
+        opposite claims about the same organisation (assumption A1).
+        """
+        org_id, (rid,) = self._seed_pending_regionals(app, [200])
+        assert _approve(client, rid).status_code == 200
+        assert self._unlocks(app, org_id) == 1
+
+        _revoke_qualifying_regional(app)
+        assert self._unlocks(app, org_id) == 0
+
 
 # --------------------------------------------------------------------------- #
 # The read surface: GET /orgs/<org_id>/progression (D-04, D-05)

@@ -129,6 +129,24 @@ def record_unlock(org_id: str, city: str) -> OrgProgressionUnlock:
     return unlock
 
 
+def clear_unlock_if_ineligible(org_id: str, city: str) -> None:
+    """PROG-03, the inverse of record_unlock: a revocation can un-complete the pair.
+
+    assert_fest_eligible already re-computes at approve time, so revoking the
+    qualifying meetup re-locks the fest card. Leaving the marker behind would let
+    the sponsorship banner keep claiming fest tier while the card next to it is
+    locked again — the exact drift assumption A1 says the marker exists to
+    prevent. The marker means "is at fest tier", not "once was".
+
+    Does not commit, for the same reason record_unlock does not.
+    """
+    if fest_eligibility(org_id, city)["fest_eligible"]:
+        return
+    marker = OrgProgressionUnlock.query.filter_by(org_id=org_id, city=city).first()
+    if marker:
+        db.session.delete(marker)
+
+
 def progression_for(org, city=None) -> dict:
     """The payload behind GET /orgs/<org_id>/progression — two callers, one route.
 

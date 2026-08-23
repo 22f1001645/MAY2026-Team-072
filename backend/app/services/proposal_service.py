@@ -27,6 +27,7 @@ from ..constants import (
 from .progression_service import (
     assert_fest_collaborators_accepted,
     assert_fest_eligible,
+    clear_unlock_if_ineligible,
     fest_eligibility,
     record_unlock,
 )
@@ -376,6 +377,12 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
             db.session.delete(point)
 
         _notify(activity.organiser_id, activity.id, "update", "Approval Revoked", note or "The admin has revoked the approval for this event.")
+
+        # PROG-03, the other direction: this revocation may have taken away the
+        # half of the track record that earned the unlock. Same flush-then-
+        # recompute as the approve branch above.
+        db.session.flush()
+        clear_unlock_if_ineligible(activity.org_id, activity.city)
 
     db.session.commit()
     return activity

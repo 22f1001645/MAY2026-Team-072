@@ -21,7 +21,7 @@ def _process_referral_gamification(reg, activity):
             user_id=reg.referred_by_id,
             activity_id=activity.id,
             action="referred",
-            points=points["referrer"],
+            points=points.get("referrer", 10),
         )
     )
     db.session.add(
@@ -30,7 +30,7 @@ def _process_referral_gamification(reg, activity):
             activity_id=activity.id,
             type="update",
             title="Referral successful!",
-            body=f"{reg.student.name if reg.student else 'A friend'} attended using your link. You earned {points['referrer']} points!",
+            body=f"{reg.student.name if reg.student else 'A friend'} attended using your link. You earned {points.get('referrer', 10)} points!",
         )
     )
     db.session.add(
@@ -38,7 +38,7 @@ def _process_referral_gamification(reg, activity):
             user_id=reg.student_id,
             activity_id=activity.id,
             action="referred_welcome",
-            points=points["referee"],
+            points=points.get("referee", 5),
         )
     )
     db.session.add(
@@ -47,7 +47,7 @@ def _process_referral_gamification(reg, activity):
             activity_id=activity.id,
             type="update",
             title="Welcome bonus!",
-            body=f"You earned {points['referee']} points for attending via a referral link!",
+            body=f"You earned {points.get('referee', 5)} points for attending via a referral link!",
         )
     )
 

@@ -92,8 +92,12 @@ export const useHouses = () =>
 export const usePors = () =>
   useQuery({ queryKey: ['pors'], queryFn: api.pors })
 
-export const useUsers = (q?: string) =>
-  useQuery({ queryKey: ['users', q], queryFn: () => api.users(q) })
+export const useUsers = (q?: string, enabled?: boolean) =>
+  useQuery({
+    queryKey: ['users', q],
+    queryFn: () => api.users(q),
+    enabled: enabled !== undefined ? enabled : (q !== undefined ? q.trim().length > 0 : true),
+  })
 
 // ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ----
 
@@ -307,8 +311,25 @@ export const useDeleteNotification = () => {
 export const useCreateOrg = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string; type: string; city: string }) => api.createOrg(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orgs'] }),
+    mutationFn: (
+      data:
+        | FormData
+        | {
+            name: string
+            type?: string
+            city?: string
+            category?: string
+            tagline?: string
+            description?: string
+            logo_url?: string
+            banner_url?: string
+          },
+    ) => api.createOrg(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orgs'] })
+      qc.invalidateQueries({ queryKey: ['societies'] })
+      qc.invalidateQueries({ queryKey: ['houses'] })
+    },
   })
 }
 
@@ -607,6 +628,20 @@ export const useSubscribeToCityAlert = () => {
 }
 
 export const usePendingProposalsCount = () => useQuery({ queryKey: ['proposals', 'pending'], queryFn: () => api.proposals('pending'), select: (data) => data.length })
+
+export const useSearchUsers = (q: string) => {
+  return useQuery({
+    queryKey: ['users', 'search', q],
+    queryFn: () => api.searchUsers(q),
+    enabled: q.length > 2
+  })
+}
+
+export const useInviteFriend = () => {
+  return useMutation({
+    mutationFn: (v: { eventId: string; userId: string }) => api.inviteFriend(v.eventId, v.userId)
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Phase 6: Event Execution & Close-Out

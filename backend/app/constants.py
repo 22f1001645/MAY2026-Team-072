@@ -8,6 +8,12 @@ ROLE_ADMIN = "admin"
 ROLE_STUDENT = "student"
 LOGIN_ROLES = (ROLE_ADMIN, ROLE_STUDENT)
 
+# --- Student email domain (AUTH-REG) ---
+# Only IIT Madras online-degree accounts are permitted to register.
+# Declared here so the schema validator, any future service check, and the
+# frontend constant all source the same single string.
+STUDENT_EMAIL_DOMAIN = "ds.study.iitm.ac.in"
+
 # --- Refresh-token rotation grace window (AUTH-01, D-02a) ---
 # A refresh token is spent on first use, so presenting it twice normally means
 # replay and revokes the whole family. Two browser tabs waking together present
@@ -63,6 +69,19 @@ ORG_MANAGER_PORS = {
 
 # --- Organisation types ---
 ORG_TYPES = ("house", "society", "region", "council")
+
+# --- Position of Responsibility (POR) sets by organisation type ---
+HOUSE_POR_TYPES = (
+    "House Secretary",
+    "Deputy House Secretary",
+    "Regional Coordinator",
+    "Web Admin",
+)
+
+SOCIETY_POR_TYPES = (
+    "Society Secretary",
+    "Society Deputy Secretary",
+)
 
 # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
 HOUSES = (

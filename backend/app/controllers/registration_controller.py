@@ -86,3 +86,15 @@ def get_announcements(activity_id):
     """Fetch broadcast announcements for an event."""
     items = registration_service.announcements(activity_id)
     return jsonify([i.to_dict() for i in items]), 200
+
+@registration_bp.post("/events/<activity_id>/invite")
+@auth_required
+def invite_friend(activity_id):
+    from flask import request
+    data = request.get_json() or {}
+    target_user_id = data.get("user_id")
+    if not target_user_id:
+        return jsonify({"error": "user_id is required"}), 400
+        
+    notif = registration_service.invite_friend(activity_id, target_user_id, g.current_user)
+    return jsonify(notif.to_dict()), 201

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCities, useOrgs, useHouses, usePors, useUsers, useCreateOrg, useAssignPor, useRegions, useDeactivatePor, useAdminOverrideAcademicStatus } from '../lib/queries'
+import { useCities, useOrgs, usePors, useUsers, useCreateOrg, useAssignPor, useDeactivatePor, useAdminOverrideAcademicStatus } from '../lib/queries'
 import { api } from '../lib/api'
-import { Badge, Button, Card, Input, SectionTitle, useToast, Dialog, Select } from '../components/ui'
+import { Badge, Button, Card, Input, SectionTitle, useToast, Dialog, Select, Textarea } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, safeExternalHref } from '../lib/format'
 import { IndiaMap } from '../components/IndiaMap'
@@ -16,6 +16,20 @@ const ORG_TONE: Record<string, any> = {
   region: 'teal',
   council: 'warn',
 }
+
+export const SOCIETY_CATEGORIES = [
+  { label: 'Tech & Coding', value: 'Tech' },
+  { label: 'Dance & Performing Arts', value: 'Dance' },
+  { label: 'Sports & Athletics', value: 'Sports' },
+  { label: 'Visual Arts & Design', value: 'Arts' },
+  { label: 'Music & Singing', value: 'Music' },
+  { label: 'Literature & Debating', value: 'Literature' },
+  { label: 'Academic & Research', value: 'Academic' },
+  { label: 'Social & Community', value: 'Social' },
+  { label: 'Entrepreneurship', value: 'Entrepreneurship' },
+  { label: 'Media & Photography', value: 'Media' },
+  { label: 'Gaming & Esports', value: 'Gaming' },
+]
 
 // 12 Forest Houses with national park metadata.
 //
@@ -38,55 +52,67 @@ export const HOUSE_META: Record<string, { park: string; state: string; color: st
   'Wayanad House':     { park: 'Wayanad Wildlife Sanctuary',state: 'Kerala',       color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
 }
 
-const POR_TYPES = [
+const HOUSE_POR_TYPES = [
   'House Secretary',
   'Deputy House Secretary',
   'Regional Coordinator',
   'Web Admin',
 ]
 
+const SOCIETY_POR_TYPES = [
+  'Society Secretary',
+  'Society Deputy Secretary',
+]
+
+const ALL_POR_TYPES = [
+  ...HOUSE_POR_TYPES,
+  ...SOCIETY_POR_TYPES,
+]
 
 export default function Orgs() {
   const navigate = useNavigate()
+  const { addToast } = useToast()
+  const qc = useQueryClient()
+
   const [tab, setTab] = useState<'houses' | 'orgs' | 'pors' | 'cities' | 'members' | 'brand-kits'>('houses')
   const [councilTab, setCouncilTab] = useState<'upper' | 'lower'>('upper')
 
   const [userSearch, setUserSearch] = useState('')
-
-  const { data: orgs = [], isLoading: lo, isError: eo, error: erro } = useOrgs()
-  const { data: cities = [] } = useCities()
-  const { data: pors = [] } = usePors()
-  const { data: users = [] } = useUsers(userSearch.trim())
-  const { data: allUsers = [] } = useUsers() // for the members tab
-  const { data: houses = [] } = useHouses()
-  const { data: regions = [] } = useRegions()
-
-  const createOrgMutation = useCreateOrg()
-  const assignPorMutation = useAssignPor()
-  const deactivatePorMutation = useDeactivatePor()
-  const { addToast } = useToast()
+  const [memberSearch, setMemberSearch] = useState('')
 
   const [showSeedModal, setShowSeedModal] = useState(false)
   const [showPorModal, setShowPorModal] = useState(false)
   const [viewingHouseId, setViewingHouseId] = useState<string | null>(null)
   const [selectedMapRegionId, setSelectedMapRegionId] = useState<string | null>(null)
 
-  // Seed Org form state
-  const [orgName, setOrgName] = useState('')
-  const [orgType, setOrgType] = useState('society')
-  const [orgCity, setOrgCity] = useState('Hyderabad')
+  // Add Society form state
+  const [societyName, setSocietyName] = useState('')
+  const [societyCategory, setSocietyCategory] = useState('Tech')
+  const [customCategories, setCustomCategories] = useState<{ label: string; value: string }[]>([])
+  const [categoryQuery, setCategoryQuery] = useState('')
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
+  const categoryDropdownRef = useRef<HTMLDivElement>(null)
+
+  const [societyTagline, setSocietyTagline] = useState('')
+  const [societyDescription, setSocietyDescription] = useState('')
+  const [societyWebsite, setSocietyWebsite] = useState('')
+  const [societyInstagram, setSocietyInstagram] = useState('')
+  const [societyLinkedin, setSocietyLinkedin] = useState('')
+  const [societyX, setSocietyX] = useState('')
+  const [societyLogoFile, setSocietyLogoFile] = useState<File | null>(null)
+  const [societyLogoPreview, setSocietyLogoPreview] = useState<string | null>(null)
+  const [societyBannerFile, setSocietyBannerFile] = useState<File | null>(null)
+  const [societyBannerPreview, setSocietyBannerPreview] = useState<string | null>(null)
+  const [societyFormError, setSocietyFormError] = useState<string | null>(null)
 
   // Assign POR form state
   const [userId, setUserId] = useState('')
-  const [selectedHouseId, setSelectedHouseId] = useState('')
-  const [selectedPorType, setSelectedPorType] = useState(POR_TYPES[0])
+  const [porTargetType, setPorTargetType] = useState<'house' | 'society'>('house')
+  const [selectedOrgId, setSelectedOrgId] = useState('')
+  const [selectedPorType, setSelectedPorType] = useState(HOUSE_POR_TYPES[0])
   const [selectedRegion, setSelectedRegion] = useState('')
   const [porTerm, setPorTerm] = useState('May 2026')
   const [assignmentError, setAssignmentError] = useState<string | null>(null)
-
-  const isRC = selectedPorType === 'Regional Coordinator'
-  const upperCouncil = pors.filter((p: any) => p.council_tier === 'upper_house_council' && p.active)
-  const lowerCouncil = pors.filter((p: any) => p.council_tier === 'lower_house_council' && p.active)
 
   // Add City to Region state
   const [showAddCityModal, setShowAddCityModal] = useState(false)
@@ -102,17 +128,34 @@ export default function Orgs() {
   const [porStatusFilter, setPorStatusFilter] = useState('')
   const [porRegionFilter, setPorRegionFilter] = useState('')
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
-  const confirmPor = pors.find((p: any) => p.id === confirmDeactivateId)
 
   // Members / Academic Status state
-  const [memberSearch, setMemberSearch] = useState('')
   const [overrideUser, setOverrideUser] = useState<any>(null)
   const [overrideLevel, setOverrideLevel] = useState('foundation')
   const [overrideStatus, setOverrideStatus] = useState('active')
   const [overrideReason, setOverrideReason] = useState('')
+
+  const { data: orgs = [], isLoading: lo, isError: eo, error: erro } = useOrgs()
+  const { data: cities = [] } = useCities()
+  const { data: pors = [] } = usePors()
+  const { data: users = [] } = useUsers(userSearch.trim(), showPorModal && userSearch.trim().length > 0)
+  const { data: memberSearchResults = [], isFetching: isSearchingMembers } = useUsers(
+    memberSearch.trim(),
+    tab === 'members' && memberSearch.trim().length > 0
+  )
+  const houses = useMemo(() => orgs.filter((o: any) => o.type === 'house'), [orgs])
+  const societies = useMemo(() => orgs.filter((o: any) => o.type === 'society'), [orgs])
+  const regions = useMemo(() => orgs.filter((o: any) => o.type === 'region'), [orgs])
+
+  const createOrgMutation = useCreateOrg()
+  const assignPorMutation = useAssignPor()
+  const deactivatePorMutation = useDeactivatePor()
   const overrideMutation = useAdminOverrideAcademicStatus()
 
-  const qc = useQueryClient()
+  const isRC = selectedPorType === 'Regional Coordinator'
+  const upperCouncil = pors.filter((p: any) => p.council_tier === 'upper_house_council' && p.active)
+  const lowerCouncil = pors.filter((p: any) => p.council_tier === 'lower_house_council' && p.active)
+  const confirmPor = pors.find((p: any) => p.id === confirmDeactivateId)
 
   const addCityMutation = useMutation({
     mutationFn: ({ regionId, name }: { regionId: string; name: string }) =>
@@ -134,22 +177,129 @@ export default function Orgs() {
     addCityMutation.mutate({ regionId: addCityRegionId, name: newCityName.trim() })
   }
 
-  const handleSeedOrg = (e: React.FormEvent) => {
+  const resetSocietyForm = () => {
+    setSocietyName('')
+    setSocietyCategory('Tech')
+    setCategoryQuery('')
+    setCategoryDropdownOpen(false)
+    setSocietyTagline('')
+    setSocietyDescription('')
+    setSocietyWebsite('')
+    setSocietyInstagram('')
+    setSocietyLinkedin('')
+    setSocietyX('')
+    setSocietyLogoFile(null)
+    setSocietyLogoPreview(null)
+    setSocietyBannerFile(null)
+    setSocietyBannerPreview(null)
+    setSocietyFormError(null)
+    setShowSeedModal(false)
+  }
+
+  useEffect(() => {
+    if (!categoryDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setCategoryDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [categoryDropdownOpen])
+
+  const allCategories = useMemo(() => {
+    const map = new Map<string, { label: string; value: string }>()
+    SOCIETY_CATEGORIES.forEach(c => map.set(c.value.toLowerCase(), c))
+    orgs.forEach((o: any) => {
+      if (o.category && !map.has(o.category.toLowerCase())) {
+        map.set(o.category.toLowerCase(), { label: o.category, value: o.category })
+      }
+    })
+    customCategories.forEach(c => map.set(c.value.toLowerCase(), c))
+    return Array.from(map.values())
+  }, [orgs, customCategories])
+
+  const filteredCategories = useMemo(() => {
+    const q = categoryQuery.trim().toLowerCase()
+    if (!q) return allCategories
+    return allCategories.filter(c => c.label.toLowerCase().includes(q) || c.value.toLowerCase().includes(q))
+  }, [allCategories, categoryQuery])
+
+  const selectedCategoryObj = allCategories.find(c => c.value.toLowerCase() === (societyCategory || '').toLowerCase())
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
+      setSocietyFormError("Logo must be a PNG, JPEG, or WebP image.")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSocietyFormError("Logo must be 2 MB or smaller.")
+      return
+    }
+    setSocietyFormError(null)
+    setSocietyLogoFile(file)
+    setSocietyLogoPreview(URL.createObjectURL(file))
+  }
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
+      setSocietyFormError("Banner must be a PNG, JPEG, or WebP image.")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSocietyFormError("Banner must be 5 MB or smaller.")
+      return
+    }
+    setSocietyFormError(null)
+    setSocietyBannerFile(file)
+    setSocietyBannerPreview(URL.createObjectURL(file))
+  }
+
+  const handleCreateSociety = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!orgName.trim()) return
-    createOrgMutation.mutate(
-      { name: orgName.trim(), type: orgType, city: orgCity },
-      { onSuccess: () => { setShowSeedModal(false); setOrgName(''); addToast('Organisation seeded successfully!') } },
-    )
+    setSocietyFormError(null)
+    const name = societyName.trim()
+    if (!name) {
+      setSocietyFormError('Society Name is required.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('name', name)
+    formData.append('type', 'society')
+    formData.append('category', societyCategory)
+    if (societyTagline.trim()) formData.append('tagline', societyTagline.trim())
+    if (societyDescription.trim()) formData.append('description', societyDescription.trim())
+    if (societyWebsite.trim()) formData.append('website', societyWebsite.trim())
+    if (societyInstagram.trim()) formData.append('instagram', societyInstagram.trim())
+    if (societyLinkedin.trim()) formData.append('linkedin', societyLinkedin.trim())
+    if (societyX.trim()) formData.append('x', societyX.trim())
+    if (societyLogoFile) formData.append('logo', societyLogoFile)
+    if (societyBannerFile) formData.append('banner', societyBannerFile)
+
+    createOrgMutation.mutate(formData, {
+      onSuccess: () => {
+        resetSocietyForm()
+        addToast(`Society "${name}" created successfully!`)
+      },
+      onError: (err: any) => {
+        setSocietyFormError(err.message || 'Failed to create society.')
+      },
+    })
   }
 
   const handleAssignPor = (e: React.FormEvent) => {
     e.preventDefault()
     setAssignmentError(null)
-    if (!userId.trim() || !selectedHouseId) return
+    if (!userId.trim() || !selectedOrgId) return
+
     assignPorMutation.mutate(
       {
-        orgId: selectedHouseId,
+        orgId: selectedOrgId,
         user_id: userId.trim(),
         por_type: selectedPorType,
         term: porTerm,
@@ -160,6 +310,7 @@ export default function Orgs() {
           setShowPorModal(false)
           setUserId('')
           setUserSearch('')
+          setSelectedOrgId('')
           setAssignmentError(null)
           addToast('Role authorized successfully!')
         },
@@ -194,7 +345,7 @@ export default function Orgs() {
         sub="Manage Forest Houses, Regions, Societies, and the POR Directory. Permissions follow PORs."
         right={
           <div className="flex gap-3">
-            <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Seed Org</Button>
+            <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Add Society</Button>
             <Button size="sm" onClick={() => setShowPorModal(true)}>+ Authorize Role</Button>
           </div>
         }
@@ -226,7 +377,7 @@ export default function Orgs() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(houses.length > 0 ? houses : orgs.filter((o: any) => o.type === 'house')).map((h: any) => {
+            {houses.map((h: any) => {
               const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9' }
               const secretary = pors.find((p: any) => p.org === h.name && p.por_type === 'House Secretary' && p.active)
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
@@ -323,6 +474,7 @@ export default function Orgs() {
                       <td className="px-5 py-3.5">
                         {p.council_tier === 'upper_house_council' && <Badge tone="gold">Upper HC</Badge>}
                         {p.council_tier === 'lower_house_council' && <Badge tone="teal">Lower HC</Badge>}
+                        {p.council_tier === 'society_core' && <Badge tone="teal">Society Core</Badge>}
                         {!p.council_tier && <span className="text-caption text-graytext-mid">—</span>}
                       </td>
                       <td className="px-5 py-3.5 text-graytext-light">{p.term}</td>
@@ -396,24 +548,132 @@ export default function Orgs() {
               const typedOrgs = filteredOrgs.filter((o: any) => o.type === type)
               return (
                 <div key={type}>
-                  <h3 className="mb-4 border-b border-white/10 pb-2 text-[16px] font-bold capitalize text-offwhite">
-                    {type === 'society' ? 'Societies' : `${type}s`} <span className="ml-1 font-normal text-graytext-mid">({typedOrgs.length})</span>
-                  </h3>
+                  <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-2">
+                    <h3 className="text-[16px] font-bold capitalize text-offwhite">
+                      {type === 'society' ? 'Student Societies' : `${type}s`}{' '}
+                      <span className="ml-1 font-normal text-graytext-mid">({typedOrgs.length})</span>
+                    </h3>
+                    {type === 'society' && (
+                      <button
+                        onClick={() => setShowSeedModal(true)}
+                        className="rounded-lg border border-teal/30 bg-teal/10 px-3 py-1 text-[12px] font-semibold text-teal hover:bg-teal/20 transition-colors"
+                      >
+                        + Add Society
+                      </button>
+                    )}
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {typedOrgs.map((o: any) => (
-                      <Card key={o.id} hover className="p-5">
-                        <div className="mb-3 flex items-center justify-between">
-                          <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal/10 text-teal">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                              <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                    {typedOrgs.map((o: any) => {
+                      const categoryMeta = SOCIETY_CATEGORIES.find(c => c.value === o.category)
+                      return (
+                        <Card
+                          key={o.id}
+                          hover
+                          className="group overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-teal/30 cursor-pointer p-0"
+                          onClick={() => navigate(`/orgs/${o.id}`)}
+                        >
+                          {/* Banner preview or top accent */}
+                          {o.bannerUrl ? (
+                            <div className="h-24 w-full overflow-hidden border-b border-white/5 bg-onyx relative">
+                              <img
+                                src={o.bannerUrl}
+                                alt={o.name}
+                                className="h-full w-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-darkbg via-darkbg/40 to-transparent" />
+                            </div>
+                          ) : (
+                            <div className="h-2 w-full bg-gradient-to-r from-teal/40 via-teal to-gold/40" />
+                          )}
+
+                          <div className="p-5 flex-1 flex flex-col">
+                            <div className="mb-3 flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-3">
+                                <OrgLogo org={o} size={40} />
+                                <div>
+                                  <div className="text-[15px] font-bold text-offwhite group-hover:text-teal transition-colors">
+                                    {o.name}
+                                  </div>
+                                  {o.category && (
+                                    <div className="mt-0.5 inline-flex items-center text-[11px] font-semibold text-teal">
+                                      <span>{o.category}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <Badge tone={ORG_TONE[o.type] || 'teal'}>{o.category || o.type}</Badge>
+                            </div>
+
+                            {o.tagline && (
+                              <p className="mb-2 text-[13px] text-graytext-light font-medium italic line-clamp-1">
+                                "{o.tagline}"
+                              </p>
+                            )}
+
+                            {o.description && (
+                              <p className="text-caption text-graytext-mid line-clamp-2 mt-auto">
+                                {o.description}
+                              </p>
+                            )}
+
+                            {o.type === 'society' && (() => {
+                              const secretary = pors.find((p: any) => p.org_id === o.id && p.por_type === 'Society Secretary' && p.active)
+                              const deputy = pors.find((p: any) => p.org_id === o.id && p.por_type === 'Society Deputy Secretary' && p.active)
+                              return (
+                                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-2.5 text-[11px]">
+                                  {secretary ? (
+                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-emerald-300 font-medium">
+                                      <span className="text-[10px] text-emerald-400/70 uppercase">Sec:</span> {secretary.member}
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setPorTargetType('society')
+                                        setSelectedPorType('Society Secretary')
+                                        setSelectedOrgId(o.id)
+                                        setShowPorModal(true)
+                                      }}
+                                      className="inline-flex items-center gap-0.5 rounded border border-dashed border-white/15 px-1.5 py-0.5 text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+                                    >
+                                      + Secretary
+                                    </button>
+                                  )}
+
+                                  {deputy ? (
+                                    <span className="inline-flex items-center gap-1 rounded bg-teal/10 border border-teal/20 px-2 py-0.5 text-teal font-medium">
+                                      <span className="text-[10px] text-teal/70 uppercase">Dep:</span> {deputy.member}
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setPorTargetType('society')
+                                        setSelectedPorType('Society Deputy Secretary')
+                                        setSelectedOrgId(o.id)
+                                        setShowPorModal(true)
+                                      }}
+                                      className="inline-flex items-center gap-0.5 rounded border border-dashed border-white/15 px-1.5 py-0.5 text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+                                    >
+                                      + Deputy
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })()}
+
+                            <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5 text-[12px] text-graytext-mid">
+                              <span>{o.city || 'Campus & Online'}</span>
+                              <span className="text-teal group-hover:underline flex items-center gap-1 font-medium">
+                                View profile →
+                              </span>
+                            </div>
                           </div>
-                          <Badge tone={ORG_TONE[o.type]}>{o.type}</Badge>
-                        </div>
-                        <div className="text-[15px] font-semibold text-offwhite">{o.name}</div>
-                        <div className="mt-1 text-caption text-graytext-light">{o.city}</div>
-                      </Card>
-                    ))}
+                        </Card>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -431,23 +691,44 @@ export default function Orgs() {
               value={memberSearch}
               onChange={e => setMemberSearch(e.target.value)}
               className="max-w-md"
+              autoFocus
             />
           </div>
           <Card className="overflow-hidden">
-            <table className="w-full text-[14px]">
-              <thead>
-                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
-                  <th className="px-5 py-3 text-left">Member</th>
-                  <th className="px-5 py-3 text-left">Email</th>
-                  <th className="px-5 py-3 text-left">Role</th>
-                  <th className="px-5 py-3 text-left">Academic Status</th>
-                  <th className="px-5 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allUsers
-                  .filter((u: any) => !memberSearch || u.name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
-                  .map((u: any) => (
+            {!memberSearch.trim() ? (
+              <div className="py-16 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-graytext-mid">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="text-[15px] font-semibold text-offwhite">Search for members</div>
+                <p className="mt-1 text-caption text-graytext-mid">
+                  Type a name or email address above to look up student records and manage academic status.
+                </p>
+              </div>
+            ) : isSearchingMembers ? (
+              <div className="py-16 text-center text-caption text-graytext-mid">
+                Searching members…
+              </div>
+            ) : memberSearchResults.length === 0 ? (
+              <div className="py-16 text-center text-caption text-graytext-mid">
+                No members found matching "{memberSearch}"
+              </div>
+            ) : (
+              <table className="w-full text-[14px]">
+                <thead>
+                  <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">
+                    <th className="px-5 py-3 text-left">Member</th>
+                    <th className="px-5 py-3 text-left">Email</th>
+                    <th className="px-5 py-3 text-left">Role</th>
+                    <th className="px-5 py-3 text-left">Academic Status</th>
+                    <th className="px-5 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {memberSearchResults.map((u: any) => (
                     <tr key={u.id} className="border-b border-white/5 last:border-0">
                       <td className="px-5 py-3.5 text-offwhite font-semibold">{u.name}</td>
                       <td className="px-5 py-3.5 text-graytext-light">{u.email}</td>
@@ -475,8 +756,9 @@ export default function Orgs() {
                       </td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            )}
           </Card>
         </div>
       )}
@@ -705,30 +987,357 @@ export default function Orgs() {
         </div>
       )}
 
+      {/* ---- ADD NEW SOCIETY MODAL ---- */}
       {showSeedModal && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md p-6">
-            <h3 className="mb-1 text-[18px] font-bold text-offwhite">Seed New Organisation</h3>
-            <p className="mb-4 text-caption text-graytext-light">Add a Society, Council, or additional org.</p>
-            <form onSubmit={handleSeedOrg} className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm overflow-y-auto">
+          <Card className="w-full max-w-xl p-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar border-white/10 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal/15 text-teal text-[20px]">
+                  🏛️
+                </div>
+                <div>
+                  <h3 className="text-[18px] font-bold text-offwhite">Add New Society</h3>
+                  <p className="text-caption text-graytext-light">Register a student-led club or society with visual branding</p>
+                </div>
+              </div>
+              <button onClick={resetSocietyForm} className="text-graytext-mid hover:text-white transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            {societyFormError && (
+              <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-[13px] text-red-300 flex items-start gap-2">
+                <span className="shrink-0">⚠️</span>
+                <span>{societyFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateSociety} className="space-y-4">
+              {/* Society Name */}
               <div>
-                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Name</label>
-                <Input placeholder="e.g. Rhythm Dance Society" value={orgName} onChange={(e) => setOrgName(e.target.value)} required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Type</label>
-                  <Select value={orgType} onChange={(e) => setOrgType(e.target.value)} options={[{ label: 'Society', value: 'society' }, { label: 'Council', value: 'council' }]} />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-caption font-semibold text-graytext-mid">
+                    Society Name <span className="text-teal">*</span>
+                  </label>
+                  <span className="text-[11px] text-graytext-mid">Must be unique</span>
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">City</label>
-                  <Select value={orgCity} onChange={(e) => setOrgCity(e.target.value)} options={Array.from(new Set(cities.map((c: any) => c.name))).map((name: any) => ({ label: name, value: name }))} />
+                <Input
+                  placeholder="e.g. Rhythm Dance Society, AI & Robotics Club"
+                  value={societyName}
+                  onChange={(e) => {
+                    setSocietyName(e.target.value)
+                    setSocietyFormError(null)
+                  }}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* Category / Type Searchable Dropdown */}
+              <div className="relative" ref={categoryDropdownRef}>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                  Category / Type <span className="text-teal">*</span>
+                </label>
+
+                <div className="relative">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setCategoryDropdownOpen(prev => !prev)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setCategoryDropdownOpen(prev => !prev)
+                      }
+                    }}
+                    className={cx(
+                      'w-full flex items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-[14px] text-offwhite cursor-pointer transition-all',
+                      categoryDropdownOpen ? 'border-teal ring-2 ring-teal/40' : 'hover:border-white/20'
+                    )}
+                  >
+                    <div className="flex items-center min-w-0">
+                      <span className="truncate font-medium text-offwhite">
+                        {selectedCategoryObj?.label || societyCategory || 'Select category...'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-graytext-mid">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className={cx('transition-transform duration-200', categoryDropdownOpen && 'rotate-180')}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {categoryDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-white/15 bg-[#14151a] shadow-2xl p-2.5 animate-fade-up">
+                      {/* Search / Input Field */}
+                      <div className="relative mb-2">
+                        <input
+                          type="text"
+                          placeholder="Search or enter new category..."
+                          value={categoryQuery}
+                          onChange={(e) => setCategoryQuery(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-white/[0.05] px-3 pr-7 py-2 text-[13px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none"
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              const q = categoryQuery.trim()
+                              if (q) {
+                                const match = allCategories.find(c => c.value.toLowerCase() === q.toLowerCase() || c.label.toLowerCase() === q.toLowerCase())
+                                if (match) {
+                                  setSocietyCategory(match.value)
+                                } else {
+                                  setCustomCategories(prev => [...prev, { label: q, value: q }])
+                                  setSocietyCategory(q)
+                                }
+                                setCategoryQuery('')
+                                setCategoryDropdownOpen(false)
+                              }
+                            }
+                          }}
+                        />
+                        {categoryQuery && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setCategoryQuery('')
+                            }}
+                            className="absolute right-2.5 top-2 text-graytext-mid hover:text-offwhite text-[12px] p-0.5"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Filtered Categories List */}
+                      <div className="max-h-[190px] overflow-y-auto custom-scrollbar space-y-0.5">
+                        {filteredCategories.map((c) => {
+                          const isSelected = (societyCategory || '').toLowerCase() === c.value.toLowerCase()
+                          return (
+                            <button
+                              key={c.value}
+                              type="button"
+                              onClick={() => {
+                                setSocietyCategory(c.value)
+                                setCategoryQuery('')
+                                setCategoryDropdownOpen(false)
+                              }}
+                              className={cx(
+                                'w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-[13px] transition-colors',
+                                isSelected ? 'bg-teal/15 text-teal font-semibold' : 'text-graytext-light hover:bg-white/5 hover:text-offwhite'
+                              )}
+                            >
+                              <span>{c.label}</span>
+                              {isSelected && <span className="text-teal font-bold">✓</span>}
+                            </button>
+                          )
+                        })}
+
+                        {filteredCategories.length === 0 && !categoryQuery.trim() && (
+                          <div className="p-3 text-center text-caption text-graytext-mid">No categories found</div>
+                        )}
+                      </div>
+
+                      {/* Add New Category option if typed query does not match an existing category */}
+                      {categoryQuery.trim() && !allCategories.some(c => c.value.toLowerCase() === categoryQuery.trim().toLowerCase() || c.label.toLowerCase() === categoryQuery.trim().toLowerCase()) && (
+                        <div className="border-t border-white/10 pt-2 mt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newCat = categoryQuery.trim()
+                              setCustomCategories(prev => [...prev, { label: newCat, value: newCat }])
+                              setSocietyCategory(newCat)
+                              setCategoryQuery('')
+                              setCategoryDropdownOpen(false)
+                            }}
+                            className="w-full flex items-center gap-2 rounded-lg bg-teal/10 hover:bg-teal/20 px-3 py-2 text-left text-[13px] text-teal font-semibold transition-colors"
+                          >
+                            <span>Add "<strong>{categoryQuery.trim()}</strong>" as new category</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setShowSeedModal(false)}>Cancel</Button>
+
+              {/* Tagline / Catchphrase */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-caption font-semibold text-graytext-mid">
+                    Tagline / Catchphrase
+                  </label>
+                  <span className="text-[11px] text-graytext-mid">{societyTagline.length}/255</span>
+                </div>
+                <Input
+                  placeholder="e.g. Expressing creativity through rhythm, storytelling and movement"
+                  value={societyTagline}
+                  maxLength={255}
+                  onChange={(e) => setSocietyTagline(e.target.value)}
+                />
+              </div>
+
+              {/* Description / About */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-caption font-semibold text-graytext-mid">
+                    Description / About
+                  </label>
+                  <span className="text-[11px] text-graytext-mid">{societyDescription.length}/1000</span>
+                </div>
+                <Textarea
+                  placeholder="Describe the society's mission, regular activities, workshops, and how students can participate..."
+                  value={societyDescription}
+                  maxLength={1000}
+                  rows={3}
+                  onChange={(e) => setSocietyDescription(e.target.value)}
+                />
+              </div>
+
+              {/* Logo and Banner Branding Uploads */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                {/* Logo Image */}
+                <div>
+                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                    Logo Image <span className="text-[11px] text-graytext-mid font-normal">(Square, max 2MB)</span>
+                  </label>
+                  <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-3 text-center flex flex-col items-center justify-center min-h-[110px] relative hover:border-teal/40 transition-colors">
+                    {societyLogoPreview ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <img
+                          src={societyLogoPreview}
+                          alt="Logo Preview"
+                          className="h-14 w-14 rounded-xl object-cover border border-white/20 shadow-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSocietyLogoFile(null)
+                            setSocietyLogoPreview(null)
+                          }}
+                          className="text-[11px] text-red-300 hover:text-red-200 underline"
+                        >
+                          Remove Logo
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center gap-1 text-caption text-graytext-mid hover:text-teal transition-colors">
+                        <span className="text-[22px]">📷</span>
+                        <span className="font-medium text-offwhite text-[12px]">Upload Society Logo</span>
+                        <span className="text-[10px] text-graytext-light">PNG, JPG, WebP</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          className="hidden"
+                          onChange={handleLogoChange}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Banner Image */}
+                <div>
+                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                    Banner Image <span className="text-[11px] text-graytext-mid font-normal">(Wide, max 5MB)</span>
+                  </label>
+                  <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-3 text-center flex flex-col items-center justify-center min-h-[110px] relative hover:border-teal/40 transition-colors">
+                    {societyBannerPreview ? (
+                      <div className="flex flex-col items-center gap-2 w-full">
+                        <img
+                          src={societyBannerPreview}
+                          alt="Banner Preview"
+                          className="h-14 w-full rounded-lg object-cover border border-white/20 shadow-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSocietyBannerFile(null)
+                            setSocietyBannerPreview(null)
+                          }}
+                          className="text-[11px] text-red-300 hover:text-red-200 underline"
+                        >
+                          Remove Banner
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center gap-1 text-caption text-graytext-mid hover:text-teal transition-colors">
+                        <span className="text-[22px]">🖼️</span>
+                        <span className="font-medium text-offwhite text-[12px]">Upload Cover Banner</span>
+                        <span className="text-[10px] text-graytext-light">PNG, JPG, WebP</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          className="hidden"
+                          onChange={handleBannerChange}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Online Presence & Social Links (Optional) */}
+              <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+                <span className="text-caption font-semibold text-offwhite flex items-center gap-1.5">
+                  <span>🔗</span> Online Links & Social Media <span className="text-graytext-mid font-normal text-[11px]">(Optional)</span>
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">Official Website</label>
+                    <Input
+                      placeholder="https://society.example.org"
+                      value={societyWebsite}
+                      onChange={(e) => setSocietyWebsite(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">Instagram URL</label>
+                    <Input
+                      placeholder="https://instagram.com/..."
+                      value={societyInstagram}
+                      onChange={(e) => setSocietyInstagram(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">LinkedIn URL</label>
+                    <Input
+                      placeholder="https://linkedin.com/company/..."
+                      value={societyLinkedin}
+                      onChange={(e) => setSocietyLinkedin(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-caption font-semibold text-graytext-mid">X (Twitter) URL</label>
+                    <Input
+                      placeholder="https://x.com/..."
+                      value={societyX}
+                      onChange={(e) => setSocietyX(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+                <Button type="button" variant="ghost" onClick={resetSocietyForm}>
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={createOrgMutation.isPending}>
-                  {createOrgMutation.isPending ? 'Seeding…' : 'Seed Organisation'}
+                  {createOrgMutation.isPending ? 'Creating Society…' : 'Create Society'}
                 </Button>
               </div>
             </form>
@@ -795,31 +1404,112 @@ export default function Orgs() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">House</label>
-                  <Select value={selectedHouseId} onChange={(e) => setSelectedHouseId(e.target.value)} options={[{ label: '-- Select House --', value: '' }, ...houses.map((h: any) => ({ label: h.name, value: h.id }))]} />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">Position</label>
-                  <Select value={selectedPorType} onChange={(e) => { setSelectedPorType(e.target.value); setSelectedHouseId('') }} options={POR_TYPES.map((pt) => ({ label: pt, value: pt }))} />
+              {/* Entity Type Switcher (House vs Society) */}
+              <div>
+                <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                  Organisation Scope <span className="text-teal">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPorTargetType('house')
+                      setSelectedPorType(HOUSE_POR_TYPES[0])
+                      setSelectedOrgId('')
+                    }}
+                    className={cx(
+                      'flex items-center justify-center rounded-xl border py-2.5 text-[13px] font-semibold transition-all',
+                      porTargetType === 'house'
+                        ? 'border-gold/40 bg-gold/10 text-gold shadow-md'
+                        : 'border-white/10 bg-onyx text-graytext-light hover:border-white/20'
+                    )}
+                  >
+                    House
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPorTargetType('society')
+                      setSelectedPorType(SOCIETY_POR_TYPES[0])
+                      setSelectedOrgId('')
+                    }}
+                    className={cx(
+                      'flex items-center justify-center rounded-xl border py-2.5 text-[13px] font-semibold transition-all',
+                      porTargetType === 'society'
+                        ? 'border-teal/40 bg-teal/10 text-teal shadow-md'
+                        : 'border-white/10 bg-onyx text-graytext-light hover:border-white/20'
+                    )}
+                  >
+                    Society
+                  </button>
                 </div>
               </div>
 
-              {/* Council tier preview */}
-              <div className="rounded-lg border border-white/8 bg-white/[0.02] px-4 py-2.5 text-[13px]">
-                <span className="text-graytext-mid">Auto-assigned to: </span>
+              {/* Target Organisation & Position Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                    {porTargetType === 'house' ? 'House' : 'Society'} <span className="text-teal">*</span>
+                  </label>
+                  {porTargetType === 'house' ? (
+                    <Select
+                      value={selectedOrgId}
+                      onChange={(e) => setSelectedOrgId(e.target.value)}
+                      options={[
+                        { label: '-- Select House --', value: '' },
+                        ...houses.map((h: any) => ({
+                          label: h.name,
+                          value: h.id,
+                        })),
+                      ]}
+                    />
+                  ) : (
+                    <Select
+                      value={selectedOrgId}
+                      onChange={(e) => setSelectedOrgId(e.target.value)}
+                      options={[
+                        { label: '-- Select Society --', value: '' },
+                        ...societies.map((s: any) => ({
+                          label: s.name,
+                          value: s.id,
+                        })),
+                      ]}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
+                    Position <span className="text-teal">*</span>
+                  </label>
+                  <Select
+                    value={selectedPorType}
+                    onChange={(e) => setSelectedPorType(e.target.value)}
+                    options={
+                      porTargetType === 'house'
+                        ? HOUSE_POR_TYPES.map((pt) => ({ label: pt, value: pt }))
+                        : SOCIETY_POR_TYPES.map((pt) => ({ label: pt, value: pt }))
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Council tier / Authority preview */}
+              <div className="rounded-lg border border-white/8 bg-white/[0.02] px-4 py-2.5 text-[13px] flex items-center justify-between">
+                <span className="text-graytext-mid">Authority & Tier:</span>
                 {selectedPorType === 'House Secretary' || selectedPorType === 'Deputy House Secretary' ? (
                   <Badge tone="gold">Upper House Council</Badge>
                 ) : selectedPorType === 'Regional Coordinator' ? (
                   <Badge tone="teal">Lower House Council</Badge>
+                ) : selectedPorType === 'Society Secretary' || selectedPorType === 'Society Deputy Secretary' ? (
+                  <Badge tone="teal">Society Leadership (Core Committee)</Badge>
                 ) : (
                   <span className="text-graytext-mid">House Operations</span>
                 )}
               </div>
 
               {/* Region dropdown — only visible for RC */}
-              {isRC && (
+              {isRC && porTargetType === 'house' && (
                 <div>
                   <label className="mb-1.5 block text-caption font-semibold text-graytext-mid">
                     Region <span className="text-amber-400">(required for RC)</span>
@@ -841,8 +1531,17 @@ export default function Orgs() {
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setShowPorModal(false)}>Cancel</Button>
-                <Button type="submit" disabled={assignPorMutation.isPending}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowPorModal(false)
+                    setAssignmentError(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={assignPorMutation.isPending || !userId.trim() || !selectedOrgId}>
                   {assignPorMutation.isPending ? 'Authorizing…' : 'Authorize Role'}
                 </Button>
               </div>

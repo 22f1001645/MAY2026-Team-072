@@ -58,6 +58,9 @@ export interface Organisation {
   name: string
   type: 'house' | 'society' | 'region' | 'council'
   city: string
+  category?: string | null
+  tagline?: string | null
+  description?: string | null
   /** Phase 4 (ORG-01). `null` until a manager writes one — never `undefined`,
    *  because the adapter always supplies a value. */
   bio: string | null
@@ -65,6 +68,7 @@ export interface Organisation {
    *  `adaptOrganisation` in lib/api.ts is the one place that path is resolved
    *  against the API base, so no component ever concatenates one. */
   logoUrl: string | null
+  bannerUrl?: string | null
   /** ORG-02: the organisation's own site. A distinct field, never a seventh
    *  social platform — the model's honesty here is what makes ROADMAP criterion
    *  2 literally true of every social-link row. */

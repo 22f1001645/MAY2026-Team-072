@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import {
   useCapabilities,
   useOrgProfile,
@@ -16,6 +17,7 @@ import { BrandKitEditor } from '../components/BrandKitEditor'
 import { SocialLinksEditor } from '../components/SocialLinksEditor'
 import { SocialLinksRow } from '../components/SocialLinksRow'
 import { cx } from '../lib/format'
+import { HOUSE_META } from './Orgs'
 
 const ORG_TYPE_LABEL: Record<string, string> = {
   house: 'Forest House',
@@ -47,10 +49,11 @@ export default function OrgProfile() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { addToast } = useToast()
+  const { currentUser } = useAuth()
 
   const { data: capabilities } = useCapabilities()
   const manageableOrgIds = capabilities?.manageableOrgIds ?? NO_ORGS
-  const canEdit = manageableOrgIds.includes(orgId)
+  const canEdit = currentUser?.role === 'admin' || manageableOrgIds.includes(orgId)
 
   const { data: org, isLoading, isError, error } = useOrgProfile(orgId)
 
@@ -150,7 +153,8 @@ export default function OrgProfile() {
     setLogoNotice(null)
   }
 
-  const hasLinks = org.socialLinks.length > 0 || !!org.website
+  const effectiveWebsite = org.website || (org.type === 'house' ? HOUSE_META[org.name]?.website ?? null : null)
+  const hasLinks = org.socialLinks.length > 0 || !!effectiveWebsite
   const needsAttention = org.withheldPlatforms.length
 
   const submitProfile = () => {
@@ -310,10 +314,25 @@ export default function OrgProfile() {
 
           {(canEdit || hasLinks) && (
             <div className="mt-2 border-t border-white/5 pt-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[12px] font-semibold uppercase tracking-wider text-graytext-mid">Links & Socials</span>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTab('links')
+                      setEditModalOpen(true)
+                    }}
+                    className="text-[12px] font-medium text-teal hover:text-teal-accent hover:underline flex items-center gap-1 transition-colors"
+                  >
+                    <span>🔗</span> {hasLinks ? 'Edit links' : '+ Add links'}
+                  </button>
+                )}
+              </div>
               {hasLinks ? (
-                <SocialLinksRow links={org.socialLinks} website={org.website} />
+                <SocialLinksRow links={org.socialLinks} website={effectiveWebsite} />
               ) : (
-                <p className="text-caption text-graytext-mid">No links yet.</p>
+                <p className="text-caption text-graytext-mid">No links added yet.</p>
               )}
               {canEdit && needsAttention > 0 && (
                 <div className="mt-3">

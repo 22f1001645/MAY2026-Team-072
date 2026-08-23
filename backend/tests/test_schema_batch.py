@@ -25,12 +25,12 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "b1390b21ff7e" # b1390b21ff7e — merge of the Phase 6 and student-dashboard branches
+HEAD_REVISION = "dd6a0887416b" # dd6a0887416b — notifications.action_url + the organisation profile columns
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 12
+EXPECTED_REVISION_COUNT = 13
 # 7th: f997686e136b adds organisations.website — ORG-02 decision D-03 models the
 # organisation's own site as a distinct column rather than a `platform` row on
 # organisation_social_links, so the host-allowlist guarantee stays true of every
@@ -46,6 +46,12 @@ EXPECTED_REVISION_COUNT = 12
 # row), no reseed; the requirement is enforced in expense_service at submit.
 # 12th: the Alembic merge revision joining the Phase 6 branch (cf7cb9577b67) to
 # the student-dashboard branch (f53685e71b8e). No schema change of its own.
+# 13th: dd6a0887416b adds notifications.action_url plus organisations.category,
+# .tagline and .banner_url — the in-app referral link and the society profile
+# fields the studentdashboard branch introduced. All four additive and nullable,
+# no reseed. It revises the 12th so the graph stays a single line: the branch
+# authored it against f53685e71b8e, and repointing it was cheaper than a second
+# merge revision that would have changed nothing.
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {

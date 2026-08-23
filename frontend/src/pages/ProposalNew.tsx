@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useCities, useHouses, useOrgs, useSubmitProposal } from '../lib/queries'
+import { useCities, useOrgs, useSubmitProposal } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle, FormSelect, FormDatePicker } from '../components/ui'
 import { scaleLabel } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
 import { api } from '../lib/api'
 import { computeBudgetCap } from '../lib/proposalLogic'
+import { useAuth } from '../lib/auth'
 
 interface Line {
   id: number
@@ -35,10 +36,17 @@ const TEAM_ROLES = [
 // FR-B1: submit a proposal with scale, date, venue, description, capacity + budget
 export default function ProposalNew() {
   const nav = useNavigate()
-  const { data: houses = [] } = useHouses()
   const { data: orgs = [] } = useOrgs()
   const { data: cities = [] } = useCities()
   const submitMut = useSubmitProposal()
+  const { capabilities, currentUser } = useAuth()
+
+  // Filter orgs to only houses the organiser manages via their POR.
+  // Admin sees all house-type orgs.
+  const manageableHouses = orgs.filter((o: any) =>
+    o.type === 'house' &&
+    (currentUser?.role === 'admin' || (capabilities?.manageableOrgIds ?? []).includes(o.id))
+  )
 
   const [scale, setScale] = useState<ActivityScale>('local_meetup')
   const [form, setForm] = useState({
@@ -65,6 +73,13 @@ export default function ProposalNew() {
   const [done, setDone] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
 
+  // Auto-select org when there's exactly one manageable house
+  useEffect(() => {
+    if (manageableHouses.length === 1 && !form.org_id) {
+      setForm(f => ({ ...f, org_id: manageableHouses[0].id }))
+    }
+  }, [manageableHouses.length])
+
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
 
@@ -88,7 +103,7 @@ export default function ProposalNew() {
   const meetupHeadCount = teamRows.filter(r => r.role === 'Meetup Head').length
   const teamValid = teamRows.length > 0 && meetupHeadCount === 1
 
-  const isStep1Valid = !!(form.title && (form.org_id || orgs.length > 0) && (form.city || cities.length > 0) && form.starts_at && form.capacity && form.venue && form.description)
+  const isStep1Valid = !!(form.title && (form.org_id || manageableHouses.length > 0) && (form.city || cities.length > 0) && form.starts_at && form.capacity && form.venue && form.description)
   
   const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
   const isBudgetValid = cap === null || cap === 0 || total <= cap
@@ -108,7 +123,7 @@ export default function ProposalNew() {
     if (!teamValid || !isStep1Valid || !isStep2Valid) return
     const payload = {
       title: form.title,
-      org_id: form.org_id || houses[0]?.id,
+      org_id: form.org_id || manageableHouses[0]?.id,
       city: form.city || cities[0]?.name,
       scale,
       venue: form.venue,
@@ -217,13 +232,19 @@ export default function ProposalNew() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Organisation</Label>
-              <FormSelect
-                value={form.org_id}
-                onChange={(val) => set('org_id', val)}
-                placeholder="Select an organisation…"
-                options={orgs.map((o: any) => ({ label: o.name, value: o.id }))}
-              />
+              <Label>Organisation (your house)</Label>
+              {manageableHouses.length <= 1 ? (
+                <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite">
+                  {manageableHouses[0]?.name ?? 'No house assigned'}
+                </div>
+              ) : (
+                <FormSelect
+                  value={form.org_id}
+                  onChange={(val) => set('org_id', val)}
+                  placeholder="Select your house…"
+                  options={manageableHouses.map((o: any) => ({ label: o.name, value: o.id }))}
+                />
+              )}
             </div>
             <div>
               <Label>City</Label>
@@ -478,7 +499,12 @@ export default function ProposalNew() {
             {collabSearch.length > 0 && (
               <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                 {orgs
-                  .filter((o: any) => o.id !== form.org_id && !collabOrgIds.includes(o.id) && o.name?.toLowerCase().includes(collabSearch.toLowerCase()))
+                  .filter((o: any) =>
+                    o.id !== form.org_id &&
+                    (o.type === 'house' || o.type === 'society') &&
+                    !collabOrgIds.includes(o.id) &&
+                    o.name?.toLowerCase().includes(collabSearch.toLowerCase())
+                  )
                   .slice(0, 10)
                   .map((o: any) => (
                     <button
@@ -494,7 +520,12 @@ export default function ProposalNew() {
                       <span className="ml-auto text-caption text-graytext-mid">{o.type}</span>
                     </button>
                   ))}
-                {orgs.filter((o: any) => o.id !== form.org_id && !collabOrgIds.includes(o.id) && o.name?.toLowerCase().includes(collabSearch.toLowerCase())).length === 0 && (
+                {orgs.filter((o: any) =>
+                  o.id !== form.org_id &&
+                  (o.type === 'house' || o.type === 'society') &&
+                  !collabOrgIds.includes(o.id) &&
+                  o.name?.toLowerCase().includes(collabSearch.toLowerCase())
+                ).length === 0 && (
                   <div className="px-4 py-3 text-[14px] text-graytext-mid">No matching organisations found.</div>
                 )}
               </div>

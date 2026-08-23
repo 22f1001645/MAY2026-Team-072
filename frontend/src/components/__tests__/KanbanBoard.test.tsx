@@ -68,6 +68,25 @@ function renderBoard(props: Partial<React.ComponentProps<typeof KanbanBoard>> = 
 
 const column = (label: string) => screen.getByRole('region', { name: label })
 
+/** Choose a value from one of the custom `Select` popovers.
+ *
+ *  These are not native <select> elements — the trigger carries the aria-label
+ *  and the choices only exist in the DOM once it is open — so `selectOptions`
+ *  has nothing to work with and the choice is made by its visible label. */
+const pick = async (
+  user: ReturnType<typeof userEvent.setup>,
+  ariaLabel: string,
+  choice: string,
+) => {
+  const trigger = screen.getByLabelText(ariaLabel)
+  await user.click(trigger)
+  // Substring, because an assignee's label carries their role after the name.
+  const options = within(trigger.parentElement!).getAllByRole('button')
+  const match = options.find((o) => o.textContent?.includes(choice))
+  if (!match) throw new Error(`No "${choice}" option under "${ariaLabel}"`)
+  await user.click(match)
+}
+
 describe('KanbanBoard', () => {
   it('renders one column per server status and puts each card under its own', () => {
     renderBoard({
@@ -117,8 +136,7 @@ describe('KanbanBoard', () => {
     const user = userEvent.setup()
     const { onUpdate } = renderBoard({ tasks: [task({ id: 't-1', status: 'todo' })] })
 
-    await user.click(screen.getByLabelText('Task status'))
-    await user.click(screen.getByRole('button', { name: 'In Progress' }))
+    await pick(user, 'Task status', 'In Progress')
 
     expect(onUpdate).toHaveBeenCalledTimes(1)
     const [id, patch] = onUpdate.mock.calls[0]
@@ -133,8 +151,7 @@ describe('KanbanBoard', () => {
 
     await user.click(screen.getByRole('button', { name: '+ Add task' }))
     await user.type(screen.getByPlaceholderText('Task title'), 'Print the banners')
-    await user.click(screen.getByLabelText('Assignee'))
-    await user.click(screen.getByText('Arav Menon · Logistics'))
+    await pick(user, 'Assignee', 'Arav Menon')
     await user.type(screen.getByLabelText('Deadline'), '2026-09-01')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 

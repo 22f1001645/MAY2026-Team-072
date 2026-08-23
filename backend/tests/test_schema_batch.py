@@ -25,12 +25,12 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "dd6a0887416b" # dd6a0887416b — add action_url to notifications
+HEAD_REVISION = "dd6a0887416b" # dd6a0887416b — notifications.action_url + the organisation profile columns
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
-# update – deliberately, in a review, alongside a note saying which revision was
+# update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 11
+EXPECTED_REVISION_COUNT = 13
 # 7th: f997686e136b adds organisations.website — ORG-02 decision D-03 models the
 # organisation's own site as a distinct column rather than a `platform` row on
 # organisation_social_links, so the host-allowlist guarantee stays true of every
@@ -39,6 +39,19 @@ EXPECTED_REVISION_COUNT = 11
 # additive new table, no reseed.
 # 10th: f53685e71b8e adds notifications.target_role — student-dashboard feature,
 # additive nullable column, no reseed.
+# 11th: cf7cb9577b67 adds expenses.social_post_url — REIMB-02 decision D-10 puts
+# the link to the event's social post on the expense row rather than in a
+# separate table, so an admin reviewing any single bill sees the evidence
+# without a join. Additive, nullable (it is meaningless on a REIMB-01 draft
+# row), no reseed; the requirement is enforced in expense_service at submit.
+# 12th: the Alembic merge revision joining the Phase 6 branch (cf7cb9577b67) to
+# the student-dashboard branch (f53685e71b8e). No schema change of its own.
+# 13th: dd6a0887416b adds notifications.action_url plus organisations.category,
+# .tagline and .banner_url — the in-app referral link and the society profile
+# fields the studentdashboard branch introduced. All four additive and nullable,
+# no reseed. It revises the 12th so the graph stays a single line: the branch
+# authored it against f53685e71b8e, and repointing it was cheaper than a second
+# merge revision that would have changed nothing.
 
 # The 16 tables the batch revision introduced.
 BATCH_TABLES = {

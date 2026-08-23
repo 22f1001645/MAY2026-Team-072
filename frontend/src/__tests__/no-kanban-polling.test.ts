@@ -59,12 +59,34 @@ const findForbidden = (source: string) => {
   return hits
 }
 
+/** The task hooks' own lines, with every other line blanked rather than removed
+ *  so reported line numbers still point at the real file. A hook block runs from
+ *  its `export const useSomethingTask…` declaration to the next export. */
+const taskHooksIn = (source: string): string => {
+  let inTaskHook = false
+  return source
+    .split('\n')
+    .map((line) => {
+      if (/^export const use/.test(line)) inTaskHook = /^export const use\w*Task/.test(line)
+      return inTaskHook ? line : ''
+    })
+    .join('\n')
+}
+
 describe('AC-35: the Kanban board never polls', () => {
   it('no refetch interval, timer or socket appears in the board or its hooks', () => {
     const violations: string[] = []
 
     for (const path of SCANNED) {
-      for (const hit of findForbidden(SOURCES[path] ?? '')) {
+      const source = SOURCES[path] ?? ''
+      // queries.ts is the whole app's data layer, not the board's own file, so
+      // only the task hooks inside it are in scope. Other hooks in there poll
+      // quite deliberately — a registration list and a notification bell are
+      // exactly the live surfaces AC-35 is not about — and scanning the whole
+      // module would fail on them and teach the next person to delete the gate.
+      const scanned = path === 'src/lib/queries.ts' ? taskHooksIn(source) : source
+
+      for (const hit of findForbidden(scanned)) {
         violations.push(`${path}:${hit.line}  ${hit.token} (${hit.why})`)
       }
     }

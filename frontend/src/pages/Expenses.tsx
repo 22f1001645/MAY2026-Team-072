@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useEvent, useExpensesFor, useSubmitExpense } from '../lib/queries'
+import { useEvent, useExpensesFor, useSubmitExpense, useUploadExpenseBill } from '../lib/queries'
 import { Button, Card, Badge, Progress, Select } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx } from '../lib/format'
@@ -32,6 +32,11 @@ export default function Expenses() {
   const [amt, setAmt] = useState('')
   const [desc, setDesc] = useState('')
   const [lineId, setLineId] = useState('')
+  // The server-chosen filename, and the original one purely so the organiser can
+  // see which receipt they picked.
+  const [billName, setBillName] = useState('')
+  const [billLabel, setBillLabel] = useState('')
+  const uploadMut = useUploadExpenseBill()
 
   if (isLoading) return <Loading label="Loading reimbursements..." />
   if (isError) return <ErrorState error={error} />
@@ -48,13 +53,15 @@ export default function Expenses() {
         budget_line_id: lineId || e.budget[0]?.id,
         label: desc || 'Expense',
         amount: parseInt(amt) || 0,
-        bill_name: 'bill.pdf',
+        bill_name: billName || 'bill.pdf',
       },
       {
         onSuccess: () => {
           setAdding(false)
           setAmt('')
           setDesc('')
+          setBillName('')
+          setBillLabel('')
         },
       },
     )
@@ -196,12 +203,32 @@ export default function Expenses() {
               </div>
               <div>
                 <FieldLabel>Attach Bill</FieldLabel>
-                <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-8 text-graytext-mid hover:bg-white/[0.04] transition-colors cursor-pointer">
+                <label className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-8 text-graytext-mid hover:bg-white/[0.04] transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={(ev) => {
+                      const file = ev.target.files?.[0]
+                      if (!file) return
+                      uploadMut.mutate(
+                        { activityId: e.id, file },
+                        { onSuccess: (r) => { setBillName(r.billName); setBillLabel(r.originalName) } },
+                      )
+                      // Clear it so re-picking the same file still fires a change.
+                      ev.target.value = ''
+                    }}
+                  />
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M12 16V4M6 10l6-6 6 6M4 20h16" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="text-[13px] font-mono">Upload Photo or PDF</span>
-                </div>
+                  <span className="text-[13px] font-mono">
+                    {uploadMut.isPending ? 'Uploading…' : billLabel || 'Upload Photo or PDF'}
+                  </span>
+                </label>
+                {uploadMut.isError && (
+                  <p className="mt-2 text-caption text-red-400">{(uploadMut.error as Error).message}</p>
+                )}
               </div>
               {submitMut.isError && (
                 <p className="text-caption text-red-400">{(submitMut.error as Error).message}</p>

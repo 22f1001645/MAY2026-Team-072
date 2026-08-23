@@ -552,7 +552,7 @@ export default function ProposalNew() {
             </p>
           ) : (
             <p className="mt-2 text-caption text-teal">
-              {collabOrgIds.length} org{collabOrgIds.length > 1 ? 's' : ''} selected
+              {collabOrgIds.length} organisation{collabOrgIds.length > 1 ? 's' : ''} selected
               {collabOrgIds.length >= 2 && ' · invite accepted by all → Mega Meetup!'}
             </p>
           )}

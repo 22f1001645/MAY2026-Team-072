@@ -294,9 +294,18 @@ class RecognitionRepository:
 
 class NotificationRepository:
     @staticmethod
-    def for_user(user_id, target_role="student"):
+    def for_user(user_id):
+        """Every notification addressed to this user, newest first.
+
+        Deliberately not filtered by `target_role`. Which bucket a reader wants
+        depends on the view they are currently in, and the view is a rendering
+        concern that must never travel to the server (D-18) — so the row carries
+        `target_role` in its payload and the client picks. Filtering here would
+        mean accepting the view as a query parameter, which is the one thing
+        D-18 forbids.
+        """
         return (
-            Notification.query.filter_by(user_id=user_id, target_role=target_role)
+            Notification.query.filter_by(user_id=user_id)
             .order_by(Notification.created_at.desc())
             .all()
         )

@@ -16,6 +16,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '../../lib/auth'
 import ViewSwitcher from '../ViewSwitcher'
 
@@ -62,13 +63,10 @@ function ReadyProbe() {
   return <div data-testid="auth">{loading ? 'loading' : 'ready'}</div>
 }
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-
 function renderAt(path: string, isOrganiser = true) {
   session.account = account(isOrganiser)
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
           <ReadyProbe />
@@ -81,17 +79,28 @@ function renderAt(path: string, isOrganiser = true) {
 }
 
 const settled = () => screen.findByText('ready')
-const getSwitch = () => screen.getByRole('switch', { name: 'Use Organiser view' })
+
+/** The control is a two-state switch, not a radiogroup: `aria-checked` on it
+ *  means "Organiser view", and the Student/Organiser labels flanking it are
+ *  clickable shortcuts to each side. These helpers keep every assertion below
+ *  phrased in those terms, so a future restyle has one place to update. */
+const toggle = () => screen.getByRole('switch')
+const label = (name: string) => screen.getByText(name)
+const activeView = () =>
+  toggle().getAttribute('aria-checked') === 'true' ? 'organiser' : 'student'
 
 beforeEach(() => {
   localStorage.clear()
 })
 
 describe('ViewSwitcher (S1, D-15 to D-18)', () => {
-  it('renders a switch for an organiser', async () => {
+  it('renders both views and one switch for an organiser', async () => {
     renderAt('/discover')
     await settled()
-    expect(await screen.findByRole('switch', { name: 'Use Organiser view' })).toBeInTheDocument()
+
+    expect(await screen.findByRole('switch')).toBeInTheDocument()
+    expect(label('Student')).toBeInTheDocument()
+    expect(label('Organiser')).toBeInTheDocument()
   })
 
   it('renders nothing at all for a single-role student, and drops the stored view', async () => {
@@ -99,24 +108,36 @@ describe('ViewSwitcher (S1, D-15 to D-18)', () => {
     renderAt('/discover', false)
     await settled()
 
+    // No disabled state, no ghost, no reserved space (D-17, S1 empty case).
     expect(screen.queryByRole('switch')).toBeNull()
+    expect(screen.queryByText('Organiser')).toBeNull()
+    // Lapsed PORs take the stored view with them — the same branch, one rule.
     expect(localStorage.getItem('ekatva_view')).toBeNull()
   })
 
   it('keeps the stored view across a cold load (D-15 persistence)', async () => {
+    // Capabilities are null until /auth/refresh → /auth/me resolves, so a lapse
+    // cleanup that does not wait for that reads "not an organiser" on the first
+    // render of every page load and wipes the stored view. That failure is
+    // invisible in the UI — the switcher still renders correctly from the URL —
+    // and only shows up as "my view never survives a reload". Hence its own test.
+    //
+    // The route has to be a NEUTRAL one. A route that belongs to a view syncs
+    // itself into storage, so landing on /discover writes 'student' quite
+    // correctly (D-16, the URL wins) and would mask the thing under test here.
     localStorage.setItem('ekatva_view', 'organiser')
-    renderAt('/events/ev-ekatva-hyd/manage')
+    renderAt('/events/ev-ekatva-hyd')
     await settled()
 
-    expect(getSwitch()).toBeChecked()
     expect(localStorage.getItem('ekatva_view')).toBe('organiser')
   })
 
-  it('checks the switch matching the current pathname', async () => {
+  it('shows the view matching the current pathname', async () => {
     renderAt('/discover')
     await settled()
 
-    expect(await screen.findByRole('switch', { name: 'Use Organiser view' })).not.toBeChecked()
+    await screen.findByRole('switch')
+    expect(activeView()).toBe('student')
   })
 
   it('navigates to that view and stores the choice on activation', async () => {
@@ -124,7 +145,8 @@ describe('ViewSwitcher (S1, D-15 to D-18)', () => {
     renderAt('/organiser')
     await settled()
 
-    await user.click(screen.getByText('Student'))
+    await screen.findByRole('switch')
+    await user.click(label('Student'))
 
     expect(screen.getByTestId('pathname')).toHaveTextContent('/discover')
     expect(localStorage.getItem('ekatva_view')).toBe('student')
@@ -138,6 +160,7 @@ describe('ViewSwitcher (S1, D-15 to D-18)', () => {
     renderAt('/events/ev-ekatva-hyd/manage')
     await settled()
 
-    expect(await screen.findByRole('switch', { name: 'Use Organiser view' })).toBeChecked()
+    await screen.findByRole('switch')
+    expect(activeView()).toBe('organiser')
   })
 })

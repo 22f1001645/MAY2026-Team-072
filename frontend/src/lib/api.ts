@@ -623,7 +623,11 @@ export const api = {
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
-  notifications: (role: string = 'student') => request<any[]>(`/notifications?role=${role}`),
+  /** Every notification addressed to the signed-in user. The current view is
+   *  deliberately NOT a parameter here — it is a rendering concern that must
+   *  never reach the wire (D-18), so callers filter the result on the
+   *  `target_role` each row carries. */
+  notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
@@ -978,11 +982,71 @@ export const api = {
 
   deleteTask: (activityId: string, taskId: string) =>
     request<void>(`/activities/${activityId}/tasks/${taskId}`, { method: 'DELETE' }),
-    
+
   searchUsers: (q: string) => request<any[]>(`/users?q=${encodeURIComponent(q)}`),
   inviteFriend: (eventId: string, userId: string) => request<any>(`/events/${eventId}/invite`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_id: userId })
-  })
+  }),
+
+  // Admin: Phase 5 live campaign monitor
+  liveCampaigns: (): Promise<any[]> =>
+    request<any[]>('/analytics/live-campaigns'),
+
+  // Admin: Phase 4 brand kit overview (reuses /orgs — client-side scoped)
+  brandKitOrgs: (): Promise<any[]> =>
+    request<any[]>('/orgs'),
+
+  // Phase 6: Event Execution & Close-Out
+  // timeline — read-only chronological projection (TIMELINE-01)
+  timeline: (activityId: string): Promise<any[]> =>
+    request<any[]>(`/activities/${activityId}/timeline`),
+
+  /** Attach a receipt or invoice to an expense. Multipart, like uploadPoster —
+   *  the part name must be `bill`, which is what the route reads. Returns the
+   *  server-chosen filename to store on the row, plus the original name for
+   *  display so the organiser can tell two receipts apart. */
+  uploadExpenseBill: (
+    activityId: string,
+    file: File,
+  ): Promise<{ billName: string; billUrl: string; originalName: string }> => {
+    const form = new FormData()
+    form.append('bill', file)
+    return request<{ bill_name: string; bill_url: string; original_name: string }>(
+      `/activities/${activityId}/expenses/bill`,
+      { method: 'POST', body: form },
+    ).then(r => ({ billName: r.bill_name, billUrl: r.bill_url, originalName: r.original_name }))
+  },
+
+  // draftExpenses — any team member drafts; Meetup Head submits with social URL (REIMB-01/02)
+  draftExpenses: (
+    activityId: string,
+    body: { expenses: object[]; submit?: boolean; social_post_url?: string },
+  ) =>
+    request<any>(`/activities/${activityId}/expenses`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  // patchReport — auto-save challenges/learnings; Meetup Head submit (FEEDBACK-01)
+  patchReport: (
+    activityId: string,
+    patch: { challenges?: string | null; learnings?: string | null; status?: string },
+  ) =>
+    request<any>(`/activities/${activityId}/report`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  // submitFeedback — attendee 1-5 star rating after attending (FEEDBACK-02)
+  submitFeedback: (activityId: string, body: { rating: number; comment?: string }) =>
+    request<any>(`/activities/${activityId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  // myFeedback — check own submission; returns {submitted: false} when none (FEEDBACK-02)
+  myFeedback: (activityId: string) =>
+    request<any>(`/activities/${activityId}/feedback/me`),
 }

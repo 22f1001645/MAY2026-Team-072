@@ -25,8 +25,9 @@ from ..constants import (
     COLLAB_ACCEPTED,
     FORM_FIELD_TEXT,
     FORM_FIELD_TYPES,
+    SLUG_ALPHABET,
+    SLUG_LENGTH,
     SLUG_MAX_ATTEMPTS,
-    SLUG_RANDOM_BYTES,
     SLUG_TITLE_MAX,
     TASK_STATUS_LABELS,
     TASK_STATUSES,
@@ -202,8 +203,11 @@ def campaign_state(activity, actor=None) -> dict:
 def generate_slug(activity, actor) -> dict:
     """Mint a unique registration slug for *activity* and return it with the URL.
 
-    Uses ``secrets.token_urlsafe`` — never ``random`` — because the slug is the
-    only barrier between a shared link and enumeration of the event catalogue.
+    Draws from ``secrets`` — never ``random`` — because the slug is the only
+    barrier between a shared link and enumeration of the event catalogue. The
+    suffix comes from SLUG_ALPHABET rather than ``token_urlsafe``, whose
+    base64url output contains "_" and so violated the published
+    ``^[a-z0-9-]+$`` slug contract about one time in eleven.
 
     The URL is assembled here on the server from ``current_app.config`` so that
     D-12's published-contract rule is honoured: the browser must never assemble
@@ -218,7 +222,7 @@ def generate_slug(activity, actor) -> dict:
     base = _title_slug(activity.title)
 
     for _ in range(SLUG_MAX_ATTEMPTS):
-        suffix = secrets.token_urlsafe(SLUG_RANDOM_BYTES)[:6].lower()
+        suffix = "".join(secrets.choice(SLUG_ALPHABET) for _ in range(SLUG_LENGTH))
         candidate = f"{base}-{suffix}"
         campaign.registration_slug = candidate
         try:

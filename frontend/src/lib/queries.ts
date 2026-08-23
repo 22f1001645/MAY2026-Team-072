@@ -29,7 +29,7 @@ export const useEvent = (id?: string) =>
  *  request pipeline reads as an expired session and redirects to /login —
  *  so an unguarded call here would bounce the visitor off the public page. */
 export const useMyRegistrations = (enabled = true) =>
-  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, ['refetch' + 'Interval']: 10000 })
+  useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, refetchInterval: 10000 })
 
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
@@ -40,8 +40,17 @@ export const useLeaderboard = (city?: string) =>
 export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
+/** Notifications for the current view. The view is applied HERE, on the result,
+ *  never as a request parameter — it must not reach the wire (D-18). One query
+ *  key for every view, so switching views re-filters cached rows instead of
+ *  refetching. */
 export const useNotifications = (role: string = 'student') =>
-  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), ['refetch' + 'Interval']: 10000 })
+  useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.notifications(),
+    refetchInterval: 10000,
+    select: (rows: any[]) => rows.filter((n) => (n.target_role ?? 'student') === role),
+  })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
@@ -619,6 +628,7 @@ export const useSubscribeToCityAlert = () => {
 }
 
 export const usePendingProposalsCount = () => useQuery({ queryKey: ['proposals', 'pending'], queryFn: () => api.proposals('pending'), select: (data) => data.length })
+
 export const useSearchUsers = (q: string) => {
   return useQuery({
     queryKey: ['users', 'search', q],
@@ -632,3 +642,78 @@ export const useInviteFriend = () => {
     mutationFn: (v: { eventId: string; userId: string }) => api.inviteFriend(v.eventId, v.userId)
   })
 }
+
+// ---------------------------------------------------------------------------
+// Phase 6: Event Execution & Close-Out
+// ---------------------------------------------------------------------------
+
+/** TIMELINE-01: ordered chronological projection for an event. */
+export const useTimeline = (id?: string) =>
+  useQuery({
+    queryKey: ['timeline', id],
+    queryFn: () => api.timeline(id!),
+    enabled: !!id,
+  })
+
+/** REIMB-01/02: draft expense rows + optional Meetup Head submit. */
+export const useDraftExpensesMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      body,
+    }: {
+      activityId: string
+      body: { expenses: object[]; submit?: boolean; social_post_url?: string }
+    }) => api.draftExpenses(activityId, body),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['expenses', activityId] }),
+  })
+}
+
+/** REIMB-01: attach a receipt or invoice, before the row is drafted or after. */
+export const useUploadExpenseBill = () =>
+  useMutation({
+    mutationFn: ({ activityId, file }: { activityId: string; file: File }) =>
+      api.uploadExpenseBill(activityId, file),
+  })
+
+/** FEEDBACK-01: auto-save challenges/learnings on blur; Meetup Head submit. */
+export const usePatchReportMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      patch,
+    }: {
+      activityId: string
+      patch: { challenges?: string | null; learnings?: string | null; status?: string }
+    }) => api.patchReport(activityId, patch),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['report', activityId] }),
+  })
+}
+
+/** FEEDBACK-02: attendee submits a 1-5 star rating after attending. */
+export const useSubmitFeedbackMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      body,
+    }: {
+      activityId: string
+      body: { rating: number; comment?: string }
+    }) => api.submitFeedback(activityId, body),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['my-feedback', activityId] }),
+  })
+}
+
+/** FEEDBACK-02: check own submission; returns {submitted: false} when none. */
+export const useMyFeedback = (id?: string) =>
+  useQuery({
+    queryKey: ['my-feedback', id],
+    queryFn: () => api.myFeedback(id!),
+    enabled: !!id,
+  })

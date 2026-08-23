@@ -213,6 +213,32 @@ export default function Reimbursements() {
                 </div>
               </div>
 
+              {/* Social Post Verification (REIMB-02) */}
+              <div className="mb-8 pb-8 border-b border-white/10">
+                <div className="text-[11px] uppercase tracking-widest text-graytext-mid mb-2">
+                  Social Post Proof
+                </div>
+                {current.social_post_url ? (
+                  <a
+                    href={current.social_post_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-teal text-[14px] font-medium hover:underline hover:text-teal/80 transition-colors break-all group"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    {current.social_post_url}
+                  </a>
+                ) : (
+                  <span className="text-graytext-mid text-[13px] italic">
+                    No social post link submitted
+                  </span>
+                )}
+              </div>
+
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-[11px] uppercase tracking-widest text-graytext-mid">Uploaded Receipt</div>

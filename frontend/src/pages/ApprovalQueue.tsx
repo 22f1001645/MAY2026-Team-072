@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ApiError } from '../lib/api'
 import { inr } from '../lib/mock'
-import { useAudit, useDecision, useOrgProgression, useProposals } from '../lib/queries'
+import { useAudit, useDecision, useOrgProgression, useProposals, useEventReport, useRoster, useAnnouncements } from '../lib/queries'
 import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
@@ -312,6 +312,21 @@ export default function ApprovalQueue() {
                     ))}
                   </div>
                 </div>
+
+                {/* Post-Event Reflection (FEEDBACK-01) — for completed events */}
+                {statusTab === 'completed' && (
+                  <PostEventReflection activityId={current.id} />
+                )}
+
+                {/* Attendee Roster — available for approved and completed events */}
+                {statusTab !== 'pending' && (
+                  <RosterPanel activityId={current.id} />
+                )}
+
+                {/* Broadcast Push Alerts sent — available for approved and completed events */}
+                {statusTab !== 'pending' && (
+                  <AlertsAudit activityId={current.id} />
+                )}
               </div>
             </div>
 
@@ -433,3 +448,154 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+
+function PostEventReflection({ activityId }: { activityId: string }) {
+  const { data: report, isLoading, isError } = useEventReport(activityId)
+
+  return (
+    <div className="border-t border-white/5 pt-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+          Post-Event Reflection
+        </h3>
+        {report && (
+          <Badge tone={report.status === 'submitted' ? 'success' : 'warn'}>
+            {report.status === 'submitted' ? 'Submitted' : 'Draft'}
+          </Badge>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="py-3 text-[13px] text-graytext-mid">Loading reflection...</div>
+      ) : isError || !report || (!report.challenges && !report.learnings && !report.summary) ? (
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-[13px] text-graytext-mid italic">
+          No reflection filed by the Meetup Head yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {report.summary && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-1">Summary</div>
+              <p className="text-[14px] text-offwhite whitespace-pre-wrap leading-relaxed">{report.summary}</p>
+            </div>
+          )}
+          {report.challenges && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-gold mb-1">Challenges Faced</div>
+              <p className="text-[14px] text-offwhite whitespace-pre-wrap leading-relaxed">{report.challenges}</p>
+            </div>
+          )}
+          {report.learnings && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-teal mb-1">Key Learnings</div>
+              <p className="text-[14px] text-offwhite whitespace-pre-wrap leading-relaxed">{report.learnings}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RosterPanel({ activityId }: { activityId: string }) {
+  const [open, setOpen] = useState(false)
+  const { data: roster = [], isLoading } = useRoster(activityId)
+
+  const checkedInCount = roster.filter((r: any) => r.attended).length
+
+  return (
+    <div className="border-t border-white/5 pt-8">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+            Attendee Roster
+          </h3>
+          <p className="text-[12px] text-graytext-light mt-0.5">
+            {roster.length} registered · {checkedInCount} checked in
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setOpen(!open)}
+          className="text-[12px] h-8"
+        >
+          {open ? 'Hide Attendees' : 'View Attendees'}
+        </Button>
+      </div>
+
+      {open && (
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
+          {isLoading ? (
+            <div className="p-6 text-center text-[13px] text-graytext-mid">Loading attendee list...</div>
+          ) : roster.length === 0 ? (
+            <div className="p-6 text-center text-[13px] text-graytext-mid">No registered attendees yet.</div>
+          ) : (
+            <div className="max-h-64 overflow-y-auto custom-scrollbar">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02] text-caption uppercase tracking-wider text-graytext-mid">
+                    <th className="px-4 py-2.5 text-left font-semibold">Attendee</th>
+                    <th className="px-4 py-2.5 text-left font-semibold">Reg ID</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {roster.map((r: any) => (
+                    <tr key={r.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-offwhite">
+                        {r.student || r.name || 'Anonymous'}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-[11px] text-graytext-mid">
+                        {r.id.slice(0, 8).toUpperCase()}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {r.attended ? (
+                          <Badge tone="success">Checked in</Badge>
+                        ) : (
+                          <Badge tone="neutral">Registered</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AlertsAudit({ activityId }: { activityId: string }) {
+  const { data: announcements = [], isLoading } = useAnnouncements(activityId)
+  const alerts = announcements.filter((a: any) => a.isAlert)
+
+  if (isLoading) return null
+  if (alerts.length === 0) return null
+
+  return (
+    <div className="border-t border-white/5 pt-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid">
+          Broadcast Push Alerts ({alerts.length})
+        </h3>
+        <Badge tone="gold">Audit</Badge>
+      </div>
+      <div className="space-y-3">
+        {alerts.map((a: any) => (
+          <div key={a.id} className="rounded-xl border border-gold/20 bg-gold/5 p-4">
+            <div className="text-[14px] font-semibold text-gold mb-1">{a.title}</div>
+            <div className="text-[13px] text-graytext-light leading-relaxed whitespace-pre-wrap">{a.content}</div>
+            <div className="mt-2 text-[11px] text-graytext-mid uppercase tracking-wider font-mono">
+              {new Date(a.createdAt || a.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+              {a.senderName && ` · Sent by ${a.senderName}`}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+

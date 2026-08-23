@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
 import { useCheckIn, useEvent, useRoster, useScanQr, useDashboard } from '../lib/queries'
 import { Button, Card, SectionTitle } from '../components/ui'
@@ -124,8 +124,17 @@ export default function CheckIn() {
     (a.student ?? '').toLowerCase().includes(q.toLowerCase()),
   )
 
+  // Check-in opens strictly 2 hours before the scheduled start time
+  const isCheckInOpen = useMemo(() => {
+    if (!e?.startsAt) return false
+    const startTime = new Date(e.startsAt).getTime()
+    const now = Date.now()
+    const twoHoursMs = 2 * 60 * 60 * 1000
+    return (startTime - now) <= twoHoursMs
+  }, [e?.startsAt])
+
   const toggle = (reg: any) => {
-    if (reg.attended || pendingIds.has(reg.id) || !e) return // check-in is one-way
+    if (reg.attended || pendingIds.has(reg.id) || !e || !isCheckInOpen) return // check-in is one-way
     setPendingIds(prev => new Set(prev).add(reg.id))
     checkInMut.mutate({ id: e.id, ids: [reg.id] }, {
       onSettled: () => {
@@ -284,14 +293,15 @@ export default function CheckIn() {
                               <div className="text-[14px] font-medium text-offwhite">{r.student}</div>
                               <div className="text-[12px] text-graytext-mid uppercase tracking-wider">{r.id.split('-').pop()}</div>
                             </div>
-                            <Button
-                              variant={r.attended ? 'ghost' : 'secondary'}
-                              size="sm"
-                              onClick={() => toggle(r)}
-                              disabled={r.attended || pendingIds.has(r.id)}
-                            >
-                              {r.attended ? 'Arrived' : 'Check in'}
-                            </Button>
+                              <Button
+                                variant={r.attended ? 'ghost' : 'secondary'}
+                                size="sm"
+                                onClick={() => toggle(r)}
+                                disabled={r.attended || pendingIds.has(r.id) || !isCheckInOpen}
+                                title={!isCheckInOpen ? "Check-in opens 2 hours before the event" : undefined}
+                              >
+                                {r.attended ? 'Arrived' : (!isCheckInOpen ? 'Too early' : 'Check in')}
+                              </Button>
                           </div>
                         ))}
                       </div>

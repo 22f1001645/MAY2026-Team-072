@@ -59,6 +59,21 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
     if not activity:
         raise ApiError("Event not found", "event_not_found", 404)
 
+    from datetime import datetime, timedelta
+    
+    starts_at = activity.starts_at
+    if starts_at is None:
+        # Fallback for poorly formed test data or broken events
+        starts_at = datetime.utcnow()
+    elif isinstance(starts_at, str):
+        # Handle tests that manually insert strings into SQLite
+        starts_at = datetime.fromisoformat(starts_at.replace("Z", "+00:00")).replace(tzinfo=None)
+
+    # Check-in opens strictly 2 hours before the scheduled start time
+    time_until_start = starts_at - datetime.utcnow()
+    if time_until_start > timedelta(hours=2):
+        raise ApiError("Check-in opens 2 hours before the event starts", "checkin_too_early", 400)
+
     regs = RegistrationRepository.by_ids(registration_ids)
     newly = 0
     for reg in regs:

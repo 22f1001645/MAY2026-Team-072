@@ -28,7 +28,7 @@ def _approved_activity(client, rc_headers, admin_headers, title="Timeline Test M
         "city": "Hyderabad",
         "scale": "local_meetup",
         "venue": "Somewhere",
-        "starts_at": "2026-11-05T17:30:00",
+        "starts_at": "2026-08-15T10:00:00",
         "capacity": 30,
         "budget": [{"label": "Snacks", "planned": 4000}],
         "team": [{"user_id": meetup_head_user().id, "role": "Meetup Head"}],

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 06
+current_phase: 04
 current_phase_name: event-execution-close-out
-status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-08-19T01:19:49.401Z"
-last_activity: 2026-08-19
-last_activity_desc: "Completed 06-02: the reimbursement half of Phase 6 — any team member drafts expense rows, only the Meetup Head submits, and the social-post link is validated by the Phase 4 ORG-02 allowlist rather than trusted"
+status: complete
+stopped_at: Phase 7 UI-SPEC approved
+last_updated: "2026-08-23T00:45:56.871Z"
+last_activity: 2026-08-22
+last_activity_desc: "Phase 6 complete: all 9 plans executed and merged, UAT passed 9/10, 3 UAT-found defects fixed"
 progress:
   total_phases: 8
-  completed_phases: 5
-  total_plans: 40
-  completed_plans: 38
-  percent: 95
+  completed_phases: 6
+  total_plans: 45
+  completed_plans: 45
+  percent: 75
 ---
 
 # Project State
@@ -24,18 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 06 — event-execution-close-out (2/4 plans; 06-01 and 06-02 landed)
+**Current focus:** Phase 07 — Progression Gating (not started; Phase 06 complete)
 
 ## Current Position
 
 Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
-Phase: 06 (event-execution-close-out) — IN PROGRESS
-Plan: 2/4 (Phase 06 — 06-01 and 06-02 complete; 06-03, 06-04 pending)
-Status: 06-02 landed the reimbursement half. REIMB-01 (any team member drafts expense rows) and REIMB-02 (only the Meetup Head submits, with a social-post URL validated by the ORG-02 allowlist) are complete and tested behind one endpoint, PATCH /api/v1/activities/<id>/expenses. One new Alembic revision, cf7cb9577b67, adds expenses.social_post_url. Backend suite: 407 passing, up from 387.
-Last activity: 2026-08-19 — Completed 06-02: the reimbursement half of Phase 6 — any team member drafts expense rows, only the Meetup Head submits, and the social-post link is validated by the Phase 4 ORG-02 allowlist rather than trusted
+Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
+Plan: 9/9 (all Phase 06 plans executed and merged to main)
+Status: Phase 6 is done. QR-01–04, TIMELINE-01/02, FEEDBACK-01/02 and REIMB-01/02 all shipped and passed manual UAT (9/10 tests passed; test 7, live QR scan, needs a camera and is manual-only). Three defects the UAT pass found were fixed: the bill upload endpoint didn't exist (added POST /api/v1/activities/<id>/expenses/bill), the frontend granted Meetup Head to the organiser/admin when the server grants it to neither, and the Submit Reflection click was being swallowed by its own auto-save blur handler.
+Last activity: 2026-08-22 — Phase 6 complete: all 9 plans executed and merged, UAT passed 9/10, 3 UAT-found defects fixed
 
-Progress: [█████████░] 95% (38/40 plans across the milestone) — Phase 06: 50%
+Progress: [████████░░] 75% (6/8 phases complete; Phase 07 next)
 
 ## Performance Metrics
 
@@ -97,6 +97,13 @@ Progress: [█████████░] 95% (38/40 plans across the milestone
 | Phase 05 P11 | 45min | 3 tasks | 9 files |
 | Phase 06 P01 | 40min | 3 tasks | 6 files |
 | Phase 06 P02 | 60min | 3 tasks | 8 files |
+| Phase 06 P03 | — | — | — |
+| Phase 06 P04 | — | — | — |
+| Phase 06 P05 | — | — | — |
+| Phase 06 P06 | — | — | — |
+| Phase 06 P07 | — | — | — |
+| Phase 06 P08 | — | — | — |
+| Phase 06 P09 | — | — | — |
 
 ## Accumulated Context
 
@@ -223,6 +230,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - **No `03-VERIFICATION.md`** — Phase 1 and Phase 2 both have one; Phase 3 does not. Worth writing once manual UAT closes out, for parity with the other phases.
+- **No `06-VERIFICATION.md`** — Phase 6 is complete and UAT'd (`06-UAT.md`), but has no verification doc like Phases 1/2/4/5. Worth writing for parity before Phase 07 starts.
 - **A replaced poster's old file is left on disk** (05-10). `store_logo` unlinks the previous file after the commit; `save_poster` does not, because `CampaignPackage` has no equivalent of the `UPLOAD_URL_PATTERN` guard that makes the logo's unlink safe against a client-writable value. Effect is one unreferenced file per replacement — a cleanup problem, not a correctness one.
 - **No regenerate affordance on `RegistrationLinkCard`** (surfaced by the 05-07 checkpoint, step 7). Once a slug exists the card renders only Copy — 05-07's acceptance criteria only covered the null-URL state, so the checkpoint script assumed a capability the task was never asked to build. The backend rotation is correct and verified at the API layer (second mint invalidates the first, old slug 404s). A future plan should add the button plus the "this breaks every link already shared" confirmation it needs.
 
@@ -238,8 +246,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-19T01:18:58.344Z
-Stopped at: Completed 06-02-PLAN.md
-Resume file: None
+Last session: 2026-08-23T00:45:56.772Z
+Stopped at: Phase 7 UI-SPEC approved
+Resume file: .planning/phases/07-progression-gating/07-UI-SPEC.md
 
-Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured), then finish Phase 04 manual UAT via `04-UAT.md`. Phase 06 (Event Execution & Close-Out) is the next phase to plan.
+Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

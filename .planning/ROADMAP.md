@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget (completed 2026-08-12)
 - [ ] **Phase 4: Organisation Profile & Brand Kit** - Every org type gets an editable identity and a brand kit that drives campaigns
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
-- [ ] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement
+- [x] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement (completed 2026-08-22, see 06-UAT.md)
 - [ ] **Phase 7: Progression Gating** - Fest-scale proposals unlock from an org's own track record, enforced server-side
 - [ ] **Phase 8: Event Announcements, Polls & Queries** - One official, moderated event channel — never a chat room
 
@@ -247,17 +247,17 @@ Plans:
   4. Any team member can draft the post-event reflection and expense entries, but only the assigned Meetup Head can submit either — and reimbursement submission requires a social-post link alongside bills.
   5. Only people with a real Attendance record are prompted for and can submit a rating (once each), and the QR-verified attendance count is what points, fee-utilisation and budget-reasonableness use — photo evidence never overrides it.
 
-**Plans**: 2/9 plans executed
+**Plans**: 9/9 plans executed
 
 - [x] 06-01-PLAN.md
 - [x] 06-02-PLAN.md
-- [ ] 06-03-PLAN.md
-- [ ] 06-04-PLAN.md
-- [ ] 06-05-PLAN.md
-- [ ] 06-06-PLAN.md
-- [ ] 06-07-PLAN.md
-- [ ] 06-08-PLAN.md
-- [ ] 06-09-PLAN.md
+- [x] 06-03-PLAN.md
+- [x] 06-04-PLAN.md
+- [x] 06-05-PLAN.md
+- [x] 06-06-PLAN.md
+- [x] 06-07-PLAN.md
+- [x] 06-08-PLAN.md
+- [x] 06-09-PLAN.md
 
 **UI hint**: yes
 
@@ -305,7 +305,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
-| 6. Event Execution & Close-Out | 2/9 | In Progress|  |
+| 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
 | 7. Progression Gating | 0/TBD | Not started | - |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
 

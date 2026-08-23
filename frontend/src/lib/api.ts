@@ -6,7 +6,9 @@ import type {
   ApiTask,
   BrandKit,
   EkatvaEvent,
+  FestEligibility,
   OrgProfile,
+  OrgUnlock,
   Organisation,
   Role,
 } from './types'
@@ -357,6 +359,48 @@ export function adaptOrgProfile(p: ApiOrgProfile): OrgProfile {
     ...adaptOrganisation(p),
     socialLinks: (p.social_links ?? []).map((l) => ({ platform: l.platform, url: l.url })),
     withheldPlatforms: p.withheld_platforms ?? [],
+  }
+}
+
+/* ---- Phase 7: progression gating (PROG-01…PROG-03) --------------------- */
+
+/** The wire shape of `GET /orgs/{id}/progression`, snake_case exactly as the
+ *  server sends it. These keys must not appear anywhere outside this module. */
+export interface ApiFestEligibility {
+  org_id: string
+  city: string | null
+  local_meetups_completed: number | null
+  regional_meetups_completed: number | null
+  requirements_met: number
+  requirements_total: number
+  fest_eligible: boolean
+  collaborator_threshold: number
+  unlocks?: { id: string; org_id: string; city: string; unlocked_at: string }[]
+}
+
+/** The single snake→camel adapter for progression state. Both Phase 7 read
+ *  surfaces — the fest-card lock and the sponsorship banner — go through here,
+ *  and if the server's shape ever moves, this function is the only place that
+ *  needs to know. `unlocks` defaults to `[]` because the banner decides its own
+ *  visibility with a length check. */
+export function adaptFestEligibility(p: ApiFestEligibility): FestEligibility {
+  return {
+    orgId: p.org_id,
+    city: p.city ?? null,
+    localMeetupsCompleted: p.local_meetups_completed ?? null,
+    regionalMeetupsCompleted: p.regional_meetups_completed ?? null,
+    requirementsMet: p.requirements_met,
+    requirementsTotal: p.requirements_total,
+    festEligible: p.fest_eligible,
+    collaboratorThreshold: p.collaborator_threshold,
+    unlocks: (p.unlocks ?? []).map(
+      (u): OrgUnlock => ({
+        id: u.id,
+        orgId: u.org_id,
+        city: u.city,
+        unlockedAt: u.unlocked_at,
+      }),
+    ),
   }
 }
 
@@ -724,6 +768,21 @@ export const api = {
       adaptOrgProfile,
     )
   },
+  // Phase 7: progression gating (PROG-01…PROG-03).
+
+  /** One route, two callers. With a `city` it answers the fest-card lock on the
+   *  proposal form; without one, `city` and both counts come back `null` and the
+   *  `unlocks` array serves the profile's sponsorship banner. `auth_required`
+   *  only — an admin proposing on behalf of an org holds no POR in it. */
+  orgProgression: (orgId: string, city?: string): Promise<FestEligibility> => {
+    const params = new URLSearchParams()
+    if (city) params.append('city', city)
+    const qs = params.toString()
+    return request<ApiFestEligibility>(
+      `/orgs/${orgId}/progression${qs ? `?${qs}` : ''}`,
+    ).then(adaptFestEligibility)
+  },
+
   /** `can_manage_org_required` — a non-manager gets a 403, so the caller gates
    *  this request rather than issuing it and swallowing the error. */
   brandKit: (orgId: string): Promise<BrandKit> =>

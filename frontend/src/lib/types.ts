@@ -335,3 +335,41 @@ export interface ApiCampaignState {
     registration: boolean
   }
 }
+
+/* ── Phase 7: progression gating (PROG-01…PROG-03) ─────────────────────────── */
+
+/** One city an organisation has unlocked the fest tier in (PROG-03). Written by
+ *  the server at approve time; the client only ever reads it. */
+export interface OrgUnlock {
+  id: string
+  orgId: string
+  city: string
+  /** ISO timestamp — the sponsorship banner's city chips are built from it. */
+  unlockedAt: string
+}
+
+/** `GET /orgs/{id}/progression[?city=]`. Presentation input only: the fest gate
+ *  is enforced server-side at submit and at approve (PROG-04), so nothing here
+ *  authorizes anything. */
+export interface FestEligibility {
+  orgId: string
+  /** `null` when the caller asked without a city — the profile-banner call. */
+  city: string | null
+  /** `null`, not `0`, when no city was supplied: "not told which city yet" is a
+   *  different statement from "zero completed", and the fest card's caption must
+   *  not read "0 of 2 completed" before a city is picked. The two counts stay
+   *  separate so the lock caption can name which half is missing (PROG-01). */
+  localMeetupsCompleted: number | null
+  regionalMeetupsCompleted: number | null
+  /** Render the "N of 2 completed" sentence from these two directly — the server
+   *  has already done the arithmetic. */
+  requirementsMet: number
+  requirementsTotal: number
+  festEligible: boolean
+  /** Server-sourced (`FEST_COLLAB_THRESHOLD`). Never hardcode this number in a
+   *  component — a literal here could disagree with the constant that enforces. */
+  collaboratorThreshold: number
+  /** Always an array, never `undefined` — the banner's visibility test is a
+   *  length check. */
+  unlocks: OrgUnlock[]
+}

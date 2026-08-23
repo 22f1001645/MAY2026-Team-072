@@ -126,12 +126,13 @@ export default function CheckIn() {
 
   // Check-in opens strictly 2 hours before the scheduled start time
   const isCheckInOpen = useMemo(() => {
-    if (!e?.starts_at) return false
-    const startTime = new Date(e.starts_at).getTime()
+    const startStr = e?.startsAt || (e as any)?.starts_at
+    if (!startStr) return false
+    const startTime = new Date(startStr).getTime()
     const now = Date.now()
     const twoHoursMs = 2 * 60 * 60 * 1000
     return (startTime - now) <= twoHoursMs
-  }, [e?.starts_at])
+  }, [e?.startsAt, (e as any)?.starts_at])
 
   const toggle = (reg: any) => {
     if (reg.attended || pendingIds.has(reg.id) || !e || !isCheckInOpen) return // check-in is one-way

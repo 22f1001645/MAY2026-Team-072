@@ -9,6 +9,7 @@ import { Badge, Button, Card, Dialog, Progress, Select, useToast } from '../comp
 import { Loading, ErrorState } from '../components/states'
 import { cover, daysUntil, formatDate, formatTime, scaleLabel, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import EventChat from '../components/EventChat'
+import EventChannelSection from '../components/EventChannelSection'
 import CollabStatus from '../components/CollabStatus'
 import { viewFromPathname } from '../components/ViewSwitcher'
 import PublicEventLanding from './PublicEventLanding'
@@ -503,6 +504,15 @@ export default function EventDetail() {
                       </svg>
                       Event chat
                     </button>
+                  )}
+                  {/* CHAT-01 — same audience as the chat button above it. The
+                   *  enclosing block already asserts a session, a live event
+                   *  and a non-cancelled one, so only the registrant-or-team
+                   *  term is restated here. */}
+                  {((registered && !isWaitlisted) || canManage) && (
+                    <div className="mt-4">
+                      <EventChannelSection activityId={e.id} canManage={canManage} />
+                    </div>
                   )}
                 </div>
               )}

@@ -41,10 +41,11 @@ export default function ProposalNew() {
   const submitMut = useSubmitProposal()
   const { capabilities, currentUser } = useAuth()
 
-  // Filter orgs to only houses the organiser manages via their POR.
-  // Admin sees all house-type orgs.
-  const manageableHouses = orgs.filter((o: any) =>
-    o.type === 'house' &&
+  // Filter orgs to only organisations (houses & societies) the organiser manages via their POR.
+  // Administrative regions are geographic scopes, not event-hosting organisations.
+  // Admin sees all house and society orgs.
+  const manageableOrgs = orgs.filter((o: any) =>
+    (o.type === 'house' || o.type === 'society') &&
     (currentUser?.role === 'admin' || (capabilities?.manageableOrgIds ?? []).includes(o.id))
   )
 
@@ -73,12 +74,12 @@ export default function ProposalNew() {
   const [done, setDone] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
 
-  // Auto-select org when there's exactly one manageable house
+  // Auto-select org when there's exactly one manageable org
   useEffect(() => {
-    if (manageableHouses.length === 1 && !form.org_id) {
-      setForm(f => ({ ...f, org_id: manageableHouses[0].id }))
+    if (manageableOrgs.length === 1 && !form.org_id) {
+      setForm(f => ({ ...f, org_id: manageableOrgs[0].id }))
     }
-  }, [manageableHouses.length])
+  }, [manageableOrgs])
 
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
@@ -103,7 +104,8 @@ export default function ProposalNew() {
   const meetupHeadCount = teamRows.filter(r => r.role === 'Meetup Head').length
   const teamValid = teamRows.length > 0 && meetupHeadCount === 1
 
-  const isStep1Valid = !!(form.title && (form.org_id || manageableHouses.length > 0) && (form.city || cities.length > 0) && form.starts_at && form.capacity && form.venue && form.description)
+  const effectiveOrgId = form.org_id || (manageableOrgs.length === 1 ? manageableOrgs[0]?.id : '')
+  const isStep1Valid = !!(form.title && effectiveOrgId && (form.city || cities.length > 0) && form.starts_at && form.capacity && form.venue && form.description)
   
   const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
   const isBudgetValid = cap === null || cap === 0 || total <= cap
@@ -123,7 +125,7 @@ export default function ProposalNew() {
     if (!teamValid || !isStep1Valid || !isStep2Valid) return
     const payload = {
       title: form.title,
-      org_id: form.org_id || manageableHouses[0]?.id,
+      org_id: effectiveOrgId,
       city: form.city || cities[0]?.name,
       scale,
       venue: form.venue,
@@ -232,17 +234,17 @@ export default function ProposalNew() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Organisation (your house)</Label>
-              {manageableHouses.length <= 1 ? (
+              <Label>Organisation</Label>
+              {manageableOrgs.length <= 1 ? (
                 <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite">
-                  {manageableHouses[0]?.name ?? 'No house assigned'}
+                  {manageableOrgs[0]?.name ?? 'No organisation assigned'}
                 </div>
               ) : (
                 <FormSelect
                   value={form.org_id}
                   onChange={(val) => set('org_id', val)}
-                  placeholder="Select your house…"
-                  options={manageableHouses.map((o: any) => ({ label: o.name, value: o.id }))}
+                  placeholder="Select your organisation…"
+                  options={manageableOrgs.map((o: any) => ({ label: o.name, value: o.id }))}
                 />
               )}
             </div>
@@ -500,7 +502,7 @@ export default function ProposalNew() {
               <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                 {orgs
                   .filter((o: any) =>
-                    o.id !== form.org_id &&
+                    o.id !== effectiveOrgId &&
                     (o.type === 'house' || o.type === 'society') &&
                     !collabOrgIds.includes(o.id) &&
                     o.name?.toLowerCase().includes(collabSearch.toLowerCase())
@@ -521,7 +523,7 @@ export default function ProposalNew() {
                     </button>
                   ))}
                 {orgs.filter((o: any) =>
-                  o.id !== form.org_id &&
+                  o.id !== effectiveOrgId &&
                   (o.type === 'house' || o.type === 'society') &&
                   !collabOrgIds.includes(o.id) &&
                   o.name?.toLowerCase().includes(collabSearch.toLowerCase())
@@ -546,7 +548,7 @@ export default function ProposalNew() {
           
           {collabOrgIds.length === 0 ? (
             <p className="mt-2 text-caption text-graytext-mid">
-              No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'} event.
+              No collaborators yet — this is a {orgs.find((o: any) => o.id === effectiveOrgId)?.name ?? 'your organisation'} event.
             </p>
           ) : (
             <p className="mt-2 text-caption text-teal">

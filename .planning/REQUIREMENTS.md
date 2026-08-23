@@ -92,10 +92,10 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Progression Gating
 
-- [ ] **PROG-01**: An org's eligibility to propose `regional_fest` scale in a given city unlocks once that org has completed, in that same city, at least one `local_meetup` and at least one `regional_meetup` (computed server-side as `approved AND starts_at < now()`, not `status == completed`, which never flips without a report)
-- [ ] **PROG-02**: A `regional_fest` proposal additionally requires at least 6 collaborating Organisations (PROPOSAL-01) named on the proposal
+- [x] **PROG-01**: An org's eligibility to propose `regional_fest` scale in a given city unlocks once that org has completed, in that same city, at least one `local_meetup` and at least one `regional_meetup` (computed server-side as `approved AND starts_at < now()`, not `status == completed`, which never flips without a report)
+- [x] **PROG-02**: A `regional_fest` proposal additionally requires at least 6 collaborating Organisations (PROPOSAL-01) named on the proposal
 - [ ] **PROG-03**: Reaching fest-tier eligibility sets a server-recorded "Sponsorship & outreach tools unlocked" flag for that org/city, surfaced as UI messaging — the sponsorship/CRM tooling itself stays out of scope this milestone (see v2)
-- [ ] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
+- [x] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
 
 ### Event Announcements, Polls & Queries
 

@@ -273,13 +273,13 @@ Plans:
   3. A `regional_fest` proposal with fewer than 6 accepted collaborating organisations is rejected with a reason naming the shortfall.
   4. An org that reaches fest tier sees a recorded "Sponsorship & outreach tools unlocked" state surfaced in the UI, with no CRM tooling behind it (deliberately out of scope).
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 **UI hint**: yes
 
 Plans:
 **Wave 1** *(tracer)*
 
-- [ ] 07-01-PLAN.md — Tracer: server-computed fest eligibility end-to-end — `FEST_COLLAB_THRESHOLD`, `completed_meetups_by_scale`, `progression_service`, the submit-time 403, plus the named-collaborator threshold (PROG-01, PROG-02, PROG-04)
+- [x] 07-01-PLAN.md — Tracer: server-computed fest eligibility end-to-end — `FEST_COLLAB_THRESHOLD`, `completed_meetups_by_scale`, `progression_service`, the submit-time 403, plus the named-collaborator threshold (PROG-01, PROG-02, PROG-04)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -323,7 +323,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
-| 7. Progression Gating | 0/5 | Planning | - |
+| 7. Progression Gating | 1/5 | In Progress|  |
 | 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
 
 ## Coverage

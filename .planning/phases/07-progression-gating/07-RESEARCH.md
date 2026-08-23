@@ -703,20 +703,23 @@ Naive `datetime.now()` here, matching the column and Pitfall 1.
 | A5 | `org_progression_unlocks` is empty in every existing dev database (no constructor call exists outside the model) | Runtime State Inventory | If a dev DB somehow holds rows, the banner would show cities the org has not earned. Harmless — the table is never an authorization input (T-01-18). |
 | A6 | `seed.py`'s demo data may not contain an org with both a completed local and a completed regional meetup in one city | Runtime State Inventory | The phase's headline UI state (unlocked fest card, gold banner) would be undemonstrable in manual UAT without hand-editing. Cheap to check; check before UAT. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does a *collaborating* (non-primary) completed meetup count toward PROG-01?** (= A3)
    - What we know: REQUIREMENTS.md:95 says "that org has completed". The existing quota queries key on `Activity.org_id` (the primary pointer). `ActivityCollaborator`'s docstring calls itself the source of truth for "which organisations are running this activity".
    - What's unclear: whether "completed by the org" means owned or participated-in.
    - Recommendation: **primary-only** (`Activity.org_id`), matching the existing repository precedent and the narrower security posture. Surface it to the user in one line during planning; it is a one-clause change to the query if they disagree.
+   - **RESOLVED: adopted (primary-only), see 07-01 Flagged Assumptions.**
 
 2. **When exactly is the PROG-03 unlock recorded?** (= A1)
    - What we know: PROG-03 says "reaching fest-tier eligibility sets a flag"; D-05 specifies only where it surfaces.
    - Recommendation: record on any approval that makes eligibility newly true (option b). One `if` at the end of `decide()`'s approve branch.
+   - **RESOLVED: adopted (option b), see 07-02 Flagged Assumptions.**
 
 3. **Should a refused fest approval write an `AuditLog` row?** (= A4)
    - What we know: every *successful* decision writes one (`:288`, `:304`, `:308`, `:313`). No refusal anywhere in the file writes one — the quota refusal at `:279` does not.
    - Recommendation: follow the existing convention — **no audit row on refusal**. Consistency beats a new pattern in a phase whose whole point is reusing the existing one.
+   - **RESOLVED: adopted (no audit row on refusal), see 07-02 Flagged Assumptions.**
 
 ## Sources
 

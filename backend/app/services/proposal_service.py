@@ -10,7 +10,7 @@ from ..constants import (
     EVENT_UPCOMING,
     EVENT_CANCELLED,
     FEST_COLLAB_THRESHOLD,
-    MEETUPS_PER_CITY_PER_MONTH,
+    MEETUPS_PER_REGION_PER_MONTH,
     MEGA_MEETUP_THRESHOLD,
     ORG_MANAGER_PORS,
     PROPOSAL_APPROVED,
@@ -104,7 +104,7 @@ def submit_proposal(data: dict, organiser) -> Activity:
     # Quota guardrail (FR-B2): one meetup per region per month.
     if data["scale"] in ("local_meetup", "regional_meetup"):
         count = ActivityRepository.meetups_in_region_month(data["org_id"], data["starts_at"])
-        if count >= MEETUPS_PER_CITY_PER_MONTH:
+        if count >= MEETUPS_PER_REGION_PER_MONTH:
             raise ApiError(
                 f"Quota guardrail: this region already has a meetup this month",
                 "quota_exceeded",
@@ -304,7 +304,7 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         # FR-B2: Enforce the 1-meetup-per-month quota before allowing approval
         if activity.scale in ["local_meetup", "regional_meetup"]:
             count = ActivityRepository.approved_meetups_in_region_month(activity.org_id, activity.starts_at)
-            if count >= 1:
+            if count >= MEETUPS_PER_REGION_PER_MONTH:
                 raise ApiError(
                     f"Quota exceeded: An approved meetup already exists in {activity.starts_at.strftime('%B %Y')} for this region.",
                     "quota_exceeded",

@@ -79,6 +79,21 @@ def _poll_or_404(activity_id: str, poll_id: str) -> EventPoll:
     return poll
 
 
+def _poll_expired(poll: EventPoll) -> bool:
+    """Has `closes_at` passed? A poll past it is closed however its row reads.
+
+    The column is naive and marshmallow hands back whatever the client sent, so
+    an aware value is normalised rather than compared across kinds (which raises
+    in Python). Effective state is computed rather than written back because
+    nothing runs on a schedule to do the writing."""
+    if not poll.closes_at:
+        return False
+    closes_at = poll.closes_at
+    if closes_at.tzinfo is not None:
+        closes_at = closes_at.astimezone(timezone.utc).replace(tzinfo=None)
+    return closes_at <= datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def create_poll(activity_id, question, options, closes_at, current_user) -> EventPoll:
     activity = _activity_or_404(activity_id)
     _assert_channel_open(activity)
@@ -117,6 +132,10 @@ def list_polls(activity_id, viewer_id) -> list:
     result = []
     for poll in polls:
         payload = poll.to_dict()
+        # Report the effective state, so a poll past `closes_at` renders as
+        # closed instead of offering a ballot the vote route will refuse.
+        if _poll_expired(poll):
+            payload["status"] = POLL_CLOSED
         payload["vote_counts"] = [
             sum(1 for v in poll.votes if v.option_index == i)
             for i in range(len(poll.options or []))
@@ -138,7 +157,7 @@ def cast_vote(activity_id, poll_id, option_index, current_user) -> EventPollVote
         )
 
     poll = _poll_or_404(activity_id, poll_id)
-    if poll.status != POLL_OPEN:
+    if poll.status != POLL_OPEN or _poll_expired(poll):
         raise ApiError("This poll is closed", "poll_closed", 409)
     if not 0 <= option_index < len(poll.options or []):
         raise ApiError("That option does not exist on this poll", "invalid_option", 400)

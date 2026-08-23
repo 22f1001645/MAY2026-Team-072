@@ -350,6 +350,31 @@ def test_channel_end_to_end(client):
     assert mine[0]["response_body"] == answer
 
 
+def test_a_poll_past_closes_at_refuses_votes_and_reads_as_closed(client):
+    """`closes_at` is on the wire, so it has to mean something.
+
+    A field a client can read and cannot trust is worse than no field: without
+    this, a poll whose close time passed an hour ago still reported "open" and
+    still accepted votes."""
+    activity = _seed_activity()
+    poll = _seed_poll(activity)
+    poll.closes_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
+    db.session.commit()
+
+    res = client.post(
+        f"/api/v1/events/{activity.id}/polls/{poll.id}/vote",
+        json={"option_index": 0},
+        headers=_registrant(client),
+    )
+    assert res.status_code == 409, res.get_json()
+    assert res.get_json()["code"] == "poll_closed"
+
+    listed = client.get(
+        f"/api/v1/events/{activity.id}/polls", headers=_registrant(client)
+    ).get_json()
+    assert listed[0]["status"] == POLL_CLOSED
+
+
 def test_a_stranger_cannot_read_an_events_polls(client):
     """Poll questions and tallies are the registrants' surface, not the web's.
 

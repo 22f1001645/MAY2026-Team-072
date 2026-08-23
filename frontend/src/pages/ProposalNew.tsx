@@ -718,7 +718,9 @@ const ERROR_HEADINGS: Record<string, string> = {
   user_not_found: "Team member couldn't be found",
   quota_exceeded: 'Quota already used this month',
   fest_locked: "Regional Fest isn't unlocked here yet",
-  fest_collaborators_required: 'A Regional Fest needs 6 organisations',
+  // Deliberately numberless: the server's message already states the shortfall
+  // numerically, and FEST_COLLAB_THRESHOLD must never be duplicated here.
+  fest_collaborators_required: 'Not enough collaborating organisations',
 }
 function errorHeading(code?: string) {
   return (code && ERROR_HEADINGS[code]) || "Couldn't submit the proposal"

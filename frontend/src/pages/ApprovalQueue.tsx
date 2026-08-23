@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { inr } from '../lib/mock'
-import { useAudit, useDecision, useProposals } from '../lib/queries'
+import { useAudit, useDecision, useOrgProgression, useProposals } from '../lib/queries'
 import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cx, formatDate, scaleLabel } from '../lib/format'
@@ -30,6 +30,16 @@ export default function ApprovalQueue() {
   const current = [...pendingData, ...approvedData].find((p) => p.id === selectedId)
   
   const { data: audit = [] } = useAudit(current?.id)
+
+  /* PROG-02 (D-01/D-02): the fest collaborator threshold is server-sourced, never a
+   * literal. The proposal payload does not carry it, so it is read from the primary
+   * collaborator's org — the proposing organisation. Advisory only: the server
+   * re-counts accepted invites on approve (T-07-08). */
+  const isFest = current?.scale === 'regional_fest'
+  const primaryOrgId = current?.collaborators?.find((c) => c.is_primary)?.org_id
+  const { data: progression } = useOrgProgression(isFest ? primaryOrgId : undefined)
+  const acceptedCount = current?.collaborators?.filter((c) => c.status === 'accepted').length ?? 0
+  const collabThreshold = progression?.collaboratorThreshold
 
   if (pLoad || aLoad) return <Loading label="Loading the approval queue..." />
   if (pErr) return <ErrorState error={pError} />
@@ -225,6 +235,24 @@ export default function ApprovalQueue() {
                         <Badge tone="gold">Mega Meetup</Badge>
                       )}
                     </div>
+                    {/* PROG-02: how many organisations have actually accepted, above the
+                        per-row badges — the admin sees why an approve will be refused
+                        before attempting it. Suppressed until the server-sourced
+                        threshold arrives rather than guessing the number. */}
+                    {isFest && collabThreshold != null && (
+                      <p className="mb-3 text-caption font-semibold uppercase tracking-wider text-graytext-mid">
+                        Collaborators ·{' '}
+                        <span
+                          className={cx(
+                            'transition-colors duration-200',
+                            acceptedCount >= collabThreshold ? 'text-teal' : 'text-gold',
+                          )}
+                        >
+                          {acceptedCount} of {collabThreshold}
+                        </span>{' '}
+                        accepted
+                      </p>
+                    )}
                     <div className="grid gap-2">
                       {current.collaborators.map((c: any) => (
                         <div key={c.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
@@ -301,9 +329,12 @@ export default function ApprovalQueue() {
                     className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
                   />
                   {decisionMut.isError && (
-                    <p className="mt-2 text-[12px] text-red-400">
-                      {(decisionMut.error as Error).message}
-                    </p>
+                    <div className="mt-2">
+                      <ErrorStrip
+                        heading="Not approvable yet"
+                        body={(decisionMut.error as Error).message}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -361,6 +392,19 @@ function TabButton({ active, onClick, label, count }: { active: boolean, onClick
         {count}
       </span>
     </button>
+  )
+}
+
+/* PROG-04 (T-07-17): a refusal the admin has to act on renders inline and stays
+ * put — never a toast, which would expire in 3.5s. Same local-function idiom as
+ * OrgProfile.tsx's ErrorStrip (07-UI-SPEC §1); the body is the server's message
+ * verbatim, since it already names the shortfall by number. */
+function ErrorStrip({ heading, body }: { heading: string; body?: string }) {
+  return (
+    <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-[14px] text-red-300">
+      <div className="font-semibold">{heading}</div>
+      {body && <div className="mt-1">{body}</div>}
+    </div>
   )
 }
 

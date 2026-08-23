@@ -16,6 +16,11 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
   // One draft per query id — a single shared draft string would put the same
   // half-typed answer under every open question on the list.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  // Which reply is in flight, not merely whether one is. `respondMut.isPending`
+  // is one flag for the whole list, so using it directly disabled every other
+  // question's Send button — and put "Sending…" on all of them — while one
+  // answer was on the wire.
+  const [sendingId, setSendingId] = useState<string | null>(null)
 
   const { data: queries = [], isLoading, isError, error } = useOrgQueries(activityId)
   const respondMut = useRespondQuery()
@@ -30,7 +35,8 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
 
   const sendReply = (queryId: string) => {
     const response_body = (drafts[queryId] ?? '').trim()
-    if (!response_body || respondMut.isPending) return
+    if (!response_body || sendingId === queryId) return
+    setSendingId(queryId)
     respondMut.mutate(
       { id: activityId, queryId, response_body },
       {
@@ -39,6 +45,7 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
           addToast('Reply sent')
         },
         onError: (err) => addToast((err as Error).message, 'error'),
+        onSettled: () => setSendingId((current) => (current === queryId ? null : current)),
       },
     )
   }
@@ -98,10 +105,10 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
                   <div className="flex justify-end">
                     <Button
                       size="sm"
-                      disabled={!(drafts[q.id] ?? '').trim() || respondMut.isPending}
+                      disabled={!(drafts[q.id] ?? '').trim() || sendingId === q.id}
                       onClick={() => sendReply(q.id)}
                     >
-                      {respondMut.isPending ? 'Sending…' : 'Send Reply'}
+                      {sendingId === q.id ? 'Sending…' : 'Send Reply'}
                     </Button>
                   </div>
                 </div>

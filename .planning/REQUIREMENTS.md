@@ -99,10 +99,10 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Event Announcements, Polls & Queries
 
-- [ ] **CHAT-01**: Organiser/team can post announcements and create polls scoped to an event's registration window
-- [ ] **CHAT-02**: Registrants (auto-added to the event's channel on registration, gated by `can_participate_in_activity`) have exactly two self-service actions: submit a query (visible to the team, who respond) and cancel their registration — never peer-to-peer reply/chat, never an open feed (Swiggy-support-ticket model, not WhatsApp)
-- [ ] **CHAT-03**: Moderation controls (rate-limit on query submission, audit-log entry) ship in the same phase as the feature itself
-- [ ] **CHAT-04**: Announcements/polls/queries use cursor-based polling (10–15s + jitter) via TanStack Query, not WebSockets/Flask-SocketIO
+- [x] **CHAT-01**: Organiser/team can post announcements and create polls scoped to an event's registration window
+- [x] **CHAT-02**: Registrants (auto-added to the event's channel on registration, gated by `can_participate_in_activity`) have exactly two self-service actions: submit a query (visible to the team, who respond) and cancel their registration — never peer-to-peer reply/chat, never an open feed (Swiggy-support-ticket model, not WhatsApp)
+- [x] **CHAT-03**: Moderation controls (rate-limit on query submission, audit-log entry) ship in the same phase as the feature itself
+- [x] **CHAT-04**: Announcements/polls/queries use cursor-based polling (10–15s + jitter) via TanStack Query, not WebSockets/Flask-SocketIO
 
 ## v2 Requirements
 
@@ -173,7 +173,7 @@ Populated during roadmap creation — see ROADMAP.md.
 | FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
 | REIMB-01, REIMB-02 | Phase 6 | Complete (06-02 — backend; frontend panel in 06-04) |
 | PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Complete |
-| CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
+| CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Complete (08-06 — CHAT-03 audit trail only; query rate-limiting deferred, see ROADMAP Phase 8 criterion 4) |
 
 **Coverage:**
 

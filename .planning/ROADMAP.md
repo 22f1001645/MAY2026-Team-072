@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
 - [x] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement (completed 2026-08-22, see 06-UAT.md)
 - [ ] **Phase 7: Progression Gating** - Fest-scale proposals unlock from an org's own track record, enforced server-side
-- [ ] **Phase 8: Event Announcements, Polls & Queries** - Structured polls + Q&A layered onto the event's existing announcements and open chat (D-01: EventChat stays)
+- [x] **Phase 8: Event Announcements, Polls & Queries** - Structured polls + Q&A layered onto the event's existing announcements and open chat (D-01: EventChat stays) (completed 2026-08-24)
 
 ## Phase Details
 
@@ -306,7 +306,7 @@ Plans:
   4. Every poll and query moderation action (create, close, respond) lands in the audit log, shipping with the feature (08-CONTEXT.md D-16). Query-submission rate-limiting stays out of scope for this milestone (no live deploy target — resolved 2026-08-06, see Blockers/Concerns).
   5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
 
-**Plans**: 4/6 plans executed
+**Plans**: 6/6 plans executed
 **UI hint**: yes
 
 Plans:
@@ -322,11 +322,17 @@ Plans:
 **Wave 3** *(blocked on Wave 2)*
 
 - [x] 08-04-PLAN.md — Frontend: `PollCard.tsx` + `EventChannelSection.tsx` + `EventDetail.tsx` wiring (CHAT-01)
-- [ ] 08-05-PLAN.md — Frontend: `QuerySection.tsx` (registrant) + `OrgQueriesPanel.tsx` (ManageEvent) (CHAT-02)
+- [x] 08-05-PLAN.md — Frontend: `QuerySection.tsx` (registrant) + `OrgQueriesPanel.tsx` (ManageEvent) (CHAT-02)
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 08-06-PLAN.md — Server-side registration-window guard, smoke verification, and close-out (CHAT-01, CHAT-02, CHAT-03, CHAT-04)
+- [x] 08-06-PLAN.md — Server-side registration-window guard, smoke verification, and close-out (CHAT-01, CHAT-02, CHAT-03, CHAT-04)
+
+08-04 and 08-05 are recorded in the same wave because that is how they ran, but
+08-04 declares `depends_on: [08-02, 08-03, 08-05]` and executed first — so it
+could not import the component 08-05 had yet to create and left a non-rendering
+seam, which 08-05 then closed (see 08-05-SUMMARY.md). Read as a dependency
+graph rather than a schedule, this phase is five waves, not four.
 
 ## Progress
 
@@ -343,7 +349,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
 | 7. Progression Gating | 5/5 | In Progress|  |
-| 8. Event Announcements, Polls & Queries | 4/6 | In Progress|  |
+| 8. Event Announcements, Polls & Queries | 6/6 | Complete    | 2026-08-24 |
 
 ## Coverage
 

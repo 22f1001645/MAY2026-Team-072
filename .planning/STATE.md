@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: event-announcements-polls-queries
 status: executing
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-08-23T17:51:49.497Z"
-last_activity: 2026-08-23
-last_activity_desc: Phase 08 execution started
+stopped_at: Completed 08-06-PLAN.md — Phase 08 closed out
+last_updated: "2026-08-23T18:53:57.051Z"
+last_activity: 2026-08-24
+last_activity_desc: 08-06 closed out Phase 08 (permanent channel test suite, CHAT-04 polling gate, ROADMAP/REQUIREMENTS close-out)
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 56
-  completed_plans: 54
-  percent: 88
+  completed_plans: 56
+  percent: 100
 ---
 
 # Project State
@@ -28,15 +28,15 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 ## Current Position
 
-Phase: 08 (event-announcements-polls-queries) — EXECUTING
+Phase: 08 (event-announcements-polls-queries) — COMPLETE (6/6 plans), manual UAT outstanding
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
 Phase: 07 (progression-gating) — COMPLETE, verification outstanding
-Plan: 4 of 6
-Status: Ready to execute
-Last activity: 2026-08-23 — Phase 08 execution started
+Plan: 6 of 6
+Status: Phase 08 complete — all 8 phases executed; manual UAT outstanding on Phases 04, 05, 08
+Last activity: 2026-08-24 — 08-06 closed out Phase 08 (permanent channel test suite, CHAT-04 polling gate, ROADMAP/REQUIREMENTS close-out)
 
-Progress: [██████████] 96% (7/8 phases complete; Phase 08 in progress)
+Progress: [██████████] 100% (8/8 phases executed)
 
 ## Performance Metrics
 
@@ -115,6 +115,7 @@ Progress: [██████████] 96% (7/8 phases complete; Phase 08 in
 | Phase 08 P03 | 25min | 3 tasks | 3 files |
 | Phase 08 P04 | 20min | 3 tasks | 3 files |
 | Phase 08 P05 | 25min | 4 tasks | 4 files |
+| Phase 08 P06 | 45min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -261,6 +262,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 08-05: Q&A questions stay private to their asker — QuerySection reads /queries/mine, so a dietary or accessibility question is never public to the attendee list
 - [Phase ?]: 08-05: OrgQueriesPanel is a ManageEvent tab (not a standalone section) and keeps one reply draft per query id, so a half-typed answer cannot appear under every open question
 - [Phase ?]: 08-05 absorbed 08-04's deferred wiring: QuerySection is mounted at the TODO(08-05) seam in EventChannelSection and Broken Windows entry 6 is closed
+- [Phase ?]: [Phase 8]: 08-06 changed no application source — the registration-window guard was already correct, including the deliberate asymmetry that leaves close_poll and respond_query ungated, so the deliverable became the permanent test suite that pins it.
+- [Phase ?]: [Phase 8]: The CHAT-04 background-polling gate names its four channel hooks explicitly rather than scanning every polling hook — useMyRegistrations and useNotifications poll without the flag and predate the phase; a gate failing on out-of-scope code gets deleted, not obeyed.
+- [Phase ?]: [Phase 8]: CHAT-03 marked complete with an inline caveat — the audit trail shipped, query rate-limiting stays deferred by recorded decision (no live deploy target), so the traceability row says so rather than implying full coverage.
 
 ### Pending Todos
 
@@ -281,8 +285,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-23T17:51:49.435Z
-Stopped at: Completed 08-05-PLAN.md
+Last session: 2026-08-23T18:53:23.985Z
+Stopped at: Completed 08-06-PLAN.md — Phase 08 closed out
 Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

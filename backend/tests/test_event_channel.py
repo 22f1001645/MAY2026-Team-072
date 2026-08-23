@@ -244,6 +244,30 @@ def test_close_poll_still_permitted_after_the_event_ends(client):
     assert res.get_json()["status"] == POLL_CLOSED
 
 
+def test_a_poll_cannot_be_closed_twice(client):
+    """One close per poll, so the audit trail shows one moderation event.
+
+    Two organisers on a stale page, or one double-click, otherwise write two
+    "Poll closed" rows against different actors for the one thing that
+    happened — and the append-only log is what Phase 8 ships to be read."""
+    activity = _seed_activity()
+    poll = _seed_poll(activity)
+    org_h = _organiser(client)
+
+    assert client.patch(
+        f"/api/v1/events/{activity.id}/polls/{poll.id}/close", headers=org_h
+    ).status_code == 200
+
+    res = client.patch(
+        f"/api/v1/events/{activity.id}/polls/{poll.id}/close", headers=org_h
+    )
+    assert res.status_code == 409, res.get_json()
+    assert res.get_json()["code"] == "poll_closed"
+
+    closes = AuditLog.query.filter_by(entity="poll", entity_id=poll.id, action="Poll closed").all()
+    assert len(closes) == 1
+
+
 def test_respond_query_still_permitted_after_the_event_ends(client):
     """A question asked in the last ten minutes is answered after the event."""
     activity = _seed_activity()

@@ -177,8 +177,15 @@ def cast_vote(activity_id, poll_id, option_index, current_user) -> EventPollVote
 
 
 def close_poll(activity_id, poll_id, current_user) -> EventPoll:
-    """Ungated by `_assert_channel_open` on purpose — see the module docstring."""
+    """Ungated by `_assert_channel_open` on purpose — see the module docstring.
+
+    One close per poll, for the same reason `respond_query` allows one answer:
+    the audit log is append-only, so an unguarded re-close writes a second "Poll
+    closed" row against a different actor and reads as two moderation events
+    where a double-click happened."""
     poll = _poll_or_404(activity_id, poll_id)
+    if poll.status != POLL_OPEN:
+        raise ApiError("This poll is already closed", "poll_closed", 409)
     poll.status = POLL_CLOSED
     AuditRepository.record("poll", poll.id, "Poll closed", current_user)
     db.session.commit()

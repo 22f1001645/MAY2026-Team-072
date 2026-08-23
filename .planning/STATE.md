@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 07
-current_phase_name: progression-gating
-status: verifying
-stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-08-23T08:51:27.547Z"
+current_phase: 08
+current_phase_name: event-announcements-polls-queries
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-08-23T16:00:23.880Z"
 last_activity: 2026-08-23
-last_activity_desc: Phase 07 execution started
+last_activity_desc: Phase 08 execution started, 08-01 complete
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 50
-  completed_plans: 50
+  total_plans: 56
+  completed_plans: 51
   percent: 88
 ---
 
@@ -24,18 +24,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 07 — progression-gating
+**Current focus:** Phase 08 — event-announcements-polls-queries
 
 ## Current Position
 
-Phase: 07 (progression-gating) — EXECUTING
+Phase: 08 (event-announcements-polls-queries) — EXECUTING
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
 Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-08-23 — Phase 07 execution started
+Phase: 07 (progression-gating) — COMPLETE, verification outstanding
+Plan: 1 of 6 (08-01 poll backend complete)
+Status: Executing — 08-02 next
+Last activity: 2026-08-23 — Phase 08 execution started, 08-01 complete
 
-Progress: [██████████] 100% (6/8 phases complete; Phase 07 next)
+Progress: [█████████░] 91% (7/8 phases complete; Phase 08 in progress)
 
 ## Performance Metrics
 
@@ -109,6 +110,7 @@ Progress: [██████████] 100% (6/8 phases complete; Phase 07 n
 | Phase 07 P03 | 12min | 2 tasks | 4 files |
 | Phase 07 P04 | 9min | 2 tasks | 1 files |
 | Phase 07 P05 | 65min | 3 tasks | 3 files |
+| Phase 08 P01 | 45min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -241,6 +243,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 07-04: the fest auto-revert needed a useEffect, not render-time derivation — it must write user-owned scale state
 - [Phase ?]: 07-05: fest collaborator threshold in the approval queue is read via the primary collaborator's org_id rather than widening EkatvaEvent/adaptEvent for one page
 - [Phase ?]: 07-05: the PROG-03 sponsorship banner is display-only — no button, link or gated affordance, so a stale unlock row grants nothing
+- [Phase ?]: [Phase 8] 08-01: cast_vote's participation gate is rbac.can_participate_in_activity, not a raw RegistrationRepository.find — the predicate already excludes cancelled registrations and already admits organisers, which the literal find() does not
+- [Phase ?]: [Phase 8] 08-01: _poll_or_404 checks the poll belongs to the activity in the URL — the route guard authorises against the path's activity, so a bare poll id would be votable and closable through any other event
+- [Phase ?]: [Phase 8] 08-01: create_poll flushes before AuditRepository.record so entity_id is the poll's real id, avoiding the Phase 6 'expense submitted' bug where the audit row belonged to nothing
 
 ### Pending Todos
 
@@ -261,8 +266,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-23T08:51:27.486Z
-Stopped at: Completed 07-05-PLAN.md
+Last session: 2026-08-23T15:59:08.362Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
 
 Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

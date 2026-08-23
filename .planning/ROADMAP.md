@@ -306,13 +306,13 @@ Plans:
   4. Every poll and query moderation action (create, close, respond) lands in the audit log, shipping with the feature (08-CONTEXT.md D-16). Query-submission rate-limiting stays out of scope for this milestone (no live deploy target — resolved 2026-08-06, see Blockers/Concerns).
   5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
 
-**Plans**: 0/6 plans executed
+**Plans**: 1/6 plans executed
 **UI hint**: yes
 
 Plans:
 **Wave 1** *(tracer)*
 
-- [ ] 08-01-PLAN.md — Tracer: `channel_service.py` + `channel_controller.py` + poll endpoints CRUD (CHAT-01)
+- [x] 08-01-PLAN.md — Tracer: `channel_service.py` + `channel_controller.py` + poll endpoints CRUD (CHAT-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -343,7 +343,7 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
 | 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
 | 7. Progression Gating | 5/5 | In Progress|  |
-| 8. Event Announcements, Polls & Queries | 0/6 | Planning | - |
+| 8. Event Announcements, Polls & Queries | 1/6 | In Progress|  |
 
 ## Coverage
 

@@ -506,17 +506,25 @@ export default function EventDetail() {
                       Event chat
                     </button>
                   )}
-                  {/* CHAT-01 — same audience as the chat button above it. The
-                   *  enclosing block already asserts a session, a live event
-                   *  and a non-cancelled one, so only the registrant-or-team
-                   *  term is restated here. */}
-                  {((registered && !isWaitlisted) || canManage) && (
-                    <div className="mt-4">
-                      <EventChannelSection activityId={e.id} canManage={canManage} />
-                    </div>
-                  )}
                 </div>
               )}
+              {/* CHAT-01/02 — same audience as the chat button above, but
+               *  deliberately NOT gated on `!isPast`. The team can still answer
+               *  a question after the event ends (D-17), and this section is
+               *  the only surface on which the person who asked it reads the
+               *  answer. Past the event it renders closed: thread visible,
+               *  composers gone. */}
+              {currentUser &&
+                e.status !== 'cancelled' &&
+                ((registered && !isWaitlisted) || canManage) && (
+                  <div className="mt-6">
+                    <EventChannelSection
+                      activityId={e.id}
+                      canManage={canManage}
+                      closed={isPast}
+                    />
+                  </div>
+                )}
             </div>
           )}
         </div>

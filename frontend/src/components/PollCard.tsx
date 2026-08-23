@@ -16,10 +16,15 @@ export default function PollCard({
   poll,
   activityId,
   canManage,
+  channelClosed = false,
 }: {
   poll: EventPoll
   activityId: string
   canManage: boolean
+  /** The event itself is over: show the result, never a ballot the vote route
+   *  will refuse. The badge still reports the poll's own status, and the team
+   *  can still close it — `close_poll` is ungated after the event (D-17). */
+  channelClosed?: boolean
 }) {
   const castVoteMut = useCastVote()
   const closePollMut = useClosePoll()
@@ -35,7 +40,7 @@ export default function PollCard({
   // `undefined !== null` is true — which flipped the card to an all-zero result
   // view with no way to vote, for exactly the case the line above guards.
   const myVote = poll.my_vote ?? null
-  const showResults = myVote !== null || closed
+  const showResults = myVote !== null || closed || channelClosed
 
   return (
     <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">

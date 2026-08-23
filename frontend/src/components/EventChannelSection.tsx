@@ -23,9 +23,15 @@ const OPTIONS_MAX = 6
 export default function EventChannelSection({
   activityId,
   canManage,
+  closed = false,
 }: {
   activityId: string
   canManage: boolean
+  /** The event has completed or been archived: the backend refuses new polls,
+   *  votes and questions, so the composers go and the thread stays. The section
+   *  is not unmounted, because this is the only surface on which a registrant
+   *  reads the answer a team writes after the event (D-17). */
+  closed?: boolean
 }) {
   const [expanded, setExpanded] = useState(true)
   const [composing, setComposing] = useState(false)
@@ -108,11 +114,18 @@ export default function EventChannelSection({
             </p>
           ) : (
             polls.map((poll) => (
-              <PollCard key={poll.id} poll={poll} activityId={activityId} canManage={canManage} />
+              <PollCard
+                key={poll.id}
+                poll={poll}
+                activityId={activityId}
+                canManage={canManage}
+                channelClosed={closed}
+              />
             ))
           )}
 
           {canManage &&
+            !closed &&
             (composing ? (
               <form onSubmit={submitPoll} className="space-y-2 rounded-xl border border-teal/20 bg-teal/[0.04] p-4">
                 <Input
@@ -171,7 +184,7 @@ export default function EventChannelSection({
            *  the section's, and `useMyQueries` scopes it to the caller's own
            *  questions, so no extra gate is needed here. */}
           <div className="border-t border-white/5 pt-3">
-            <QuerySection activityId={activityId} />
+            <QuerySection activityId={activityId} readOnly={closed} />
           </div>
         </div>
       )}

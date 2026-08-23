@@ -14,8 +14,19 @@ const BODY_MAX = 1000
  * Deliberately scoped to `useMyQueries`: `/queries/mine` returns only the
  * caller's own questions (D-11), so a question about a dietary requirement is
  * never a thing the rest of the attendees read.
+ *
+ * `readOnly` drops the composer and keeps the thread. The backend leaves
+ * `respond_query` open after the event ends on purpose (D-17), so the asker has
+ * to still have somewhere to read the answer — unmounting this once the event
+ * completes made every late reply unreadable by the person who asked for it.
  */
-export default function QuerySection({ activityId }: { activityId: string }) {
+export default function QuerySection({
+  activityId,
+  readOnly = false,
+}: {
+  activityId: string
+  readOnly?: boolean
+}) {
   const [body, setBody] = useState('')
 
   const { data: queries = [], isLoading, isError, error } = useMyQueries(activityId)
@@ -42,8 +53,16 @@ export default function QuerySection({ activityId }: { activityId: string }) {
 
   return (
     <section className="space-y-3">
-      <h4 className="text-[14px] font-semibold text-offwhite">Ask the organising team</h4>
+      <h4 className="text-[14px] font-semibold text-offwhite">
+        {readOnly ? 'Your questions' : 'Ask the organising team'}
+      </h4>
 
+      {readOnly ? (
+        <p className="text-caption text-graytext-mid">
+          This event has ended, so new questions are closed. Answers the team posts still
+          appear here.
+        </p>
+      ) : (
       <form onSubmit={submit} className="space-y-2">
         <Textarea
           value={body}
@@ -64,6 +83,7 @@ export default function QuerySection({ activityId }: { activityId: string }) {
           </Button>
         </div>
       </form>
+      )}
 
       {isLoading ? (
         <p className="text-caption text-graytext-mid">Loading your questions…</p>
@@ -73,8 +93,9 @@ export default function QuerySection({ activityId }: { activityId: string }) {
         <ErrorState error={error} />
       ) : queries.length === 0 ? (
         <p className="text-caption text-graytext-mid">
-          No questions asked yet. Have a question about logistics or food? Ask the organizing team
-          here.
+          {readOnly
+            ? 'You did not ask the team anything at this event.'
+            : 'No questions asked yet. Have a question about logistics or food? Ask the organizing team here.'}
         </p>
       ) : (
         <div className="space-y-2.5">

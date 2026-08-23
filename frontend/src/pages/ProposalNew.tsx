@@ -635,7 +635,28 @@ export default function ProposalNew() {
             })}
           </div>
           
-          {collabOrgIds.length === 0 ? (
+          {scale === 'regional_fest' ? (
+            // PROG-02 / D-01: count against the server's threshold, never a literal 6.
+            // Without a response there is no threshold to count against, so the counter
+            // is suppressed rather than guessed. The count includes the primary org,
+            // which is why the copy says "organisations", not "collaborators".
+            progression ? (() => {
+              const threshold = progression.collaboratorThreshold
+              const named = collabOrgIds.length + 1
+              const met = named >= threshold
+              return (
+                <p className="mt-2 text-caption text-graytext-light">
+                  <span className={`font-semibold transition-colors duration-200 ${met ? 'text-teal' : 'text-gold'}`}>{named}</span>
+                  {' '}of {threshold} organisations named
+                  <span className="mt-0.5 block text-graytext-mid">
+                    {met
+                      ? 'Each Secretary must accept before an admin can approve.'
+                      : `Name ${threshold - named} more to submit a Regional Fest.`}
+                  </span>
+                </p>
+              )
+            })() : null
+          ) : collabOrgIds.length === 0 ? (
             <p className="mt-2 text-caption text-graytext-mid">
               No collaborators yet — this is a {orgs.find((o: any) => o.id === form.org_id)?.name ?? 'your organisation'} event.
             </p>
@@ -692,6 +713,8 @@ const ERROR_HEADINGS: Record<string, string> = {
   invalid_role: 'Invalid team role',
   user_not_found: "Team member couldn't be found",
   quota_exceeded: 'Quota already used this month',
+  fest_locked: "Regional Fest isn't unlocked here yet",
+  fest_collaborators_required: 'A Regional Fest needs 6 organisations',
 }
 function errorHeading(code?: string) {
   return (code && ERROR_HEADINGS[code]) || "Couldn't submit the proposal"

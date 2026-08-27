@@ -111,8 +111,8 @@ export default function OrganiserDashboard() {
             {filteredEvents.map((e) => (
               <Card key={e.id} className="overflow-hidden flex flex-col group border-white/5 bg-onyx transition-all duration-300 hover:border-teal/40 hover:shadow-glow-teal hover:-translate-y-1">
                 <div 
-                  className="relative flex items-start justify-between p-4 h-32 transition-transform duration-500 ease-out group-hover:scale-105"
-                  style={{ background: e.cover ? cover(e.cover) : coverForScale(e.scale || '') }}
+                  className="relative flex items-start justify-between p-4 h-32 transition-transform duration-500 ease-out group-hover:scale-105 bg-200 animate-gradient-shift"
+                  style={{ backgroundImage: e.cover ? cover(e.cover) : coverForScale(e.scale || '') }}
                 >
                   <div className="grain absolute inset-0" />
                   

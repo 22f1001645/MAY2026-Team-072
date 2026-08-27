@@ -4,6 +4,9 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      backgroundSize: {
+        '200': '200% 200%',
+      },
       colors: {
         // Primary anchors
         teal: {
@@ -56,6 +59,10 @@ export default {
         material: 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
       keyframes: {
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
         'fade-up': {
           '0%': { opacity: '0', transform: 'translate3d(0, 20px, 0)' },
           '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
@@ -80,6 +87,11 @@ export default {
           '33%': { transform: 'translate3d(30px, -50px, 0) scale(1.1)', opacity: '0.4' },
           '66%': { transform: 'translate3d(-20px, 20px, 0) scale(0.9)', opacity: '0.2' },
         },
+        'aurora-drift': {
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
+          '33%': { transform: 'translate3d(30px, -50px, 0) scale(1.1)' },
+          '66%': { transform: 'translate3d(-20px, 20px, 0) scale(0.9)' },
+        },
         'fadeIn': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
@@ -93,12 +105,14 @@ export default {
         }
       },
       animation: {
+        'gradient-shift': 'gradient-shift 8s ease-in-out infinite',
         // Fade-in reveal: 20px upward slide + opacity 0→1 (brand kit §7)
         'fade-up': 'fade-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
         'spin-slow': 'spin-slow 2.4s linear infinite',
         'shake': 'shake 0.4s ease-in-out',
         'spring-up': 'spring-up 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.1) both',
         'aurora': 'aurora 15s ease-in-out infinite',
+        'aurora-drift': 'aurora-drift 15s ease-in-out infinite',
         'fadeIn': 'fadeIn 0.3s ease-out',
         'slideInRight': 'slideInRight 0.3s ease-out',
         'shimmer': 'shimmer 2s infinite',

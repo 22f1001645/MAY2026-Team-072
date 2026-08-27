@@ -13,7 +13,7 @@ import {
   useUploadExpenseBill,
 } from '../lib/queries'
 import { useAuth } from '../lib/auth'
-import { Badge, Button, Card, Input, Progress, SectionTitle } from '../components/ui'
+import { Badge, Button, Card, Input, Progress, SectionTitle, FormDatePicker, FormSelect } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import OrgQueriesPanel from '../components/OrgQueriesPanel'
 import { cx, daysUntil } from '../lib/format'
@@ -570,8 +570,8 @@ function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; 
           )}
           {confirmOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
-              <Card className="relative w-full max-w-sm p-6">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setConfirmOpen(false)} />
+              <Card className="relative w-full max-w-sm p-6 bg-onyx">
                 <h3 className="mb-3 text-h3 font-bold text-offwhite">Confirm submission?</h3>
                 <p className="mb-4 text-[14px] text-graytext-light">
                   This will send the reimbursement request to admin for review. It cannot be edited after submission.
@@ -672,8 +672,8 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20 bg-onyx">
         <h2 className="mb-2 text-h3 font-bold text-offwhite">Edit Event</h2>
         <p className="mb-4 text-[13px] text-teal">
           Changing the time or venue will automatically notify all registered students.
@@ -693,15 +693,38 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
               disabled={updateMutation.isPending}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Start time</label>
-            <Input
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e: any) => setStartsAt(e.target.value)}
-              disabled={updateMutation.isPending}
-            />
-          </div>
+            <div>
+              <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Start time</label>
+              <div className="flex gap-2">
+                <FormDatePicker 
+                  value={startsAt.split('T')[0] || ''} 
+                  onChange={(date) => {
+                    const current = startsAt || ''
+                    const timePart = current.includes('T') ? current.split('T')[1] : '18:00'
+                    setStartsAt(`${date}T${timePart}`)
+                  }} 
+                  className="flex-1" 
+                />
+                <FormSelect 
+                  value={startsAt.includes('T') ? startsAt.split('T')[1].slice(0, 5) : ''}
+                  onChange={(time) => {
+                    const current = startsAt || ''
+                    const datePart = current ? current.split('T')[0] : new Date().toISOString().split('T')[0]
+                    setStartsAt(`${datePart}T${time}`)
+                  }}
+                  placeholder="Time"
+                  className="w-[120px]"
+                  options={Array.from({ length: 48 }).map((_, i) => {
+                    const h = Math.floor(i / 2)
+                    const m = i % 2 === 0 ? '00' : '30'
+                    const hh = String(h).padStart(2, '0')
+                    const ampm = h >= 12 ? 'PM' : 'AM'
+                    const h12 = h % 12 || 12
+                    return { label: `${h12}:${m} ${ampm}`, value: `${hh}:${m}` }
+                  })}
+                />
+              </div>
+            </div>
           <div>
             <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Venue</label>
             <Input value={venue} onChange={(e: any) => setVenue(e.target.value)} disabled={updateMutation.isPending} />
@@ -745,8 +768,8 @@ function CancelEventModal({ event, onClose }: { event: any; onClose: () => void 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <Card className="relative w-full max-w-sm p-6 animate-fade-up border-red-500/20">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <Card className="relative w-full max-w-sm p-6 animate-fade-up border-red-500/20 bg-onyx">
         <h2 className="mb-4 text-h3 font-bold text-red-400">Cancel Event?</h2>
         <p className="mb-6 text-[14px] text-graytext-light">
           This will cancel the event and automatically notify all registered and waitlisted students. This action cannot be undone.
@@ -781,8 +804,8 @@ function PushAlertModal({ eventId, onClose }: { eventId: string; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20 bg-onyx">
         <h2 className="mb-4 text-h3 font-bold text-offwhite">Send Push Alert</h2>
         <p className="mb-6 text-[14px] text-graytext-light">
           This will send a push notification to all registered attendees and appear in the "Important Updates" section on the event page.

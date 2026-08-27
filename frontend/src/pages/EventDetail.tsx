@@ -14,6 +14,7 @@ import CollabStatus from '../components/CollabStatus'
 import { viewFromPathname } from '../components/ViewSwitcher'
 import PublicEventLanding from './PublicEventLanding'
 import InviteSearchBlock from '../components/InviteSearchBlock'
+import { uploadUrl } from '../lib/api'
 
 /**
  * EventDetail also serves the shared registration link, which a visitor opens
@@ -114,12 +115,21 @@ export default function EventDetail() {
         </div>
       )}
 
-      {/* Cover */}
+      {/* Cover / Poster */}
       <div
-        className="relative mb-6 flex min-h-[220px] items-end overflow-hidden rounded-xl2 border border-white/5 p-7"
-        style={{ background: cover(e.cover) }}
+        className="relative mb-6 flex min-h-[220px] items-end overflow-hidden rounded-xl2 border border-white/5 p-7 bg-200 animate-gradient-shift"
+        style={!e.posterName ? { backgroundImage: cover(e.cover) } : {}}
       >
-        <div className="grain absolute inset-0" />
+        {e.posterName && (
+          <img 
+            src={uploadUrl(e.posterName)} 
+            alt={e.title} 
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {/* Dark gradient overlay so the text remains readable over the poster */}
+        {e.posterName && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />}
+        {!e.posterName && <div className="grain absolute inset-0" />}
         <div className="relative">
           <div className="mb-2 flex flex-wrap gap-2">
             {e.proposalStatus !== 'approved' && (

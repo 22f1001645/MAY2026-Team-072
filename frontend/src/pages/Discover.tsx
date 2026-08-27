@@ -280,8 +280,8 @@ function FeaturedCarousel({ events, isLoading }: { events: EkatvaEvent[], isLoad
         {events.map((e, idx) => (
           <section 
             key={e.id}
-            className="w-full h-full shrink-0 relative flex flex-col items-center justify-center text-center p-10"
-            style={{ background: cover(e.cover) }}
+            className="w-full h-full shrink-0 relative flex flex-col items-center justify-center text-center p-10 bg-200 animate-gradient-shift"
+            style={{ backgroundImage: cover(e.cover) }}
           >
             <div className="absolute inset-0 bg-onyx/60 backdrop-blur-sm" />
             <div className="grain absolute inset-0 mix-blend-overlay opacity-50" />
@@ -382,8 +382,8 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
   return (
     <Card hover className="h-full overflow-hidden flex flex-col group/card">
       <div
-        className={cx("relative flex items-end p-4 transition-transform duration-500 hover:scale-105", compact ? "h-24" : "h-32")}
-        style={{ background: cover(e.cover) }}
+        className={cx("relative flex items-end p-4 transition-transform duration-500 hover:scale-105 bg-200 animate-gradient-shift", compact ? "h-24" : "h-32")}
+        style={{ backgroundImage: cover(e.cover) }}
       >
         <div className="grain absolute inset-0" />
         <div className="relative flex w-full items-center justify-between">

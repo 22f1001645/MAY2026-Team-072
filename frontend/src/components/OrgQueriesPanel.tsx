@@ -1,25 +1,12 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Badge, Button, Card, Textarea, useToast } from './ui'
 import { ErrorState } from './states'
 import { useOrgQueries, useRespondQuery } from '../lib/queries'
 
-/** Mirrors `QueryRespondSchema` — the answer bound is wider than the question's. */
 const RESPONSE_MAX = 2000
 
-/**
- * CHAT-02 / CHAT-03 — the organising team's view of event Q&A (D-09).
- *
- * Open questions sort to the top: this panel is a work queue, and the thing the
- * team came here to do is answer the ones nobody has answered.
- */
 export default function OrgQueriesPanel({ activityId }: { activityId: string }) {
-  // One draft per query id — a single shared draft string would put the same
-  // half-typed answer under every open question on the list.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  // Which reply is in flight, not merely whether one is. `respondMut.isPending`
-  // is one flag for the whole list, so using it directly disabled every other
-  // question's Send button — and put "Sending…" on all of them — while one
-  // answer was on the wire.
   const [sendingId, setSendingId] = useState<string | null>(null)
 
   const { data: queries = [], isLoading, isError, error } = useOrgQueries(activityId)
@@ -28,7 +15,6 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
 
   const unansweredCount = queries.filter((q) => q.status === 'open').length
 
-  // Open first, newest first within each group.
   const sorted = [...queries].sort((a, b) =>
     a.status === b.status ? b.at.localeCompare(a.at) : a.status === 'open' ? -1 : 1,
   )
@@ -52,76 +38,83 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
 
   return (
     <Card className="p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <h3 className="text-[15px] font-semibold text-offwhite">Attendee Questions &amp; Q&amp;A</h3>
-        {unansweredCount > 0 && (
-          <Badge tone="warn">
-            {unansweredCount} unanswered
-          </Badge>
-        )}
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[15px] font-semibold text-offwhite flex items-center gap-2">
+          Attendee Q&A
+          {unansweredCount > 0 && (
+            <Badge tone="warn" className="scale-90 origin-left">
+              {unansweredCount} New
+            </Badge>
+          )}
+        </h3>
       </div>
 
       {isLoading ? (
-        <p className="text-caption text-graytext-mid">Loading questions…</p>
+        <p className="text-caption text-graytext-mid">Loading questions...</p>
       ) : isError ? (
-        // Never the empty state on failure: "no questions from attendees yet"
-        // told an organiser with confidence that a 403 or a stopped backend was
-        // silence from the community.
         <ErrorState error={error} />
       ) : sorted.length === 0 ? (
         <div className="p-10 text-center text-graytext-light">
           No questions from attendees yet.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sorted.map((q) => (
-            <div key={q.id} className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-              <div className="mb-2 flex items-start justify-between gap-3">
-                {/* `EventQuery` carries `user_id` and no author name (08-02/08-03
-                    both flagged it), so the id is shown as an id rather than
-                    dressed up as a person the server never named. */}
-                <span className="text-caption uppercase tracking-wider text-graytext-mid">
-                  Attendee {q.user_id.slice(0, 8)} · {new Date(q.at).toLocaleString()}
-                </span>
-                <Badge tone={q.status === 'answered' ? 'teal' : 'warn'} className="shrink-0">
-                  {q.status === 'answered' ? 'Answered' : 'Open'}
-                </Badge>
+            <div key={q.id} className="flex flex-col gap-3 py-3 border-b border-white/5 last:border-0 last:pb-0">
+              
+              {/* Question Bubble (Left) */}
+              <div className="flex flex-col items-start pr-12">
+                <div className="flex items-center gap-2 mb-1 pl-1">
+                  <span className="text-[11px] font-medium text-graytext-mid uppercase tracking-wider">
+                    Attendee {q.user_id.slice(0, 8)} · {new Date(q.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-2.5 text-[14px] text-offwhite max-w-[90%] shadow-sm">
+                  {q.body}
+                </div>
               </div>
 
-              <p className="text-[14px] leading-snug text-offwhite">{q.body}</p>
-
-              {q.status === 'open' ? (
-                <div className="mt-3 space-y-2 border-t border-white/5 pt-3">
-                  <Textarea
-                    value={drafts[q.id] ?? ''}
-                    onChange={(ev) =>
-                      setDrafts((prev) => ({ ...prev, [q.id]: ev.target.value }))
-                    }
-                    maxLength={RESPONSE_MAX}
-                    rows={2}
-                    placeholder="Answer this question…"
-                    aria-label={`Reply to question from attendee ${q.user_id.slice(0, 8)}`}
-                  />
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      disabled={!(drafts[q.id] ?? '').trim() || sendingId === q.id}
-                      onClick={() => sendReply(q.id)}
-                    >
-                      {sendingId === q.id ? 'Sending…' : 'Send Reply'}
-                    </Button>
+              {/* Answer Bubble (Right) */}
+              {q.status === 'answered' ? (
+                <div className="flex flex-col items-end pl-12">
+                  <div className="flex items-center gap-2 mb-1 pr-1">
+                    <span className="text-[11px] font-medium text-teal/80 uppercase tracking-wider">
+                      Organising Team {q.responded_by && `(${q.responded_by.slice(0, 8)})`} · {q.responded_at && new Date(q.responded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="bg-teal/20 text-teal-50 border border-teal/20 rounded-2xl rounded-tr-sm px-4 py-2.5 text-[14px] max-w-[90%] shadow-sm">
+                    {q.response_body}
                   </div>
                 </div>
               ) : (
-                <div className="mt-3 rounded-lg border-l-2 border-teal/50 bg-teal/[0.05] py-2 pl-3 pr-2.5">
-                  <p className="text-caption uppercase tracking-wider text-teal">
-                    Answered
-                    {q.responded_by && ` by ${q.responded_by.slice(0, 8)}`}
-                    {q.responded_at && ` · ${new Date(q.responded_at).toLocaleString()}`}
-                  </p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-graytext-light">
-                    {q.response_body}
-                  </p>
+                /* Unanswered State (Input field on the right) */
+                <div className="flex flex-col items-end pl-12 mt-1">
+                  <div className="w-full max-w-[90%] bg-black/40 border border-white/10 rounded-2xl rounded-tr-sm p-3 shadow-inner">
+                    <Textarea
+                      value={drafts[q.id] ?? ''}
+                      onChange={(ev) =>
+                        setDrafts((prev) => ({ ...prev, [q.id]: ev.target.value }))
+                      }
+                      maxLength={RESPONSE_MAX}
+                      rows={2}
+                      placeholder="Type your reply..."
+                      className="bg-transparent border-none p-0 focus:ring-0 resize-none text-[14px] text-offwhite placeholder:text-graytext-mid"
+                      aria-label={`Reply to question from attendee ${q.user_id.slice(0, 8)}`}
+                    />
+                    <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-2">
+                      <span className="text-[11px] text-graytext-mid">
+                        {RESPONSE_MAX - (drafts[q.id]?.length || 0)} chars left
+                      </span>
+                      <Button
+                        size="sm"
+                        className="py-1 px-4 h-auto text-[12px] bg-teal hover:bg-teal-400 text-onyx font-bold rounded-full"
+                        disabled={!(drafts[q.id] ?? '').trim() || sendingId === q.id}
+                        onClick={() => sendReply(q.id)}
+                      >
+                        {sendingId === q.id ? 'Sending...' : 'Reply'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

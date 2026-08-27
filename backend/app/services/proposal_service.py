@@ -9,7 +9,8 @@ from ..constants import (
     COLLAB_PENDING,
     EVENT_UPCOMING,
     EVENT_CANCELLED,
-    MEETUPS_PER_CITY_PER_MONTH,
+    FEST_COLLAB_THRESHOLD,
+    MEETUPS_PER_REGION_PER_MONTH,
     MEGA_MEETUP_THRESHOLD,
     ORG_MANAGER_PORS,
     PROPOSAL_APPROVED,
@@ -17,9 +18,18 @@ from ..constants import (
     PROPOSAL_REJECTED,
     PROPOSAL_REVOKED,
     PROPOSAL_SUBMITTED,
+    REPORT_DRAFT,
+    REPORT_SUBMITTED,
     ROLE_ADMIN,
     TEAM_ROLES,
     TEAM_ROLE_MEETUP_HEAD,
+)
+from .progression_service import (
+    assert_fest_collaborators_accepted,
+    assert_fest_eligible,
+    clear_unlock_if_ineligible,
+    fest_eligibility,
+    record_unlock,
 )
 from .settings_service import get_recognition_points
 from ..errors import ApiError
@@ -35,7 +45,7 @@ from ..models import (
     Report,
     User,
 )
-from ..rbac import has_organiser_por_in_org
+from ..rbac import has_organiser_por_in_org, is_meetup_head
 from ..repositories.repos import ActivityRepository, AuditRepository, OrgRepository
 
 
@@ -66,6 +76,11 @@ def submit_proposal(data: dict, organiser) -> Activity:
                 400,
             )
 
+    # PROG-01/PROG-04: fest tier is earned, not requested. No admin carve-out —
+    # the ROLE_ADMIN bypass above covers the POR check only.
+    if data["scale"] == "regional_fest":
+        assert_fest_eligible(data["org_id"], data["city"])
+
     # PROPOSAL-02: validate team roster — exactly one Meetup Head required.
     team = data.get("team", [])
     meetup_heads = [m for m in team if m["role"] == TEAM_ROLE_MEETUP_HEAD]
@@ -90,7 +105,7 @@ def submit_proposal(data: dict, organiser) -> Activity:
     # Quota guardrail (FR-B2): one meetup per region per month.
     if data["scale"] in ("local_meetup", "regional_meetup"):
         count = ActivityRepository.meetups_in_region_month(data["org_id"], data["starts_at"])
-        if count >= MEETUPS_PER_CITY_PER_MONTH:
+        if count >= MEETUPS_PER_REGION_PER_MONTH:
             raise ApiError(
                 f"Quota guardrail: this region already has a meetup this month",
                 "quota_exceeded",
@@ -113,6 +128,23 @@ def submit_proposal(data: dict, organiser) -> Activity:
             )
         seen_org_ids.add(collab_org_id)
         valid_collab_orgs.append(collab_org)
+
+    # PROG-02 (D-01, named half): a Regional Fest must name at least
+    # FEST_COLLAB_THRESHOLD organisations INCLUDING the primary. Counted off
+    # valid_collab_orgs, never data["collaborating_org_ids"] — the raw request
+    # list is undeduplicated, so six repeats of one id would otherwise pass.
+    # The accepted-count half of this rule is enforced at approve time; it could
+    # never pass here, on a proposal whose invites have not been answered yet.
+    if data["scale"] == "regional_fest":
+        named = len(valid_collab_orgs) + 1
+        if named < FEST_COLLAB_THRESHOLD:
+            raise ApiError(
+                f"A Regional Fest needs at least {FEST_COLLAB_THRESHOLD} collaborating "
+                f"organisations; this proposal names {named} of {FEST_COLLAB_THRESHOLD} "
+                f"(counting your own organisation).",
+                "fest_collaborators_required",
+                403,
+            )
 
     # --- All validation passed; write to DB ---
 
@@ -273,12 +305,25 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         # FR-B2: Enforce the 1-meetup-per-month quota before allowing approval
         if activity.scale in ["local_meetup", "regional_meetup"]:
             count = ActivityRepository.approved_meetups_in_region_month(activity.org_id, activity.starts_at)
-            if count >= 1:
+            if count >= MEETUPS_PER_REGION_PER_MONTH:
                 raise ApiError(
                     f"Quota exceeded: An approved meetup already exists in {activity.starts_at.strftime('%B %Y')} for this region.",
                     "quota_exceeded",
                     409,
                 )
+
+        # PROG-01/PROG-02/PROG-04, enforcement checkpoint 2 of 2. Both facts can
+        # change while a proposal waits in the queue: the qualifying meetup can be
+        # revoked, and an invited org can decline. Checking only at submit would
+        # enforce the rule against the honest caller alone (T-07-07, T-07-08).
+        # No admin carve-out, even though only an admin reaches this branch.
+        #
+        # Placement above the first write is load-bearing: decide() has no
+        # rollback path, so a guard below it would leave proposal.status mutated
+        # in the session after the raise (T-07-05).
+        if activity.scale == "regional_fest":
+            assert_fest_eligible(activity.org_id, activity.city)
+            assert_fest_collaborators_accepted(activity)
 
         proposal.status = PROPOSAL_APPROVED
         # On approval the Activity auto-publishes as a live event (FR-C1)
@@ -295,6 +340,21 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
         )
         _notify(activity.organiser_id, activity.id, "approval",
                 "Proposal approved", f"'{activity.title}' is live on the city feed.")
+
+        # PROG-03: an approval can be the thing that completes the pair, so the
+        # marker is written here rather than only on fest approvals — otherwise
+        # the sponsorship banner would appear one fest after the scale card
+        # unlocked, and the two surfaces would disagree (assumption A1).
+        # Inside this transaction, with no commit of its own.
+        #
+        # The flush is load-bearing, not tidiness: fest_eligibility() re-queries
+        # the proposals table, and THIS approval is one of the rows it must see.
+        # Autoflush happens to do it today; disabling autoflush (a common
+        # hardening step) would silently stop the marker being written, with no
+        # error and both PROG-03 surfaces going quiet.
+        db.session.flush()
+        if fest_eligibility(activity.org_id, activity.city)["fest_eligible"]:
+            record_unlock(activity.org_id, activity.city)
     elif decision == "changes":
         if not note:
             raise ApiError("A note is required when requesting changes", "note_required", 400)
@@ -318,6 +378,12 @@ def decide(activity_id: str, decision: str, note: str, admin) -> Activity:
 
         _notify(activity.organiser_id, activity.id, "update", "Approval Revoked", note or "The admin has revoked the approval for this event.")
 
+        # PROG-03, the other direction: this revocation may have taken away the
+        # half of the track record that earned the unlock. Same flush-then-
+        # recompute as the approve branch above.
+        db.session.flush()
+        clear_unlock_if_ineligible(activity.org_id, activity.city)
+
     db.session.commit()
     return activity
 
@@ -340,6 +406,106 @@ def submit_report(activity_id: str, summary: str, organiser) -> Report:
     activity.status = "completed"
     db.session.add(report)
     AuditRepository.record("report", activity_id, "Filed post-event report", organiser)
+    db.session.commit()
+    return report
+
+
+# --------------------------------------------------------------------------- #
+# FEEDBACK-01 — the post-event reflection: open drafting, one submitter
+# --------------------------------------------------------------------------- #
+def patch_report(activity_id: str, data: dict, user) -> Report:
+    """FEEDBACK-01 — save the reflection draft; only the Meetup Head submits.
+
+    Decision D-12 splits one panel into two authorities, exactly as REIMB-01/02
+    split the Reimbursement panel next to it. Any team member may write and
+    rewrite `challenges` and `learnings` — the panel auto-saves each textarea on
+    blur — and none of that counts as filing anything. Only the assigned Meetup
+    Head may move the report to `submitted`.
+
+    The route guard answers the broad question (may this person touch this
+    event's reflection at all?). The narrow one depends on `status` in the
+    request body, which no route guard can read, so it is asked here — the
+    conditional-authority split established by expense_service.draft_and_submit.
+
+    Both gates run BEFORE the first field is written, following that same
+    function: a submit the caller was not allowed to make must leave the draft
+    exactly as they left it, not half-saved by the call that refused them.
+    """
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity:
+        raise ApiError("Event not found", "not_found", 404)
+
+    submitting = data.get("status") == REPORT_SUBMITTED
+    if submitting and not is_meetup_head(user, activity):
+        # No admin fallback, deliberately. is_meetup_head documents itself as
+        # "the one accountable submitter" and FEEDBACK-01 is one of the three
+        # rules named in that docstring; a convenience short-circuit here would
+        # quietly restate the rule as "the Meetup Head or anyone senior to
+        # them" (RBAC-03). PROPOSAL-05 gives an admin the power to REASSIGN the
+        # Meetup Head, which is a different power from acting as one.
+        raise ApiError(
+            "Only the assigned Meetup Head of this event may submit the "
+            "post-event reflection",
+            "forbidden",
+            403,
+        )
+
+    # A soft-deleted report is gone, not a draft to resume — the TIMELINE-01
+    # projection skips those rows for the same reason. Earliest-first so the row
+    # this endpoint edits stays the same one when history has left more than one
+    # behind (FR-F2's submit_report appends rather than upserting).
+    report = (
+        Report.query.filter(
+            Report.activity_id == activity_id,
+            Report.deleted_at.is_(None),
+        )
+        .order_by(Report.created_at.asc())
+        .first()
+    )
+
+    if report is not None and report.status == REPORT_SUBMITTED:
+        # Once filed, the reflection is a record of what the team said at the
+        # time, not a document that keeps moving under the person reading it —
+        # the same rule REIMB-01 applies to an expense that has left draft.
+        # Rows predating this endpoint carry `submitted` by server default, and
+        # that is the truth about them: they were filed, by FR-F2's POST.
+        raise ApiError(
+            "This report has already been submitted",
+            "report_not_draft",
+            409,
+        )
+
+    if report is None:
+        # FEEDBACK-01's upsert: the panel has no "create report" action, so the
+        # first blur on an empty textarea is what brings the row into being.
+        # `summary` is left empty rather than invented — FR-F2's summary and
+        # D-12's reflection are different fields written by different actions.
+        report = Report(activity_id=activity_id, summary="", status=REPORT_DRAFT)
+        db.session.add(report)
+
+    # None means "not mentioned", never "clear it": the schema fills every
+    # absent key with None, so reading these with a default would blank a
+    # paragraph the client never sent (the EditEventSchema partial-PATCH rule).
+    for field in ("challenges", "learnings"):
+        if data.get(field) is not None:
+            setattr(report, field, data[field])
+
+    if submitting:
+        report.status = REPORT_SUBMITTED
+        report.submitted_by = user.id
+        # Distinct from created_at, which is when the draft was first written.
+        report.submitted_at = datetime.now(UTC)
+        # Keyed on the activity so it lands in this event's audit trail beside
+        # submit_report()'s row. `report` is deliberately absent from the
+        # timeline projection's PROJECTED_ENTITIES, so this cannot double the
+        # entry that projection already emits from the Report table itself.
+        AuditRepository.record(
+            "report",
+            activity_id,
+            "Post-event reflection submitted",
+            user,
+        )
+
     db.session.commit()
     return report
 

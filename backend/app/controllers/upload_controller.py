@@ -38,6 +38,15 @@ IMAGE_MAGIC = (
 # 16 bytes is enough for every row above (the deepest check ends at offset 12).
 IMAGE_MAGIC_BYTES = 16
 
+# A reimbursement bill is a photo of a receipt OR a PDF invoice, so this table is
+# the image allowlist plus one row. It stays SEPARATE from IMAGE_MAGIC because a
+# PDF is not acceptable everywhere an image is: an organisation logo and a
+# campaign poster are rendered in an <img>, and widening the shared table would
+# silently let a PDF through both of those.
+#
+# SVG stays excluded here for the same reason it is excluded above.
+BILL_MAGIC = IMAGE_MAGIC + ((".pdf", ((0, b"%PDF-"),)),)
+
 
 def upload_dir() -> Path:
     """`<instance_path>/uploads`, created if it is not there.
@@ -60,10 +69,23 @@ def sniff_image_ext(head: bytes) -> str | None:
     with `Content-Type: image/png` costs an attacker nothing to send — so
     neither is consulted here or anywhere else (T-04-18).
     """
+    return _sniff(head, IMAGE_MAGIC)
+
+
+def sniff_bill_ext(head: bytes) -> str | None:
+    """The canonical extension for a reimbursement bill, or None to refuse.
+
+    Same bytes-only decision as `sniff_image_ext` — the declared content type and
+    the client's filename are never consulted — over the wider BILL_MAGIC table.
+    """
+    return _sniff(head, BILL_MAGIC)
+
+
+def _sniff(head: bytes, table) -> str | None:
     return next(
         (
             ext
-            for ext, signature in IMAGE_MAGIC
+            for ext, signature in table
             if all(head[at:at + len(sig)] == sig for at, sig in signature)
         ),
         None,
@@ -106,3 +128,28 @@ def serve_upload(filename):
 def served_path(filename: str) -> str:
     """The `logo_url` value for a stored file — the one place the path is built."""
     return f"{UPLOAD_URL_PREFIX}{filename}"
+
+
+def save_image_upload(file_storage, max_bytes: int = 5 * 1024 * 1024) -> str:
+    """Validate and save an uploaded image (PNG, JPEG, WebP) up to max_bytes, returning its served path."""
+    from uuid import uuid4
+    from ..errors import ApiError
+
+    file_storage.stream.seek(0, 2)
+    size = file_storage.stream.tell()
+    file_storage.stream.seek(0)
+    if size > max_bytes:
+        mb = max_bytes // (1024 * 1024)
+        raise ApiError(f"Image must be {mb} MB or smaller.", "payload_too_large", 413)
+
+    head = file_storage.read(IMAGE_MAGIC_BYTES)
+    file_storage.seek(0)
+
+    ext = sniff_image_ext(head)
+    if ext is None:
+        raise ApiError("That file isn't a PNG, JPEG or WebP.", "invalid_image", 400)
+
+    name = f"{uuid4().hex}{ext}"
+    file_storage.save(str(upload_dir() / name))
+    return served_path(name)
+

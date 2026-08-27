@@ -15,6 +15,9 @@ from .upload_controller import upload_bp
 from .schedule_controller import schedule_bp
 from .campaign_controller import campaign_bp
 from .task_controller import task_bp
+from .feedback_controller import feedback_bp
+from .timeline_controller import timeline_bp
+from .channel_controller import channel_bp
 
 ALL_BLUEPRINTS = [
     auth_bp,
@@ -36,4 +39,7 @@ ALL_BLUEPRINTS = [
     schedule_bp,
     campaign_bp,
     task_bp,
+    feedback_bp,
+    timeline_bp,
+    channel_bp,
 ]

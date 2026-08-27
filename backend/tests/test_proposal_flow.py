@@ -56,9 +56,29 @@ def test_quota_guardrail_blocks_second_meetup_same_month(client, rc_headers):
     assert res.get_json()["code"] == "quota_exceeded"
 
 
+def test_quota_guardrail_does_not_block_an_earlier_month(client, rc_headers):
+    """CR-03: the month window is bounded at both ends.
+
+    An unbounded `starts_at >= first of month` counted every later month too, so
+    one September meetup made every August proposal permanently unsubmittable.
+    """
+    client.post("/api/v1/activities", json=_proposal_payload(), headers=rc_headers)
+    res = client.post(
+        "/api/v1/activities",
+        json=_proposal_payload(title="August one", starts_at="2026-08-20T17:30:00"),
+        headers=rc_headers,
+    )
+    assert res.status_code == 201, res.get_json()
+
+
 def test_full_spine_propose_approve_register_checkin_points(client, rc_headers, admin_headers, student_headers):
-    # 1. Propose
-    r = client.post("/api/v1/activities", json=_proposal_payload(), headers=rc_headers)
+    from datetime import datetime, timedelta
+    # 1. Propose (starts in 30 mins so check-in is permitted)
+    r = client.post(
+        "/api/v1/activities",
+        json=_proposal_payload(starts_at=(datetime.utcnow() + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%S")),
+        headers=rc_headers,
+    )
     activity_id = r.get_json()["id"]
 
     # 2. Approve → auto-publish (FR-C1)

@@ -13,7 +13,7 @@ from ..errors import ApiError
 from ..rbac import auth_required, can_manage_org_required
 from ..repositories.repos import OrgRepository
 from ..schemas import BrandKitSchema, OrgProfileSchema, SocialLinksReplaceSchema
-from ..services import org_profile_service
+from ..services import org_profile_service, progression_service
 
 org_profile_bp = Blueprint("org_profile", __name__, url_prefix="/api/v1")
 
@@ -29,6 +29,26 @@ def get_profile(org_id):
     if not org:
         raise ApiError("Organisation not found", "not_found", 404)
     return jsonify(org_profile_service.public_profile(org)), 200
+
+
+@org_profile_bp.get("/orgs/<org_id>/progression")
+@auth_required
+def get_progression(org_id):
+    """PROG-01/PROG-03 — this organisation's fest-tier track record in a city.
+
+    Any authenticated reader, matching GET /profile above and not the stricter
+    can_manage_org_required: an admin proposing on behalf of an organisation
+    holds no POR in it, and submit_proposal explicitly permits that flow, so the
+    tighter guard would lock the fest form's own lock-state fetch (assumption
+    A2). Every fact here is already public through the published feed.
+
+    `city` is optional. Without it the payload is the profile banner's
+    (unlocks only); with it, the fest card's lock state as well.
+    """
+    org = OrgRepository.by_id(org_id)
+    if not org:
+        raise ApiError("Organisation not found", "not_found", 404)
+    return jsonify(progression_service.progression_for(org, request.args.get("city"))), 200
 
 
 @org_profile_bp.patch("/orgs/<org_id>/profile")

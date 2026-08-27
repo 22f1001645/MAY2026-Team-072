@@ -58,6 +58,9 @@ export interface Organisation {
   name: string
   type: 'house' | 'society' | 'region' | 'council'
   city: string
+  category?: string | null
+  tagline?: string | null
+  description?: string | null
   /** Phase 4 (ORG-01). `null` until a manager writes one — never `undefined`,
    *  because the adapter always supplies a value. */
   bio: string | null
@@ -65,6 +68,7 @@ export interface Organisation {
    *  `adaptOrganisation` in lib/api.ts is the one place that path is resolved
    *  against the API base, so no component ever concatenates one. */
   logoUrl: string | null
+  bannerUrl?: string | null
   /** ORG-02: the organisation's own site. A distinct field, never a seventh
    *  social platform — the model's honesty here is what makes ROADMAP criterion
    *  2 literally true of every social-link row. */
@@ -228,23 +232,25 @@ export interface AnnouncementMessage {
 
 export type CollabStatus = 'pending' | 'accepted' | 'declined'
 
+/** camelCase like every other type in this module. The snake→camel adaptation
+ *  happens once, in adaptEvent(); components never see the wire shape. */
 export interface Collaborator {
   id: string
-  activity_id: string
-  org_id: string
+  activityId: string
+  orgId: string
   org: string | null
-  is_primary: boolean
+  isPrimary: boolean
   status: CollabStatus
-  responded_at: string | null
+  respondedAt: string | null
 }
 
 export interface TeamMember {
   id: string
-  activity_id: string
-  user_id: string
+  activityId: string
+  userId: string
   member: string | null
   role: string
-  added_by: string | null
+  addedBy: string | null
 }
 
 /** One row of the event agenda (DESIGN-01). Snake→camelCase adaptation
@@ -330,4 +336,87 @@ export interface ApiCampaignState {
     poster: boolean
     registration: boolean
   }
+}
+
+/* ── Phase 7: progression gating (PROG-01…PROG-03) ─────────────────────────── */
+
+/** One city an organisation has unlocked the fest tier in (PROG-03). Written by
+ *  the server at approve time; the client only ever reads it. */
+export interface OrgUnlock {
+  id: string
+  orgId: string
+  city: string
+  /** ISO timestamp — the sponsorship banner's city chips are built from it. */
+  unlockedAt: string
+}
+
+/** `GET /orgs/{id}/progression[?city=]`. Presentation input only: the fest gate
+ *  is enforced server-side at submit and at approve (PROG-04), so nothing here
+ *  authorizes anything. */
+export interface FestEligibility {
+  orgId: string
+  /** `null` when the caller asked without a city — the profile-banner call. */
+  city: string | null
+  /** `null`, not `0`, when no city was supplied: "not told which city yet" is a
+   *  different statement from "zero completed", and the fest card's caption must
+   *  not read "0 of 2 completed" before a city is picked. The two counts stay
+   *  separate so the lock caption can name which half is missing (PROG-01). */
+  localMeetupsCompleted: number | null
+  regionalMeetupsCompleted: number | null
+  /** Render the "N of 2 completed" sentence from these two directly — the server
+   *  has already done the arithmetic. */
+  requirementsMet: number
+  requirementsTotal: number
+  festEligible: boolean
+  /** Server-sourced (`FEST_COLLAB_THRESHOLD`). Never hardcode this number in a
+   *  component — a literal here could disagree with the constant that enforces. */
+  collaboratorThreshold: number
+  /** Always an array, never `undefined` — the banner's visibility test is a
+   *  length check. */
+  unlocks: OrgUnlock[]
+}
+
+// ── Phase 8: Event channel — polls and queries (CHAT-01/CHAT-02) ─────────────
+//
+// Snake_case on purpose, like `Notification` above and unlike `AnnouncementMessage`:
+// nothing adapts these in api.ts, so the type must describe the wire shape the
+// server actually sends. A camelCase type with no adapter behind it is a type
+// that is wrong at runtime.
+
+/** One poll as the LIST endpoint returns it. `vote_counts`/`my_vote` are added
+ *  by `channel_service.list_polls`, not by `EventPoll.to_dict()` — the create
+ *  and close responses carry the row alone, hence the `Omit<>` on those two
+ *  callers in api.ts. */
+export interface EventPoll {
+  id: string
+  activity_id: string
+  question: string
+  options: string[]
+  status: 'open' | 'closed'
+  closes_at: string | null
+  /** One count per option, index-aligned with `options`. */
+  vote_counts: number[]
+  /** The signed-in caller's chosen option index, or `null` if they have not
+   *  voted (and always `null` for an anonymous viewer). */
+  my_vote: number | null
+}
+
+export interface EventPollVote {
+  id: string
+  poll_id: string
+  user_id: string
+  option_index: number
+}
+
+export interface EventQuery {
+  id: string
+  activity_id: string
+  user_id: string
+  body: string
+  status: 'open' | 'answered'
+  response_body: string | null
+  responded_by: string | null
+  responded_at: string | null
+  /** Creation time. Named `at` by the server, like `Notification.at`. */
+  at: string
 }

@@ -28,6 +28,7 @@ A Regional Coordinator can propose, get approved, publish, fill, run, and reimbu
 - ✓ Admin community analytics + ₹200 activity-fee utilisation tracking, computed over the same data — v1 (city heatmap/ranking and organiser-activity view are NOT implemented — PRD FR-H6/H7 are SH-priority and not actually shipped, see Context)
 - ✓ Organiser workspace (registration list) and activity auto-archive — v1, THIN (explicitly flagged in PRD as "deepen in Phase 2")
 - ✓ Task assignment on an activity — v1, THIN/mocked only (client-side mock array, never persisted — the gap this milestone closes)
+- ✓ Event channel: organiser-created polls (voted once each) + attendee Q&A (answered once by the team), layered onto the event's existing announcement broadcast — Phase 8. Rate-limiting on Q&A submission (CHAT-03's other half) stays unbuilt — no live deployment target, recorded decision
 
 ### Active
 
@@ -50,7 +51,6 @@ Full detail + REQ-IDs live in `REQUIREMENTS.md` (43 v1 requirements across 13 ca
 - [ ] Entity profile + brand kit: Secretary/Deputy Secretary can edit their organisation's social links, profile, and a brand kit (voice/tone/palette) that drives campaign generation — with an optional AI-assist button to draft a starting brand kit — across all org types
 - [ ] Event timeline with post-event feedback: organiser reflection (challenges, learnings — feeds the existing report flow) plus a lightweight attendee-facing rating/feedback prompt
 - [ ] Progression-gating: an org's eligibility to propose a `regional_fest` in a given city unlocks after completing ≥1 `local_meetup` + ≥1 `regional_meetup` in that same city; a fest proposal additionally needs ≥6 collaborating entities; reaching fest-tier flags (not builds) sponsorship/outreach tooling as unlocked
-- [ ] Chat + polls scoped to an event's registration window
 - [ ] QR-code check-in, additive alongside the existing tap-based roster check-in (never replacing it)
 - [ ] Budget/report tracking wired into the redesigned organiser dashboard (existing Expenses/BudgetLine/report flow, surfaced against the new team/task view)
 
@@ -140,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-02 after initialization*
+*Last updated: 2026-08-24 after Phase 8 completion*

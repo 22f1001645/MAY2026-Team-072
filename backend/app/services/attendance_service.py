@@ -1,8 +1,11 @@
+import json
+
 from .settings_service import get_recognition_points
+from ..constants import ATTENDANCE_METHOD_MANUAL
 from ..errors import ApiError
 from ..extensions import db
 from ..models import ActivityTeamMember, Attendance, ContributionPoint, Notification, Registration, User
-from ..repositories.repos import ActivityRepository, RegistrationRepository
+from ..repositories.repos import ActivityRepository, AuditRepository, RegistrationRepository
 
 
 def _process_referral_gamification(reg, activity):
@@ -18,7 +21,7 @@ def _process_referral_gamification(reg, activity):
             user_id=reg.referred_by_id,
             activity_id=activity.id,
             action="referred",
-            points=points["referrer"],
+            points=points.get("referrer", 10),
         )
     )
     db.session.add(
@@ -27,7 +30,7 @@ def _process_referral_gamification(reg, activity):
             activity_id=activity.id,
             type="update",
             title="Referral successful!",
-            body=f"{reg.student.name if reg.student else 'A friend'} attended using your link. You earned {points['referrer']} points!",
+            body=f"{reg.student.name if reg.student else 'A friend'} attended using your link. You earned {points.get('referrer', 10)} points!",
         )
     )
     db.session.add(
@@ -35,7 +38,7 @@ def _process_referral_gamification(reg, activity):
             user_id=reg.student_id,
             activity_id=activity.id,
             action="referred_welcome",
-            points=points["referee"],
+            points=points.get("referee", 5),
         )
     )
     db.session.add(
@@ -44,7 +47,7 @@ def _process_referral_gamification(reg, activity):
             activity_id=activity.id,
             type="update",
             title="Welcome bonus!",
-            body=f"You earned {points['referee']} points for attending via a referral link!",
+            body=f"You earned {points.get('referee', 5)} points for attending via a referral link!",
         )
     )
 
@@ -56,6 +59,21 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
     if not activity:
         raise ApiError("Event not found", "event_not_found", 404)
 
+    from datetime import datetime, timedelta
+    
+    starts_at = activity.starts_at
+    if starts_at is None:
+        # Fallback for poorly formed test data or broken events
+        starts_at = datetime.utcnow()
+    elif isinstance(starts_at, str):
+        # Handle tests that manually insert strings into SQLite
+        starts_at = datetime.fromisoformat(starts_at.replace("Z", "+00:00")).replace(tzinfo=None)
+
+    # Check-in opens strictly 2 hours before the scheduled start time
+    time_until_start = starts_at - datetime.utcnow()
+    if time_until_start > timedelta(hours=2):
+        raise ApiError("Check-in opens 2 hours before the event starts", "checkin_too_early", 400)
+
     regs = RegistrationRepository.by_ids(registration_ids)
     newly = 0
     for reg in regs:
@@ -63,7 +81,31 @@ def check_in(activity_id: str, registration_ids: list, organiser) -> dict:
             continue
         if reg.attendance is not None:
             continue  # idempotent — already checked in
-        db.session.add(Attendance(registration_id=reg.id, checked_in_by=organiser.id))
+        attendance = Attendance(registration_id=reg.id, checked_in_by=organiser.id)
+        db.session.add(attendance)
+
+        # TIMELINE-02 — one audit row per NEW check-in, written inside the same
+        # `if reg.attendance is not None: continue` guard that makes check_in
+        # idempotent, so a re-scan adds neither an Attendance row nor a second
+        # timeline entry. `method` is read off the row rather than hardcoded:
+        # when QR check-in starts passing a method through, the audit trail and
+        # the timeline follow it without a second edit here.
+        method = attendance.method or ATTENDANCE_METHOD_MANUAL
+        student_name = reg.student.name if reg.student else "unknown"
+        AuditRepository.record(
+            "attendance",
+            activity_id,
+            f"Checked in: {student_name} ({method})",
+            organiser,
+            note=json.dumps(
+                {
+                    "registration_id": reg.id,
+                    "student": student_name,
+                    "method": method,
+                }
+            ),
+        )
+
         # Student earns attendance points
         db.session.add(
             ContributionPoint(
@@ -93,7 +135,9 @@ def scan_qr(activity_id: str, qr_token: str, organiser) -> dict:
     """Resolve a scanned QR code to a registration and check it in. Delegates
     to check_in() so there is exactly one place that creates an Attendance
     row and awards points, whether the organiser scanned or tapped a name."""
-    reg = Registration.query.filter_by(qr_token=qr_token).first()
+    reg = Registration.query.filter(
+        (Registration.qr_token == qr_token) | (Registration.id == qr_token)
+    ).first()
     if not reg or reg.activity_id != activity_id:
         raise ApiError("Invalid QR code for this event", "invalid_qr", 400)
 

@@ -38,11 +38,19 @@ from sqlalchemy.engine import make_url
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from app.constants import HOUSES, POINTS, REGIONS, COUNCIL_UPPER_HOUSE, COUNCIL_LOWER_HOUSE
+from app.constants import (
+    HOUSES,
+    POINTS,
+    REGIONS,
+    COUNCIL_UPPER_HOUSE,
+    COUNCIL_LOWER_HOUSE,
+    TEAM_ROLE_MEETUP_HEAD,
+)
 from app.extensions import db
 from app.models import (
     Activity,
     ActivityFeeRecord,
+    ActivityTeamMember,
     Attendance,
     BudgetLine,
     City,
@@ -51,6 +59,7 @@ from app.models import (
     Membership,
     Notification,
     Organisation,
+    OrgProgressionUnlock,
     PORAssignment,
     Proposal,
     Registration,
@@ -384,6 +393,13 @@ def seed_demo_data(app):
                 db.session.add(BudgetLine(activity_id=act.id, label=label, planned=planned))
             db.session.add(Proposal(activity_id=act.id, submitted_by=organiser.id,
                                     status="approved" if approved else "submitted"))
+            # Close-out (reflection, reimbursement submit) is gated on
+            # is_meetup_head, which reads the team roster — not the organiser
+            # column. Without this row none of those flows can be exercised
+            # from fresh seed data at all.
+            db.session.add(ActivityTeamMember(activity_id=act.id, user_id=organiser.id,
+                                              role=TEAM_ROLE_MEETUP_HEAD,
+                                              added_by=organiser.id))
             return act
 
         # Upcoming approved fest (Hyderabad)
@@ -403,14 +419,38 @@ def seed_demo_data(app):
             [("Snacks & chai", 4000), ("Venue booking", 3000)],
         )
 
-        # Completed activity with attendance + expenses (Hyderabad Coffee & Code)
+        # Completed activity with attendance + expenses (Hyderabad Coffee & Code).
+        # Attributed to Nilgiri House, not the region: this is the local half of
+        # the PROG-01 pair, and the proposal form only offers house-type orgs, so
+        # a region-owned meetup earns fest tier for an org no organiser can
+        # propose on behalf of. Nilgiri House is where Sai Teja's POR lives.
         coffee = make_activity(
-            orgs["hyd_region"], "Hyderabad Coffee & Code", "Hyderabad", "local_meetup",
+            orgs["neelgiri"], "Hyderabad Coffee & Code", "Hyderabad", "local_meetup",
             -18, "Roastery Coffee House, Banjara Hills",
             "A morning of pair-programming and flat whites. Ran clean and closed on time.",
             45, saiteja, "completed",
             [("Coffee tab", 9000), ("Venue", 5000)],
         )
+
+        # The regional half of the PROG-01 pair, on the same org and city as the
+        # local half above, so Nilgiri House clears fest tier in Hyderabad and the
+        # unlocked fest card is reachable through the proposal form from fresh
+        # seed data. Past-dated and approved: eligibility reads the proposal
+        # status and the start date, never Activity.status.
+        make_activity(
+            orgs["neelgiri"], "Hyderabad Regional Meetup — Winter Edition", "Hyderabad",
+            "regional_meetup", -45, "JNTU Auditorium, Kukatpally",
+            "The whole region in one room: lightning talks, a project fair and dinner.",
+            120, saiteja, "completed",
+            [("Venue & AV", 20000), ("Meals (120)", 35000)],
+        )
+
+        # PROG-03: the marker the two meetups above would have written had they
+        # been approved through decide(). Seeded rows bypass that path, so
+        # without this the sponsorship banner on the org profile renders nothing
+        # from fresh seed data. It is a record, never an input — eligibility is
+        # still computed from the pair above (T-07-01).
+        db.session.add(OrgProgressionUnlock(org_id=orgs["neelgiri"].id, city="Hyderabad"))
 
         db.session.flush()
 

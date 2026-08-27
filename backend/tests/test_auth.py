@@ -25,7 +25,7 @@ def test_register_creates_student(client):
     with client.application.app_context():
         region = Organisation.query.filter_by(type='region').first()
     res = client.post("/api/v1/auth/register", json={
-        "name": "New Student", "email": "new@ekatva.os",
+        "name": "New Student", "email": "new@ds.study.iitm.ac.in",
         "password": "secret1", "region_id": region.id,
     })
     assert res.status_code == 201
@@ -38,10 +38,16 @@ def test_register_duplicate_email_conflicts(client):
     with client.application.app_context():
         from app.models import Organisation
         region = Organisation.query.filter_by(type='region').first()
+    # The seeded students are all on @ekatva.os, which RegisterSchema now turns
+    # away at the schema layer (STUDENT_EMAIL_DOMAIN) before the service ever
+    # looks for a duplicate. So the first registration here is the setup, not
+    # the assertion — it is what puts the address in the table.
     payload = {
-        "name": "Dup", "email": "arav@ekatva.os",
+        "name": "Dup", "email": "dup@ds.study.iitm.ac.in",
         "password": "secret1", "region_id": region.id,
     }
+    assert client.post("/api/v1/auth/register", json=payload).status_code == 201
+
     res = client.post("/api/v1/auth/register", json=payload)
     assert res.status_code == 409
     assert res.get_json()["code"] == "email_taken"

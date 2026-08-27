@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
-import { useEvent, useMyRegistrations, useRegister, useUnregister, useAnnouncements, useRespondCollab, useReassignMeetupHead } from '../lib/queries'
+import { useEvent, useMyRegistrations, useRegister, useUnregister, useAnnouncements, useRespondCollab, useReassignMeetupHead, useMyFeedback, useSubmitFeedbackMutation } from '../lib/queries'
 import { useSession } from '../lib/session'
 import { useAuth } from '../lib/auth'
 import { Badge, Button, Card, Dialog, Progress, Select, useToast } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cover, daysUntil, formatDate, formatTime, scaleLabel, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import EventChat from '../components/EventChat'
+import EventChannelSection from '../components/EventChannelSection'
 import CollabStatus from '../components/CollabStatus'
 import { viewFromPathname } from '../components/ViewSwitcher'
+import PublicEventLanding from './PublicEventLanding'
+import InviteSearchBlock from '../components/InviteSearchBlock'
 
 /**
  * EventDetail also serves the shared registration link, which a visitor opens
@@ -34,7 +37,7 @@ export default function EventDetail() {
   const navigate = useNavigate()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: myRegs = [] } = useMyRegistrations(!!currentUser)
-  const { data: announcements = [] } = useAnnouncements(id)
+  const { data: announcements = [] } = useAnnouncements(currentUser ? id : undefined)
   const registerMut = useRegister()
   const unregisterMut = useUnregister()
   const respondCollabMut = useRespondCollab()
@@ -45,9 +48,12 @@ export default function EventDetail() {
   // The `currentUser` term is stated rather than inferred: without it an
   // anonymous visitor whose `role` is not 'student' would open the organiser
   // face of the page. It cannot happen today (role falls back to 'student'),
-  // which is exactly why it is worth pinning here.
+  // which is exactly why it is worth pinning here. We also enforce that they 
+  // must be actively viewing the page from the /organiser path via the toggle.
   const canManage =
-    !!currentUser && (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
+    viewFromPathname(location.pathname) === 'organiser' && 
+    !!currentUser && 
+    (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
@@ -62,6 +68,11 @@ export default function EventDetail() {
         </Link>
       </Card>
     )
+
+  // RENDER CINEMATIC PUBLIC LANDING PAGE IF NOT LOGGED IN
+  if (!currentUser) {
+    return <PublicEventLanding e={e} refId={refId} />
+  }
 
   const registration = myRegs.find((r: any) => r.activity_id === e.id)
   const registered = !!registration
@@ -156,6 +167,9 @@ export default function EventDetail() {
             </div>
           </div>
 
+          {/* FEEDBACK-02: attended students can rate after the event */}
+          <FeedbackForm activityId={id!} myRegs={myRegs} eventStartsAt={e.startsAt} />
+
           {/* Collaborating Orgs (PROPOSAL-06 Respond UI) */}
           {e.collaborators && e.collaborators.length > 0 && (
             <div>
@@ -165,13 +179,13 @@ export default function EventDetail() {
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
-                  const canRespond = c.status === 'pending' && capabilities?.manageableOrgIds?.includes(c.org_id)
+                  const canRespond = c.status === 'pending' && capabilities?.manageableOrgIds?.includes(c.orgId)
                   return (
                     <div key={c.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[14px] font-medium text-offwhite truncate">{c.org || c.org_id}</span>
-                          {c.is_primary && <Badge tone="gold">Primary</Badge>}
+                          <span className="text-[14px] font-medium text-offwhite truncate">{c.org || c.orgId}</span>
+                          {c.isPrimary && <Badge tone="gold">Primary</Badge>}
                         </div>
                         <div className="mt-1 flex items-center gap-2">
                           <CollabStatus status={c.status} />
@@ -215,7 +229,7 @@ export default function EventDetail() {
                       {(t.member || '?').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium text-offwhite truncate">{t.member || t.user_id}</div>
+                      <div className="text-[13px] font-medium text-offwhite truncate">{t.member || t.userId}</div>
                       <div className={`text-[11px] font-semibold ${t.role === 'Meetup Head' ? 'text-gold' : 'text-graytext-mid'}`}>
                         {t.role}
                       </div>
@@ -284,11 +298,11 @@ export default function EventDetail() {
               const roster = e.teamMembers ?? []
               const currentHead = roster.find((t: any) => t.role === 'Meetup Head')
               const candidates = roster.filter((t: any) => t.role !== 'Meetup Head')
-              const newHead = roster.find((t: any) => t.user_id === reassignUserId)
+              const newHead = roster.find((t: any) => t.userId === reassignUserId)
               return (
                 <div className="space-y-4">
                   <p className="text-[14px] text-graytext-light">
-                    Currently {currentHead ? (currentHead.member ?? currentHead.user_id) : 'unassigned'}.
+                    Currently {currentHead ? (currentHead.member ?? currentHead.userId) : 'unassigned'}.
                   </p>
                   {candidates.length === 0 ? (
                     <p className="text-caption text-graytext-mid">No other team members on the roster to reassign to.</p>
@@ -298,13 +312,13 @@ export default function EventDetail() {
                       onChange={(evt) => setReassignUserId(evt.target.value)}
                       options={[
                         { label: 'Select a team member…', value: '' },
-                        ...candidates.map((t: any) => ({ label: t.member ?? t.user_id, value: t.user_id })),
+                        ...candidates.map((t: any) => ({ label: t.member ?? t.userId, value: t.userId })),
                       ]}
                     />
                   )}
                   {newHead && (
                     <p role="alert" className="text-caption text-gold">
-                      {newHead.member ?? newHead.user_id} will immediately become the sole accountable person for this event's budget and execution.
+                      {newHead.member ?? newHead.userId} will immediately become the sole accountable person for this event's budget and execution.
                     </p>
                   )}
                   {reassignMut.isError && (
@@ -389,42 +403,27 @@ export default function EventDetail() {
                           : 'A confirmation and reminders will reach you. See you there.'}
                       </p>
                     </div>
-                    {/* Share Invite Link */}
+                    {/* Invite Friends Block */}
                     {!isWaitlisted && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-4 w-full text-gold hover:text-gold border border-gold/20 hover:bg-gold/10"
-                        onClick={() => {
-                          const inviteUrl = `${window.location.origin}/events/${e.id}?ref=${currentUser?.id ?? currentUserId ?? ''}`
-                          navigator.clipboard.writeText(inviteUrl)
-                          addToast('Invite link copied! Earn points for every friend who registers.')
-                        }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2 inline-block">
-                          <circle cx="18" cy="5" r="3"></circle>
-                          <circle cx="6" cy="12" r="3"></circle>
-                          <circle cx="18" cy="19" r="3"></circle>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
-                        Share invite link
-                      </Button>
+                      <div className="mt-4">
+                        <InviteSearchBlock eventId={e.id} />
+                      </div>
                     )}
 
                     <div className="mt-2 flex gap-2">
-                      <Button
-                        variant="ghost"
-                        className="w-full"
-                        disabled={unregisterMut.isPending}
-                        onClick={() => {
-                          localStorage.removeItem('cal_' + e.id)
-                          setAddedToCalendar(false)
-                          unregisterMut.mutate(e.id)
-                        }}
-                      >
-                        {unregisterMut.isPending ? 'Cancelling…' : 'Cancel registration'}
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          disabled={unregisterMut.isPending || registration?.attended}
+                          title={registration?.attended ? "You cannot cancel after you have checked in." : undefined}
+                          onClick={() => {
+                            localStorage.removeItem('cal_' + e.id)
+                            setAddedToCalendar(false)
+                            unregisterMut.mutate(e.id)
+                          }}
+                        >
+                          {unregisterMut.isPending ? 'Cancelling…' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
+                        </Button>
                       {!isWaitlisted && (
                         <Button
                           variant="ghost"
@@ -509,6 +508,23 @@ export default function EventDetail() {
                   )}
                 </div>
               )}
+              {/* CHAT-01/02 — same audience as the chat button above, but
+               *  deliberately NOT gated on `!isPast`. The team can still answer
+               *  a question after the event ends (D-17), and this section is
+               *  the only surface on which the person who asked it reads the
+               *  answer. Past the event it renders closed: thread visible,
+               *  composers gone. */}
+              {currentUser &&
+                e.status !== 'cancelled' &&
+                ((registered && !isWaitlisted) || canManage) && (
+                  <div className="mt-6">
+                    <EventChannelSection
+                      activityId={e.id}
+                      canManage={canManage}
+                      closed={isPast}
+                    />
+                  </div>
+                )}
             </div>
           )}
         </div>
@@ -547,5 +563,98 @@ function Perk({ text }: { text: string }) {
       </svg>
       {text}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// FEEDBACK-02: attendee feedback form
+// ---------------------------------------------------------------------------
+
+function FeedbackForm({
+  activityId,
+  myRegs,
+  eventStartsAt,
+}: {
+  activityId: string
+  myRegs: any[]
+  eventStartsAt: string
+}) {
+  const myReg = myRegs.find((r: any) => r.activityId === activityId || r.activity_id === activityId)
+  const attended = myReg?.attended === true
+  const eventPast = new Date(eventStartsAt) < new Date()
+
+  const { data: existing } = useMyFeedback(attended && eventPast ? activityId : undefined)
+  const submitMut = useSubmitFeedbackMutation()
+  const { addToast } = useToast()
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+
+  if (!attended || !eventPast) return null
+
+  if (existing?.submitted || submitMut.isSuccess) {
+    return (
+      <Card className="p-6 mb-4">
+        <div className="flex items-center gap-3">
+          <Badge tone="success">Feedback Submitted ✓</Badge>
+          <span className="text-[14px] text-graytext-light">
+            {'★'.repeat(existing?.rating ?? rating)}{'☆'.repeat(5 - (existing?.rating ?? rating))}
+          </span>
+        </div>
+        <p className="mt-1 text-[13px] text-graytext-mid">
+          Thank you for your feedback!
+        </p>
+      </Card>
+    )
+  }
+
+  const handleSubmit = () => {
+    submitMut.mutate(
+      { activityId, body: { rating, comment: comment || undefined } },
+      { onSuccess: () => addToast('Feedback submitted — thank you!') },
+    )
+  }
+
+  return (
+    <Card className="p-6 mb-4">
+      <h3 className="text-h3 font-semibold text-gold mb-1">Rate This Event</h3>
+      <p className="text-[13px] text-graytext-mid mb-4">
+        How was your experience? Your feedback helps future attendees.
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Event rating"
+        className="flex gap-2 mb-4"
+      >
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            role="radio"
+            aria-label={`${n} star${n > 1 ? 's' : ''}`}
+            aria-checked={rating === n}
+            onClick={() => setRating((r) => (r === n ? 0 : n))}
+            className={`text-3xl cursor-pointer transition-colors select-none ${
+              n <= rating ? 'text-[#FFD700]' : 'text-white/20 hover:text-white/50'
+            }`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none resize-none"
+        placeholder="Share your thoughts (optional)"
+        rows={3}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+      />
+      <div className="mt-4 flex justify-end">
+        <Button
+          disabled={rating === 0 || submitMut.isPending}
+          onClick={handleSubmit}
+        >
+          {submitMut.isPending ? 'Submitting…' : 'Submit Feedback'}
+        </Button>
+      </div>
+    </Card>
   )
 }

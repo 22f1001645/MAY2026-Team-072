@@ -18,9 +18,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Proposal Collaboration, Team Roster & Budget Guardrails** - A proposal carries collaborating entities, a consented team roster, and a capped budget (completed 2026-08-12)
 - [ ] **Phase 4: Organisation Profile & Brand Kit** - Every org type gets an editable identity and a brand kit that drives campaigns
 - [ ] **Phase 5: Post-Acceptance Pipeline (Design → Campaign → Live → Workspace)** - Accepted proposals become approved live campaigns with an active team workspace
-- [ ] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement
+- [x] **Phase 6: Event Execution & Close-Out** - QR check-in at the door, a full event timeline, and evidence-backed feedback and reimbursement (completed 2026-08-22, see 06-UAT.md)
 - [ ] **Phase 7: Progression Gating** - Fest-scale proposals unlock from an org's own track record, enforced server-side
-- [ ] **Phase 8: Event Announcements, Polls & Queries** - One official, moderated event channel — never a chat room
+- [x] **Phase 8: Event Announcements, Polls & Queries** - Structured polls + Q&A layered onto the event's existing announcements and open chat (D-01: EventChat stays) (completed 2026-08-24)
 
 ## Phase Details
 
@@ -247,7 +247,18 @@ Plans:
   4. Any team member can draft the post-event reflection and expense entries, but only the assigned Meetup Head can submit either — and reimbursement submission requires a social-post link alongside bills.
   5. Only people with a real Attendance record are prompted for and can submit a rating (once each), and the QR-verified attendance count is what points, fee-utilisation and budget-reasonableness use — photo evidence never overrides it.
 
-**Plans**: TBD
+**Plans**: 9/9 plans executed
+
+- [x] 06-01-PLAN.md
+- [x] 06-02-PLAN.md
+- [x] 06-03-PLAN.md
+- [x] 06-04-PLAN.md
+- [x] 06-05-PLAN.md
+- [x] 06-06-PLAN.md
+- [x] 06-07-PLAN.md
+- [x] 06-08-PLAN.md
+- [x] 06-09-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 7: Progression Gating
@@ -262,24 +273,66 @@ Plans:
   3. A `regional_fest` proposal with fewer than 6 accepted collaborating organisations is rejected with a reason naming the shortfall.
   4. An org that reaches fest tier sees a recorded "Sponsorship & outreach tools unlocked" state surfaced in the UI, with no CRM tooling behind it (deliberately out of scope).
 
-**Plans**: TBD
+**Plans**: 5/5 plans executed
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [x] 07-01-PLAN.md — Tracer: server-computed fest eligibility end-to-end — `FEST_COLLAB_THRESHOLD`, `completed_meetups_by_scale`, `progression_service`, the submit-time 403, plus the named-collaborator threshold (PROG-01, PROG-02, PROG-04)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 07-02-PLAN.md — Approve-time re-check + accepted-collaborator count + `OrgProgressionUnlock` write + `GET /orgs/<org_id>/progression` + seed check (PROG-01/02/03/04)
+- [x] 07-03-PLAN.md — Frontend data layer: `FestEligibility`/`OrgUnlock` types, the single `api.ts` adapter, `useOrgProgression` and the approve-time cache invalidation (PROG-01, PROG-03)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 07-04-PLAN.md — `ProposalNew`: locked Regional Fest card with its four caption states, guarded auto-revert, fest collaborator counter, two error headings (PROG-01, PROG-02, PROG-04)
+- [x] 07-05-PLAN.md — [CHECKPOINT] `ApprovalQueue` accepted count + refusal `ErrorStrip`, `OrgProfile` sponsorship banner, phase manual UAT (PROG-02, PROG-03, PROG-04)
+
+**Wave structure**: a tracer, then two independent chains. The backend chain (01 → 02) is sequential because both plans edit `progression_service.py`, `proposal_service.py` and the new test file. The frontend chain (03 → 04, 03 → 05) is sequential on the data layer only; `ProposalNew.tsx` and `ApprovalQueue.tsx`/`OrgProfile.tsx` share no files, so Wave 3 runs two plans in parallel, as does Wave 2 across the two halves. Zero migrations and zero new packages in any plan.
 
 ### Phase 8: Event Announcements, Polls & Queries
 
-**Goal**: A live event has exactly one official channel that carries announcements, polls and attendee questions — and cannot become a chat room.
+**Goal**: A live event's polls and Q&A are structured, moderated channels — organiser-created polls voted once each, and attendee questions answered once by the team — layered onto the event's existing announcement broadcast and pre-existing open chat, without becoming a second freeform chat room themselves.
 **Depends on**: Phase 1, Phase 5
 **Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04
 **Success Criteria** (what must be TRUE):
 
   1. The organising team can post announcements and create polls scoped to an event's registration window, and registrants see them and can vote exactly once each.
-  2. A registrant can submit a query to the team and cancel their registration — and can do nothing else: no replies to other attendees, no open feed, no peer-to-peer messaging.
+  2. A registrant can submit a query to the team; the team answers once and only the asker sees the response — polls and queries stay structured and non-public, even though the pre-existing EventChat remains available separately for open two-way discussion (08-CONTEXT.md D-01: CHAT-02's "no open chat" is treated as aspirational).
   3. Posting to an event whose registration window has closed is rejected server-side with an explicit closed-state message, not merely hidden in the UI.
-  4. Query submission is rate-limited and every moderation action lands in the audit log — both shipping with the feature, not after it.
+  4. Every poll and query moderation action (create, close, respond) lands in the audit log, shipping with the feature (08-CONTEXT.md D-16). Query-submission rate-limiting stays out of scope for this milestone (no live deploy target — resolved 2026-08-06, see Blockers/Concerns).
   5. New announcements and team responses appear within roughly 15 seconds without WebSockets, and a backgrounded tab stops polling.
 
-**Plans**: TBD
+**Plans**: 6/6 plans executed
 **UI hint**: yes
+
+Plans:
+**Wave 1** *(tracer)*
+
+- [x] 08-01-PLAN.md — Tracer: `channel_service.py` + `channel_controller.py` + poll endpoints CRUD (CHAT-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 08-02-PLAN.md — Query/Q&A backend endpoints (`/events/<id>/queries`) + response API (CHAT-02, CHAT-03)
+- [x] 08-03-PLAN.md — Frontend data layer: types, API client, TanStack hooks with 15s±3s polling (CHAT-01, CHAT-02, CHAT-04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 08-04-PLAN.md — Frontend: `PollCard.tsx` + `EventChannelSection.tsx` + `EventDetail.tsx` wiring (CHAT-01)
+- [x] 08-05-PLAN.md — Frontend: `QuerySection.tsx` (registrant) + `OrgQueriesPanel.tsx` (ManageEvent) (CHAT-02)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [x] 08-06-PLAN.md — Server-side registration-window guard, smoke verification, and close-out (CHAT-01, CHAT-02, CHAT-03, CHAT-04)
+
+08-04 and 08-05 are recorded in the same wave because that is how they ran, but
+08-04 declares `depends_on: [08-02, 08-03, 08-05]` and executed first — so it
+could not import the component 08-05 had yet to create and left a non-rendering
+seam, which 08-05 then closed (see 08-05-SUMMARY.md). Read as a dependency
+graph rather than a schedule, this phase is five waves, not four.
 
 ## Progress
 
@@ -294,9 +347,9 @@ Phase 4 is parallel-safe with Phase 3 (different tables, different predicate, di
 | 3. Proposal Collaboration, Team Roster & Budget Guardrails | 0/4 | Planning | - |
 | 4. Organisation Profile & Brand Kit | 9/9 | In Progress|  |
 | 5. Post-Acceptance Pipeline | 8/11 | In Progress|  |
-| 6. Event Execution & Close-Out | 0/TBD | Not started | - |
-| 7. Progression Gating | 0/TBD | Not started | - |
-| 8. Event Announcements, Polls & Queries | 0/TBD | Not started | - |
+| 6. Event Execution & Close-Out | 9/9 | Complete    | 2026-08-22 |
+| 7. Progression Gating | 5/5 | In Progress|  |
+| 8. Event Announcements, Polls & Queries | 6/6 | Complete    | 2026-08-24 |
 
 ## Coverage
 

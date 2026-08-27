@@ -1,9 +1,12 @@
+import json
+
 from ..constants import PROPOSAL_APPROVED, EVENT_CANCELLED
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Notification, Registration, Announcement
-from ..repositories.repos import ActivityRepository, RegistrationRepository
+from ..models import Notification, Registration, Announcement, User
+from ..repositories.repos import ActivityRepository, AuditRepository, RegistrationRepository
 import secrets
+
 
 def register(activity_id: str, student, referred_by_id: str = None) -> Registration:
     activity = ActivityRepository.by_id(activity_id)
@@ -48,6 +51,27 @@ def register(activity_id: str, student, referred_by_id: str = None) -> Registrat
         )
     )
 
+    # TIMELINE-02 — this service claimed to record an audit event and never did.
+    # The row is scoped to `activity_id`, not to the Registration's own id,
+    # because every reader of it (the activity audit trail, and the Phase 6
+    # timeline projection) asks "what happened to this event?". A row keyed on
+    # the registration id answers a question nobody asks and would be invisible
+    # to both. The flush is what makes `reg.id` real — the UUID default is
+    # applied at INSERT, so recording it before the flush would store null.
+    db.session.flush()
+    AuditRepository.record(
+        "registration",
+        activity_id,
+        f"Student registered: {student.name}",
+        student,
+        note=json.dumps(
+            {
+                "registration_id": reg.id,
+                "student": student.name,
+                "status": reg_status,
+            }
+        ),
+    )
     db.session.commit()
     return reg
 
@@ -56,10 +80,12 @@ def unregister(activity_id: str, student) -> None:
     reg = RegistrationRepository.find(activity_id, student.id)
     if not reg:
         raise ApiError("You are not registered", "not_registered", 404)
+        
+    if reg.attendance is not None:
+        raise ApiError("You cannot cancel your registration after you have already checked in.", "already_checked_in", 400)
+        
     activity_title = reg.activity.title
     
-    # Delete student's chat history for this event
-    Announcement.query.filter_by(activity_id=activity_id, sender_id=student.id).delete()
     was_confirmed = (reg.status == "confirmed")
     db.session.delete(reg)
     db.session.flush()
@@ -153,3 +179,27 @@ def broadcast(activity_id: str, title: str, body: str, current_user) -> int:
 def announcements(activity_id: str):
     """Retrieve the broadcast history for an activity."""
     return Announcement.query.filter_by(activity_id=activity_id).order_by(Announcement.created_at.desc()).all()
+
+def invite_friend(activity_id: str, target_user_id: str, referrer_user: User):
+    activity = ActivityRepository.by_id(activity_id)
+    if not activity or not activity.proposal or activity.proposal.status != PROPOSAL_APPROVED:
+        raise ApiError("Event not found", "event_not_found", 404)
+        
+    target_user = db.session.query(User).get(target_user_id)
+    if not target_user:
+        raise ApiError("Target user not found", "user_not_found", 404)
+        
+    if RegistrationRepository.find(activity_id, target_user_id):
+        raise ApiError("This user is already registered for this event", "already_registered", 409)
+
+    notif = Notification(
+        user_id=target_user_id,
+        type="invite",
+        title=f"{referrer_user.name} invited you to {activity.title}!",
+        body=f"Join now!",
+        action_url=f"/events/{activity.id}?ref={referrer_user.id}",
+        activity_id=activity.id
+    )
+    db.session.add(notif)
+    db.session.commit()
+    return notif

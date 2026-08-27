@@ -40,8 +40,17 @@ export const useLeaderboard = (city?: string) =>
 export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
+/** Notifications for the current view. The view is applied HERE, on the result,
+ *  never as a request parameter — it must not reach the wire (D-18). One query
+ *  key for every view, so switching views re-filters cached rows instead of
+ *  refetching. */
 export const useNotifications = (role: string = 'student') =>
-  useQuery({ queryKey: ['notifications', role], queryFn: () => api.notifications(role), refetchInterval: 10000 })
+  useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.notifications(),
+    refetchInterval: 10000,
+    select: (rows: any[]) => rows.filter((n) => (n.target_role ?? 'student') === role),
+  })
 
 export const useProposals = (status = 'pending') =>
   useQuery({ queryKey: ['proposals', status], queryFn: () => api.proposals(status), placeholderData: keepPreviousData })
@@ -83,8 +92,12 @@ export const useHouses = () =>
 export const usePors = () =>
   useQuery({ queryKey: ['pors'], queryFn: api.pors })
 
-export const useUsers = (q?: string) =>
-  useQuery({ queryKey: ['users', q], queryFn: () => api.users(q) })
+export const useUsers = (q?: string, enabled?: boolean) =>
+  useQuery({
+    queryKey: ['users', q],
+    queryFn: () => api.users(q),
+    enabled: enabled !== undefined ? enabled : (q !== undefined ? q.trim().length > 0 : true),
+  })
 
 // ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ----
 
@@ -93,6 +106,28 @@ export const useOrgProfile = (orgId?: string) =>
     queryKey: ['orgProfile', orgId],
     queryFn: () => api.orgProfile(orgId!),
     enabled: !!orgId,
+  })
+
+// ---- Phase 7: progression gating (PROG-01…PROG-03) ----
+
+/** The one read of progression state, serving both Phase 7 surfaces: called
+ *  with a city it drives the proposal form's fest-card lock, called without one
+ *  it drives the profile's sponsorship banner.
+ *
+ *  `city ?? null` in the key keeps those two calls as distinct cache entries.
+ *  Collapsed into one key they would overwrite each other and the banner would
+ *  flicker between an org-wide answer and a city-specific one (D-04, D-05).
+ *
+ *  The key change is the *only* refetch trigger: no polling interval and no
+ *  refetch on window focus. Eligibility changes when an admin approves, and the
+ *  `useDecision` invalidation below is what reports that — polling for it would
+ *  be the structural mistake the 05-09 no-polling gate exists to catch. */
+export const useOrgProgression = (orgId?: string, city?: string) =>
+  useQuery({
+    queryKey: ['orgProgression', orgId, city ?? null],
+    queryFn: () => api.orgProgression(orgId!, city),
+    enabled: !!orgId,
+    refetchOnWindowFocus: false,
   })
 
 /** Gated on the manage flag as well as the id. `GET /orgs/<id>/brand-kit` is
@@ -183,6 +218,11 @@ export const useDecision = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['proposals'] })
       qc.invalidateQueries({ queryKey: ['events'] })
+      // An approval is what can complete an org's local+regional pair, and the
+      // server writes the unlock row in the same transaction. Without this the
+      // fest card stays locked and the sponsorship banner stays absent until a
+      // manual reload — the two states PROG-01 and PROG-03 exist to show.
+      qc.invalidateQueries({ queryKey: ['orgProgression'] })
     },
   })
 }
@@ -260,8 +300,30 @@ export const useBroadcast = () =>
       api.broadcast(v.id, v.title, v.body),
   })
 
+/** CHAT-04's refresh interval, shared by every event-channel query: 15s with
+ *  ±3s of jitter (D-13).
+ *
+ *  The jitter is the point, not decoration. A fixed interval synchronises every
+ *  open tab on an event to the same tick — thirty registrants become thirty
+ *  simultaneous requests every fifteen seconds, arriving as spikes rather than
+ *  spread out. TanStack re-evaluates this on each schedule, so tabs that start
+ *  together drift apart instead of locking in step.
+ *
+ *  Paired everywhere with `refetchIntervalInBackground: false` (D-14): a tab
+ *  left open on another monitor stops polling entirely, which is the larger
+ *  saving of the two. Unlike the Kanban board (AC-35, deliberately never
+ *  polled), a channel IS the live surface — an announcement nobody sees until
+ *  they reload is an announcement that did not happen. */
+const channelRefetchInterval = () => 15_000 + Math.random() * 6_000 - 3_000
+
 export const useAnnouncements = (id?: string) =>
-  useQuery({ queryKey: ['announcements', id], queryFn: () => api.announcements(id!), enabled: !!id })
+  useQuery({
+    queryKey: ['announcements', id],
+    queryFn: () => api.announcements(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
 
 export const usePostAnnouncement = () => {
   const qc = useQueryClient()
@@ -298,8 +360,25 @@ export const useDeleteNotification = () => {
 export const useCreateOrg = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string; type: string; city: string }) => api.createOrg(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orgs'] }),
+    mutationFn: (
+      data:
+        | FormData
+        | {
+            name: string
+            type?: string
+            city?: string
+            category?: string
+            tagline?: string
+            description?: string
+            logo_url?: string
+            banner_url?: string
+          },
+    ) => api.createOrg(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orgs'] })
+      qc.invalidateQueries({ queryKey: ['societies'] })
+      qc.invalidateQueries({ queryKey: ['houses'] })
+    },
   })
 }
 
@@ -598,3 +677,193 @@ export const useSubscribeToCityAlert = () => {
 }
 
 export const usePendingProposalsCount = () => useQuery({ queryKey: ['proposals', 'pending'], queryFn: () => api.proposals('pending'), select: (data) => data.length })
+
+export const useSearchUsers = (q: string) => {
+  return useQuery({
+    queryKey: ['users', 'search', q],
+    queryFn: () => api.searchUsers(q),
+    enabled: q.length > 2
+  })
+}
+
+export const useInviteFriend = () => {
+  return useMutation({
+    mutationFn: (v: { eventId: string; userId: string }) => api.inviteFriend(v.eventId, v.userId)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Event Execution & Close-Out
+// ---------------------------------------------------------------------------
+
+/** TIMELINE-01: ordered chronological projection for an event. */
+export const useTimeline = (id?: string) =>
+  useQuery({
+    queryKey: ['timeline', id],
+    queryFn: () => api.timeline(id!),
+    enabled: !!id,
+  })
+
+/** REIMB-01/02: draft expense rows + optional Meetup Head submit. */
+export const useDraftExpensesMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      body,
+    }: {
+      activityId: string
+      body: { expenses: object[]; submit?: boolean; social_post_url?: string }
+    }) => api.draftExpenses(activityId, body),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['expenses', activityId] }),
+  })
+}
+
+/** REIMB-01: attach a receipt or invoice, before the row is drafted or after. */
+export const useUploadExpenseBill = () =>
+  useMutation({
+    mutationFn: ({ activityId, file }: { activityId: string; file: File }) =>
+      api.uploadExpenseBill(activityId, file),
+  })
+
+/** FEEDBACK-01: auto-save challenges/learnings on blur; Meetup Head submit. */
+export const usePatchReportMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      patch,
+    }: {
+      activityId: string
+      patch: { challenges?: string | null; learnings?: string | null; status?: string }
+    }) => api.patchReport(activityId, patch),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['report', activityId] }),
+  })
+}
+
+/** FEEDBACK-01: fetch post-event report for an activity. */
+export const useEventReport = (id?: string) =>
+  useQuery({
+    queryKey: ['report', id],
+    queryFn: () => api.getReport(id!),
+    enabled: !!id,
+    retry: false,
+  })
+
+/** FEEDBACK-02: attendee submits a 1-5 star rating after attending. */
+export const useSubmitFeedbackMutation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      activityId,
+      body,
+    }: {
+      activityId: string
+      body: { rating: number; comment?: string }
+    }) => api.submitFeedback(activityId, body),
+    onSuccess: (_, { activityId }) =>
+      qc.invalidateQueries({ queryKey: ['my-feedback', activityId] }),
+  })
+}
+
+/** FEEDBACK-02: check own submission; returns {submitted: false} when none. */
+export const useMyFeedback = (id?: string) =>
+  useQuery({
+    queryKey: ['my-feedback', id],
+    queryFn: () => api.myFeedback(id!),
+    enabled: !!id,
+  })
+
+// ---------------------------------------------------------------------------
+// Phase 8: Event channel — announcements, polls and Q&A (CHAT-01/02/04)
+// ---------------------------------------------------------------------------
+
+/** CHAT-01: every poll on the event, with counts and the caller's own vote. */
+export const usePolls = (id?: string) =>
+  useQuery({
+    queryKey: ['polls', id],
+    queryFn: () => api.polls(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
+
+export const useCreatePoll = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    // `id` is deliberately NOT spread into the body: PollCreateSchema is a
+    // plain marshmallow Schema, whose `unknown` defaults to RAISE, so an extra
+    // key answers 422 rather than being ignored.
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string
+      question: string
+      options: string[]
+      closes_at?: string | null
+    }) => api.createPoll(id, data),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
+  })
+}
+
+export const useCastVote = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; pollId: string; option_index: number }) =>
+      api.castVote(v.id, v.pollId, v.option_index),
+    // Returned rather than fired and forgotten: TanStack holds the mutation
+    // pending until this settles, which keeps the ballot disabled through the
+    // refetch. Without it the card re-renders from the stale `my_vote: null`
+    // with its buttons live again, and a second click earns a 409
+    // already_voted toast for what looked like a first interaction.
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
+  })
+}
+
+export const useClosePoll = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; pollId: string }) => api.closePoll(v.id, v.pollId),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['polls', v.id] }),
+  })
+}
+
+/** CHAT-02: the registrant's own questions and their answers (D-11). */
+export const useMyQueries = (id?: string) =>
+  useQuery({
+    queryKey: ['queries', 'mine', id],
+    queryFn: () => api.myQueries(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
+
+/** CHAT-02: every question on the event, for the organising team (D-09). */
+export const useOrgQueries = (id?: string) =>
+  useQuery({
+    queryKey: ['queries', 'org', id],
+    queryFn: () => api.orgQueries(id!),
+    enabled: !!id,
+    refetchInterval: channelRefetchInterval,
+    refetchIntervalInBackground: false,
+  })
+
+export const useSubmitQuery = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; body: string }) => api.submitQuery(v.id, v.body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['queries', 'mine', v.id] }),
+  })
+}
+
+export const useRespondQuery = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; queryId: string; response_body: string }) =>
+      api.respondQuery(v.id, v.queryId, v.response_body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['queries', 'org', v.id] }),
+  })
+}

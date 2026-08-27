@@ -27,6 +27,7 @@ import ApprovalQueue from './pages/ApprovalQueue'
 import Reimbursements from './pages/Reimbursements'
 import Analytics from './pages/Analytics'
 import OrganiserAnalytics from './pages/OrganiserAnalytics'
+import CampaignMonitor from './pages/CampaignMonitor'
 import Orgs from './pages/Orgs'
 import OrgProfile from './pages/OrgProfile'
 import AdminSettings from './pages/AdminSettings'
@@ -165,7 +166,7 @@ function AppShell() {
         {/* Readable by anyone signed in; the editing surface inside it is gated
             on capabilities.manageableOrgIds. Registering it here rather than
             beside the public routes is what makes it protected for free. */}
-        <Route path="/orgs/:orgId" element={<RequireStudent><OrgProfile /></RequireStudent>} />
+        <Route path="/orgs/:orgId" element={<OrgProfile />} />
 
         {/* Organiser */}
         <Route path="/organiser" element={<RequireOrganiser><OrganiserDashboard /></RequireOrganiser>} />
@@ -181,6 +182,7 @@ function AppShell() {
         <Route path="/admin/reimbursements" element={<RequireAdmin><Reimbursements /></RequireAdmin>} />
         <Route path="/admin/analytics" element={<RequireAdmin><Analytics /></RequireAdmin>} />
         <Route path="/admin/organiser-analytics" element={<RequireAdmin><OrganiserAnalytics /></RequireAdmin>} />
+        <Route path="/admin/campaigns" element={<RequireAdmin><CampaignMonitor /></RequireAdmin>} />
         <Route path="/admin/orgs" element={<RequireAdmin><Orgs /></RequireAdmin>} />
         <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
 

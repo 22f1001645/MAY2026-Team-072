@@ -123,12 +123,15 @@ class Organisation(Base):
     name = db.Column(db.String(150), nullable=False)
     type = db.Column(db.String(20), nullable=False)  # house|society|region|council
     city = db.Column(db.String(80))
+    category = db.Column(db.String(80), nullable=True)  # e.g., Dance, Tech, Sports, Arts
+    tagline = db.Column(db.String(255), nullable=True)  # Catchphrase / quick overview
     # Entity profile (ORG-01). Both nullable: every organisation that already
     # exists was seeded without a profile, and an empty profile is a truthful
     # state rather than something to invent a default for. Applies to all four
     # org types, replacing the Houses-only HOUSE_META precedent.
     bio = db.Column(db.Text, nullable=True)
     logo_url = db.Column(db.String(300), nullable=True)
+    banner_url = db.Column(db.String(300), nullable=True)
     # The organisation's own site (ORG-02, decision D-03). A DISTINCT field, not
     # a `platform` row on organisation_social_links: modelling it here is what
     # keeps "a social link with a non-allowlisted host is rejected" true of every
@@ -148,8 +151,12 @@ class Organisation(Base):
             "name": self.name,
             "type": self.type,
             "city": self.city,
+            "category": self.category,
+            "tagline": self.tagline,
+            "description": self.bio,
             "bio": self.bio,
             "logo_url": self.logo_url,
+            "banner_url": self.banner_url,
             "website": self.website,
         }
         if detail:
@@ -822,6 +829,7 @@ class Notification(Base):
     type = db.Column(db.String(20), default="update")
     title = db.Column(db.String(200))
     body = db.Column(db.Text)
+    action_url = db.Column(db.String(500), nullable=True)
     read = db.Column(db.Boolean, default=False)
 
     activity = db.relationship("Activity")
@@ -830,8 +838,12 @@ class Notification(Base):
         return {
             "id": self.id,
             "type": self.type,
+            # Which view this notification belongs to. The client filters on it,
+            # because the view never travels to the server (D-18).
+            "target_role": self.target_role,
             "title": self.title,
             "body": self.body,
+            "action_url": self.action_url,
             "read": self.read,
             "activity_id": self.activity_id,
             "activity_title": self.activity.title if self.activity else None,
@@ -851,6 +863,16 @@ class Expense(Base):
     status = db.Column(db.String(20), default="submitted")
     bill_name = db.Column(db.String(200))
     submitted_by = db.Column(db.String(32), db.ForeignKey("users.id"))
+    # REIMB-02 (decision D-10): the link to the event's social post, attached at
+    # the Meetup Head's final submit. Nullable because it is meaningless on a
+    # draft row — REIMB-01 lets any team member build the expense list long
+    # before anyone has posted anything. The requirement is enforced at the one
+    # moment it is true (expense_service.draft_and_submit), not by the column.
+    #
+    # Every value written here has already passed app.url_safety, which caps a
+    # URL at MAX_SOCIAL_URL_LENGTH (300), so 500 is deliberate headroom rather
+    # than a second, weaker bound competing with the validator.
+    social_post_url = db.Column(db.String(500), nullable=True)
 
     activity = db.relationship("Activity", back_populates="expenses")
     budget_line = db.relationship("BudgetLine", back_populates="expenses")
@@ -867,6 +889,7 @@ class Expense(Base):
             "status": self.status,
             "bill_name": self.bill_name,
             "submitted_by": self.submitted_by,
+            "social_post_url": self.social_post_url,
         }
 
 

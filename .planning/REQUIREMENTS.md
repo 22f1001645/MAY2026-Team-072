@@ -73,15 +73,15 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Event Timeline & Feedback
 
-- [ ] **TIMELINE-01**: An event's timeline is a read-only projection over `AuditLog` + `Registration`/`Attendance`/`Report` data — no new source-of-truth table
-- [ ] **TIMELINE-02**: `registration_service`, `attendance_service`, and `expense_service` are backfilled to actually write `AuditLog` rows for the state changes they already claim to record
+- [x] **TIMELINE-01**: An event's timeline is a read-only projection over `AuditLog` + `Registration`/`Attendance`/`Report` data — no new source-of-truth table
+- [x] **TIMELINE-02**: `registration_service`, `attendance_service`, and `expense_service` are backfilled to actually write `AuditLog` rows for the state changes they already claim to record
 - [ ] **FEEDBACK-01**: Any team member can draft the post-event reflection (challenges, learnings), but only the assigned Meetup Head can submit it — feeds the existing `Report`, same single-submitter pattern as CAMPAIGN-06
 - [ ] **FEEDBACK-02**: Attendee can submit a lightweight post-event rating/feedback, gated on having actually attended (per QR-04's authoritative Attendance record)
 
 ### Reimbursement
 
-- [ ] **REIMB-01**: Any team member can draft expense entries against budget lines, but only the assigned Meetup Head can submit the final reimbursement request — consistent with the campaign-approval and report-submission pattern (CAMPAIGN-06, FEEDBACK-01)
-- [ ] **REIMB-02**: Reimbursement submission requires a social-post link (photos with attendees, posted to the entity's socials) alongside bill attachments; admin reviews this as supplementary context only — the QR-verified Attendance count (QR-04) remains the sole authoritative number, never overridden by photo review
+- [x] **REIMB-01**: Any team member can draft expense entries against budget lines, but only the assigned Meetup Head can submit the final reimbursement request — consistent with the campaign-approval and report-submission pattern (CAMPAIGN-06, FEEDBACK-01)
+- [x] **REIMB-02**: Reimbursement submission requires a social-post link (photos with attendees, posted to the entity's socials) alongside bill attachments; admin reviews this as supplementary context only — the QR-verified Attendance count (QR-04) remains the sole authoritative number, never overridden by photo review
 
 ### QR Check-In
 
@@ -92,17 +92,17 @@ Requirements for this milestone. Each maps to a roadmap phase (see ROADMAP.md).
 
 ### Progression Gating
 
-- [ ] **PROG-01**: An org's eligibility to propose `regional_fest` scale in a given city unlocks once that org has completed, in that same city, at least one `local_meetup` and at least one `regional_meetup` (computed server-side as `approved AND starts_at < now()`, not `status == completed`, which never flips without a report)
-- [ ] **PROG-02**: A `regional_fest` proposal additionally requires at least 6 collaborating Organisations (PROPOSAL-01) named on the proposal
-- [ ] **PROG-03**: Reaching fest-tier eligibility sets a server-recorded "Sponsorship & outreach tools unlocked" flag for that org/city, surfaced as UI messaging — the sponsorship/CRM tooling itself stays out of scope this milestone (see v2)
-- [ ] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
+- [x] **PROG-01**: An org's eligibility to propose `regional_fest` scale in a given city unlocks once that org has completed, in that same city, at least one `local_meetup` and at least one `regional_meetup` (computed server-side as `approved AND starts_at < now()`, not `status == completed`, which never flips without a report)
+- [x] **PROG-02**: A `regional_fest` proposal additionally requires at least 6 collaborating Organisations (PROPOSAL-01) named on the proposal
+- [x] **PROG-03**: Reaching fest-tier eligibility sets a server-recorded "Sponsorship & outreach tools unlocked" flag for that org/city, surfaced as UI messaging — the sponsorship/CRM tooling itself stays out of scope this milestone (see v2)
+- [x] **PROG-04**: Progression is enforced server-side — a direct API call to propose a locked scale returns 403, not just a hidden UI option
 
 ### Event Announcements, Polls & Queries
 
-- [ ] **CHAT-01**: Organiser/team can post announcements and create polls scoped to an event's registration window
-- [ ] **CHAT-02**: Registrants (auto-added to the event's channel on registration, gated by `can_participate_in_activity`) have exactly two self-service actions: submit a query (visible to the team, who respond) and cancel their registration — never peer-to-peer reply/chat, never an open feed (Swiggy-support-ticket model, not WhatsApp)
-- [ ] **CHAT-03**: Moderation controls (rate-limit on query submission, audit-log entry) ship in the same phase as the feature itself
-- [ ] **CHAT-04**: Announcements/polls/queries use cursor-based polling (10–15s + jitter) via TanStack Query, not WebSockets/Flask-SocketIO
+- [x] **CHAT-01**: Organiser/team can post announcements and create polls scoped to an event's registration window
+- [x] **CHAT-02**: Registrants (auto-added to the event's channel on registration, gated by `can_participate_in_activity`) have exactly two self-service actions: submit a query (visible to the team, who respond) and cancel their registration — never peer-to-peer reply/chat, never an open feed (Swiggy-support-ticket model, not WhatsApp)
+- [x] **CHAT-03**: Moderation controls (rate-limit on query submission, audit-log entry) ship in the same phase as the feature itself
+- [x] **CHAT-04**: Announcements/polls/queries use cursor-based polling (10–15s + jitter) via TanStack Query, not WebSockets/Flask-SocketIO
 
 ## v2 Requirements
 
@@ -169,10 +169,11 @@ Populated during roadmap creation — see ROADMAP.md.
 | TEAM-01, TEAM-02 | Phase 5 | Complete (backend 05-04; frontend board 05-09) |
 | TEAM-03, TEAM-04 | Phase 5 | Complete |
 | QR-01, QR-02, QR-03, QR-04 | Phase 6 | Pending |
-| TIMELINE-01, TIMELINE-02, FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
-| REIMB-01, REIMB-02 | Phase 6 | Pending |
-| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Pending |
-| CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Pending |
+| TIMELINE-01, TIMELINE-02 | Phase 6 | Complete (06-01) |
+| FEEDBACK-01, FEEDBACK-02 | Phase 6 | Pending |
+| REIMB-01, REIMB-02 | Phase 6 | Complete (06-02 — backend; frontend panel in 06-04) |
+| PROG-01, PROG-02, PROG-03, PROG-04 | Phase 7 | Complete |
+| CHAT-01, CHAT-02, CHAT-03, CHAT-04 | Phase 8 | Complete (08-06 — CHAT-03 audit trail only; query rate-limiting deferred, see ROADMAP Phase 8 criterion 4) |
 
 **Coverage:**
 

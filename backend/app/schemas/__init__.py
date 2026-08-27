@@ -1,7 +1,14 @@
 """Marshmallow schemas — request validation only (422 on failure).
 
 Responses are shaped by each model's to_dict(); these guard the write paths."""
-from marshmallow import Schema, fields, validate
+from marshmallow import (
+    Schema,
+    ValidationError,
+    fields,
+    validate,
+    validates,
+    validates_schema,
+)
 
 from ..constants import (
     ACADEMIC_LEVELS,
@@ -12,7 +19,9 @@ from ..constants import (
     COLLAB_ACCEPTED,
     COLLAB_DECLINED,
     FORM_FIELD_TYPES,
+    REPORT_STATES,
     SOCIAL_PLATFORM_KEYS,
+    STUDENT_EMAIL_DOMAIN,
     TASK_STATUSES,
     TEAM_ROLES,
     UPLOAD_URL_PATTERN,
@@ -26,6 +35,18 @@ class RegisterSchema(Schema):
     password = fields.Str(required=True, validate=validate.Length(min=6))
     region_id = fields.Str(required=True)            # Official 10-region anchor
     city = fields.Str(load_default=None, allow_none=True)  # Specific city (optional)
+
+    @validates("email")
+    def validate_student_email(self, value):
+        """Only IIT Madras online-degree student addresses are permitted.
+
+        The domain is a single constant (STUDENT_EMAIL_DOMAIN) so the rule lives
+        in one place. Lowercase before comparing so casing accidents are not
+        a silent bypass."""
+        if not value.lower().endswith(f"@{STUDENT_EMAIL_DOMAIN}"):
+            raise ValidationError(
+                f"Only @{STUDENT_EMAIL_DOMAIN} email addresses are accepted."
+            )
 
 
 class LoginSchema(Schema):
@@ -72,9 +93,106 @@ class ExpenseSchema(Schema):
     bill_name = fields.Str(load_default="bill.pdf")
 
 
+class ExpenseDraftRowSchema(Schema):
+    """REIMB-01 — one row of the expense draft list.
+
+    `id` present means "edit this row", absent means "create one", and that is
+    the only thing that decides which fields are required. Every field is
+    nullable so an edit carrying only `amount` says nothing about the label and
+    expense_service leaves that column alone — the EditEventSchema and
+    TaskPatchSchema rule, applied to a row inside a list.
+
+    A NEW row still needs a label, because a bill with no description is not a
+    draft of anything. That rule is conditional on `id`, so it lives in
+    `_label_is_required_on_a_new_row` rather than in `required=True`, which
+    cannot see the rest of the row. Both string bounds match the declared column
+    widths, so an over-long value is a placeable 422 rather than a database
+    error on commit.
+    """
+
+    id = fields.Str(load_default=None, allow_none=True)
+    label = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(min=1, max=200)
+    )
+    amount = fields.Int(
+        load_default=None, allow_none=True, validate=validate.Range(min=0)
+    )
+    bill_name = fields.Str(
+        load_default=None, allow_none=True, validate=validate.Length(max=200)
+    )
+
+    @validates_schema
+    def _label_is_required_on_a_new_row(self, data, **kwargs):
+        if not data.get("id") and not data.get("label"):
+            raise ValidationError(
+                "Missing data for required field.", field_name="label"
+            )
+
+
+class ExpenseDraftSchema(Schema):
+    """REIMB-01/REIMB-02 — the whole expense list in one write, plus the
+    Meetup Head's optional submit.
+
+    `expenses` defaults to an empty list so a bare `{"submit": true}` is a valid
+    "submit what is already drafted" call. `submit` is a flag rather than a
+    second endpoint because the UI's Submit button both saves the row the user
+    is still typing and closes the list (decision D-11); splitting it would let
+    those two halves land in either order.
+
+    `social_post_url` carries a length bound only, following SocialLinkSchema:
+    the shape of a URL is decided by `app.url_safety`, and whether one is
+    REQUIRED depends on `submit`, which is a service-layer question. Duplicating
+    either check here would pre-empt a placeable, coded rejection with a bare
+    422 the Reimbursement panel cannot attach to the field.
+    """
+
+    expenses = fields.List(fields.Nested(ExpenseDraftRowSchema), load_default=list)
+    submit = fields.Bool(load_default=False)
+    social_post_url = fields.Str(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=MAX_SOCIAL_URL_LENGTH),
+    )
+
+
 class BroadcastSchema(Schema):
     title = fields.Str(required=True)
     body = fields.Str(required=True)
+
+
+class PollCreateSchema(Schema):
+    """CHAT-01 poll creation. The 2-6 option bound is the schema's job, not the
+    service's — an option list of one is not a poll and a list of twenty is not
+    something the results bar can render."""
+
+    question = fields.Str(required=True, validate=validate.Length(min=5, max=300))
+    options = fields.List(
+        fields.Str(validate=validate.Length(min=1, max=100)),
+        required=True,
+        validate=validate.Length(min=2, max=6),
+    )
+    closes_at = fields.DateTime(load_default=None, allow_none=True)
+
+
+class PollVoteSchema(Schema):
+    """The upper bound on option_index depends on the poll being voted on, so it
+    lives in channel_service where the poll's own options are in hand."""
+
+    option_index = fields.Int(required=True, validate=validate.Range(min=0))
+
+
+class QuerySubmitSchema(Schema):
+    """CHAT-02 question to the organising team. The 5-character floor keeps a
+    stray keypress from becoming a question the team must triage."""
+
+    body = fields.Str(required=True, validate=validate.Length(min=5, max=1000))
+
+
+class QueryRespondSchema(Schema):
+    """CHAT-03 team answer. Longer bound than the question because an answer
+    routinely carries the detail the question asked for."""
+
+    response_body = fields.Str(required=True, validate=validate.Length(min=1, max=2000))
 
 
 class CheckInSchema(Schema):
@@ -82,7 +200,8 @@ class CheckInSchema(Schema):
 
 
 class ScanSchema(Schema):
-    registration_id = fields.Str(required=True)
+    qr_token = fields.Str(required=False, allow_none=True)
+    registration_id = fields.Str(required=False, allow_none=True)
 
 
 class ProfileSchema(Schema):
@@ -122,9 +241,22 @@ class PORSchema(Schema):
 
 
 class OrgSchema(Schema):
-    name = fields.Str(required=True)
-    type = fields.Str(required=True, validate=validate.OneOf(["house", "society", "region", "council"]))
-    city = fields.Str(required=True)
+    name = fields.Str(required=True, validate=validate.Length(min=1, max=150))
+    type = fields.Str(load_default="society", validate=validate.OneOf(["house", "society", "region", "council"]))
+    city = fields.Str(required=False, allow_none=True, load_default="Online")
+    category = fields.Str(required=False, allow_none=True, validate=validate.Length(max=80))
+    tagline = fields.Str(required=False, allow_none=True, validate=validate.Length(max=255))
+    description = fields.Str(required=False, allow_none=True)
+    bio = fields.Str(required=False, allow_none=True)
+    logo_url = fields.Str(required=False, allow_none=True)
+    banner_url = fields.Str(required=False, allow_none=True)
+    website = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    instagram = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    linkedin = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    x = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    youtube = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    facebook = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
+    github = fields.Str(required=False, allow_none=True, validate=validate.Length(max=300))
 
 
 class OrgProfileSchema(Schema):
@@ -239,6 +371,35 @@ class BrandKitSchema(Schema):
 
 class ReportSchema(Schema):
     summary = fields.Str(required=True, validate=validate.Length(min=10))
+
+
+class ReportPatchSchema(Schema):
+    """FEEDBACK-01 — the post-event reflection, saved as a draft or submitted.
+
+    Every field is nullable and defaults to None, so a PATCH carrying only
+    `challenges` says nothing about `learnings` and proposal_service leaves that
+    column alone (the EditEventSchema / TaskPatchSchema partial-PATCH rule).
+    The panel auto-saves each textarea on blur (D-03, D-12), which is exactly a
+    request that mentions one field and not the other.
+
+    `status` is a field rather than a second endpoint because the Submit button
+    both saves the textarea the user is still in and closes the report (D-11's
+    reasoning, applied to D-12): splitting it would let those two halves land in
+    either order. WHO may set it to `submitted` is deliberately not decided here
+    — that depends on the caller, not on the payload, so it lives in the service
+    where `is_meetup_head` can be asked (RBAC-03).
+
+    Neither text field carries a length bound: both columns are `Text`, so a
+    bound here would be a limit this schema invented rather than one the
+    database has, and it would truncate a genuinely long reflection with a 422
+    the panel could not explain.
+    """
+
+    challenges = fields.Str(load_default=None, allow_none=True)
+    learnings = fields.Str(load_default=None, allow_none=True)
+    status = fields.Str(
+        load_default=None, allow_none=True, validate=validate.OneOf(REPORT_STATES)
+    )
 
 
 class VolunteerSchema(Schema):
@@ -360,6 +521,21 @@ class MailSchema(Schema):
     )
     mail_body = fields.Str(load_default=None, allow_none=True)
 
+
 class CityAlertSubscriptionCreate(Schema):
     email = fields.Email(required=True)
     city = fields.Str(required=True, validate=validate.Length(min=1))
+
+
+class FeedbackSchema(Schema):
+    """FEEDBACK-02 — one attendee's post-event rating.
+
+    `rating` is required and bounded to 1-5 at the schema layer, which means
+    the service never receives an out-of-range value and can skip re-validation.
+    `comment` is optional; the Text column has no fixed cap, but 2 000 chars
+    matches UX expectations (a meaningful paragraph, not an essay).
+    """
+
+    rating = fields.Int(required=True, validate=validate.Range(min=1, max=5))
+    comment = fields.Str(load_default=None, allow_none=True,
+                         validate=validate.Length(max=2000))

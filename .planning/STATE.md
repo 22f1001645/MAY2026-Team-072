@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-current_phase: 05
-current_phase_name: post-acceptance-pipeline-design-campaign-live-workspace
-status: executing
-stopped_at: Completed 05-11-PLAN.md — Phase 05 complete (11/11)
-last_updated: "2026-08-18T14:35:00.000Z"
-last_activity: 2026-08-18
-last_activity_desc: "Completed 05-11: the campaign mail draft, assembled so the model writes only the narrative and the server concatenates every fact after the call returns — an injection that fully succeeds still cannot move a date, venue, fee or capacity"
+current_phase: 4
+current_phase_name: Organisation Profile & Brand Kit
+status: planning
+stopped_at: Completed 08-06-PLAN.md — Phase 08 closed out
+last_updated: "2026-08-23T20:51:19.199Z"
+last_activity: 2026-08-24
+last_activity_desc: Phase 08 complete, transitioned to Phase 4
 progress:
   total_phases: 8
-  completed_phases: 5
-  total_plans: 36
-  completed_plans: 36
+  completed_phases: 8
+  total_plans: 56
+  completed_plans: 56
   percent: 100
 ---
 
@@ -24,23 +24,25 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A Regional Coordinator can propose, get approved, publish, fill, run, and reimburse a city meetup — and a student can discover, register for, and stay updated on it — entirely inside Ekatva OS.
-**Current focus:** Phase 05 — post-acceptance-pipeline-design-campaign-live-workspace (complete; manual UAT outstanding)
+**Current focus:** Phase 08 — event-announcements-polls-queries
 
 ## Current Position
 
-Phase: 04 (organisation-profile-brand-kit) — COMPLETE, manual UAT deferred (see 04-UAT.md)
+Phase: 4 — Organisation Profile & Brand Kit
 Phase: 05 (post-acceptance-pipeline-design-campaign-live-workspace) — COMPLETE, manual UAT outstanding
-Plan: 9/9 (Phase 04); 11/11 (Phase 05 — 05-01..05-11 all complete)
-Status: Phase 05 fully executed — all seven waves landed. 05-11 (AI mail generation) closed the phase; every Phase 5 requirement (DESIGN-01, CAMPAIGN-01..06, TEAM-01..04) has passing tests. What remains for Phase 05 is manual UAT only, per 05-VALIDATION.md's manual-only list.
-Last activity: 2026-08-18 — Completed 05-11: the campaign mail draft, assembled so the model writes only the narrative and the server concatenates every fact after the call returns — an injection that fully succeeds still cannot move a date, venue, fee or capacity
+Phase: 06 (event-execution-close-out) — COMPLETE (see 06-UAT.md)
+Phase: 07 (progression-gating) — COMPLETE, verification outstanding
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-24 — Phase 08 complete, transitioned to Phase 4
 
-Progress: [██████████] 100% (36/36 plans across the milestone) — Phase 05: 100%
+Progress: [██████████] 100% (8/8 phases executed)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 7
+- Total plans completed: 17
 - Average duration: —
 - Total execution time: 0.0 hours
 
@@ -50,6 +52,7 @@ Progress: [██████████] 100% (36/36 plans across the mileston
 |-------|-------|-------|----------|
 | 02 | 7 | - | - |
 | 03 | 4 | - | - |
+| 08 | 6 | - | - |
 
 **Recent Trend:**
 
@@ -94,6 +97,26 @@ Progress: [██████████] 100% (36/36 plans across the mileston
 | Phase 05 P09 | 45min | 3 tasks | 13 files |
 | Phase 05 P10 | 50min | 2 tasks | 12 files |
 | Phase 05 P11 | 45min | 3 tasks | 9 files |
+| Phase 06 P01 | 40min | 3 tasks | 6 files |
+| Phase 06 P02 | 60min | 3 tasks | 8 files |
+| Phase 06 P03 | — | — | — |
+| Phase 06 P04 | — | — | — |
+| Phase 06 P05 | — | — | — |
+| Phase 06 P06 | — | — | — |
+| Phase 06 P07 | — | — | — |
+| Phase 06 P08 | — | — | — |
+| Phase 06 P09 | — | — | — |
+| Phase 07 P01 | 40min | 2 tasks | 5 files |
+| Phase 07 P02 | 55min | 3 tasks | 5 files |
+| Phase 07 P03 | 12min | 2 tasks | 4 files |
+| Phase 07 P04 | 9min | 2 tasks | 1 files |
+| Phase 07 P05 | 65min | 3 tasks | 3 files |
+| Phase 08 P01 | 45min | 3 tasks | 4 files |
+| Phase 08 P02 | 40min | 2 tasks | 3 files |
+| Phase 08 P03 | 25min | 3 tasks | 3 files |
+| Phase 08 P04 | 20min | 3 tasks | 3 files |
+| Phase 08 P05 | 25min | 4 tasks | 4 files |
+| Phase 08 P06 | 45min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -125,6 +148,9 @@ Recent decisions affecting current work:
 - [Phase 2]: Decoupled Auth tokens from database reads by extracting `TermRepository` and `BlocklistRepository`.
 - [Phase 2]: Added `is_current` to `Term` model and generated migration `17240eb59839` to track the current term.
 - [Phase 2]: Introduced dynamic RBAC predicates (`manageable_orgs`, `manageable_activities`) avoiding token bloat.
+- [Phase 6]: The event timeline reads BOTH the audit log and the underlying tables, de-duplicated by a per-entity cutoff (the earliest audit row's timestamp) rather than an on/off switch — an event with check-ins on both sides of the TIMELINE-02 backfill gets each half from exactly one source.
+- [Phase 6]: The "Expense submitted" audit row was keyed on `expense.id` before the flush, so `entity_id` was always null and the row belonged to nothing. It is now keyed on `activity_id`, which is both the fix and what makes it findable by its two readers.
+- [Phase 6]: `advance()`/`bulk_advance()` audit rows stay keyed on the expense id — those are admin-side pipeline moves, not events in the organiser's timeline.
 - [Phase 2]: Handled role-based capability switching entirely in the frontend using `SessionProvider` and a UI `ViewSwitcher` without server-side token modification.
 - [Phase ?]: [Phase 2] locations=["cookies"] on both cookie endpoints is the authoritative server-side fix for the stale-Authorization-header lockout — the frontend needs no change for correctness (T-02-17, mutation-verified).
 - [Phase ?]: [Phase 2] The blocklist loader stays a pure predicate; revocation side effects live in auth_service.refresh behind skip_revocation_check=True, which is what makes reuse detection reachable for 02-03.
@@ -209,10 +235,42 @@ Recent decisions affecting current work:
 - [Phase 5]: 05-11: `degraded` lives on the mutation result, not on the campaign row — it describes the generation that just happened, and persisting it would make a reload show a stale complaint about a draft the organiser may have since rewritten
 - [Phase 5]: 05-11: MailTemplateEditor adopts mailSubject and mailBody from props per field rather than as a pair, so a response populating only one of them cannot blank the other (E5 partial)
 - [Phase 5]: 05-11: an AI test asserts the artefact against a model that returned nonsense — a realistic stand-in could contain a plausible number and make the assertion pass for the wrong reason
+- [Phase ?]: REIMB-02 submit gate is rbac.is_meetup_head with NO admin fallback — an admin's PROPOSAL-05 power is to reassign the Meetup Head, not to act as one (06-02)
+- [Phase ?]: Conditional authority splits across layers: the broad predicate (can_manage_activity) guards the route, the body-dependent one (is_meetup_head, gated on the submit flag) lives in the service — a route guard cannot read the body (06-02)
+- [Phase ?]: Endpoints that both save and transition in one call check every gate BEFORE touching a row, so a refused call leaves the working document untouched (06-02)
+- [Phase ?]: social_post_url is searched across the six ORG-02 platforms rather than taking a platform parameter; malformed keeps social_url_scheme, well-formed-but-not-social keeps social_url_host (D-09, 06-02)
+- [Phase ?]: 07-01: A3 adopted — fest eligibility counts only activities the org owns as primary (Activity.org_id); an accepted collaboration invite does not unlock fest tier, matching the meetups_in_region_month precedent and the narrower security posture
+- [Phase ?]: 07-01: the completion test is (Proposal.status == approved AND starts_at < now()), never Activity.status — sync_past_events() writes that column with no reference to proposal status, so reading it would count a rejected proposal as a track record
+- [Phase ?]: 07-01: the submit-side fest collaborator count reads valid_collab_orgs (post-dedup), never data['collaborating_org_ids'] — six repeats of one id would otherwise clear the threshold (T-07-04)
+- [Phase ?]: 07-01: the progression gate has no admin carve-out; the assertion lives inside test_direct_submit_of_locked_scale_is_403 rather than as a 14th case, because the plan pins the file at 13
+- [Phase ?]: A1: record_unlock fires on every successful approval that leaves the org fest-eligible, not only on fest approvals
+- [Phase ?]: A2: GET /orgs/<id>/progression is auth_required, not can_manage_org_required — an admin proposing for an org holds no POR in it
+- [Phase ?]: 07-03: shipped the progression hook as useOrgProgression, resolving the UI-SPEC naming conflict — 07-04 must not create a second hook under useFestEligibility
+- [Phase ?]: 07-04: the fest auto-revert needed a useEffect, not render-time derivation — it must write user-owned scale state
+- [Phase ?]: 07-05: fest collaborator threshold in the approval queue is read via the primary collaborator's org_id rather than widening EkatvaEvent/adaptEvent for one page
+- [Phase ?]: 07-05: the PROG-03 sponsorship banner is display-only — no button, link or gated affordance, so a stale unlock row grants nothing
+- [Phase ?]: [Phase 8] 08-01: cast_vote's participation gate is rbac.can_participate_in_activity, not a raw RegistrationRepository.find — the predicate already excludes cancelled registrations and already admits organisers, which the literal find() does not
+- [Phase ?]: [Phase 8] 08-01: _poll_or_404 checks the poll belongs to the activity in the URL — the route guard authorises against the path's activity, so a bare poll id would be votable and closable through any other event
+- [Phase ?]: [Phase 8] 08-01: create_poll flushes before AuditRepository.record so entity_id is the poll's real id, avoiding the Phase 6 'expense submitted' bug where the audit row belonged to nothing
+- [Phase ?]: [Phase 8] 08-02: submit_query's participation gate is rbac.can_participate_in_activity, matching 08-01's cast_vote — a cancelled registration must not grant the right to ask, and an organiser with no registration row must still be able to (D-08)
+- [Phase ?]: [Phase 8] 08-02: _query_or_404 scopes the query to the activity in the URL — can_manage_activity_required authorises against the path's activity, so a bare query id would be answerable through any other event
+- [Phase ?]: [Phase 8] 08-02: GET /queries/mine is auth_required, not team-gated — it takes no user parameter and is filtered on g.current_user in the service, so a stronger route guard would only lock a registrant out of their own questions (D-11)
+- [Phase ?]: [Phase 8] 08-03: the three channel types keep the wire's snake_case, matching Notification rather than AnnouncementMessage — nothing adapts them in api.ts, and a camelCase type with no adapter behind it is wrong at runtime
+- [Phase ?]: [Phase 8] 08-03: createPoll/closePoll are typed Omit<EventPoll,'vote_counts'|'my_vote'> because EventPoll.to_dict() carries neither — only channel_service.list_polls computes them
+- [Phase ?]: [Phase 8] 08-03: useCreatePoll destructures id out of its variables before building the body — PollCreateSchema is a plain marshmallow Schema (unknown=RAISE), so the plan's literal pass-through would have 422'd every poll creation
+- [Phase ?]: [Phase 8] 08-03: channel queries poll on a jittered 15s +/- 3s interval and stop in a backgrounded tab (D-13/D-14) — the deliberate opposite of the Kanban board's AC-35 gate, which the added intervals were checked against by running the suite
+- [Phase ?]: Q&A left as a marked non-rendering seam in EventChannelSection rather than a placeholder — QuerySection.tsx (08-05) had not been created when 08-04 ran
+- [Phase ?]: 08-05: Q&A questions stay private to their asker — QuerySection reads /queries/mine, so a dietary or accessibility question is never public to the attendee list
+- [Phase ?]: 08-05: OrgQueriesPanel is a ManageEvent tab (not a standalone section) and keeps one reply draft per query id, so a half-typed answer cannot appear under every open question
+- [Phase ?]: 08-05 absorbed 08-04's deferred wiring: QuerySection is mounted at the TODO(08-05) seam in EventChannelSection and Broken Windows entry 6 is closed
+- [Phase ?]: [Phase 8]: 08-06 changed no application source — the registration-window guard was already correct, including the deliberate asymmetry that leaves close_poll and respond_query ungated, so the deliverable became the permanent test suite that pins it.
+- [Phase ?]: [Phase 8]: The CHAT-04 background-polling gate names its four channel hooks explicitly rather than scanning every polling hook — useMyRegistrations and useNotifications poll without the flag and predate the phase; a gate failing on out-of-scope code gets deleted, not obeyed.
+- [Phase ?]: [Phase 8]: CHAT-03 marked complete with an inline caveat — the audit trail shipped, query rate-limiting stays deferred by recorded decision (no live deploy target), so the traceability row says so rather than implying full coverage.
 
 ### Pending Todos
 
 - **No `03-VERIFICATION.md`** — Phase 1 and Phase 2 both have one; Phase 3 does not. Worth writing once manual UAT closes out, for parity with the other phases.
+- **No `06-VERIFICATION.md`** — Phase 6 is complete and UAT'd (`06-UAT.md`), but has no verification doc like Phases 1/2/4/5. Worth writing for parity before Phase 07 starts.
 - **A replaced poster's old file is left on disk** (05-10). `store_logo` unlinks the previous file after the commit; `save_poster` does not, because `CampaignPackage` has no equivalent of the `UPLOAD_URL_PATTERN` guard that makes the logo's unlink safe against a client-writable value. Effect is one unreferenced file per replacement — a cleanup problem, not a correctness one.
 - **No regenerate affordance on `RegistrationLinkCard`** (surfaced by the 05-07 checkpoint, step 7). Once a slug exists the card renders only Copy — 05-07's acceptance criteria only covered the null-URL state, so the checkpoint script assumed a capability the task was never asked to build. The backend rotation is correct and verified at the API layer (second mint invalidates the first, old slug 404s). A future plan should add the button plus the "this breaks every link already shared" confirmation it needs.
 
@@ -228,8 +286,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-18T14:35:00.000Z
-Stopped at: Completed 05-11-PLAN.md — Phase 05 complete (11/11)
+Last session: 2026-08-23T18:53:23.985Z
+Stopped at: Completed 08-06-PLAN.md — Phase 08 closed out
 Resume file: None
 
-Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured), then finish Phase 04 manual UAT via `04-UAT.md`. Phase 06 (Event Execution & Close-Out) is the next phase to plan.
+Next: manual UAT for Phase 05 (05-VALIDATION.md's manual-only list, including the degraded-banner pass with no API key configured) and Phase 04 (`04-UAT.md`) are still outstanding. Phase 06 has no `06-VERIFICATION.md` yet (Phases 1/2/4/5 all have one) — worth writing for parity before Phase 07 starts. Phase 07 (Progression Gating) is the next phase to plan.

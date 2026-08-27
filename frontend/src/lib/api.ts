@@ -5,8 +5,14 @@ import type {
   ApiSchedulePreset,
   ApiTask,
   BrandKit,
+  CollabStatus,
   EkatvaEvent,
+  EventPoll,
+  EventPollVote,
+  EventQuery,
+  FestEligibility,
   OrgProfile,
+  OrgUnlock,
   Organisation,
   Role,
 } from './types'
@@ -220,8 +226,23 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     organiser: a.organiser,
     tags: TAGS_BY_SCALE[a.scale] ?? [],
     isMegaMeetup: a.is_mega_meetup ?? false,
-    collaborators: (a.collaborators ?? []) as EkatvaEvent['collaborators'],
-    teamMembers: a.team_members ?? [],
+    collaborators: (a.collaborators ?? []).map((c) => ({
+      id: c.id,
+      activityId: c.activity_id,
+      orgId: c.org_id,
+      org: c.org,
+      isPrimary: c.is_primary,
+      status: c.status as CollabStatus,
+      respondedAt: c.responded_at,
+    })),
+    teamMembers: (a.team_members ?? []).map((t) => ({
+      id: t.id,
+      activityId: t.activity_id,
+      userId: t.user_id,
+      member: t.member,
+      role: t.role,
+      addedBy: t.added_by,
+    })),
     budget: (a.budget ?? []).map((b) => ({
       id: b.id,
       label: b.label,
@@ -274,14 +295,17 @@ export function adaptMe(u: ApiMe): Account {
 
 /* ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ---------- */
 
-/** Wire shape of an organisation row — `GET /orgs` and the profile routes. */
 export interface ApiOrganisation {
   id: string
   name: string
   type: string
   city: string
+  category?: string | null
+  tagline?: string | null
+  description?: string | null
   bio?: string | null
   logo_url?: string | null
+  banner_url?: string | null
   website?: string | null
 }
 
@@ -339,8 +363,12 @@ export function adaptOrganisation(o: ApiOrganisation): Organisation {
     name: o.name,
     type: o.type as Organisation['type'],
     city: o.city,
-    bio: o.bio ?? null,
+    category: o.category ?? null,
+    tagline: o.tagline ?? null,
+    description: o.description ?? o.bio ?? null,
+    bio: o.bio ?? o.description ?? null,
     logoUrl: absoluteUploadUrl(o.logo_url),
+    bannerUrl: absoluteUploadUrl(o.banner_url),
     website: o.website ?? null,
   }
 }
@@ -350,6 +378,48 @@ export function adaptOrgProfile(p: ApiOrgProfile): OrgProfile {
     ...adaptOrganisation(p),
     socialLinks: (p.social_links ?? []).map((l) => ({ platform: l.platform, url: l.url })),
     withheldPlatforms: p.withheld_platforms ?? [],
+  }
+}
+
+/* ---- Phase 7: progression gating (PROG-01…PROG-03) --------------------- */
+
+/** The wire shape of `GET /orgs/{id}/progression`, snake_case exactly as the
+ *  server sends it. These keys must not appear anywhere outside this module. */
+export interface ApiFestEligibility {
+  org_id: string
+  city: string | null
+  local_meetups_completed: number | null
+  regional_meetups_completed: number | null
+  requirements_met: number
+  requirements_total: number
+  fest_eligible: boolean
+  collaborator_threshold: number
+  unlocks?: { id: string; org_id: string; city: string; unlocked_at: string }[]
+}
+
+/** The single snake→camel adapter for progression state. Both Phase 7 read
+ *  surfaces — the fest-card lock and the sponsorship banner — go through here,
+ *  and if the server's shape ever moves, this function is the only place that
+ *  needs to know. `unlocks` defaults to `[]` because the banner decides its own
+ *  visibility with a length check. */
+export function adaptFestEligibility(p: ApiFestEligibility): FestEligibility {
+  return {
+    orgId: p.org_id,
+    city: p.city ?? null,
+    localMeetupsCompleted: p.local_meetups_completed ?? null,
+    regionalMeetupsCompleted: p.regional_meetups_completed ?? null,
+    requirementsMet: p.requirements_met,
+    requirementsTotal: p.requirements_total,
+    festEligible: p.fest_eligible,
+    collaboratorThreshold: p.collaborator_threshold,
+    unlocks: (p.unlocks ?? []).map(
+      (u): OrgUnlock => ({
+        id: u.id,
+        orgId: u.org_id,
+        city: u.city,
+        unlockedAt: u.unlocked_at,
+      }),
+    ),
   }
 }
 
@@ -554,8 +624,24 @@ export const api = {
   pors: () => request<any[]>('/pors'),
   users: (q?: string) =>
     request<any[]>(`/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-  createOrg: (data: { name: string; type: string; city: string }) =>
-    request('/orgs', { method: 'POST', body: JSON.stringify(data) }),
+  createOrg: (
+    data:
+      | FormData
+      | {
+          name: string
+          type?: string
+          city?: string
+          category?: string
+          tagline?: string
+          description?: string
+          logo_url?: string
+          banner_url?: string
+        },
+  ) =>
+    request<ApiOrganisation>('/orgs', {
+      method: 'POST',
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    }).then(adaptOrganisation),
   assignPor: (orgId: string, data: { user_id: string; por_type: string; term?: string; region_id?: string }) =>
     request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
   deactivatePor: (porId: string) =>
@@ -600,7 +686,51 @@ export const api = {
   announcements: (id: string) => request<any[]>(`/events/${id}/announcements`),
   postAnnouncement: (id: string, body: string) =>
     request(`/events/${id}/broadcast`, { method: 'POST', body: JSON.stringify({ title: '', body }) }),
-  notifications: (role: string = 'student') => request<any[]>(`/notifications?role=${role}`),
+
+  // Channel polls (CHAT-01). Only `polls()` answers with vote counts and the
+  // caller's own vote — `channel_service.list_polls` computes those, while
+  // create and close return `EventPoll.to_dict()` alone. Typing all three as a
+  // full `EventPoll` would promise two fields that are not on the wire.
+  polls: (activityId: string) => request<EventPoll[]>(`/events/${activityId}/polls`),
+  createPoll: (
+    activityId: string,
+    data: { question: string; options: string[]; closes_at?: string | null },
+  ) =>
+    request<Omit<EventPoll, 'vote_counts' | 'my_vote'>>(`/events/${activityId}/polls`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  castVote: (activityId: string, pollId: string, option_index: number) =>
+    request<EventPollVote>(`/events/${activityId}/polls/${pollId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ option_index }),
+    }),
+  closePoll: (activityId: string, pollId: string) =>
+    request<Omit<EventPoll, 'vote_counts' | 'my_vote'>>(
+      `/events/${activityId}/polls/${pollId}/close`,
+      { method: 'PATCH' },
+    ),
+
+  // Channel queries / Q&A (CHAT-02). `/queries/mine` takes no user parameter —
+  // the server scopes it to the signed-in caller (D-11), so a registrant can
+  // only ever read back their own questions.
+  myQueries: (activityId: string) => request<EventQuery[]>(`/events/${activityId}/queries/mine`),
+  orgQueries: (activityId: string) => request<EventQuery[]>(`/events/${activityId}/queries`),
+  submitQuery: (activityId: string, body: string) =>
+    request<EventQuery>(`/events/${activityId}/queries`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  respondQuery: (activityId: string, queryId: string, response_body: string) =>
+    request<EventQuery>(`/events/${activityId}/queries/${queryId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ response_body }),
+    }),
+  /** Every notification addressed to the signed-in user. The current view is
+   *  deliberately NOT a parameter here — it is a rendering concern that must
+   *  never reach the wire (D-18), so callers filter the result on the
+   *  `target_role` each row carries. */
+  notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
@@ -697,6 +827,21 @@ export const api = {
       adaptOrgProfile,
     )
   },
+  // Phase 7: progression gating (PROG-01…PROG-03).
+
+  /** One route, two callers. With a `city` it answers the fest-card lock on the
+   *  proposal form; without one, `city` and both counts come back `null` and the
+   *  `unlocks` array serves the profile's sponsorship banner. `auth_required`
+   *  only — an admin proposing on behalf of an org holds no POR in it. */
+  orgProgression: (orgId: string, city?: string): Promise<FestEligibility> => {
+    const params = new URLSearchParams()
+    if (city) params.append('city', city)
+    const qs = params.toString()
+    return request<ApiFestEligibility>(
+      `/orgs/${orgId}/progression${qs ? `?${qs}` : ''}`,
+    ).then(adaptFestEligibility)
+  },
+
   /** `can_manage_org_required` — a non-manager gets a 403, so the caller gates
    *  this request rather than issuing it and swallowing the error. */
   brandKit: (orgId: string): Promise<BrandKit> =>
@@ -955,4 +1100,75 @@ export const api = {
 
   deleteTask: (activityId: string, taskId: string) =>
     request<void>(`/activities/${activityId}/tasks/${taskId}`, { method: 'DELETE' }),
+
+  searchUsers: (q: string) => request<any[]>(`/users?q=${encodeURIComponent(q)}`),
+  inviteFriend: (eventId: string, userId: string) => request<any>(`/events/${eventId}/invite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId })
+  }),
+
+  // Admin: Phase 5 live campaign monitor
+  liveCampaigns: (): Promise<any[]> =>
+    request<any[]>('/analytics/live-campaigns'),
+
+  // Admin: Phase 4 brand kit overview (reuses /orgs — client-side scoped)
+  brandKitOrgs: (): Promise<any[]> =>
+    request<any[]>('/orgs'),
+
+  // Phase 6: Event Execution & Close-Out
+  // timeline — read-only chronological projection (TIMELINE-01)
+  timeline: (activityId: string): Promise<any[]> =>
+    request<any[]>(`/activities/${activityId}/timeline`),
+
+  /** Attach a receipt or invoice to an expense. Multipart, like uploadPoster —
+   *  the part name must be `bill`, which is what the route reads. Returns the
+   *  server-chosen filename to store on the row, plus the original name for
+   *  display so the organiser can tell two receipts apart. */
+  uploadExpenseBill: (
+    activityId: string,
+    file: File,
+  ): Promise<{ billName: string; billUrl: string; originalName: string }> => {
+    const form = new FormData()
+    form.append('bill', file)
+    return request<{ bill_name: string; bill_url: string; original_name: string }>(
+      `/activities/${activityId}/expenses/bill`,
+      { method: 'POST', body: form },
+    ).then(r => ({ billName: r.bill_name, billUrl: r.bill_url, originalName: r.original_name }))
+  },
+
+  // draftExpenses — any team member drafts; Meetup Head submits with social URL (REIMB-01/02)
+  draftExpenses: (
+    activityId: string,
+    body: { expenses: object[]; submit?: boolean; social_post_url?: string },
+  ) =>
+    request<any>(`/activities/${activityId}/expenses`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  // patchReport — auto-save challenges/learnings; Meetup Head submit (FEEDBACK-01)
+  patchReport: (
+    activityId: string,
+    patch: { challenges?: string | null; learnings?: string | null; status?: string },
+  ) =>
+    request<any>(`/activities/${activityId}/report`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  // getReport — fetch post-event report (FEEDBACK-01)
+  getReport: (activityId: string) =>
+    request<any>(`/activities/${activityId}/report`),
+
+  // submitFeedback — attendee 1-5 star rating after attending (FEEDBACK-02)
+  submitFeedback: (activityId: string, body: { rating: number; comment?: string }) =>
+    request<any>(`/activities/${activityId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  // myFeedback — check own submission; returns {submitted: false} when none (FEEDBACK-02)
+  myFeedback: (activityId: string) =>
+    request<any>(`/activities/${activityId}/feedback/me`),
 }

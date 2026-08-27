@@ -8,6 +8,12 @@ ROLE_ADMIN = "admin"
 ROLE_STUDENT = "student"
 LOGIN_ROLES = (ROLE_ADMIN, ROLE_STUDENT)
 
+# --- Student email domain (AUTH-REG) ---
+# Only IIT Madras online-degree accounts are permitted to register.
+# Declared here so the schema validator, any future service check, and the
+# frontend constant all source the same single string.
+STUDENT_EMAIL_DOMAIN = "ds.study.iitm.ac.in"
+
 # --- Refresh-token rotation grace window (AUTH-01, D-02a) ---
 # A refresh token is spent on first use, so presenting it twice normally means
 # replay and revokes the whole family. Two browser tabs waking together present
@@ -63,6 +69,19 @@ ORG_MANAGER_PORS = {
 
 # --- Organisation types ---
 ORG_TYPES = ("house", "society", "region", "council")
+
+# --- Position of Responsibility (POR) sets by organisation type ---
+HOUSE_POR_TYPES = (
+    "House Secretary",
+    "Deputy House Secretary",
+    "Regional Coordinator",
+    "Web Admin",
+)
+
+SOCIETY_POR_TYPES = (
+    "Society Secretary",
+    "Society Deputy Secretary",
+)
 
 # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
 HOUSES = (
@@ -165,9 +184,13 @@ FORM_FIELD_TYPES = (FORM_FIELD_TEXT, FORM_FIELD_DROPDOWN)
 
 # --- Registration slug minting (CAMPAIGN-04) ---
 # String(64) leaves room for a 40-char title slug, a separator ("-") and a
-# 6-char secrets.token_urlsafe suffix.  SLUG_MAX_ATTEMPTS caps the retry loop;
-# exhausting it surfaces code=="slug_collision" at HTTP 503.
-SLUG_RANDOM_BYTES = 4     # secrets.token_urlsafe(4) → ~6 URL-safe chars
+# 6-char random suffix.  SLUG_MAX_ATTEMPTS caps the retry loop; exhausting it
+# surfaces code=="slug_collision" at HTTP 503.
+# The suffix is drawn from this alphabet rather than from secrets.token_urlsafe:
+# base64url includes "_", which is not in the published ^[a-z0-9-]+$ slug
+# contract, so roughly one slug in eleven came out malformed.
+SLUG_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
+SLUG_LENGTH = 6           # 36**6 ≈ 2.2e9 suffixes per title
 SLUG_MAX_ATTEMPTS = 3
 SLUG_TITLE_MAX = 40
 
@@ -387,4 +410,11 @@ BUDGET_ABSOLUTE_CEILING = 20_000          # ₹20,000 hard upper bound
 # "Mega Meetup" label is applied. Computed dynamically on Activity as a property;
 # no stored flag, so it tracks real-time accept/decline state without drifting.
 MEGA_MEETUP_THRESHOLD = 3
+
+# --- Regional Fest collaborator threshold (PROG-02) ---
+# Minimum number of collaborating orgs INCLUDING the primary, same convention as
+# MEGA_MEETUP_THRESHOLD above. Checked twice with two different definitions
+# (D-01): NAMED orgs at submit (the proposer cannot know who will accept yet),
+# and ACCEPTED orgs at approve (the admin decides on real consent).
+FEST_COLLAB_THRESHOLD = 6
 

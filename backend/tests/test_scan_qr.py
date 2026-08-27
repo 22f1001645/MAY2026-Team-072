@@ -150,6 +150,7 @@ def test_referral_attendance_awards_the_referrer_and_referred_bonus(
         json={"referred_by": referrer_id},
         headers=student_headers,
     )
+    print("Response JSON:", res.get_json())
     reg_id = res.get_json()["id"]
     qr_token = res.get_json()["qr_token"]
     assert res.get_json()["referred_by_id"] == referrer_id

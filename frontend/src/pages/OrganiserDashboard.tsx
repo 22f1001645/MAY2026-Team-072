@@ -174,7 +174,7 @@ export default function OrganiserDashboard() {
                         {e.proposal_status === 'approved' && e.status !== 'completed' && (
                           <>
                             <Link to={`/events/${e.id}/manage`} className="w-full">
-                              <Button variant="secondary" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Manage registrations</Button>
+                              <Button variant="secondary" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Manage Event</Button>
                             </Link>
                             <Link to={`?chat=${e.id}`} className="w-full">
                               <Button variant="ghost" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Broadcast</Button>

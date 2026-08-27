@@ -284,7 +284,7 @@ export default function EventDetail() {
                 <div className="mt-4 flex gap-2">
                   <Link to={`/events/${e.id}/manage`}>
                     <Button variant="secondary" size="sm">
-                      Manage registrations
+                      Manage Event
                     </Button>
                   </Link>
                 </div>

@@ -176,13 +176,13 @@ export default function ManageEvent() {
             </table>
           )}
         </Card>
-      ) : tab === 'referrers' ? (
-        <Card className="overflow-hidden">
-          {topReferrers.length === 0 ? (
-            <div className="p-10 text-center text-graytext-light">
-              No referrals yet. Share invite links to get started!
-            </div>
-          ) : (
+        ) : tab === 'referrers' ? (
+          <Card className="overflow-hidden">
+            {topReferrers.length === 0 ? (
+              <div className="p-10 text-center text-graytext-light">
+                No referrals yet. Attendees can use the 'Invite a Friend' feature to invite others!
+              </div>
+            ) : (
             <table className="w-full text-[14px]">
               <thead>
                 <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid">

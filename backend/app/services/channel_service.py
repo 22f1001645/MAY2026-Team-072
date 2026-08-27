@@ -39,7 +39,7 @@ from ..constants import (
 )
 from ..errors import ApiError
 from ..extensions import db
-from ..models import EventPoll, EventPollVote, EventQuery
+from ..models import EventPoll, EventPollVote, EventQuery, Notification, Registration
 from ..rbac import can_participate_in_activity
 from ..repositories.repos import ActivityRepository, AuditRepository
 
@@ -96,7 +96,6 @@ def _poll_expired(poll: EventPoll) -> bool:
 
 def create_poll(activity_id, question, options, closes_at, current_user) -> EventPoll:
     activity = _activity_or_404(activity_id)
-    _assert_channel_open(activity)
 
     poll = EventPoll(
         activity_id=activity_id,
@@ -108,6 +107,22 @@ def create_poll(activity_id, question, options, closes_at, current_user) -> Even
     )
     db.session.add(poll)
     db.session.flush()  # the audit row needs the poll's id
+    
+    # Notify all registered students
+    regs = Registration.query.filter_by(activity_id=activity_id, status="confirmed").all()
+    for reg in regs:
+        db.session.add(
+            Notification(
+                user_id=reg.student_id,
+                activity_id=activity_id,
+                type="update",
+                title="New Event Poll",
+                body=f"A new poll was created: '{question}'",
+                target_role="student",
+                action_url=f"/events/{activity_id}"
+            )
+        )
+        
     AuditRepository.record("poll", poll.id, "Poll created", current_user, note=question)
     db.session.commit()
     return poll
@@ -238,6 +253,19 @@ def submit_query(activity_id, body, current_user) -> EventQuery:
         status=QUERY_OPEN,
     )
     db.session.add(query)
+    
+    db.session.add(
+        Notification(
+            user_id=activity.organiser_id,
+            activity_id=activity.id,
+            type="query",
+            title="New Q&A Question",
+            body=f"{current_user.name} asked: '{body}'",
+            target_role="organiser",
+            action_url=f"/events/{activity.id}"
+        )
+    )
+    
     db.session.commit()
     return query
 
@@ -275,5 +303,18 @@ def respond_query(activity_id, query_id, response_body, current_user) -> EventQu
     query.responded_at = datetime.now(timezone.utc)
     query.status = QUERY_ANSWERED
     AuditRepository.record("query", query.id, "Query answered", current_user)
+    
+    db.session.add(
+        Notification(
+            user_id=query.user_id,
+            activity_id=activity_id,
+            type="query",
+            title="Question Answered",
+            body="The organising team has answered your question.",
+            target_role="student",
+            action_url=f"/events/{activity_id}"
+        )
+    )
+    
     db.session.commit()
     return query

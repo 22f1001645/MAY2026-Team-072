@@ -4,7 +4,6 @@ import { usePolls, useCreatePoll } from '../lib/queries'
 import { ErrorState } from './states'
 import PollCard from './PollCard'
 import QuerySection from './QuerySection'
-import { cx } from '../lib/format'
 
 /** Mirrors `PollCreateSchema` (backend/app/schemas/__init__.py) so a malformed
  *  poll is caught before it costs a round trip and a 422 toast. */
@@ -15,10 +14,6 @@ const OPTIONS_MAX = 6
 
 /**
  * CHAT-01 / CHAT-02 — the event channel below the chat: polls now, Q&A next.
- *
- * Collapsible because it sits in the event sidebar under the chat button; a
- * registrant who wants the venue and the map should not have to scroll past
- * four poll cards to reach them.
  */
 export default function EventChannelSection({
   activityId,
@@ -33,7 +28,6 @@ export default function EventChannelSection({
    *  reads the answer a team writes after the event (D-17). */
   closed?: boolean
 }) {
-  const [expanded, setExpanded] = useState(true)
   const [composing, setComposing] = useState(false)
   const [question, setQuestion] = useState('')
   const [options, setOptions] = useState(['', ''])
@@ -76,37 +70,17 @@ export default function EventChannelSection({
   }
 
   return (
-    <Card className="p-4">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-between gap-2 text-left"
-      >
-        <span className="flex items-center gap-2 text-[14px] font-semibold text-offwhite">
-          Event Polls &amp; Q&amp;A
-          {openCount > 0 && <Badge tone="teal">{openCount} open</Badge>}
-        </span>
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className={cx('shrink-0 text-graytext-mid transition-transform', expanded && 'rotate-180')}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {expanded && (
-        <div className="mt-4 space-y-3">
+    <div className="space-y-12">
+      {/* Polls Section */}
+      <div>
+        <h3 className="mb-6 flex items-center gap-3 text-[18px] font-extrabold text-white">
+          Event Polls
+          {openCount > 0 && <Badge tone="teal" className="px-2 py-0.5 text-[11px]">{openCount} open</Badge>}
+        </h3>
+        <div className="space-y-4">
           {isLoading ? (
             <p className="text-caption text-graytext-mid">Loading polls…</p>
           ) : isError ? (
-            // "No polls yet" is a claim about the event; on a 403 or an
-            // unreachable backend it is a claim the client cannot make.
             <ErrorState error={error} />
           ) : polls.length === 0 ? (
             <p className="text-caption text-graytext-mid">
@@ -125,15 +99,15 @@ export default function EventChannelSection({
           )}
 
           {canManage &&
-            !closed &&
             (composing ? (
-              <form onSubmit={submitPoll} className="space-y-2 rounded-xl border border-teal/20 bg-teal/[0.04] p-4">
+              <form onSubmit={submitPoll} className="space-y-4 rounded-2xl bg-white/[0.02] p-5 mt-6 shadow-inner">
                 <Input
                   value={question}
                   onChange={(ev) => setQuestion(ev.target.value)}
                   maxLength={QUESTION_MAX}
-                  placeholder="Ask the attendees something…"
+                  placeholder="e.g., What should we order for dinner?"
                   aria-label="Poll question"
+                  autoFocus
                 />
                 {options.map((option, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -165,7 +139,7 @@ export default function EventChannelSection({
                     + Add option
                   </Button>
                 )}
-                <div className="flex justify-end gap-2 pt-1">
+                <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="ghost" size="sm" onClick={resetForm}>
                     Cancel
                   </Button>
@@ -175,19 +149,21 @@ export default function EventChannelSection({
                 </div>
               </form>
             ) : (
-              <Button variant="secondary" size="sm" className="w-full" onClick={() => setComposing(true)}>
-                Create poll
-              </Button>
+              <div className="mt-6 pt-6 border-t border-white/5">
+                <Button variant="secondary" size="sm" onClick={() => setComposing(true)}>
+                  + Create poll
+                </Button>
+              </div>
             ))}
+        </div>
+      </div>
 
-          {/* CHAT-02 — the Q&A half of the channel. Its audience is the same as
-           *  the section's, and `useMyQueries` scopes it to the caller's own
-           *  questions, so no extra gate is needed here. */}
-          <div className="border-t border-white/5 pt-3">
-            <QuerySection activityId={activityId} readOnly={closed} />
-          </div>
+      {/* Q&A Section */}
+      {!canManage && (
+        <div>
+          <QuerySection activityId={activityId} readOnly={closed} />
         </div>
       )}
-    </Card>
+    </div>
   )
 }

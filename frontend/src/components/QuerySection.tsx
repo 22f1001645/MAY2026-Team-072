@@ -52,10 +52,10 @@ export default function QuerySection({
   }
 
   return (
-    <section className="space-y-3">
-      <h4 className="text-[14px] font-semibold text-offwhite">
+    <section className="space-y-4">
+      <h3 className="mb-6 text-[18px] font-extrabold text-white">
         {readOnly ? 'Your questions' : 'Ask the organising team'}
-      </h4>
+      </h3>
 
       {readOnly ? (
         <p className="text-caption text-graytext-mid">
@@ -98,10 +98,10 @@ export default function QuerySection({
             : 'No questions asked yet. Have a question about logistics or food? Ask the organizing team here.'}
         </p>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-4">
           {queries.map((q) => (
-            <div key={q.id} className="rounded-xl border border-white/8 bg-white/[0.03] p-3.5">
-              <div className="mb-1.5 flex items-start justify-between gap-3">
+            <div key={q.id} className="group rounded-2xl bg-white/[0.02] p-5 transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white/[0.04] hover:shadow-[0_8px_30px_rgba(92,230,201,0.12)]">
+              <div className="mb-2 flex items-start justify-between gap-3">
                 <p className="text-[13px] leading-snug text-offwhite">{q.body}</p>
                 <Badge tone={q.status === 'answered' ? 'teal' : 'warn'} className="shrink-0">
                   {q.status === 'answered' ? 'Answered' : 'Open'}

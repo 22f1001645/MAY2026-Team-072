@@ -345,6 +345,25 @@ export default function EventDetail() {
               )
             })()}
           </Dialog>
+
+          {/* CHAT-01/02 — same audience as the chat button above, but
+           *  deliberately NOT gated on `!isPast`. The team can still answer
+           *  a question after the event ends (D-17), and this section is
+           *  the only surface on which the person who asked it reads the
+           *  answer. Past the event it renders closed: thread visible,
+           *  composers gone. */}
+          {currentUser &&
+            e.status !== 'cancelled' &&
+            ((registered && !isWaitlisted) || canManage) && (
+              <div className="mt-6 border-t border-white/5 pt-10">
+                <h2 className="mb-6 text-[24px] font-extrabold text-white tracking-tight">Event Polls & Q&A</h2>
+                <EventChannelSection
+                  activityId={e.id}
+                  canManage={canManage}
+                  closed={isPast}
+                />
+              </div>
+            )}
         </div>
 
         {/* Right: sticky register card */}
@@ -385,10 +404,10 @@ export default function EventDetail() {
                     This event has been cancelled by the organiser.
                   </p>
                 </div>
-              ) : isPast ? (
+                ) : isPast ? (
                 <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 text-center text-graytext-light">
                   <div className="text-h3 font-semibold text-offwhite">This event has ended</div>
-                  <p className="mt-1 text-caption">Registration and chat are no longer available.</p>
+                  <p className="mt-1 text-caption">Registration is no longer available.</p>
                 </div>
               ) : !canManage ? (
                 registered ? (
@@ -483,8 +502,7 @@ export default function EventDetail() {
                 )
               ) : (
                 <div className="mt-5 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-center text-caption text-graytext-light">
-                  You're viewing this as an organiser. Registration is the student's face
-                  of the same event.
+                  Organiser Mode Active. Attendee ticketing and registration features are hidden in this view.
                 </div>
               )}
 
@@ -493,9 +511,9 @@ export default function EventDetail() {
                 <Perk text="Meet people from your city IRL" />
                 <Perk text="Contribution points on attendance" />
               </div>
-              {currentUser && !isPast && e.status !== 'cancelled' && (
+              {currentUser && e.status !== 'cancelled' && (
                 <div className="mt-6">
-                  {((registered && !isWaitlisted) || canManage) && e.status !== 'completed' && (
+                  {((registered && !isWaitlisted) || canManage) && (
                     <button
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-[14px] font-medium text-offwhite transition-colors hover:bg-white/10"
                       onClick={() => setSearchParams(prev => { prev.set('chat', e.id); return prev; })}
@@ -503,28 +521,12 @@ export default function EventDetail() {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                       </svg>
-                      Event chat
+                      {isPast ? 'View chat history' : 'Event chat'}
                     </button>
                   )}
                 </div>
               )}
-              {/* CHAT-01/02 — same audience as the chat button above, but
-               *  deliberately NOT gated on `!isPast`. The team can still answer
-               *  a question after the event ends (D-17), and this section is
-               *  the only surface on which the person who asked it reads the
-               *  answer. Past the event it renders closed: thread visible,
-               *  composers gone. */}
-              {currentUser &&
-                e.status !== 'cancelled' &&
-                ((registered && !isWaitlisted) || canManage) && (
-                  <div className="mt-6">
-                    <EventChannelSection
-                      activityId={e.id}
-                      canManage={canManage}
-                      closed={isPast}
-                    />
-                  </div>
-                )}
+
             </div>
           )}
         </div>

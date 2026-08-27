@@ -646,6 +646,10 @@ export const api = {
     request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
   deactivatePor: (porId: string) =>
     request(`/pors/${porId}/deactivate`, { method: 'PATCH' }),
+  bulkPreviewPors: (data: any[]) =>
+    request(`/orgs/pors/bulk-preview`, { method: 'POST', body: JSON.stringify(data) }),
+  bulkAssignPors: (data: any[]) =>
+    request(`/orgs/pors/bulk-assign`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Discovery (C)
   events: (city?: string, scale?: string, dateRange?: string) => {

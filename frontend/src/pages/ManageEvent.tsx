@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   useAnnouncements,
   useBroadcast,
@@ -21,12 +21,20 @@ import { cx, daysUntil } from '../lib/format'
 // FR-F1 (thin): registration list + basic task assignment
 export default function ManageEvent() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const { currentUser } = useAuth()
   const { data: e, isLoading, isError, error } = useEvent(id)
   const { data: roster = [] } = useRoster(id)
   const { data: announcements = [] } = useAnnouncements(id)
   const alerts = announcements.filter((a: any) => a.isAlert)
-  const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks' | 'alerts' | 'questions'>('roster')
+  const [tab, setTab] = useState<'roster' | 'referrers' | 'tasks' | 'alerts' | 'questions'>((searchParams.get('tab') as any) || 'roster')
+
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') as any
+    if (urlTab && ['roster', 'referrers', 'tasks', 'alerts', 'questions'].includes(urlTab)) {
+      setTab(urlTab)
+    }
+  }, [searchParams])
   const [alertOpen, setAlertOpen] = useState(false)
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)

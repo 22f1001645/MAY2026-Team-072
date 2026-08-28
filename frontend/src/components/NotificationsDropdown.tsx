@@ -152,7 +152,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
             </button>
           </div>
 
-          <div className="flex gap-2 pb-2 border-b border-white/10 flex-wrap">
+          <div className="flex gap-2 pb-2 border-b border-white/10 overflow-x-auto scrollbar-hide">
             {activeFilters.map(f => (
               <button
                 key={f}
@@ -299,5 +299,6 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
     document.body
   )
 }
+
 
 

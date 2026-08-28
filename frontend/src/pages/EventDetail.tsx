@@ -88,7 +88,7 @@ export default function EventDetail() {
       {refId && !registered && !isPast && (
         <div className="mb-4 rounded-xl border border-teal/20 bg-teal/10 p-4 text-center backdrop-blur-xl shadow-lg">
           <div className="text-[14px] font-medium text-teal">
-            ðŸŽ‰ A friend invited you to join them at this event!
+            🎉 A friend invited you to join them at this event!
           </div>
         </div>
       )}
@@ -408,7 +408,7 @@ export default function EventDetail() {
 
               {e.status === 'cancelled' ? (
                 <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
-                  <div className="text-h3 font-semibold text-red-400">ðŸš¨ Event Cancelled</div>
+                  <div className="text-h3 font-semibold text-red-400">🚨 Event Cancelled</div>
                   <p className="mt-1 text-caption text-red-200/70">
                     This event has been cancelled by the organiser.
                   </p>
@@ -423,7 +423,7 @@ export default function EventDetail() {
                   <div className="mt-5">
                     <div className="rounded-xl border border-teal/20 bg-teal/10 p-4 text-center">
                       <div className={`text-h3 font-semibold ${isWaitlisted ? 'text-warn' : 'text-teal'}`}>
-                        {isWaitlisted ? "You're on the waitlist ðŸ•’" : "You're in! ðŸŽ‰"}
+                        {isWaitlisted ? "You're on the waitlist 🕒" : "You're in! 🎉"}
                       </div>
                       <p className="mt-1 text-caption text-graytext-light">
                         {isWaitlisted 

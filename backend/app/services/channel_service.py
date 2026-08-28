@@ -117,7 +117,7 @@ def create_poll(activity_id, question, options, closes_at, current_user) -> Even
                 activity_id=activity_id,
                 type="update",
                 title="New Event Poll",
-                body=f"A new poll was created: '{question}'",
+                body=f"[{activity.title}] A new poll was created: \'{question}\'",
                 target_role="student",
                 action_url=f"/events/{activity_id}"
             )
@@ -260,9 +260,9 @@ def submit_query(activity_id, body, current_user) -> EventQuery:
             activity_id=activity.id,
             type="query",
             title="New Q&A Question",
-            body=f"{current_user.name} asked: '{body}'",
+            body=f"[{activity.title}] {current_user.name} asked: \'{body}\'",
             target_role="organiser",
-            action_url=f"/events/{activity.id}"
+            action_url=f"/events/{activity.id}/manage?tab=questions"
         )
     )
     
@@ -310,7 +310,7 @@ def respond_query(activity_id, query_id, response_body, current_user) -> EventQu
             activity_id=activity_id,
             type="query",
             title="Question Answered",
-            body="The organising team has answered your question.",
+            body=f"[{query.activity.title}] The organising team has answered your question.",
             target_role="student",
             action_url=f"/events/{activity_id}"
         )

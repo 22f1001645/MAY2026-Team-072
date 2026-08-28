@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { inr } from '../lib/mock'
@@ -51,21 +51,19 @@ export default function EventDetail() {
   // face of the page. It cannot happen today (role falls back to 'student'),
   // which is exactly why it is worth pinning here. We also enforce that they 
   // must be actively viewing the page from the /organiser path via the toggle.
-  const canManage =
-    viewFromPathname(location.pathname) === 'organiser' && 
-    !!currentUser && 
-    (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
+  const isOrganiser = !!currentUser && (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
+  const canManage = viewFromPathname(location.pathname) === 'organiser' && isOrganiser
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
-  if (isLoading) return <Loading label="Loading event…" />
+  if (isLoading) return <Loading label="Loading eventâ€¦" />
   if (isError) return <ErrorState error={error} />
   if (!e)
     return (
       <Card className="p-12 text-center">
         <div className="text-h3 text-offwhite">Event not found</div>
         <Link to="/discover" className="mt-3 inline-block text-teal">
-          ← Back to discovery
+          â† Back to discovery
         </Link>
       </Card>
     )
@@ -90,7 +88,7 @@ export default function EventDetail() {
       {refId && !registered && !isPast && (
         <div className="mb-4 rounded-xl border border-teal/20 bg-teal/10 p-4 text-center backdrop-blur-xl shadow-lg">
           <div className="text-[14px] font-medium text-teal">
-            🎉 A friend invited you to join them at this event!
+            ðŸŽ‰ A friend invited you to join them at this event!
           </div>
         </div>
       )}
@@ -111,7 +109,7 @@ export default function EventDetail() {
 
       {refId && !registered && (
         <div className="mb-5 rounded-xl2 border border-teal/30 bg-teal/10 px-4 py-3 text-[13px] text-teal">
-          You were invited by a friend — register to join them.
+          You were invited by a friend â€” register to join them.
         </div>
       )}
 
@@ -144,7 +142,7 @@ export default function EventDetail() {
             ))}
           </div>
           <div className="text-caption uppercase tracking-widest text-offwhite/70">
-            {e.org} · {e.city}
+            {e.org} Â· {e.city}
           </div>
           <h1 className="mt-1 text-h1 font-bold text-offwhite">{e.title}</h1>
         </div>
@@ -185,7 +183,7 @@ export default function EventDetail() {
             <div>
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-[24px] font-extrabold text-white tracking-tight">Collaborating organisations</h2>
-                {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">⭐ Mega Meetup</Badge>}
+                {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">â­ Mega Meetup</Badge>}
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
@@ -250,7 +248,7 @@ export default function EventDetail() {
             </div>
           )}
 
-          {/* Organiser-only face of the same object (PRD A 16 — one object, two faces) */}
+          {/* Organiser-only face of the same object (PRD A 16 â€” one object, two faces) */}
 
           {canManage && (
             <div className="relative p-8 rounded-3xl border border-teal/20 bg-teal/5 shadow-[0_8px_30px_rgba(92,230,201,0.08)] backdrop-blur-3xl">
@@ -260,12 +258,12 @@ export default function EventDetail() {
                   Only visible to your POR
                 </span>
               </div>
-              {/* Only rendered when the payload actually carried budget lines —
+              {/* Only rendered when the payload actually carried budget lines â€”
                   the anonymous preview omits the key entirely (T-05-33). */}
               {e.budget.length > 0 && (
                 <>
                   <h2 className="mb-3 text-h3 font-semibold text-offwhite">
-                    Line-item budget · {inr(plannedTotal)}
+                    Line-item budget Â· {inr(plannedTotal)}
                   </h2>
                   <div className="space-y-2">
                     {e.budget.map((b) => (
@@ -321,7 +319,7 @@ export default function EventDetail() {
                       value={reassignUserId}
                       onChange={(evt) => setReassignUserId(evt.target.value)}
                       options={[
-                        { label: 'Select a team member…', value: '' },
+                        { label: 'Select a team memberâ€¦', value: '' },
                         ...candidates.map((t: any) => ({ label: t.member ?? t.userId, value: t.userId })),
                       ]}
                     />
@@ -348,7 +346,7 @@ export default function EventDetail() {
                         )
                       }}
                     >
-                      {reassignMut.isPending ? 'Reassigning…' : 'Confirm reassignment'}
+                      {reassignMut.isPending ? 'Reassigningâ€¦' : 'Confirm reassignment'}
                     </Button>
                   </div>
                 </div>
@@ -356,7 +354,7 @@ export default function EventDetail() {
             })()}
           </Dialog>
 
-          {/* CHAT-01/02 — same audience as the chat button above, but
+          {/* CHAT-01/02 â€” same audience as the chat button above, but
            *  deliberately NOT gated on `!isPast`. The team can still answer
            *  a question after the event ends (D-17), and this section is
            *  the only surface on which the person who asked it reads the
@@ -370,6 +368,7 @@ export default function EventDetail() {
                 <EventChannelSection
                   activityId={e.id}
                   canManage={canManage}
+                  isOrganiser={isOrganiser}
                   closed={isPast}
                 />
               </div>
@@ -409,7 +408,7 @@ export default function EventDetail() {
 
               {e.status === 'cancelled' ? (
                 <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
-                  <div className="text-h3 font-semibold text-red-400">🚨 Event Cancelled</div>
+                  <div className="text-h3 font-semibold text-red-400">ðŸš¨ Event Cancelled</div>
                   <p className="mt-1 text-caption text-red-200/70">
                     This event has been cancelled by the organiser.
                   </p>
@@ -424,7 +423,7 @@ export default function EventDetail() {
                   <div className="mt-5">
                     <div className="rounded-xl border border-teal/20 bg-teal/10 p-4 text-center">
                       <div className={`text-h3 font-semibold ${isWaitlisted ? 'text-warn' : 'text-teal'}`}>
-                        {isWaitlisted ? "You're on the waitlist 🕒" : "You're in! 🎉"}
+                        {isWaitlisted ? "You're on the waitlist ðŸ•’" : "You're in! ðŸŽ‰"}
                       </div>
                       <p className="mt-1 text-caption text-graytext-light">
                         {isWaitlisted 
@@ -451,7 +450,7 @@ export default function EventDetail() {
                             unregisterMut.mutate(e.id)
                           }}
                         >
-                          {unregisterMut.isPending ? 'Cancelling…' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
+                          {unregisterMut.isPending ? 'Cancellingâ€¦' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
                         </Button>
                       {!isWaitlisted && (
                         <Button
@@ -483,7 +482,7 @@ export default function EventDetail() {
                       disabled={registerMut.isPending || (spotsLeft <= 0 && isWaitlistClosed)}
                       onClick={() => {
                         // A visitor from a shared link signs in first and comes
-                        // back here — the same router-state idiom the session
+                        // back here â€” the same router-state idiom the session
                         // expiry flow uses. The register endpoint stays behind
                         // @auth_required either way; this only saves them a
                         // failed request and a lost page (T-05-35).
@@ -495,10 +494,10 @@ export default function EventDetail() {
                       }}
                     >
                       {registerMut.isPending
-                        ? 'Processing…'
+                        ? 'Processingâ€¦'
                         : spotsLeft <= 0
                           ? (isWaitlistClosed ? 'At Capacity' : 'Join Waitlist')
-                          : "Register — it's free"}
+                          : "Register â€” it's free"}
                     </Button>
                     {registerMut.isError && (
                       <p className="mt-2 text-center text-caption text-red-300">
@@ -506,7 +505,7 @@ export default function EventDetail() {
                       </p>
                     )}
                     <p className="mt-3 text-center text-caption text-graytext-mid">
-                      Headcount recorded · reminders sent · earn points on check-in
+                      Headcount recorded Â· reminders sent Â· earn points on check-in
                     </p>
                   </div>
                 )
@@ -607,9 +606,9 @@ function FeedbackForm({
     return (
       <Card className="p-6 mb-4">
         <div className="flex items-center gap-3">
-          <Badge tone="success">Feedback Submitted ✓</Badge>
+          <Badge tone="success">Feedback Submitted âœ“</Badge>
           <span className="text-[14px] text-graytext-light">
-            {'★'.repeat(existing?.rating ?? rating)}{'☆'.repeat(5 - (existing?.rating ?? rating))}
+            {'â˜…'.repeat(existing?.rating ?? rating)}{'â˜†'.repeat(5 - (existing?.rating ?? rating))}
           </span>
         </div>
         <p className="mt-1 text-[13px] text-graytext-mid">
@@ -622,7 +621,7 @@ function FeedbackForm({
   const handleSubmit = () => {
     submitMut.mutate(
       { activityId, body: { rating, comment: comment || undefined } },
-      { onSuccess: () => addToast('Feedback submitted — thank you!') },
+      { onSuccess: () => addToast('Feedback submitted â€” thank you!') },
     )
   }
 
@@ -648,7 +647,7 @@ function FeedbackForm({
               n <= rating ? 'text-[#FFD700]' : 'text-white/20 hover:text-white/50'
             }`}
           >
-            ★
+            â˜…
           </button>
         ))}
       </div>
@@ -664,9 +663,11 @@ function FeedbackForm({
           disabled={rating === 0 || submitMut.isPending}
           onClick={handleSubmit}
         >
-          {submitMut.isPending ? 'Submitting…' : 'Submit Feedback'}
+          {submitMut.isPending ? 'Submittingâ€¦' : 'Submit Feedback'}
         </Button>
       </div>
     </Card>
   )
 }
+
+

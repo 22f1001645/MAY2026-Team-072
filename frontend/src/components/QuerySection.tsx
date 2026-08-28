@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+ï»¿import { useState, useRef, useEffect } from 'react'
 import { Badge, Button, Card, Textarea, useToast } from './ui'
 import { ErrorState } from './states'
 import { useMyQueries, useSubmitQuery } from '../lib/queries'
@@ -10,9 +10,11 @@ const BODY_MAX = 1000
 export default function QuerySection({
   activityId,
   readOnly = false,
+  isOrganiser = false,
 }: {
   activityId: string
   readOnly?: boolean
+  isOrganiser?: boolean
 }) {
   const [body, setBody] = useState('')
   const { data: queries = [], isLoading, isError, error } = useMyQueries(activityId)
@@ -89,7 +91,7 @@ export default function QuerySection({
                   <div className="flex flex-col items-end pl-12">
                     <div className="flex items-center gap-2 mb-1 pr-1">
                       <span className="text-[11px] font-medium text-graytext-mid uppercase tracking-wider">
-                        You · {new Date(q.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        You Â· {new Date(q.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className={cx(
@@ -108,7 +110,7 @@ export default function QuerySection({
                     <div className="flex flex-col items-start pr-12">
                       <div className="flex items-center gap-2 mb-1 pl-1">
                         <span className="text-[11px] font-medium text-teal/80 uppercase tracking-wider">
-                          Organising Team · {q.responded_at && new Date(q.responded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          Organising Team Â· {q.responded_at && new Date(q.responded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       <div className="bg-white/10 text-offwhite rounded-2xl rounded-tl-sm px-4 py-2.5 text-[14px] max-w-[90%] shadow-sm">
@@ -126,7 +128,12 @@ export default function QuerySection({
           {!readOnly && (
             <div className="p-4 border-t border-white/5 bg-black/40 shrink-0 flex justify-center">
               <div className="w-full max-w-[600px]">
-                <form onSubmit={submit} className="bg-white/5 border border-white/10 rounded-2xl p-3 shadow-inner focus-within:ring-1 focus-within:ring-teal/50 focus-within:border-teal/50 transition-all">
+                {isOrganiser ? (
+                  <div className="bg-white/5 border border-teal/20 rounded-2xl p-4 text-center">
+                    <p className="text-[13px] text-teal/80">You are an organiser for this event. Switch to the Organiser dashboard to answer attendee questions.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={submit} className="bg-white/5 border border-white/10 rounded-2xl p-3 shadow-inner focus-within:ring-1 focus-within:ring-teal/50 focus-within:border-teal/50 transition-all">
                   <Textarea
                     value={body}
                     onChange={(ev) => setBody(ev.target.value)}
@@ -151,6 +158,7 @@ export default function QuerySection({
                     </Button>
                   </div>
                 </form>
+                )}
               </div>
             </div>
           )}
@@ -159,3 +167,6 @@ export default function QuerySection({
     </Card>
   )
 }
+
+
+

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Badge, Button, Card, Input, useToast } from './ui'
 import { usePolls, useCreatePoll } from '../lib/queries'
 import { ErrorState } from './states'
@@ -13,15 +13,17 @@ const OPTIONS_MIN = 2
 const OPTIONS_MAX = 6
 
 /**
- * CHAT-01 / CHAT-02 — the event channel below the chat: polls now, Q&A next.
+ * CHAT-01 / CHAT-02 â€” the event channel below the chat: polls now, Q&A next.
  */
 export default function EventChannelSection({
   activityId,
   canManage,
+  isOrganiser = false,
   closed = false,
 }: {
   activityId: string
   canManage: boolean
+  isOrganiser?: boolean
   /** The event has completed or been archived: the backend refuses new polls,
    *  votes and questions, so the composers go and the thread stays. The section
    *  is not unmounted, because this is the only surface on which a registrant
@@ -79,12 +81,12 @@ export default function EventChannelSection({
         </h3>
         <div className="space-y-4">
           {isLoading ? (
-            <p className="text-caption text-graytext-mid">Loading polls…</p>
+            <p className="text-caption text-graytext-mid">Loading pollsâ€¦</p>
           ) : isError ? (
             <ErrorState error={error} />
           ) : polls.length === 0 ? (
             <p className="text-caption text-graytext-mid">
-              {canManage ? 'No polls yet — publish one below.' : 'No polls yet.'}
+              {canManage ? 'No polls yet â€” publish one below.' : 'No polls yet.'}
             </p>
           ) : (
             polls.map((poll) => (
@@ -144,7 +146,7 @@ export default function EventChannelSection({
                     Cancel
                   </Button>
                   <Button type="submit" size="sm" disabled={!canSubmit || createPollMut.isPending}>
-                    {createPollMut.isPending ? 'Publishing…' : 'Publish poll'}
+                    {createPollMut.isPending ? 'Publishingâ€¦' : 'Publish poll'}
                   </Button>
                 </div>
               </form>
@@ -161,9 +163,10 @@ export default function EventChannelSection({
       {/* Q&A Section */}
       {!canManage && (
         <div>
-          <QuerySection activityId={activityId} readOnly={closed} />
+          <QuerySection activityId={activityId} readOnly={closed} isOrganiser={isOrganiser} />
         </div>
       )}
     </div>
   )
 }
+

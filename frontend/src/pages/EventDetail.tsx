@@ -466,7 +466,8 @@ export default function EventDetail() {
                             if (!addedToCalendar) {
                               localStorage.setItem('cal_' + e.id, '1')
                               setAddedToCalendar(true)
-                            }
+                                addToast('Event added to calendar', 'success')
+                              }
                           }}
                         >
                           {addedToCalendar ? 'View in calendar' : 'Add to calendar'}

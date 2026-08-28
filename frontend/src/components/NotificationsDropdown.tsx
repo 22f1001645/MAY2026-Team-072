@@ -1,7 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { useNotifications, useMarkNotificationsRead, useClearNotifications, useDeleteNotification } from '../lib/queries'
+import { useNotifications, useMarkNotificationsRead, useMarkNotificationRead, useClearNotifications, useDeleteNotification } from '../lib/queries'
 import { Badge } from './ui'
 import InvitationCard from './InvitationCard'
 import { cx } from '../lib/format'
@@ -50,6 +50,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
   const { role } = useSession()
   const { data: items = [], isLoading, isError } = useNotifications(role)
   const markReadMutation = useMarkNotificationsRead()
+  const markSingleReadMutation = useMarkNotificationRead()
   const clearMutation = useClearNotifications()
   const deleteMutation = useDeleteNotification()
   const [filter, setFilter] = useState<string>('all')
@@ -204,6 +205,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
               <div
                 key={n.id}
                 onClick={() => {
+                  markSingleReadMutation.mutate(n.id)
                   if (n.action_url) {
                     navigate(n.action_url)
                     onClose()

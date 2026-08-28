@@ -738,6 +738,7 @@ export const api = {
    *  `target_role` each row carries. */
   notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
+  markNotificationRead: (id: string) => request(/notifications/$id/read, { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
 

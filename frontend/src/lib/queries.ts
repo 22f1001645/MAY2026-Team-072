@@ -333,6 +333,13 @@ export const usePostAnnouncement = () => {
   })
 }
 
+export const useMarkNotificationRead = () => {
+  return useMutation({
+    mutationFn: (id: string) => api.markNotificationRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
+  })
+}
+
 export const useMarkNotificationsRead = () => {
   const qc = useQueryClient()
   return useMutation({

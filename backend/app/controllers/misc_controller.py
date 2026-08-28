@@ -36,6 +36,17 @@ def mark_notifications_read():
     return jsonify({"ok": True}), 200
 
 
+
+@misc_bp.patch("/notifications/<notification_id>/read")
+@auth_required
+def mark_single_notification_read(notification_id):
+    from ..models import Notification
+    notification = Notification.query.filter_by(id=notification_id, user_id=g.current_user.id).first()
+    if notification:
+        notification.read = True
+        db.session.commit()
+    return jsonify({"ok": True}), 200
+
 @misc_bp.delete("/notifications")
 @auth_required
 def clear_notifications():

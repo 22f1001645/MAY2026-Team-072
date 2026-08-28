@@ -447,7 +447,7 @@ export default function EventDetail() {
                           onClick={() => {
                             localStorage.removeItem('cal_' + e.id)
                             setAddedToCalendar(false)
-                            unregisterMut.mutate(e.id)
+                            unregisterMut.mutate(e.id, { onSuccess: () => addToast('Registration cancelled') })
                           }}
                         >
                           {unregisterMut.isPending ? 'Cancelling…' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
@@ -490,7 +490,7 @@ export default function EventDetail() {
                           navigate('/login', { state: { from: location.pathname } })
                           return
                         }
-                        registerMut.mutate({ id: e.id, referredBy: refId })
+                        registerMut.mutate({ id: e.id, referredBy: refId }, { onSuccess: () => addToast(spotsLeft <= 0 ? 'Added to waitlist' : 'Successfully registered!', 'success') })
                       }}
                     >
                       {registerMut.isPending

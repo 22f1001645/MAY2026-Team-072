@@ -27,19 +27,20 @@ export default function OrganiserDashboard() {
   const { data, isLoading, isError, error } = useDashboard()
   const { data: notifications = [] } = useNotifications()
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'All' | 'Live' | 'Pending' | 'Completed'>('All')
+  const [filter, setFilter] = useState<'All' | 'Live' | 'Pending' | 'Completed' | null>(null)
 
   const events: any[] = data?.my_events ?? []
   
-  const filteredEvents = useMemo(() => {
-    if (filter === 'All') return events
-    if (filter === 'Live') return events.filter((e) => e.proposal_status === 'approved' && e.status !== 'completed')
-    if (filter === 'Completed') return events.filter((e) => e.status === 'completed')
-    if (filter === 'Pending') return events.filter((e) => e.proposal_status !== 'approved' && e.proposal_status !== 'rejected')
-    return events
-  }, [events, filter])
-
   const live = events.filter((e) => e.proposal_status === 'approved' && e.status !== 'completed')
+  const activeFilter = filter ?? (live.length > 0 ? 'Live' : 'All')
+
+  const filteredEvents = useMemo(() => {
+    if (activeFilter === 'All') return events
+    if (activeFilter === 'Live') return live
+    if (activeFilter === 'Completed') return events.filter((e) => e.status === 'completed')
+    if (activeFilter === 'Pending') return events.filter((e) => e.proposal_status !== 'approved' && e.proposal_status !== 'rejected')
+    return events
+  }, [events, activeFilter, live])
   const pendingInvites = (notifications as any[]).filter(
     (n) => n.type === 'collaboration_invite' && !n.read && n.activity_id,
   )
@@ -90,7 +91,7 @@ export default function OrganiserDashboard() {
               onClick={() => setFilter(f)}
               className={cx(
                 'whitespace-nowrap rounded-lg px-5 py-2 text-[13px] font-semibold transition-all duration-300 text-center',
-                filter === f
+                activeFilter === f
                   ? 'bg-white/10 text-offwhite shadow-sm'
                   : 'text-graytext-mid hover:text-offwhite hover:bg-white/5',
               )}

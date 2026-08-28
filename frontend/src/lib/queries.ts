@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+﻿import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './api'
 import type { ApiFormField, ApiTask } from './types'
 
-/* TanStack Query hooks — server cache, retries, and invalidation on mutation
- * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
+/* TanStack Query hooks â€” server cache, retries, and invalidation on mutation
+ * (Milestone 2 Â§7: server state lives here, never duplicated in UI state). */
 
 // ---- Queries ----
 /** `placeholderData` holds the previous capability snapshot across a background
@@ -26,7 +26,7 @@ export const useEvent = (id?: string) =>
 
 /** `enabled` exists for the one page a visitor can open without a session
  *  (`/events/:slug`, OD-3). Firing this without one answers 401, which the
- *  request pipeline reads as an expired session and redirects to /login —
+ *  request pipeline reads as an expired session and redirects to /login â€”
  *  so an unguarded call here would bounce the visitor off the public page. */
 export const useMyRegistrations = (enabled = true) =>
   useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, refetchInterval: 10000 })
@@ -41,7 +41,7 @@ export const useMyPoints = () =>
   useQuery({ queryKey: ['my-points'], queryFn: api.myPoints })
 
 /** Notifications for the current view. The view is applied HERE, on the result,
- *  never as a request parameter — it must not reach the wire (D-18). One query
+ *  never as a request parameter â€” it must not reach the wire (D-18). One query
  *  key for every view, so switching views re-filters cached rows instead of
  *  refetching. */
 export const useNotifications = (role: string = 'student') =>
@@ -99,7 +99,7 @@ export const useUsers = (q?: string, enabled?: boolean) =>
     enabled: enabled !== undefined ? enabled : (q !== undefined ? q.trim().length > 0 : true),
   })
 
-// ---- Phase 4: organisation profile & brand kit (ORG-01…ORG-04) ----
+// ---- Phase 4: organisation profile & brand kit (ORG-01â€¦ORG-04) ----
 
 export const useOrgProfile = (orgId?: string) =>
   useQuery({
@@ -108,7 +108,7 @@ export const useOrgProfile = (orgId?: string) =>
     enabled: !!orgId,
   })
 
-// ---- Phase 7: progression gating (PROG-01…PROG-03) ----
+// ---- Phase 7: progression gating (PROG-01â€¦PROG-03) ----
 
 /** The one read of progression state, serving both Phase 7 surfaces: called
  *  with a city it drives the proposal form's fest-card lock, called without one
@@ -120,7 +120,7 @@ export const useOrgProfile = (orgId?: string) =>
  *
  *  The key change is the *only* refetch trigger: no polling interval and no
  *  refetch on window focus. Eligibility changes when an admin approves, and the
- *  `useDecision` invalidation below is what reports that — polling for it would
+ *  `useDecision` invalidation below is what reports that â€” polling for it would
  *  be the structural mistake the 05-09 no-polling gate exists to catch. */
 export const useOrgProgression = (orgId?: string, city?: string) =>
   useQuery({
@@ -131,7 +131,7 @@ export const useOrgProgression = (orgId?: string, city?: string) =>
   })
 
 /** Gated on the manage flag as well as the id. `GET /orgs/<id>/brand-kit` is
- *  `can_manage_org_required`, so a non-manager would get a 403 — and the rule
+ *  `can_manage_org_required`, so a non-manager would get a 403 â€” and the rule
  *  is that the request is **never issued**, not that the error is swallowed.
  *  Beyond the status code: a brand kit is an internal working document for an
  *  organisation's own communications, not part of its public identity, so an
@@ -221,7 +221,7 @@ export const useDecision = () => {
       // An approval is what can complete an org's local+regional pair, and the
       // server writes the unlock row in the same transaction. Without this the
       // fest card stays locked and the sponsorship banner stays absent until a
-      // manual reload — the two states PROG-01 and PROG-03 exist to show.
+      // manual reload â€” the two states PROG-01 and PROG-03 exist to show.
       qc.invalidateQueries({ queryKey: ['orgProgression'] })
     },
   })
@@ -301,10 +301,10 @@ export const useBroadcast = () =>
   })
 
 /** CHAT-04's refresh interval, shared by every event-channel query: 15s with
- *  ±3s of jitter (D-13).
+ *  Â±3s of jitter (D-13).
  *
  *  The jitter is the point, not decoration. A fixed interval synchronises every
- *  open tab on an event to the same tick — thirty registrants become thirty
+ *  open tab on an event to the same tick â€” thirty registrants become thirty
  *  simultaneous requests every fifteen seconds, arriving as spikes rather than
  *  spread out. TanStack re-evaluates this on each schedule, so tabs that start
  *  together drift apart instead of locking in step.
@@ -312,7 +312,7 @@ export const useBroadcast = () =>
  *  Paired everywhere with `refetchIntervalInBackground: false` (D-14): a tab
  *  left open on another monitor stops polling entirely, which is the larger
  *  saving of the two. Unlike the Kanban board (AC-35, deliberately never
- *  polled), a channel IS the live surface — an announcement nobody sees until
+ *  polled), a channel IS the live surface â€” an announcement nobody sees until
  *  they reload is an announcement that did not happen. */
 const channelRefetchInterval = () => 15_000 + Math.random() * 6_000 - 3_000
 
@@ -334,6 +334,7 @@ export const usePostAnnouncement = () => {
 }
 
 export const useMarkNotificationRead = () => {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.markNotificationRead(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
@@ -477,7 +478,7 @@ export const useSaveBrandKit = () => {
 }
 
 /** Deliberately invalidates nothing. The draft persists no server state, so
- *  there is nothing to refresh — and refetching the saved kit here would
+ *  there is nothing to refresh â€” and refetching the saved kit here would
  *  overwrite the draft sitting in the form, which is the exact opposite of
  *  ORG-04's "nothing applies until they explicitly save it". */
 export const useDraftBrandKit = () =>
@@ -505,7 +506,7 @@ export const useScheduleItems = (activityId?: string) =>
     enabled: !!activityId,
   })
 
-/** Scale presets are static reference data — no refetch interval, and no
+/** Scale presets are static reference data â€” no refetch interval, and no
  *  loading state worth rendering; the accordion simply is not there until the
  *  catalogue arrives (DESIGN-01 / AC-07). */
 export const useSchedulePresets = (scale?: string) =>
@@ -583,7 +584,7 @@ export const useUploadPoster = (activityId?: string) => {
 }
 
 /** Draft the campaign mail (CAMPAIGN-01). Invalidating the campaign is what
- *  redraws both the editor and the stepper's Mail step — `completeness.mail` is
+ *  redraws both the editor and the stepper's Mail step â€” `completeness.mail` is
  *  the server's flag and is only ever read from that payload. The mutation's own
  *  `data.degraded` is what the amber banner reads: it describes the generation
  *  that just happened and is deliberately not persisted on the campaign row,
@@ -642,7 +643,7 @@ export const useDeleteFormField = (activityId?: string) => {
 // Phase 5: Kanban task board (TEAM-02).
 //
 // None of these hooks sets a refetch option. The board is fetched on page load
-// and after a mutation invalidates it — nothing else (AC-35). The default
+// and after a mutation invalidates it â€” nothing else (AC-35). The default
 // QueryClient in main.tsx has no interval either, and
 // `src/__tests__/no-kanban-polling.test.ts` fails the build if one appears.
 export const useTasks = (activityId?: string) =>
@@ -784,7 +785,7 @@ export const useMyFeedback = (id?: string) =>
   })
 
 // ---------------------------------------------------------------------------
-// Phase 8: Event channel — announcements, polls and Q&A (CHAT-01/02/04)
+// Phase 8: Event channel â€” announcements, polls and Q&A (CHAT-01/02/04)
 // ---------------------------------------------------------------------------
 
 /** CHAT-01: every poll on the event, with counts and the caller's own vote. */
@@ -874,3 +875,4 @@ export const useRespondQuery = () => {
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['queries', 'org', v.id] }),
   })
 }
+

@@ -135,7 +135,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                 onClick={handleMarkAllRead}
                 disabled={markReadMutation.isPending}
               >
-                {markReadMutation.isPending ? 'Marking...' : 'Mark all read'}
+                {markReadMutation.isPending ? 'Marking...' : 'Mark all as read'}
               </button>
             </div>
             <button 
@@ -299,6 +299,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
     document.body
   )
 }
+
 
 
 

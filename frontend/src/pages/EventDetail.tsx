@@ -56,7 +56,7 @@ export default function EventDetail() {
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
-  if (isLoading) return <Loading label="Loading eventâ€¦" />
+  if (isLoading) return <Loading label="Loading event…" />
   if (isError) return <ErrorState error={error} />
   if (!e)
     return (
@@ -109,7 +109,7 @@ export default function EventDetail() {
 
       {refId && !registered && (
         <div className="mb-5 rounded-xl2 border border-teal/30 bg-teal/10 px-4 py-3 text-[13px] text-teal">
-          You were invited by a friend â€” register to join them.
+          You were invited by a friend — register to join them.
         </div>
       )}
 
@@ -248,7 +248,7 @@ export default function EventDetail() {
             </div>
           )}
 
-          {/* Organiser-only face of the same object (PRD A 16 â€” one object, two faces) */}
+          {/* Organiser-only face of the same object (PRD A 16 — one object, two faces) */}
 
           {canManage && (
             <div className="relative p-8 rounded-3xl border border-teal/20 bg-teal/5 shadow-[0_8px_30px_rgba(92,230,201,0.08)] backdrop-blur-3xl">
@@ -258,7 +258,7 @@ export default function EventDetail() {
                   Only visible to your POR
                 </span>
               </div>
-              {/* Only rendered when the payload actually carried budget lines â€”
+              {/* Only rendered when the payload actually carried budget lines —
                   the anonymous preview omits the key entirely (T-05-33). */}
               {e.budget.length > 0 && (
                 <>
@@ -319,7 +319,7 @@ export default function EventDetail() {
                       value={reassignUserId}
                       onChange={(evt) => setReassignUserId(evt.target.value)}
                       options={[
-                        { label: 'Select a team memberâ€¦', value: '' },
+                        { label: 'Select a team member…', value: '' },
                         ...candidates.map((t: any) => ({ label: t.member ?? t.userId, value: t.userId })),
                       ]}
                     />
@@ -346,7 +346,7 @@ export default function EventDetail() {
                         )
                       }}
                     >
-                      {reassignMut.isPending ? 'Reassigningâ€¦' : 'Confirm reassignment'}
+                      {reassignMut.isPending ? 'Reassigning…' : 'Confirm reassignment'}
                     </Button>
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function EventDetail() {
             })()}
           </Dialog>
 
-          {/* CHAT-01/02 â€” same audience as the chat button above, but
+          {/* CHAT-01/02 — same audience as the chat button above, but
            *  deliberately NOT gated on `!isPast`. The team can still answer
            *  a question after the event ends (D-17), and this section is
            *  the only surface on which the person who asked it reads the
@@ -450,7 +450,7 @@ export default function EventDetail() {
                             unregisterMut.mutate(e.id)
                           }}
                         >
-                          {unregisterMut.isPending ? 'Cancellingâ€¦' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
+                          {unregisterMut.isPending ? 'Cancelling…' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
                         </Button>
                       {!isWaitlisted && (
                         <Button
@@ -482,7 +482,7 @@ export default function EventDetail() {
                       disabled={registerMut.isPending || (spotsLeft <= 0 && isWaitlistClosed)}
                       onClick={() => {
                         // A visitor from a shared link signs in first and comes
-                        // back here â€” the same router-state idiom the session
+                        // back here — the same router-state idiom the session
                         // expiry flow uses. The register endpoint stays behind
                         // @auth_required either way; this only saves them a
                         // failed request and a lost page (T-05-35).
@@ -494,10 +494,10 @@ export default function EventDetail() {
                       }}
                     >
                       {registerMut.isPending
-                        ? 'Processingâ€¦'
+                        ? 'Processing…'
                         : spotsLeft <= 0
                           ? (isWaitlistClosed ? 'At Capacity' : 'Join Waitlist')
-                          : "Register â€” it's free"}
+                          : "Register — it's free"}
                     </Button>
                     {registerMut.isError && (
                       <p className="mt-2 text-center text-caption text-red-300">
@@ -606,9 +606,9 @@ function FeedbackForm({
     return (
       <Card className="p-6 mb-4">
         <div className="flex items-center gap-3">
-          <Badge tone="success">Feedback Submitted âœ“</Badge>
+          <Badge tone="success">Feedback Submitted ✓</Badge>
           <span className="text-[14px] text-graytext-light">
-            {'â˜…'.repeat(existing?.rating ?? rating)}{'â˜†'.repeat(5 - (existing?.rating ?? rating))}
+            {'★'.repeat(existing?.rating ?? rating)}{'☆'.repeat(5 - (existing?.rating ?? rating))}
           </span>
         </div>
         <p className="mt-1 text-[13px] text-graytext-mid">
@@ -621,7 +621,7 @@ function FeedbackForm({
   const handleSubmit = () => {
     submitMut.mutate(
       { activityId, body: { rating, comment: comment || undefined } },
-      { onSuccess: () => addToast('Feedback submitted â€” thank you!') },
+      { onSuccess: () => addToast('Feedback submitted — thank you!') },
     )
   }
 
@@ -647,7 +647,7 @@ function FeedbackForm({
               n <= rating ? 'text-[#FFD700]' : 'text-white/20 hover:text-white/50'
             }`}
           >
-            â˜…
+            ★
           </button>
         ))}
       </div>
@@ -663,7 +663,7 @@ function FeedbackForm({
           disabled={rating === 0 || submitMut.isPending}
           onClick={handleSubmit}
         >
-          {submitMut.isPending ? 'Submittingâ€¦' : 'Submit Feedback'}
+          {submitMut.isPending ? 'Submitting…' : 'Submit Feedback'}
         </Button>
       </div>
     </Card>

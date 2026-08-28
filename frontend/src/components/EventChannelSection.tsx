@@ -13,7 +13,7 @@ const OPTIONS_MIN = 2
 const OPTIONS_MAX = 6
 
 /**
- * CHAT-01 / CHAT-02 â€” the event channel below the chat: polls now, Q&A next.
+ * CHAT-01 / CHAT-02 — the event channel below the chat: polls now, Q&A next.
  */
 export default function EventChannelSection({
   activityId,
@@ -81,12 +81,12 @@ export default function EventChannelSection({
         </h3>
         <div className="space-y-4">
           {isLoading ? (
-            <p className="text-caption text-graytext-mid">Loading pollsâ€¦</p>
+            <p className="text-caption text-graytext-mid">Loading polls…</p>
           ) : isError ? (
             <ErrorState error={error} />
           ) : polls.length === 0 ? (
             <p className="text-caption text-graytext-mid">
-              {canManage ? 'No polls yet â€” publish one below.' : 'No polls yet.'}
+              {canManage ? 'No polls yet — publish one below.' : 'No polls yet.'}
             </p>
           ) : (
             polls.map((poll) => (
@@ -146,7 +146,7 @@ export default function EventChannelSection({
                     Cancel
                   </Button>
                   <Button type="submit" size="sm" disabled={!canSubmit || createPollMut.isPending}>
-                    {createPollMut.isPending ? 'Publishingâ€¦' : 'Publish poll'}
+                    {createPollMut.isPending ? 'Publishing…' : 'Publish poll'}
                   </Button>
                 </div>
               </form>

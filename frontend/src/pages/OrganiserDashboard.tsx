@@ -104,9 +104,27 @@ export default function OrganiserDashboard() {
       
       <div>
         {filteredEvents.length === 0 ? (
-          <Card className="p-10 text-center text-graytext-light">
-            No events found for this filter.
-          </Card>
+          <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed border-white/10 bg-white/[0.02]">
+              <div className="mb-4 rounded-full bg-white/5 p-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <h3 className="mb-2 text-[16px] font-semibold text-offwhite">
+                {events.length === 0 ? "You haven't proposed any events yet" : `No ${activeFilter.toLowerCase()} events found`}
+              </h3>
+              <p className="mb-6 max-w-sm text-[13px] text-graytext-mid">
+                {events.length === 0 
+                  ? "Get started by drafting your first event proposal. It only takes a few minutes."
+                  : "Try changing your filter or draft a fresh proposal for a new event."}
+              </p>
+              <Link to="/proposals/new">
+                <Button>+ New proposal</Button>
+              </Link>
+            </Card>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-start">
             {filteredEvents.map((e) => (

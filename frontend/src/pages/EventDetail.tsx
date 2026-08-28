@@ -142,7 +142,7 @@ export default function EventDetail() {
             ))}
           </div>
           <div className="text-caption uppercase tracking-widest text-offwhite/70">
-            {e.org} Â· {e.city}
+            {e.org} · {e.city}
           </div>
           <h1 className="mt-1 text-h1 font-bold text-offwhite">{e.title}</h1>
         </div>
@@ -263,7 +263,7 @@ export default function EventDetail() {
               {e.budget.length > 0 && (
                 <>
                   <h2 className="mb-3 text-h3 font-semibold text-offwhite">
-                    Line-item budget Â· {inr(plannedTotal)}
+                    Line-item budget · {inr(plannedTotal)}
                   </h2>
                   <div className="space-y-2">
                     {e.budget.map((b) => (
@@ -505,7 +505,7 @@ export default function EventDetail() {
                       </p>
                     )}
                     <p className="mt-3 text-center text-caption text-graytext-mid">
-                      Headcount recorded Â· reminders sent Â· earn points on check-in
+                      Headcount recorded · reminders sent · earn points on check-in
                     </p>
                   </div>
                 )

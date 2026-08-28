@@ -135,12 +135,8 @@ export default function QuerySection({
             <div className="p-4 border-t border-white/5 bg-black/40 shrink-0 flex justify-center">
               <div className="w-full max-w-[600px]">
                 {isOrganiser ? (
-                  <div className="bg-white/5 border border-teal/20 rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal/60">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    <p className="text-[13px] text-teal/80">You are an organiser for this event. Switch to the Organiser dashboard to answer attendee questions.</p>
+                  <div className="bg-white/5 border border-teal/20 rounded-2xl p-3 text-center">
+                    <p className="text-[12px] text-teal/80">You are an organiser for this event. Switch to the Organiser dashboard to answer attendee questions.</p>
                   </div>
                 ) : (
                   <form onSubmit={submit} className="bg-white/5 border border-white/10 rounded-2xl p-3 shadow-inner focus-within:ring-1 focus-within:ring-teal/50 focus-within:border-teal/50 transition-all">

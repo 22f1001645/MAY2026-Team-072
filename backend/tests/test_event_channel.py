@@ -172,16 +172,15 @@ def test_the_channel_is_open_on_the_status_approval_produces(client):
 
 
 @pytest.mark.parametrize("status", CLOSED_STATUSES)
-def test_create_poll_refused_once_the_channel_closes(client, status):
-    """CHAT-01 scopes poll creation to the registration window."""
+def test_create_poll_allowed_after_the_channel_closes(client, status):
+    """Organisers can now create polls after the event has ended."""
     activity = _seed_activity(status=status)
     res = client.post(
         f"/api/v1/events/{activity.id}/polls",
         json={"question": "Which slot suits you?", "options": ["Sat", "Sun"]},
         headers=_organiser(client),
     )
-    assert res.status_code == 409, res.get_json()
-    assert res.get_json()["code"] == "registration_window_closed"
+    assert res.status_code == 201, res.get_json()
 
 
 @pytest.mark.parametrize("status", CLOSED_STATUSES)

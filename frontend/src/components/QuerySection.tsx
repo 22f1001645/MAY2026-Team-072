@@ -78,8 +78,14 @@ export default function QuerySection({
             <div className="w-full max-w-[600px] flex flex-col gap-6 mt-auto">
               
               {queries.length === 0 && !readOnly && (
-                 <div className="text-center text-[13px] text-graytext-mid pb-4">
-                   No questions asked yet. Have a question about logistics or food? Ask the organizing team here.
+                 <div className="text-center text-[13px] text-graytext-mid pb-4 flex flex-col items-center gap-4">
+                   {isOrganiser && (
+                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/20">
+                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                       <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                     </svg>
+                   )}
+                   {isOrganiser ? "No questions have been asked by attendees yet." : "No questions asked yet. Have a question about logistics or food? Ask the organizing team here."}
                  </div>
               )}
 
@@ -171,6 +177,7 @@ export default function QuerySection({
     </Card>
   )
 }
+
 
 
 

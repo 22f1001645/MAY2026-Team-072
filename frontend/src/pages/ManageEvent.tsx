@@ -63,8 +63,7 @@ export default function ManageEvent() {
     return acc
   }, {})
   const topReferrers = Object.entries(referrersMap).sort((a: any, b: any) => b[1] - a[1]).slice(0, 10)
-
-
+  const isPast = new Date(e.startsAt) < new Date()
 
   return (
     <div>
@@ -83,7 +82,7 @@ export default function ManageEvent() {
         sub="Your control panel for the same event students see as an invitation."
         right={
           <div className="flex gap-2">
-            {e.status !== 'cancelled' && (
+            {e.status !== 'cancelled' && !isPast && (
               <>
                 <Button variant="secondary" onClick={() => setEditOpen(true)}>Edit</Button>
                 <Button variant="danger" onClick={() => setCancelOpen(true)}>Cancel</Button>
@@ -257,7 +256,7 @@ export default function ManageEvent() {
       {cancelOpen && <CancelEventModal event={e} onClose={() => setCancelOpen(false)} />}
 
       {/* Phase 6 close-out panels — only visible after event date has passed */}
-      {new Date(e.startsAt) < new Date() && (
+      {isPast && (
         <div className="mt-8 space-y-4">
           <ReflectionPanel activityId={e.id} isMeetupHead={isMeetupHead} />
           <ReimbursementPanel activityId={e.id} isMeetupHead={isMeetupHead} />

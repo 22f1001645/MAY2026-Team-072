@@ -52,7 +52,7 @@ export default function QuerySection({
   }
 
   return (
-    <Card className="flex flex-col h-[600px] overflow-hidden mt-8">
+    <Card className={cx("flex flex-col overflow-hidden mt-8", (isOrganiser && queries.length === 0) ? "h-auto" : "h-[600px]")}>
       {/* Header */}
       <div className="p-5 border-b border-white/5 shrink-0 bg-white/[0.02]">
         <h3 className="text-[15px] font-semibold text-offwhite flex items-center justify-between">
@@ -173,6 +173,7 @@ export default function QuerySection({
     </Card>
   )
 }
+
 
 
 

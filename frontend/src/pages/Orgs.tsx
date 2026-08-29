@@ -39,18 +39,18 @@ export const SOCIETY_CATEGORIES = [
 // only component that reads it. Twelve seeded Houses have visual identity that
 // exists nowhere else — an upload wins, but nothing here is thrown away.
 export const HOUSE_META: Record<string, { color: string; logo: string; imageLogo?: string; website?: string }> = {
-  'Bandipur House':    { color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
-  'Corbett House':     { color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
-  'Gir House':         { color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
-  'Kanha House':       { color: '#a78bfa', logo: '🦌', imageLogo: '/houses/kanha.png', website: 'https://kanha.iitmbs.org/' },
-  'Kaziranga House':   { color: '#34d399', logo: '🦏', imageLogo: '/houses/kaziranga.png', website: 'https://kaziranga.iitmbs.org/' },
-  'Nallamala House':   { color: '#f97316', logo: '🐆', imageLogo: '/houses/nallamala.png', website: 'https://nallamala.iitmbs.org/' },
-  'Namdapha House':    { color: '#06b6d4', logo: '🦅', imageLogo: '/houses/namdapha.png', website: 'https://namdapha.iitmbs.org/' },
-  'Nilgiri House':     { color: '#5CE6C9', logo: '⛰️', imageLogo: '/houses/nilgiri.png', website: 'https://nilgiri.iitmbs.org/' },
-  'Pichavaram House':  { color: '#e879f9', logo: '🛶', imageLogo: '/houses/pichavaram.png', website: 'https://pichavaram.iitmbs.org/' },
-  'Saranda House':     { color: '#fb923c', logo: '🌳', imageLogo: '/houses/saranda.png', website: 'https://saranda.iitmbs.org/' },
-  'Sundarbans House':  { color: '#2dd4bf', logo: '🐊', imageLogo: '/houses/sundarbans.png', website: 'https://sundarbans.iitmbs.org/#/' },
-  'Wayanad House':     { color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
+  'Bandipur House': { color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
+  'Corbett House': { color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
+  'Gir House': { color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
+  'Kanha House': { color: '#a78bfa', logo: '🦌', imageLogo: '/houses/kanha.png', website: 'https://kanha.iitmbs.org/' },
+  'Kaziranga House': { color: '#34d399', logo: '🦏', imageLogo: '/houses/kaziranga.png', website: 'https://kaziranga.iitmbs.org/' },
+  'Nallamala House': { color: '#f97316', logo: '🐆', imageLogo: '/houses/nallamala.png', website: 'https://nallamala.iitmbs.org/' },
+  'Namdapha House': { color: '#06b6d4', logo: '🦅', imageLogo: '/houses/namdapha.png', website: 'https://namdapha.iitmbs.org/' },
+  'Nilgiri House': { color: '#5CE6C9', logo: '⛰️', imageLogo: '/houses/nilgiri.png', website: 'https://nilgiri.iitmbs.org/' },
+  'Pichavaram House': { color: '#e879f9', logo: '🛶', imageLogo: '/houses/pichavaram.png', website: 'https://pichavaram.iitmbs.org/' },
+  'Saranda House': { color: '#fb923c', logo: '🌳', imageLogo: '/houses/saranda.png', website: 'https://saranda.iitmbs.org/' },
+  'Sundarbans House': { color: '#2dd4bf', logo: '🐊', imageLogo: '/houses/sundarbans.png', website: 'https://sundarbans.iitmbs.org/#/' },
+  'Wayanad House': { color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
 }
 
 const HOUSE_POR_TYPES = [
@@ -459,40 +459,40 @@ export default function Orgs() {
                       return matchName && matchOrg && matchRole && matchRegion && matchStatus
                     })
                     .map((p: any) => (
-                    <tr key={p.id} className="border-b border-white/5 last:border-0">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-8 w-8 place-items-center rounded-full bg-gold/12 text-[12px] font-bold text-gold">
-                            {(p.member ?? '?').split(' ').map((n: string) => n[0]).join('')}
+                      <tr key={p.id} className="border-b border-white/5 last:border-0">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-8 w-8 place-items-center rounded-full bg-gold/12 text-[12px] font-bold text-gold">
+                              {(p.member ?? '?').split(' ').map((n: string) => n[0]).join('')}
+                            </div>
+                            <span className="text-offwhite">{p.member ?? '—'}</span>
                           </div>
-                          <span className="text-offwhite">{p.member ?? '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-graytext-light">{p.org}</td>
-                      <td className="px-5 py-3.5"><Badge tone="teal">{p.por_type}</Badge></td>
-                      <td className="px-5 py-3.5 text-[12px] text-graytext-light">{p.region ?? '—'}</td>
-                      <td className="px-5 py-3.5">
-                        {p.council_tier === 'upper_house_council' && <Badge tone="gold">Upper HC</Badge>}
-                        {p.council_tier === 'lower_house_council' && <Badge tone="teal">Lower HC</Badge>}
-                        {p.council_tier === 'society_core' && <Badge tone="teal">Society Core</Badge>}
-                        {!p.council_tier && <span className="text-caption text-graytext-mid">—</span>}
-                      </td>
-                      <td className="px-5 py-3.5 text-graytext-light">{p.term}</td>
-                      <td className="px-5 py-3.5 text-right">
-                        {p.active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Past</Badge>}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        {p.active && (
-                          <button
-                            onClick={() => setConfirmDeactivateId(p.id)}
-                            className="rounded-full border border-red-400/30 px-3 py-1 text-[12px] font-medium text-red-300 transition-colors hover:bg-red-500/10"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-5 py-3.5 text-graytext-light">{p.org}</td>
+                        <td className="px-5 py-3.5"><Badge tone="teal">{p.por_type}</Badge></td>
+                        <td className="px-5 py-3.5 text-[12px] text-graytext-light">{p.region ?? '—'}</td>
+                        <td className="px-5 py-3.5">
+                          {p.council_tier === 'upper_house_council' && <Badge tone="gold">Upper HC</Badge>}
+                          {p.council_tier === 'lower_house_council' && <Badge tone="teal">Lower HC</Badge>}
+                          {p.council_tier === 'society_core' && <Badge tone="teal">Society Core</Badge>}
+                          {!p.council_tier && <span className="text-caption text-graytext-mid">—</span>}
+                        </td>
+                        <td className="px-5 py-3.5 text-graytext-light">{p.term}</td>
+                        <td className="px-5 py-3.5 text-right">
+                          {p.active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Past</Badge>}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {p.active && (
+                            <button
+                              onClick={() => setConfirmDeactivateId(p.id)}
+                              className="rounded-full border border-red-400/30 px-3 py-1 text-[12px] font-medium text-red-300 transition-colors hover:bg-red-500/10"
+                            >
+                              Deactivate
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </Card>
@@ -836,7 +836,7 @@ export default function Orgs() {
                 Cities are scoped to their official Region and used for regional analytics.
               </p>
               <p className="mt-0.5 text-caption text-graytext-mid">
-                Quota guardrail: 1 meetup per Region per month (FR-B2).
+                Quota guardrail: 1 meetup per Region per month.
               </p>
             </div>
           </div>
@@ -847,10 +847,10 @@ export default function Orgs() {
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Map Area */}
               <div className="flex-1 rounded-2xl border border-white/5 bg-white/[0.02] relative overflow-hidden flex items-center justify-center p-6">
-                <IndiaMap 
-                  regions={regions} 
-                  selectedRegionId={selectedMapRegionId} 
-                  onSelect={setSelectedMapRegionId} 
+                <IndiaMap
+                  regions={regions}
+                  selectedRegionId={selectedMapRegionId}
+                  onSelect={setSelectedMapRegionId}
                 />
               </div>
 
@@ -874,7 +874,7 @@ export default function Orgs() {
                       <div className="mb-4 flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[18px]">📍</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal shrink-0"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
                             <span className="text-[18px] font-bold text-offwhite">{region.name}</span>
                           </div>
                           <div className="mt-1 text-caption text-graytext-mid">
@@ -912,9 +912,26 @@ export default function Orgs() {
                       <div className="border-t border-white/5 pt-5 flex-1">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="text-[13px] font-semibold text-graytext-mid uppercase tracking-wider">Regional Coordinators</h4>
-                          <Badge tone="teal">{rcs.length} / 10</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge tone="teal">{rcs.length} / 10</Badge>
+                            {rcs.length < 10 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPorTargetType('house')
+                                  setSelectedOrgId('')
+                                  setSelectedPorType('Regional Coordinator')
+                                  setSelectedRegion(region.id)
+                                  setShowPorModal(true)
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg border border-dashed border-white/15 px-2 py-1 text-[12px] font-medium text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+                              >
+                                + Add RC
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        
+
                         {rcs.length === 0 ? (
                           <p className="text-caption text-graytext-light italic">No RCs assigned yet.</p>
                         ) : (
@@ -1374,7 +1391,7 @@ export default function Orgs() {
                     setUserId('')
                   }}
                 />
-                
+
                 {/* Search Results List */}
                 {userSearch.trim() !== '' && !userId && (
                   <div className="mt-2 max-h-[160px] overflow-y-auto rounded-xl border border-white/10 bg-onyx custom-scrollbar">
@@ -1600,7 +1617,7 @@ export default function Orgs() {
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
               const webAdmin = pors.find((p: any) => p.org === h.name && p.por_type === 'Web Admin' && p.active)
               const rcs = pors.filter((p: any) => p.org === h.name && p.por_type === 'Regional Coordinator' && p.active)
-              
+
               return (
                 <>
                   <div className="absolute right-4 top-4">
@@ -1744,7 +1761,7 @@ export default function Orgs() {
       )}
       {/* ---- BULK ASSIGN MODAL ---- */}
       {showBulkModal && (
-        <BulkAssignModal 
+        <BulkAssignModal
           onClose={() => setShowBulkModal(false)}
           onSuccess={() => {
             setShowBulkModal(false)

@@ -197,3 +197,123 @@ def deactivate_por(por_id: str, admin) -> PORAssignment:
     AuditRepository.record("por", por.id, f"Deactivated POR {por.por_type}", admin)
     db.session.commit()
     return por
+
+
+def bulk_assign_pors(assignments_data: list, admin, preview=True) -> list:
+    from app.models import Organisation, User, Membership, PORAssignment
+    from app.repositories.repos import OrgRepository
+    from app.constants import HOUSE_POR_TYPES, SOCIETY_POR_TYPES, ORG_MANAGER_PORS
+    from app.extensions import db
+
+    processed = []
+    house_only = set(HOUSE_POR_TYPES)
+    society_only = set(SOCIETY_POR_TYPES)
+    upper_positions = {'House Secretary', 'Deputy House Secretary'}
+    lower_positions = {'Regional Coordinator'}
+    society_leadership = {'Society Secretary', 'Society Deputy Secretary'}
+    single_seat_positions = upper_positions | society_leadership
+
+    for idx, row in enumerate(assignments_data):
+        email = (row.get('Email') or '').strip()
+        org_type = (row.get('Organisation Type') or '').strip().lower()
+        org_name = (row.get('Organisation Name') or '').strip()
+        por_type = (row.get('Position') or '').strip()
+        region_name = (row.get('Region') or '').strip()
+        term = (row.get('Term') or '').strip()
+
+        errors = []
+        user = None
+        org = None
+        region = None
+
+        if not email:
+            errors.append('Email is required.')
+        else:
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                errors.append(f'User with email {email} not found.')
+
+        if not org_type or not org_name:
+            errors.append('Organisation Type and Name are required.')
+        else:
+            org = Organisation.query.filter_by(type=org_type, name=org_name).first()
+            if not org:
+                errors.append(f'{org_type.capitalize()} \'{org_name}\' not found.')
+
+        if org and por_type:
+            if por_type in house_only and org.type != 'house':
+                errors.append(f'\'{por_type}\' can only be assigned to a house.')
+            if por_type in society_only and org.type != 'society':
+                errors.append(f'\'{por_type}\' can only be assigned to a society.')
+
+        if por_type == 'Regional Coordinator':
+            if not region_name:
+                errors.append('Region column is required for Regional Coordinator.')
+            else:
+                region = Organisation.query.filter_by(type='region', name=region_name).first()
+                if not region:
+                    errors.append(f'Region \'{region_name}\' not found.')
+
+        if not errors and not preview:
+            # 1. Check collisions before touching the DB, so a rejected row
+            # never leaves a partial Membership behind for the batch commit.
+            if por_type in single_seat_positions:
+                existing = PORAssignment.query.join(Membership).filter(
+                    Membership.org_id == org.id,
+                    PORAssignment.por_type == por_type,
+                    PORAssignment.active == True
+                ).first()
+                if existing and existing.membership.user_id != user.id:
+                    errors.append(f'Slot already filled by {existing.membership.user.name}.')
+            elif por_type == 'Regional Coordinator':
+                existing = PORAssignment.query.join(Membership).filter(
+                    Membership.org_id == org.id,
+                    PORAssignment.region_id == region.id,
+                    PORAssignment.por_type == 'Regional Coordinator',
+                    PORAssignment.active == True
+                ).first()
+                if existing and existing.membership.user_id != user.id:
+                    errors.append(f'Region slot already filled by {existing.membership.user.name}.')
+
+            if not errors:
+                # 2. Ensure Membership
+                mem = Membership.query.filter_by(user_id=user.id, org_id=org.id).first()
+                if not mem:
+                    mem = Membership(user_id=user.id, org_id=org.id)
+                    db.session.add(mem)
+                    db.session.flush()
+
+                # Deactivate old POR for this user in this org
+                old_pors = PORAssignment.query.filter_by(membership_id=mem.id, active=True).all()
+                for old in old_pors:
+                    old.active = False
+
+                council_tier = None
+                if por_type in upper_positions:
+                    council_tier = 'upper_house_council'
+                elif por_type in lower_positions:
+                    council_tier = 'lower_house_council'
+                elif por_type in society_leadership:
+                    council_tier = 'society_core'
+
+                new_por = PORAssignment(
+                    membership_id=mem.id,
+                    por_type=por_type,
+                    term=term,
+                    council_tier=council_tier,
+                    region_id=region.id if region else None,
+                    active=True
+                )
+                db.session.add(new_por)
+
+        processed.append({
+            'row': idx + 1,
+            'data': row,
+            'status': 'error' if errors else 'valid',
+            'errors': errors
+        })
+
+    if not preview:
+        db.session.commit()
+
+    return processed

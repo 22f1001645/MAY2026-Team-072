@@ -113,7 +113,7 @@ def unregister(activity_id: str, student) -> None:
         Notification(
             user_id=student.id,
             activity_id=activity_id,
-            type="update",
+            type="cancellation",
             title="Registration Cancelled",
             body=f"Your registration for '{activity_title}' has been successfully cancelled.",
         )

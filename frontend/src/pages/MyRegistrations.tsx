@@ -113,8 +113,8 @@ export default function MyRegistrations() {
         {/* Registrations Hero */}
       {nextEvent ? (
         <section 
-          className="mb-10 relative overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl mt-8 flex flex-col md:flex-row group transition-transform duration-500 hover:scale-[1.01]"
-          style={{ background: cover(nextEvent.activity.cover) }}
+          className="mb-10 relative overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl mt-8 flex flex-col md:flex-row group transition-transform duration-500 hover:scale-[1.01] bg-200 animate-gradient-shift"
+          style={{ backgroundImage: cover(nextEvent.activity.cover) }}
         >
           {/* Dimming overlay so text remains readable over bright gradients */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
@@ -277,8 +277,8 @@ export default function MyRegistrations() {
             >
               {/* Top Banner / Event Art */}
               <div 
-                className="relative h-28 w-full p-4 flex items-start justify-between"
-                style={{ background: coverForScale(a.scale) }}
+                className="relative h-28 w-full p-4 flex items-start justify-between bg-200 animate-gradient-shift"
+                style={{ backgroundImage: coverForScale(a.scale) }}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-onyx to-transparent opacity-80" />
                 <div className="relative z-10 flex w-full justify-between items-start">
@@ -371,8 +371,8 @@ export default function MyRegistrations() {
             
             {/* Modal Header */}
             <div 
-              className="h-32 w-full p-5 text-offwhite relative"
-              style={{ background: coverForScale(selectedTicket.activity?.scale || 'local_meetup') }}
+              className="h-32 w-full p-5 text-offwhite relative bg-200 animate-gradient-shift"
+              style={{ backgroundImage: coverForScale(selectedTicket.activity?.scale || 'local_meetup') }}
             >
               <div className="absolute inset-0 bg-black/20" />
               <div className="grain absolute inset-0 mix-blend-overlay opacity-30 pointer-events-none" />

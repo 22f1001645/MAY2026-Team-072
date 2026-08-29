@@ -128,3 +128,19 @@ def deactivate_por(por_id):
     """FR-A5 — Deactivate a POR assignment during term handover."""
     por = org_service.deactivate_por(por_id, g.current_user)
     return jsonify(por.to_dict()), 200
+
+
+@community_bp.post("/orgs/pors/bulk-preview")
+@admin_required
+def bulk_assign_pors_preview():
+    data = request.get_json() or []
+    result = org_service.bulk_assign_pors(data, g.current_user, preview=True)
+    return jsonify(result), 200
+
+
+@community_bp.post("/orgs/pors/bulk-assign")
+@admin_required
+def bulk_assign_pors():
+    data = request.get_json() or []
+    result = org_service.bulk_assign_pors(data, g.current_user, preview=False)
+    return jsonify(result), 200

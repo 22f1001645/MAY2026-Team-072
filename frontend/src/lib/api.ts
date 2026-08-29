@@ -202,6 +202,7 @@ export interface ApiActivity {
   organiser: string
   is_mega_meetup: boolean
   description?: string
+  poster_name?: string | null
   budget?: { id: string; label: string; planned: number; actual: number }[]
   collaborators?: { id: string; activity_id: string; org_id: string; org: string | null; is_primary: boolean; status: string; responded_at: string | null }[]
   team_members?: { id: string; activity_id: string; user_id: string; member: string | null; role: string; added_by: string | null }[]
@@ -211,6 +212,7 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
   return {
     id: a.id,
     title: a.title,
+    posterName: a.poster_name ?? null,
     org: a.org,
     city: a.city,
     scale: a.scale as EkatvaEvent['scale'],
@@ -646,6 +648,10 @@ export const api = {
     request(`/orgs/${orgId}/pors`, { method: 'POST', body: JSON.stringify(data) }),
   deactivatePor: (porId: string) =>
     request(`/pors/${porId}/deactivate`, { method: 'PATCH' }),
+  bulkPreviewPors: (data: any[]) =>
+    request(`/orgs/pors/bulk-preview`, { method: 'POST', body: JSON.stringify(data) }),
+  bulkAssignPors: (data: any[]) =>
+    request(`/orgs/pors/bulk-assign`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Discovery (C)
   events: (city?: string, scale?: string, dateRange?: string) => {
@@ -732,6 +738,7 @@ export const api = {
    *  `target_role` each row carries. */
   notifications: () => request<any[]>('/notifications'),
   markNotificationsRead: () => request('/notifications/read', { method: 'PATCH' }),
+  markNotificationRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
 

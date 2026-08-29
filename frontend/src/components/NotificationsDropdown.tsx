@@ -1,7 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { useNotifications, useMarkNotificationsRead, useClearNotifications, useDeleteNotification } from '../lib/queries'
+import { useNotifications, useMarkNotificationsRead, useMarkNotificationRead, useClearNotifications, useDeleteNotification } from '../lib/queries'
 import { Badge } from './ui'
 import InvitationCard from './InvitationCard'
 import { cx } from '../lib/format'
@@ -16,12 +16,22 @@ const TONE: Record<string, { tone: any; icon: ReactNode; label: string }> = {
   update: { 
     tone: 'gold', 
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, 
-    label: 'Notice' 
+    label: 'Broadcast' 
+  },
+  cancellation: { 
+    tone: 'error', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>, 
+    label: 'Cancelled' 
   },
   approval: { 
     tone: 'success', 
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, 
     label: 'Confirmed' 
+  },
+  rejection: { 
+    tone: 'error', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>, 
+    label: 'Declined' 
   },
   points: { 
     tone: 'gold', 
@@ -32,6 +42,16 @@ const TONE: Record<string, { tone: any; icon: ReactNode; label: string }> = {
     tone: 'gold', 
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, 
     label: 'Invite' 
+  },
+  query: { 
+    tone: 'teal', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, 
+    label: 'Q&A' 
+  },
+  invite: { 
+    tone: 'teal', 
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>, 
+    label: 'Referral' 
   },
 }
 
@@ -50,25 +70,37 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
   const { role } = useSession()
   const { data: items = [], isLoading, isError } = useNotifications(role)
   const markReadMutation = useMarkNotificationsRead()
+  const markSingleReadMutation = useMarkNotificationRead()
   const clearMutation = useClearNotifications()
   const deleteMutation = useDeleteNotification()
   const [filter, setFilter] = useState<string>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  // Prevent background scrolling when drawer is open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = 'auto' }
-  }, [])
+  const ROLE_FILTERS: Record<string, string[]> = {
+    admin: ['all', 'approval'],
+    organiser: ['all', 'query', 'collaboration_invite'],
+    student: ['all', 'update', 'reminder', 'query', 'invite']
+  }
 
   const handleMarkAllRead = () => {
     markReadMutation.mutate()
   }
-
+  
   const handleClearAll = () => {
     clearMutation.mutate()
   }
 
+  const getFilterLabel = (f: string) => {
+    if (f === 'all') return 'All'
+    if (f === 'update') return 'Broadcasts'
+    if (f === 'approval') return 'Approvals'
+    if (f === 'query') return 'Q&A'
+    if (f === 'collaboration_invite') return 'Invites'
+    if (f === 'invite') return 'Referrals'
+    return f + 's' // Fallback pluralization e.g. reminders
+  }
+
+  const activeFilters = ROLE_FILTERS[role ?? 'student'] ?? ROLE_FILTERS.student
   const filteredItems = items.filter((n: any) => filter === 'all' || n.type === filter)
 
   return createPortal(
@@ -108,7 +140,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                 onClick={handleMarkAllRead}
                 disabled={markReadMutation.isPending}
               >
-                {markReadMutation.isPending ? 'Marking...' : 'Mark all read'}
+                {markReadMutation.isPending ? 'Marking...' : 'Mark all as read'}
               </button>
             </div>
             <button 
@@ -125,19 +157,19 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
             </button>
           </div>
 
-          <div className="flex gap-2 pb-2 border-b border-white/10">
-            {(role === 'admin' ? ['all', 'approval'] : ['all', 'reminder', 'update']).map(f => (
+          <div className="flex gap-2 pb-2 border-b border-white/10 overflow-x-auto scrollbar-hide">
+            {activeFilters.map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={cx(
-                  "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all uppercase tracking-widest border",
+                  "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all uppercase tracking-widest border whitespace-nowrap",
                   filter === f 
                     ? "bg-teal/15 text-teal border-teal/20 shadow-[0_0_15px_rgba(92,230,201,0.15)]" 
                     : "bg-transparent text-graytext-mid border-transparent hover:text-offwhite hover:bg-white/5"
                 )}
               >
-                {f === 'update' ? 'Broadcasts' : f === 'approval' ? 'Approvals' : f + (f === 'all' ? '' : 's')}
+                {getFilterLabel(f)}
               </button>
             ))}
           </div>
@@ -186,7 +218,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                     className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
                     title="Dismiss"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
                   </button>
                 </div>
               )
@@ -198,12 +230,14 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
             const toneColorClass = t.tone === 'teal' ? 'bg-teal/10 text-teal shadow-[inset_0_0_12px_rgba(92,230,201,0.1)]' 
               : t.tone === 'gold' ? 'bg-gold/10 text-gold shadow-[inset_0_0_12px_rgba(250,208,44,0.1)]'
               : t.tone === 'success' ? 'bg-green-500/10 text-green-400 shadow-[inset_0_0_12px_rgba(34,197,94,0.1)]'
+              : t.tone === 'error' ? 'bg-red-500/10 text-red-400 shadow-[inset_0_0_12px_rgba(248,113,113,0.1)]'
               : 'bg-white/10 text-offwhite'
 
             return (
               <div
                 key={n.id}
                 onClick={() => {
+                  markSingleReadMutation.mutate(n.id)
                   if (n.action_url) {
                     navigate(n.action_url)
                     onClose()
@@ -225,48 +259,52 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                 <div
                   className={cx(
                     'grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[16px] transition-colors',
-                    n.read ? 'bg-white/5 text-graytext-mid group-hover:bg-white/10' : toneColorClass
+                    toneColorClass
                   )}
                 >
                   {t.icon}
                 </div>
-                <div className="flex-1 min-w-0 pr-6">
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge tone={t.tone}>{t.label}</Badge>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wider text-graytext-mid group-hover:text-graytext-light transition-colors">{ago(n.at)}</span>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-graytext-mid">
+                      {t.label}
+                    </span>
+                    <span className="text-[10px] font-medium text-graytext-mid whitespace-nowrap">
+                      {ago(n.created_at)}
+                    </span>
                   </div>
-                  <div className={cx("mt-2 text-[14px] font-semibold text-offwhite flex items-center gap-2", !isExpanded && "truncate")}>
+                  
+                  <h4 className="text-[14px] font-semibold text-offwhite leading-tight mb-1 group-hover:text-teal transition-colors">
                     {n.title}
-                  </div>
-                  {n.type === 'update' && n.activity_title && (
-                    <div className="mt-1 text-[11px] font-medium text-teal/80 uppercase tracking-wide">
-                      From: {n.activity_title}
-                    </div>
-                  )}
-                  <div className={cx("text-[13px] leading-relaxed text-graytext-light mt-1.5", !isExpanded && "line-clamp-2")}>
+                  </h4>
+                  
+                  <div className={cx(
+                    "text-[13px] text-graytext-light leading-relaxed",
+                    !isExpanded && "line-clamp-2"
+                  )}>
                     {n.body}
                   </div>
                 </div>
 
-                {/* Hover Dismiss Button */}
                 <button 
                   onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(n.id) }}
-                  className="absolute top-4 right-3 p-1.5 rounded-full bg-black/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
-                  title="Delete"
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
+                  title="Dismiss"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18" />
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
                 </button>
               </div>
             )
           })
         )}
-      </div>
+        </div>
       </div>
     </div>,
     document.body
   )
 }
+
+
+
+

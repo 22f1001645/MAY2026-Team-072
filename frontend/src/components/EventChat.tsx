@@ -9,10 +9,12 @@ export default function EventChat({
   eventId,
   isRegistered,
   canManage = false,
+  closed = false,
 }: {
   eventId: string
   isRegistered: boolean
   canManage?: boolean
+  closed?: boolean
 }) {
   const { currentUser } = useAuth()
   const { data: messages = [], isLoading } = useAnnouncements(eventId)
@@ -22,7 +24,7 @@ export default function EventChat({
   const [showPicker, setShowPicker] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const canPost = isRegistered || canManage
+  const canPost = !closed && (isRegistered || canManage)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -193,7 +195,7 @@ export default function EventChat({
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0110 0v4"></path>
             </svg>
-            Register for this event to join the discussion.
+            {closed ? "This event has ended, so the chat is read-only." : "Register for this event to join the discussion."}
           </div>
         )}
       </div>

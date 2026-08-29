@@ -40,11 +40,11 @@ export default function PollCard({
   // `undefined !== null` is true — which flipped the card to an all-zero result
   // view with no way to vote, for exactly the case the line above guards.
   const myVote = poll.my_vote ?? null
-  const showResults = myVote !== null || closed || channelClosed
+  const showResults = myVote !== null || closed || channelClosed || canManage
 
   return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
+    <div className="group rounded-2xl bg-white/[0.02] p-5 transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-white/[0.04] hover:shadow-[0_8px_30px_rgba(92,230,201,0.12)]">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <h4 className="text-[14px] font-semibold leading-snug text-offwhite">{poll.question}</h4>
         <Badge tone={closed ? 'neutral' : 'teal'} className="shrink-0">
           {closed ? 'Closed' : 'Open'}

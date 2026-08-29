@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+﻿import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { api } from './api'
 import type { ApiFormField, ApiTask } from './types'
 
 /* TanStack Query hooks — server cache, retries, and invalidation on mutation
- * (Milestone 2 §7: server state lives here, never duplicated in UI state). */
+ * (Milestone 2 Â§7: server state lives here, never duplicated in UI state). */
 
 // ---- Queries ----
 /** `placeholderData` holds the previous capability snapshot across a background
@@ -301,7 +301,7 @@ export const useBroadcast = () =>
   })
 
 /** CHAT-04's refresh interval, shared by every event-channel query: 15s with
- *  ±3s of jitter (D-13).
+ *  Â±3s of jitter (D-13).
  *
  *  The jitter is the point, not decoration. A fixed interval synchronises every
  *  open tab on an event to the same tick — thirty registrants become thirty
@@ -330,6 +330,14 @@ export const usePostAnnouncement = () => {
   return useMutation({
     mutationFn: (v: { id: string; body: string }) => api.postAnnouncement(v.id, v.body),
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['announcements', v.id] })
+  })
+}
+
+export const useMarkNotificationRead = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.markNotificationRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] })
   })
 }
 
@@ -867,3 +875,4 @@ export const useRespondQuery = () => {
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['queries', 'org', v.id] }),
   })
 }
+

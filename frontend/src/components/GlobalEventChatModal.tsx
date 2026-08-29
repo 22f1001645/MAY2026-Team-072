@@ -16,6 +16,7 @@ export function GlobalEventChatModal() {
 
   const registered = myRegs.some((r: any) => r.activity_id === eventId)
   const canManage = role !== 'student' || capabilities?.manageableActivityIds?.includes(eventId)
+  const isPast = event?.status === 'completed' || event?.status === 'archived'
 
   const closeChat = () => {
     const newParams = new URLSearchParams(searchParams)
@@ -66,6 +67,7 @@ export function GlobalEventChatModal() {
             eventId={eventId} 
             isRegistered={registered} 
             canManage={canManage} 
+            closed={isPast}
           />
         </div>
       </div>

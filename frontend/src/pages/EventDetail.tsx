@@ -14,6 +14,7 @@ import CollabStatus from '../components/CollabStatus'
 import { viewFromPathname } from '../components/ViewSwitcher'
 import PublicEventLanding from './PublicEventLanding'
 import InviteSearchBlock from '../components/InviteSearchBlock'
+import { uploadUrl } from '../lib/api'
 
 /**
  * EventDetail also serves the shared registration link, which a visitor opens
@@ -50,10 +51,8 @@ export default function EventDetail() {
   // face of the page. It cannot happen today (role falls back to 'student'),
   // which is exactly why it is worth pinning here. We also enforce that they 
   // must be actively viewing the page from the /organiser path via the toggle.
-  const canManage =
-    viewFromPathname(location.pathname) === 'organiser' && 
-    !!currentUser && 
-    (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
+  const isOrganiser = !!currentUser && (role !== 'student' || capabilities?.manageableActivityIds?.includes(id!))
+  const canManage = viewFromPathname(location.pathname) === 'organiser' && isOrganiser
 
   const [addedToCalendar, setAddedToCalendar] = useState(() => !!id && localStorage.getItem('cal_' + id) === '1')
 
@@ -64,7 +63,7 @@ export default function EventDetail() {
       <Card className="p-12 text-center">
         <div className="text-h3 text-offwhite">Event not found</div>
         <Link to="/discover" className="mt-3 inline-block text-teal">
-          ← Back to discovery
+          â† Back to discovery
         </Link>
       </Card>
     )
@@ -114,12 +113,21 @@ export default function EventDetail() {
         </div>
       )}
 
-      {/* Cover */}
+      {/* Cover / Poster */}
       <div
-        className="relative mb-6 flex min-h-[220px] items-end overflow-hidden rounded-xl2 border border-white/5 p-7"
-        style={{ background: cover(e.cover) }}
+        className="relative mb-6 flex min-h-[220px] items-end overflow-hidden rounded-xl2 border border-white/5 p-7 bg-200 animate-gradient-shift"
+        style={!e.posterName ? { backgroundImage: cover(e.cover) } : {}}
       >
-        <div className="grain absolute inset-0" />
+        {e.posterName && (
+          <img 
+            src={uploadUrl(e.posterName)} 
+            alt={e.title} 
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {/* Dark gradient overlay so the text remains readable over the poster */}
+        {e.posterName && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />}
+        {!e.posterName && <div className="grain absolute inset-0" />}
         <div className="relative">
           <div className="mb-2 flex flex-wrap gap-2">
             {e.proposalStatus !== 'approved' && (
@@ -175,7 +183,7 @@ export default function EventDetail() {
             <div>
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-[24px] font-extrabold text-white tracking-tight">Collaborating organisations</h2>
-                {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">⭐ Mega Meetup</Badge>}
+                {e.isMegaMeetup && <Badge tone="gold" className="shadow-lg shadow-gold/10">â­ Mega Meetup</Badge>}
               </div>
               <div className="space-y-2">
                 {e.collaborators.map((c: any) => {
@@ -274,7 +282,7 @@ export default function EventDetail() {
                 <div className="mt-4 flex gap-2">
                   <Link to={`/events/${e.id}/manage`}>
                     <Button variant="secondary" size="sm">
-                      Manage registrations
+                      Manage Event
                     </Button>
                   </Link>
                 </div>
@@ -345,6 +353,26 @@ export default function EventDetail() {
               )
             })()}
           </Dialog>
+
+          {/* CHAT-01/02 — same audience as the chat button above, but
+           *  deliberately NOT gated on `!isPast`. The team can still answer
+           *  a question after the event ends (D-17), and this section is
+           *  the only surface on which the person who asked it reads the
+           *  answer. Past the event it renders closed: thread visible,
+           *  composers gone. */}
+          {currentUser &&
+            e.status !== 'cancelled' &&
+            ((registered && !isWaitlisted) || canManage) && (
+              <div className="mt-6 border-t border-white/5 pt-10">
+                <h2 className="mb-6 text-[24px] font-extrabold text-white tracking-tight">Event Polls & Q&A</h2>
+                <EventChannelSection
+                  activityId={e.id}
+                  canManage={canManage}
+                  isOrganiser={isOrganiser}
+                  closed={isPast}
+                />
+              </div>
+            )}
         </div>
 
         {/* Right: sticky register card */}
@@ -385,10 +413,10 @@ export default function EventDetail() {
                     This event has been cancelled by the organiser.
                   </p>
                 </div>
-              ) : isPast ? (
+                ) : isPast ? (
                 <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 text-center text-graytext-light">
                   <div className="text-h3 font-semibold text-offwhite">This event has ended</div>
-                  <p className="mt-1 text-caption">Registration and chat are no longer available.</p>
+                  <p className="mt-1 text-caption">Registration is no longer available.</p>
                 </div>
               ) : !canManage ? (
                 registered ? (
@@ -419,7 +447,7 @@ export default function EventDetail() {
                           onClick={() => {
                             localStorage.removeItem('cal_' + e.id)
                             setAddedToCalendar(false)
-                            unregisterMut.mutate(e.id)
+                            unregisterMut.mutate(e.id, { onSuccess: () => addToast('Registration cancelled') })
                           }}
                         >
                           {unregisterMut.isPending ? 'Cancelling…' : (registration?.attended ? 'Registration locked (Checked in)' : 'Cancel registration')}
@@ -462,7 +490,7 @@ export default function EventDetail() {
                           navigate('/login', { state: { from: location.pathname } })
                           return
                         }
-                        registerMut.mutate({ id: e.id, referredBy: refId })
+                        registerMut.mutate({ id: e.id, referredBy: refId }, { onSuccess: () => addToast(spotsLeft <= 0 ? 'Added to waitlist' : 'Successfully registered!', 'success') })
                       }}
                     >
                       {registerMut.isPending
@@ -483,8 +511,7 @@ export default function EventDetail() {
                 )
               ) : (
                 <div className="mt-5 rounded-xl border border-white/8 bg-white/[0.03] p-4 text-center text-caption text-graytext-light">
-                  You're viewing this as an organiser. Registration is the student's face
-                  of the same event.
+                  Organiser Mode Active. Attendee ticketing and registration features are hidden in this view.
                 </div>
               )}
 
@@ -493,9 +520,9 @@ export default function EventDetail() {
                 <Perk text="Meet people from your city IRL" />
                 <Perk text="Contribution points on attendance" />
               </div>
-              {currentUser && !isPast && e.status !== 'cancelled' && (
+              {currentUser && e.status !== 'cancelled' && (
                 <div className="mt-6">
-                  {((registered && !isWaitlisted) || canManage) && e.status !== 'completed' && (
+                  {((registered && !isWaitlisted) || canManage) && (
                     <button
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-[14px] font-medium text-offwhite transition-colors hover:bg-white/10"
                       onClick={() => setSearchParams(prev => { prev.set('chat', e.id); return prev; })}
@@ -503,28 +530,12 @@ export default function EventDetail() {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                       </svg>
-                      Event chat
+                      {isPast ? 'View chat history' : 'Event chat'}
                     </button>
                   )}
                 </div>
               )}
-              {/* CHAT-01/02 — same audience as the chat button above, but
-               *  deliberately NOT gated on `!isPast`. The team can still answer
-               *  a question after the event ends (D-17), and this section is
-               *  the only surface on which the person who asked it reads the
-               *  answer. Past the event it renders closed: thread visible,
-               *  composers gone. */}
-              {currentUser &&
-                e.status !== 'cancelled' &&
-                ((registered && !isWaitlisted) || canManage) && (
-                  <div className="mt-6">
-                    <EventChannelSection
-                      activityId={e.id}
-                      canManage={canManage}
-                      closed={isPast}
-                    />
-                  </div>
-                )}
+
             </div>
           )}
         </div>
@@ -658,3 +669,5 @@ function FeedbackForm({
     </Card>
   )
 }
+
+

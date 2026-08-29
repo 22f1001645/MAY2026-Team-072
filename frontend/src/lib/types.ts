@@ -134,6 +134,7 @@ export interface Expense {
 export interface EkatvaEvent {
   id: string
   title: string
+  posterName?: string | null
   org: string
   city: string
   scale: ActivityScale

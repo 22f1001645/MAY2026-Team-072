@@ -9,6 +9,7 @@ import { Loading, ErrorState } from '../components/states'
 import { cx, safeExternalHref } from '../lib/format'
 import { IndiaMap } from '../components/IndiaMap'
 import { OrgLogo } from '../components/OrgLogo'
+import { BulkAssignModal } from '../components/BulkAssignModal'
 
 const ORG_TONE: Record<string, any> = {
   house: 'gold',
@@ -82,6 +83,7 @@ export default function Orgs() {
 
   const [showSeedModal, setShowSeedModal] = useState(false)
   const [showPorModal, setShowPorModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
   const [viewingHouseId, setViewingHouseId] = useState<string | null>(null)
   const [selectedMapRegionId, setSelectedMapRegionId] = useState<string | null>(null)
 
@@ -346,6 +348,7 @@ export default function Orgs() {
         right={
           <div className="flex gap-3">
             <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Add Society</Button>
+            <Button size="sm" onClick={() => setShowBulkModal(true)}>+ Bulk Assign</Button>
             <Button size="sm" onClick={() => setShowPorModal(true)}>+ Authorize Role</Button>
           </div>
         }
@@ -1700,6 +1703,17 @@ export default function Orgs() {
         </div>,
         document.body
       )}
+      {/* ---- BULK ASSIGN MODAL ---- */}
+      {showBulkModal && (
+        <BulkAssignModal 
+          onClose={() => setShowBulkModal(false)}
+          onSuccess={() => {
+            setShowBulkModal(false)
+            qc.invalidateQueries({ queryKey: ['pors'] })
+          }}
+        />
+      )}
+
     </div>
   )
 }

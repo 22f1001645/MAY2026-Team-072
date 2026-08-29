@@ -27,19 +27,20 @@ export default function OrganiserDashboard() {
   const { data, isLoading, isError, error } = useDashboard()
   const { data: notifications = [] } = useNotifications()
   const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'All' | 'Live' | 'Pending' | 'Completed'>('All')
+  const [filter, setFilter] = useState<'All' | 'Live' | 'Pending' | 'Completed' | null>(null)
 
   const events: any[] = data?.my_events ?? []
   
-  const filteredEvents = useMemo(() => {
-    if (filter === 'All') return events
-    if (filter === 'Live') return events.filter((e) => e.proposal_status === 'approved' && e.status !== 'completed')
-    if (filter === 'Completed') return events.filter((e) => e.status === 'completed')
-    if (filter === 'Pending') return events.filter((e) => e.proposal_status !== 'approved' && e.proposal_status !== 'rejected')
-    return events
-  }, [events, filter])
-
   const live = events.filter((e) => e.proposal_status === 'approved' && e.status !== 'completed')
+  const activeFilter = filter ?? (live.length > 0 ? 'Live' : 'All')
+
+  const filteredEvents = useMemo(() => {
+    if (activeFilter === 'All') return events
+    if (activeFilter === 'Live') return live
+    if (activeFilter === 'Completed') return events.filter((e) => e.status === 'completed')
+    if (activeFilter === 'Pending') return events.filter((e) => e.proposal_status !== 'approved' && e.proposal_status !== 'rejected')
+    return events
+  }, [events, activeFilter, live])
   const pendingInvites = (notifications as any[]).filter(
     (n) => n.type === 'collaboration_invite' && !n.read && n.activity_id,
   )
@@ -90,7 +91,7 @@ export default function OrganiserDashboard() {
               onClick={() => setFilter(f)}
               className={cx(
                 'whitespace-nowrap rounded-lg px-5 py-2 text-[13px] font-semibold transition-all duration-300 text-center',
-                filter === f
+                activeFilter === f
                   ? 'bg-white/10 text-offwhite shadow-sm'
                   : 'text-graytext-mid hover:text-offwhite hover:bg-white/5',
               )}
@@ -103,16 +104,34 @@ export default function OrganiserDashboard() {
       
       <div>
         {filteredEvents.length === 0 ? (
-          <Card className="p-10 text-center text-graytext-light">
-            No events found for this filter.
-          </Card>
+          <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed border-white/10 bg-white/[0.02]">
+              <div className="mb-4 rounded-full bg-white/5 p-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <h3 className="mb-2 text-[16px] font-semibold text-offwhite">
+                {events.length === 0 ? "You haven't proposed any events yet" : `No ${activeFilter.toLowerCase()} events found`}
+              </h3>
+              <p className="mb-6 max-w-sm text-[13px] text-graytext-mid">
+                {events.length === 0 
+                  ? "Get started by drafting your first event proposal. It only takes a few minutes."
+                  : "Try changing your filter or draft a fresh proposal for a new event."}
+              </p>
+              <Link to="/proposals/new">
+                <Button>+ New proposal</Button>
+              </Link>
+            </Card>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-start">
             {filteredEvents.map((e) => (
               <Card key={e.id} className="overflow-hidden flex flex-col group border-white/5 bg-onyx transition-all duration-300 hover:border-teal/40 hover:shadow-glow-teal hover:-translate-y-1">
                 <div 
-                  className="relative flex items-start justify-between p-4 h-32 transition-transform duration-500 ease-out group-hover:scale-105"
-                  style={{ background: e.cover ? cover(e.cover) : coverForScale(e.scale || '') }}
+                  className="relative flex items-start justify-between p-4 h-32 transition-transform duration-500 ease-out group-hover:scale-105 bg-200 animate-gradient-shift"
+                  style={{ backgroundImage: e.cover ? cover(e.cover) : coverForScale(e.scale || '') }}
                 >
                   <div className="grain absolute inset-0" />
                   
@@ -174,7 +193,7 @@ export default function OrganiserDashboard() {
                         {e.proposal_status === 'approved' && e.status !== 'completed' && (
                           <>
                             <Link to={`/events/${e.id}/manage`} className="w-full">
-                              <Button variant="secondary" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Manage registrations</Button>
+                              <Button variant="secondary" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Manage Event</Button>
                             </Link>
                             <Link to={`?chat=${e.id}`} className="w-full">
                               <Button variant="ghost" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Broadcast</Button>

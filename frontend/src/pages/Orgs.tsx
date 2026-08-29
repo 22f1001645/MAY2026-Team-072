@@ -668,7 +668,7 @@ export default function Orgs() {
       {/* ---- DEACTIVATE CONFIRMATION MODAL ---- */}
       {confirmDeactivateId && confirmPor && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-sm p-6">
+          <Card className="w-full max-w-sm p-6 bg-onyx border-white/10 shadow-2xl">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-300">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -1222,7 +1222,7 @@ export default function Orgs() {
       {/* ---- ADD NEW SOCIETY MODAL ---- */}
       {showSeedModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm overflow-y-auto">
-          <Card className="w-full max-w-xl p-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar border-white/10 shadow-2xl">
+          <Card className="w-full max-w-xl p-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar bg-onyx border-white/10 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal/15 text-teal text-[20px]">
@@ -1581,7 +1581,7 @@ export default function Orgs() {
       {/* ---- AUTHORIZE ROLE MODAL ---- */}
       {showPorModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-lg p-6">
+          <Card className="w-full max-w-lg p-6 bg-onyx border-white/10 shadow-2xl">
             <h3 className="mb-1 text-[18px] font-bold text-offwhite">Authorize Elected Representative</h3>
             <p className="mb-4 text-caption text-graytext-light">
               Assign an official council role to an elected member. Permissions are granted immediately via their POR.
@@ -1786,7 +1786,7 @@ export default function Orgs() {
       {/* ---- ADD CITY MODAL ---- */}
       {showAddCityModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-sm p-6">
+          <Card className="w-full max-w-sm p-6 bg-onyx border-white/10 shadow-2xl">
             <h3 className="mb-1 text-[18px] font-bold text-offwhite">Add City</h3>
             <p className="mb-4 text-caption text-graytext-light">
               Adding a city to <strong>{addCityRegionName}</strong>.

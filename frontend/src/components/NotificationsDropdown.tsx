@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { useNotifications, useMarkNotificationsRead, useMarkNotificationRead, useClearNotifications, useDeleteNotification } from '../lib/queries'

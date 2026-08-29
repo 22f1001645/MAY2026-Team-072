@@ -199,7 +199,7 @@ def deactivate_por(por_id: str, admin) -> PORAssignment:
     return por
 
 
-def bulk_assign_pors(assignments_data: list, admin, preview=True) -> dict:
+def bulk_assign_pors(assignments_data: list, admin, preview=True) -> list:
     from app.models import Organisation, User, Membership, PORAssignment
     from app.repositories.repos import OrgRepository
     from app.constants import HOUSE_POR_TYPES, SOCIETY_POR_TYPES, ORG_MANAGER_PORS
@@ -255,15 +255,8 @@ def bulk_assign_pors(assignments_data: list, admin, preview=True) -> dict:
                     errors.append(f'Region \'{region_name}\' not found.')
 
         if not errors and not preview:
-            # Execute Assignment
-            # 1. Ensure Membership
-            mem = Membership.query.filter_by(user_id=user.id, org_id=org.id).first()
-            if not mem:
-                mem = Membership(user_id=user.id, org_id=org.id, status='active')
-                db.session.add(mem)
-                db.session.flush()
-
-            # 2. Check collisions
+            # 1. Check collisions before touching the DB, so a rejected row
+            # never leaves a partial Membership behind for the batch commit.
             if por_type in single_seat_positions:
                 existing = PORAssignment.query.join(Membership).filter(
                     Membership.org_id == org.id,
@@ -281,13 +274,20 @@ def bulk_assign_pors(assignments_data: list, admin, preview=True) -> dict:
                 ).first()
                 if existing and existing.membership.user_id != user.id:
                     errors.append(f'Region slot already filled by {existing.membership.user.name}.')
-            
-            # Deactivate old POR for this user in this org
+
             if not errors:
+                # 2. Ensure Membership
+                mem = Membership.query.filter_by(user_id=user.id, org_id=org.id).first()
+                if not mem:
+                    mem = Membership(user_id=user.id, org_id=org.id)
+                    db.session.add(mem)
+                    db.session.flush()
+
+                # Deactivate old POR for this user in this org
                 old_pors = PORAssignment.query.filter_by(membership_id=mem.id, active=True).all()
                 for old in old_pors:
                     old.active = False
-                
+
                 council_tier = None
                 if por_type in upper_positions:
                     council_tier = 'upper_house_council'
@@ -295,7 +295,7 @@ def bulk_assign_pors(assignments_data: list, admin, preview=True) -> dict:
                     council_tier = 'lower_house_council'
                 elif por_type in society_leadership:
                     council_tier = 'society_core'
-                
+
                 new_por = PORAssignment(
                     membership_id=mem.id,
                     por_type=por_type,

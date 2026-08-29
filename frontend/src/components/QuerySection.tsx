@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Badge, Button, Card, Textarea, useToast } from './ui'
 import { ErrorState } from './states'
 import { useMyQueries, useSubmitQuery } from '../lib/queries'

@@ -35,7 +35,6 @@ export function BulkAssignModal({ onClose, onSuccess }: BulkAssignModalProps) {
       complete: async (results) => {
         try {
           const res: any = await api.bulkPreviewPors(results.data)
-          // The fetch wrapper returns the raw data on success or throws/returns {error}. Wait, the fetch wrapper usually throws on error, or returns the JSON directly.
           if (Array.isArray(res)) {
             setPreviewData(res)
           } else {

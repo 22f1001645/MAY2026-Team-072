@@ -42,7 +42,7 @@ export default function OrganiserAnalytics() {
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[14px]">
-            <thead className="border-b border-white/5 bg-black/20 text-caption font-semibold uppercase tracking-wider text-graytext-mid">
+            <thead className="border-b border-white/5 bg-onyx/20 text-caption font-semibold uppercase tracking-wider text-graytext-mid">
               <tr>
                 <th className="px-5 py-4">Organiser</th>
                 <th className="px-5 py-4">Active PORs</th>

@@ -84,7 +84,7 @@ export default function OrganiserDashboard() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
         <h2 className="text-h3 font-semibold text-white">My proposals & events</h2>
-        <div className="flex items-center gap-1 rounded-xl bg-black/40 p-1 shrink-0">
+        <div className="flex items-center gap-1 rounded-xl bg-onyx/40 p-1 shrink-0">
           {(['All', 'Live', 'Pending', 'Completed'] as const).map((f) => (
             <button
               key={f}

@@ -97,7 +97,7 @@ export default function PollCard({
                   },
                 )
               }
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3.5 py-2.5 text-left text-[13px] text-offwhite transition-colors hover:border-teal/50 hover:bg-teal/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl border border-white/10 bg-onyx/30 px-3.5 py-2.5 text-left text-[13px] text-offwhite transition-colors hover:border-teal/50 hover:bg-teal/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {option}
             </button>

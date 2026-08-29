@@ -19,7 +19,7 @@ export default function WelcomeBanner() {
   const initial = firstName.charAt(0)
 
   return (
-    <div className="relative mb-8 overflow-hidden rounded-3xl border border-white/10 bg-onyx/40 p-8 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl animate-fade-up group">
+    <div className="relative mb-8 overflow-hidden rounded-3xl border border-white/10 bg-onyx/40 p-8 md:p-10 shadow-[0_8px_32px_rgba(14,47,54,0.4)] backdrop-blur-2xl animate-fade-up group">
       {/* Ambient Aurora Glow (Optimized for GPU) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-60 mix-blend-screen transition-opacity duration-700 group-hover:opacity-80">
         <div 

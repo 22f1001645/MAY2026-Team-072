@@ -31,10 +31,10 @@ export function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 animate-fade-in">
       {/* Absolute Backdrop - no blur here so the modal stands out */}
-      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/80" onClick={onClose} />
       
       {/* Holographic Modal Container */}
-      <div className="relative w-full max-w-5xl overflow-hidden rounded-[40px] border border-white/5 bg-black/40 backdrop-blur-3xl shadow-[0_0_100px_rgba(0,0,0,0.8),0_0_40px_rgba(92,230,201,0.1)] animate-fade-up will-change-transform flex flex-col md:flex-row min-h-[500px]">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-[40px] border border-white/5 bg-onyx/40 backdrop-blur-3xl shadow-[0_0_100px_rgba(14,47,54,0.8),0_0_40px_rgba(92,230,201,0.1)] animate-fade-up will-change-transform flex flex-col md:flex-row min-h-[500px]">
         
         {/* Holographic Ethereal Aura */}
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[140%] bg-teal/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
@@ -59,7 +59,7 @@ export function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               <div className="absolute inset-[-10px] rounded-full border border-teal/20 animate-[spin-slow_10s_linear_infinite]" />
               <div className="absolute inset-[-20px] rounded-full border border-teal/10 animate-[spin-slow_15s_linear_infinite_reverse]" />
               {/* Inner Avatar */}
-              <div className="relative w-full h-full rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-[inset_0_0_30px_rgba(92,230,201,0.1)]">
+              <div className="relative w-full h-full rounded-full bg-onyx/50 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-[inset_0_0_30px_rgba(92,230,201,0.1)]">
                 <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40 tracking-tighter">
                   {initials}
                 </span>

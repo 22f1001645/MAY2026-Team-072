@@ -36,7 +36,7 @@ function InlineDropdown({ value, options, onChange }: { value: string, options: 
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal text-left shadow-2xl">
+        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-onyx-overlay/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(14,47,54,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal text-left shadow-2xl">
           {options.map(opt => (
             <button
               key={opt}
@@ -104,7 +104,7 @@ export default function Leaderboard() {
               </p>
             </div>
             {nextRankTarget && (
-              <div className="bg-black/50 border border-white/10 rounded-2xl p-5 min-w-[220px] backdrop-blur-md">
+              <div className="bg-onyx/50 border border-white/10 rounded-2xl p-5 min-w-[220px] backdrop-blur-md">
                 <div className="text-[11px] uppercase tracking-widest text-graytext-mid font-semibold mb-2">Target to Beat</div>
                 <div className="flex items-center gap-3 mb-1">
                   <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[12px] font-bold text-slate-300">
@@ -233,7 +233,7 @@ export default function Leaderboard() {
 
               {/* Table or Empty State */}
               {ranked.length > 0 ? (
-                <div className="rounded-3xl border border-white/10 bg-black/40 overflow-hidden shadow-2xl backdrop-blur-xl animate-fade-up">
+                <div className="rounded-3xl border border-white/10 bg-onyx/40 overflow-hidden shadow-2xl backdrop-blur-xl animate-fade-up">
                   <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-[14px]">
                       <thead>
@@ -316,7 +316,7 @@ export default function Leaderboard() {
                   <div className="grain absolute inset-0 mix-blend-overlay opacity-20 pointer-events-none" />
                   
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-20 h-20 mb-6 rounded-full bg-black/50 border border-white/5 backdrop-blur-xl flex items-center justify-center shadow-inner relative overflow-hidden">
+                    <div className="w-20 h-20 mb-6 rounded-full bg-onyx/50 border border-white/5 backdrop-blur-xl flex items-center justify-center shadow-inner relative overflow-hidden">
                       <div className="absolute inset-0 bg-gold/20 translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-out" />
                       <Crown size={36} strokeWidth={1.5} className="text-gold relative z-10" />
                     </div>
@@ -389,7 +389,7 @@ export default function Leaderboard() {
 
               {/* Rank Overtake Callout */}
               {nextRankTarget && (
-                <div className="mt-5 p-3 rounded-xl bg-black/40 border border-white/5 text-[13px] text-graytext-light flex items-start gap-3">
+                <div className="mt-5 p-3 rounded-xl bg-onyx/40 border border-white/5 text-[13px] text-graytext-light flex items-start gap-3">
                   <div className="mt-0.5 text-rose-500"><Target size={16} /></div>
                   <div>
                     You are <strong className="text-offwhite">{nextRankTarget.points - totalPoints + 1} points</strong> away from overtaking <strong className="text-offwhite">{nextRankTarget.name}</strong> for Rank #{nextRankTarget.rank}!
@@ -458,7 +458,7 @@ export default function Leaderboard() {
             { name: 'Starter', points: '0+ pts', icon: <Sprout size={24} />, bg: 'bg-slate-400/10', color: 'text-slate-400', border: 'border-slate-400/30' },
           ].map(tier => (
             <div key={tier.name} className={cx("p-6 rounded-2xl border backdrop-blur-sm flex flex-col items-center text-center transition-transform hover:-translate-y-1 cursor-default", tier.bg, tier.border)}>
-              <div className={cx("mb-3 p-3 rounded-xl bg-black/20 shadow-inner", tier.color)}>
+              <div className={cx("mb-3 p-3 rounded-xl bg-onyx/20 shadow-inner", tier.color)}>
                 {tier.icon}
               </div>
               <div className={cx("font-bold text-[16px] mb-1", tier.color)}>{tier.name}</div>

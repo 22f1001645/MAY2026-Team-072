@@ -667,7 +667,7 @@ export default function Orgs() {
 
       {/* ---- DEACTIVATE CONFIRMATION MODAL ---- */}
       {confirmDeactivateId && confirmPor && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-sm p-6">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-300">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1221,7 +1221,7 @@ export default function Orgs() {
 
       {/* ---- ADD NEW SOCIETY MODAL ---- */}
       {showSeedModal && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm overflow-y-auto">
           <Card className="w-full max-w-xl p-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar border-white/10 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
               <div className="flex items-center gap-3">
@@ -1580,7 +1580,7 @@ export default function Orgs() {
 
       {/* ---- AUTHORIZE ROLE MODAL ---- */}
       {showPorModal && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-lg p-6">
             <h3 className="mb-1 text-[18px] font-bold text-offwhite">Authorize Elected Representative</h3>
             <p className="mb-4 text-caption text-graytext-light">
@@ -1785,7 +1785,7 @@ export default function Orgs() {
 
       {/* ---- ADD CITY MODAL ---- */}
       {showAddCityModal && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-sm p-6">
             <h3 className="mb-1 text-[18px] font-bold text-offwhite">Add City</h3>
             <p className="mb-4 text-caption text-graytext-light">
@@ -1820,7 +1820,7 @@ export default function Orgs() {
 
       {/* ---- HOUSE DETAIL MODAL ---- */}
       {viewingHouseId && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setViewingHouseId(null) }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setViewingHouseId(null) }}>
           <Card className="relative w-full max-w-2xl p-8 overflow-hidden bg-onyx">
             {(() => {
               const h = orgs.find((o: any) => o.id === viewingHouseId)

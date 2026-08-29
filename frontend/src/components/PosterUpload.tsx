@@ -136,7 +136,7 @@ export function PosterUpload({
       )}
 
       {uploading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-black/40 backdrop-blur-sm">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-onyx/40 backdrop-blur-sm">
           <svg
             aria-hidden="true"
             className="animate-spin"

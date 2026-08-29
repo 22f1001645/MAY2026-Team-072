@@ -12,9 +12,9 @@
   }
 
   body {
-    @apply bg-onyx text-offwhite font-sans antialiased;
-    /* Subtle film-grain / nostalgia is handled per-surface; keep body clean */
-    background-color: oklch(0.13 0.015 175); /* Oneness Black — teal-tinted, ~#030907 */
+    @apply bg-hero-gradient bg-fixed text-offwhite font-sans antialiased;
+    /* No flat black anywhere: the page base is the brand teal gradient, fixed
+       so its glow reads as ambient light behind scrolling content, not a tile. */
   }
 
   /* Never pure-black text on white; use near-black (Brand Kit §2) */
@@ -29,7 +29,7 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: oklch(0.13 0.015 175); /* Oneness Black — teal-tinted, ~#030907 */
+    background: oklch(0.1 0.018 175); /* darkest gradient stop, teal-tinted */
   }
   ::-webkit-scrollbar-thumb {
     background: #1f4f59;

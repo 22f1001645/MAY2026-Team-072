@@ -227,7 +227,7 @@ export default function ProposalNew() {
           const active = currentStep === step
           const passed = currentStep > step
           return (
-            <div key={step} className="flex flex-col items-center gap-2 bg-black px-2">
+            <div key={step} className="flex flex-col items-center gap-2 bg-onyx-raised px-2">
               <div className={`grid h-8 w-8 place-items-center rounded-full border-2 text-[13px] font-bold transition-colors ${active ? 'border-teal bg-teal text-onyx shadow-[0_0_15px_rgba(45,212,191,0.4)]' : passed ? 'border-teal bg-teal text-onyx' : 'border-white/20 bg-onyx text-graytext-mid'}`}>
                 {passed ? '✓' : step}
               </div>
@@ -520,7 +520,7 @@ export default function ProposalNew() {
               <span className="absolute right-3 top-2 text-caption text-graytext-mid">Searching…</span>
             )}
             {teamSearchResults.length > 0 && (
-              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-onyx-overlay/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(14,47,54,0.5)]">
                 {teamSearchResults.map((u: any) => (
                   <button
                     key={u.id}
@@ -593,7 +593,7 @@ export default function ProposalNew() {
               className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
             />
             {collabSearch.length > 0 && (
-              <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-white/10 bg-onyx-overlay/90 backdrop-blur-3xl shadow-[0_8px_32px_rgba(14,47,54,0.5)]">
                 {orgs
                   .filter((o: any) =>
                     o.id !== effectiveOrgId &&

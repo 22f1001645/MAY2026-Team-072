@@ -83,7 +83,7 @@ export default function MyRegistrations() {
           <div className="grain absolute inset-0 mix-blend-overlay opacity-20 pointer-events-none" />
           
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-20 h-20 md:w-24 md:h-24 mb-8 rounded-full bg-black/40 border border-white/5 backdrop-blur-xl flex items-center justify-center shadow-inner relative overflow-hidden">
+            <div className="w-20 h-20 md:w-24 md:h-24 mb-8 rounded-full bg-onyx/40 border border-white/5 backdrop-blur-xl flex items-center justify-center shadow-inner relative overflow-hidden">
               <div className="absolute inset-0 bg-teal/20 translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-out" />
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-teal relative z-10"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             </div>
@@ -117,7 +117,7 @@ export default function MyRegistrations() {
           style={{ backgroundImage: cover(nextEvent.activity.cover) }}
         >
           {/* Dimming overlay so text remains readable over bright gradients */}
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-onyx/50 backdrop-blur-[2px]" />
           <div className="grain absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none" />
           
           {/* Left Side: Event Details */}
@@ -129,11 +129,11 @@ export default function MyRegistrations() {
             <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-[1.1] mb-5 drop-shadow-xl text-center md:text-left">{nextEvent.activity.title}</h1>
             
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-[13px] md:text-[14px]">
-              <span className="flex items-center gap-1.5 font-medium bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-md text-offwhite">
+              <span className="flex items-center gap-1.5 font-medium bg-onyx/40 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-md text-offwhite">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5CE6C9" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 {formatDate(nextEvent.activity.startsAt)} at {formatTime(nextEvent.activity.startsAt)}
               </span>
-              <span className="flex items-center gap-1.5 font-medium bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-md text-offwhite">
+              <span className="flex items-center gap-1.5 font-medium bg-onyx/40 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-md text-offwhite">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5CE6C9" strokeWidth="2.5"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
                 {nextEvent.activity.venue}
               </span>
@@ -148,7 +148,7 @@ export default function MyRegistrations() {
           </div>
           
           {/* Right Side: Ticket Stub & Action */}
-          <div className="relative z-10 md:w-72 p-8 flex flex-col items-center justify-center bg-black/20 border-t md:border-t-0 border-dashed border-white/20 md:border-none backdrop-blur-xl">
+          <div className="relative z-10 md:w-72 p-8 flex flex-col items-center justify-center bg-onyx/20 border-t md:border-t-0 border-dashed border-white/20 md:border-none backdrop-blur-xl">
             <div className="text-6xl font-black text-white drop-shadow-[0_0_20px_rgba(92,230,201,0.4)] leading-none mb-2">
               {daysUntil(nextEvent.activity.startsAt).replace('In ', '').replace(' days', '').replace('Tomorrow', '1')}
             </div>
@@ -194,7 +194,7 @@ export default function MyRegistrations() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search tickets..."
-            className="w-full pl-10 rounded-xl bg-black/40 border-transparent focus:border-teal/50 text-[14px] text-white placeholder:text-graytext-mid"
+            className="w-full pl-10 rounded-xl bg-onyx/40 border-transparent focus:border-teal/50 text-[14px] text-white placeholder:text-graytext-mid"
           />
           <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-graytext-mid" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="11" cy="11" r="7" /><path d="m20 20-3-3" strokeLinecap="round" />
@@ -204,7 +204,7 @@ export default function MyRegistrations() {
         {/* Right: Filters */}
         <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
           {/* Timeline filter */}
-          <div className="flex items-center gap-1 rounded-xl bg-black/40 p-1 shrink-0">
+          <div className="flex items-center gap-1 rounded-xl bg-onyx/40 p-1 shrink-0">
             {(['all', 'upcoming', 'past'] as const).map(mode => (
               <button
                 key={mode}
@@ -222,7 +222,7 @@ export default function MyRegistrations() {
           </div>
 
           {/* Status filter */}
-          <div className="flex items-center gap-1 rounded-xl bg-black/40 p-1 shrink-0">
+          <div className="flex items-center gap-1 rounded-xl bg-onyx/40 p-1 shrink-0">
             {(['all', 'confirmed', 'waitlisted'] as const).map(mode => (
               <button
                 key={mode}
@@ -364,7 +364,7 @@ export default function MyRegistrations() {
 
       {/* Boarding Pass Modal */}
       {selectedTicket && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim/80 px-4 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
           <div className="absolute inset-0" onClick={() => setSelectedTicket(null)} />
           
           <div className="relative w-full max-w-[340px] flex flex-col bg-offwhite rounded-3xl shadow-2xl overflow-hidden scale-100 animate-[fadeUp_0.4s_ease-out(1.2)]">
@@ -374,12 +374,12 @@ export default function MyRegistrations() {
               className="h-32 w-full p-5 text-offwhite relative bg-200 animate-gradient-shift"
               style={{ backgroundImage: coverForScale(selectedTicket.activity?.scale || 'local_meetup') }}
             >
-              <div className="absolute inset-0 bg-black/20" />
+              <div className="absolute inset-0 bg-onyx/20" />
               <div className="grain absolute inset-0 mix-blend-overlay opacity-30 pointer-events-none" />
               
               <button 
                 onClick={() => setSelectedTicket(null)}
-                className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-black/30 backdrop-blur-md text-white/90 hover:bg-black/60 transition-colors z-50 cursor-pointer"
+                className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-onyx/30 backdrop-blur-md text-white/90 hover:bg-scrim/60 transition-colors z-50 cursor-pointer"
               >
                 ✕
               </button>
@@ -396,9 +396,9 @@ export default function MyRegistrations() {
 
             {/* Modal Perforation */}
             <div className="relative flex items-center justify-between -mt-4 z-20 pointer-events-none">
-              <div className="h-8 w-8 rounded-full bg-black border-r border-black/10 -ml-4 shadow-inner" />
+              <div className="h-8 w-8 rounded-full bg-onyx-raised border-r border-onyx/10 -ml-4 shadow-inner" />
               <div className="flex-1 border-b-[2px] border-dashed border-gray-400 opacity-50" />
-              <div className="h-8 w-8 rounded-full bg-black border-l border-black/10 -mr-4 shadow-inner" />
+              <div className="h-8 w-8 rounded-full bg-onyx-raised border-l border-onyx/10 -mr-4 shadow-inner" />
             </div>
 
             {/* Modal Body (Light theme for tickets) */}

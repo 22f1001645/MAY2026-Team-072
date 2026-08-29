@@ -126,7 +126,7 @@ export default function OrgQueriesPanel({ activityId }: { activityId: string }) 
           </div>
 
           {/* Sticky Input Footer */}
-          <div className="p-4 border-t border-white/5 bg-black/40 shrink-0 flex justify-center">
+          <div className="p-4 border-t border-white/5 bg-onyx/40 shrink-0 flex justify-center">
             <div className="w-full max-w-[600px]">
               {selectedQuery ? (
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-3 shadow-inner focus-within:ring-1 focus-within:ring-teal/50 focus-within:border-teal/50 transition-all">

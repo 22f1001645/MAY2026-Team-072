@@ -96,7 +96,7 @@ export default function EventChat({
                       ? "bg-white/10 text-offwhite ring-white/20" 
                       : isImportant
                         ? "bg-teal/20 text-teal ring-teal/40 shadow-[0_0_10px_rgba(92,230,201,0.2)]"
-                        : "bg-black/40 text-graytext-light ring-white/10"
+                        : "bg-onyx/40 text-graytext-light ring-white/10"
                   )}>
                     {initial}
                   </div>
@@ -128,7 +128,7 @@ export default function EventChat({
                       ? "bg-teal/10 border border-teal/20 text-offwhite rounded-2xl" + (isMyMessage ? " rounded-tr-sm" : " rounded-tl-sm")
                       : isMyMessage
                         ? "bg-white/10 border border-white/10 text-offwhite rounded-2xl rounded-tr-sm"
-                        : "bg-black/40 border border-white/5 text-graytext-light rounded-2xl rounded-tl-sm"
+                        : "bg-onyx/40 border border-white/5 text-graytext-light rounded-2xl rounded-tl-sm"
                   )}>
                     {m.content}
                   </div>
@@ -154,7 +154,7 @@ export default function EventChat({
                 />
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 pl-2 shadow-[0_4px_24px_rgba(0,0,0,0.2)] focus-within:border-teal/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(92,230,201,0.15)] transition-all">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-onyx/40 p-1.5 pl-2 shadow-[0_4px_24px_rgba(14,47,54,0.2)] focus-within:border-teal/50 focus-within:bg-scrim/60 focus-within:shadow-[0_0_20px_rgba(92,230,201,0.15)] transition-all">
               <button
                 type="button"
                 onClick={() => setShowPicker(!showPicker)}

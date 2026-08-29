@@ -12,7 +12,7 @@ export default function PublicEventLanding({ e, refId }: PublicEventLandingProps
   const location = useLocation()
 
   return (
-    <div className="relative min-h-screen w-full bg-black text-offwhite flex flex-col items-center justify-center -mx-4 -my-8 sm:-mx-8 sm:-my-8">
+    <div className="relative min-h-screen w-full bg-onyx-raised text-offwhite flex flex-col items-center justify-center -mx-4 -my-8 sm:-mx-8 sm:-my-8">
       
       {/* Edge-to-Edge Hero Gradient Background */}
       <div className="absolute top-0 left-0 right-0 h-[65vh] w-full z-0 overflow-hidden">
@@ -68,7 +68,7 @@ export default function PublicEventLanding({ e, refId }: PublicEventLandingProps
         <div className="mt-16 flex flex-col items-center gap-5 w-full">
           <Button 
             size="lg" 
-            className="w-full max-w-sm rounded-full bg-teal px-8 py-6 text-lg font-bold text-black hover:bg-teal/90 shadow-[0_0_40px_rgba(92,230,201,0.25)] transition-all hover:scale-105"
+            className="w-full max-w-sm rounded-full bg-teal px-8 py-6 text-lg font-bold text-onyx hover:bg-teal/90 shadow-[0_0_40px_rgba(92,230,201,0.25)] transition-all hover:scale-105"
             onClick={() => {
               navigate('/login', { state: { from: location.pathname } })
             }}

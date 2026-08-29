@@ -393,7 +393,7 @@ export default function EventDetail() {
               </p>
             </Card>
           ) : (
-            <div className="sticky top-32 p-8 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
+            <div className="sticky top-32 p-8 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-[0_32px_64px_rgba(14,47,54,0.5)]">
               <div className="mb-2 flex items-baseline justify-between">
                 <span className="text-caption uppercase tracking-wider text-graytext-mid">
                   Attendance
@@ -652,7 +652,7 @@ function FeedbackForm({
         ))}
       </div>
       <textarea
-        className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none resize-none"
+        className="w-full rounded-lg border border-white/10 bg-onyx/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none resize-none"
         placeholder="Share your thoughts (optional)"
         rows={3}
         value={comment}

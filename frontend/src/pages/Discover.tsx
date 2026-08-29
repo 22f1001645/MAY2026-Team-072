@@ -35,7 +35,7 @@ function InlineDropdown({ value, options, onChange, isCity }: { value: string, o
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal">
+        <div className="absolute left-0 top-full mt-3 w-56 max-h-64 rounded-xl border border-white/10 bg-onyx-overlay/90 backdrop-blur-3xl shadow-[0_20px_50px_rgba(14,47,54,0.5)] z-50 overflow-y-auto custom-scrollbar animate-fade-down origin-top-left flex flex-col p-1.5 text-[15px] font-semibold text-white tracking-normal leading-normal">
           {options.map(opt => (
             <button
               key={opt}
@@ -61,6 +61,7 @@ export default function Discover() {
   const [activeCategory, setActiveCategory] = useState('All')
   const [notifyEmail, setNotifyEmail] = useState('')
   const [notified, setNotified] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
   const subscribeAlert = useSubscribeToCityAlert()
 
   const allCategories = useMemo(() => {
@@ -180,25 +181,39 @@ export default function Discover() {
                     value={notifyEmail}
                     onChange={(e) => setNotifyEmail(e.target.value)}
                     placeholder="student@college.edu"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-5 py-3 text-[15px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none transition-colors shadow-inner"
+                    className="w-full rounded-xl border border-white/10 bg-onyx/40 px-5 py-3 text-[15px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none transition-colors shadow-inner"
                   />
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="w-full sm:w-auto shadow-glow-teal whitespace-nowrap"
                     disabled={subscribeAlert.isPending}
                     onClick={() => {
-                      if (notifyEmail.includes('@')) {
-                        subscribeAlert.mutate(
-                          { email: notifyEmail, city: activeCity },
-                          { onSuccess: () => setNotified(true) }
-                        )
+                      if (!notifyEmail.includes('@')) {
+                        setEmailError('Enter a valid email address')
+                        return
                       }
+                      setEmailError(null)
+                      subscribeAlert.mutate(
+                        { email: notifyEmail, city: activeCity },
+                        { onSuccess: () => setNotified(true) }
+                      )
                     }}
                   >
                     {subscribeAlert.isPending ? 'Subscribing...' : 'Notify Me'}
                   </Button>
                 </div>
-              ) : (
+              ) : null}
+
+              {!notified && emailError && (
+                <p role="alert" className="mt-3 text-caption text-red-300">{emailError}</p>
+              )}
+              {!notified && subscribeAlert.isError && (
+                <p role="alert" className="mt-3 text-caption text-red-300">
+                  {(subscribeAlert.error as Error)?.message || 'Something went wrong. Please try again.'}
+                </p>
+              )}
+
+              {notified && (
                 <div className="inline-flex items-center gap-2 rounded-xl bg-teal/10 border border-teal/20 px-6 py-3 text-teal font-medium">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                   You're on the list!
@@ -320,13 +335,13 @@ function FeaturedCarousel({ events, isLoading }: { events: EkatvaEvent[], isLoad
         <>
           <button 
             onClick={() => setActiveIndex(i => (i - 1 + events.length) % events.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-onyx/40 hover:bg-scrim/80 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <button 
             onClick={() => setActiveIndex(i => (i + 1) % events.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-onyx/40 hover:bg-scrim/80 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
@@ -447,6 +462,7 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
 
 function GlobalEmptyState({ notifyEmail, setNotifyEmail, notified, setNotified, activeCity }: any) {
   const subscribeAlert = useSubscribeToCityAlert()
+  const [emailError, setEmailError] = useState<string | null>(null)
   return (
     <div className="relative flex min-h-[80vh] w-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-onyx/40 animate-[fadeIn_0.5s_ease-out]">
       {/* Immersive background gradient with pulse */}
@@ -480,25 +496,39 @@ function GlobalEmptyState({ notifyEmail, setNotifyEmail, notified, setNotified, 
                   value={notifyEmail}
                   onChange={(e) => setNotifyEmail(e.target.value)}
                   placeholder="student@college.edu"
-                  className="w-full flex-1 rounded-2xl border border-white/10 bg-black/30 px-6 py-4 text-[15px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
+                  className="w-full flex-1 rounded-2xl border border-white/10 bg-onyx/30 px-6 py-4 text-[15px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
                 />
                   <Button
                     size="lg"
                     className="rounded-2xl px-8 shadow-glow-teal whitespace-nowrap"
                     disabled={subscribeAlert.isPending}
                     onClick={() => {
-                      if (notifyEmail.includes('@')) {
-                        subscribeAlert.mutate(
-                          { email: notifyEmail, city: activeCity },
-                          { onSuccess: () => setNotified(true) }
-                        )
+                      if (!notifyEmail.includes('@')) {
+                        setEmailError('Enter a valid email address')
+                        return
                       }
+                      setEmailError(null)
+                      subscribeAlert.mutate(
+                        { email: notifyEmail, city: activeCity },
+                        { onSuccess: () => setNotified(true) }
+                      )
                     }}
                   >
                     {subscribeAlert.isPending ? 'Subscribing...' : 'Subscribe'}
                   </Button>
               </div>
-            ) : (
+            ) : null}
+
+            {!notified && emailError && (
+              <p role="alert" className="mt-3 text-center text-caption text-red-300">{emailError}</p>
+            )}
+            {!notified && subscribeAlert.isError && (
+              <p role="alert" className="mt-3 text-center text-caption text-red-300">
+                {(subscribeAlert.error as Error)?.message || 'Something went wrong. Please try again.'}
+              </p>
+            )}
+
+            {notified && (
               <div className="inline-flex items-center gap-3 rounded-2xl border border-teal/20 bg-teal/10 px-8 py-4 text-[15px] font-medium text-teal shadow-lg animate-[fadeUp_0.3s_ease-out]">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>

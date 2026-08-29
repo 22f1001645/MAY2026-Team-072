@@ -120,7 +120,7 @@ export default function Expenses() {
           <div className="overflow-x-auto">
             <table className="w-full text-[14px]">
               <thead>
-                <tr className="border-b border-white/10 bg-black/20 text-[11px] uppercase tracking-widest text-graytext-mid font-semibold">
+                <tr className="border-b border-white/10 bg-onyx/20 text-[11px] uppercase tracking-widest text-graytext-mid font-semibold">
                   <th className="px-6 py-4 text-left font-semibold">Expense Label</th>
                   <th className="px-6 py-4 text-left font-semibold">Receipt</th>
                   <th className="px-6 py-4 text-right font-semibold">Amount</th>
@@ -169,9 +169,9 @@ export default function Expenses() {
       {/* Side-Sheet: Submit Expense */}
       {adding && (
         <div className="relative z-50">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setAdding(false)} />
+          <div className="fixed inset-0 bg-scrim/60 backdrop-blur-sm" onClick={() => setAdding(false)} />
           <div className="fixed inset-y-0 right-0 flex w-full max-w-md flex-col bg-[#111111] shadow-2xl border-l border-white/10 animate-fade-in-right">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-black">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-onyx-raised">
               <h2 className="text-[13px] font-bold text-graytext-mid uppercase tracking-widest">Submit Expense</h2>
               <button onClick={() => setAdding(false)} className="rounded-full p-2 text-graytext-mid hover:bg-white/10 hover:text-white transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -234,7 +234,7 @@ export default function Expenses() {
                 <p className="text-caption text-red-400">{(submitMut.error as Error).message}</p>
               )}
             </div>
-            <div className="shrink-0 border-t border-white/10 bg-black p-6 flex justify-end gap-3">
+            <div className="shrink-0 border-t border-white/10 bg-onyx-raised p-6 flex justify-end gap-3">
               <Button variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
               <Button onClick={submit} disabled={submitMut.isPending || !amt}>
                 {submitMut.isPending ? 'Submitting...' : 'Submit for Verification'}
@@ -247,9 +247,9 @@ export default function Expenses() {
       {/* Side-Sheet: Expense Pipeline & Details */}
       {selectedId && current && (
         <div className="relative z-50">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedId(null)} />
+          <div className="fixed inset-0 bg-scrim/60 backdrop-blur-sm" onClick={() => setSelectedId(null)} />
           <div className="fixed inset-y-0 right-0 flex w-full max-w-md flex-col bg-[#111111] shadow-2xl border-l border-white/10 animate-fade-in-right">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-black">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-onyx-raised">
               <h2 className="text-[13px] font-bold text-graytext-mid uppercase tracking-widest">Expense Status</h2>
               <button onClick={() => setSelectedId(null)} className="rounded-full p-2 text-graytext-mid hover:bg-white/10 hover:text-white transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -278,7 +278,7 @@ export default function Expenses() {
                     return (
                       <div key={s} className="flex flex-1 items-center last:flex-none">
                         <div className="flex flex-col items-center">
-                          <div className={cx('grid h-8 w-8 place-items-center rounded-full text-[11px] font-bold transition-colors', isActive ? 'bg-teal text-onyx shadow-[0_0_15px_rgba(92,230,201,0.3)]' : 'border border-white/15 text-graytext-mid bg-black')}>
+                          <div className={cx('grid h-8 w-8 place-items-center rounded-full text-[11px] font-bold transition-colors', isActive ? 'bg-teal text-onyx shadow-[0_0_15px_rgba(92,230,201,0.3)]' : 'border border-white/15 text-graytext-mid bg-onyx-raised')}>
                             {isActive ? (
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <polyline points="20 6 9 17 4 12" />

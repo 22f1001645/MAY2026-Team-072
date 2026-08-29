@@ -139,7 +139,7 @@ export default function ApprovalQueue() {
                     <h2 className="mb-1 text-lg font-bold leading-tight text-white line-clamp-2 transition-colors group-hover:text-teal">{p.title}</h2>
                     <p className="text-[13px] text-graytext-mid line-clamp-1">{scaleLabel[p.scale]}</p>
                   </div>
-                  <div className="border-t border-white/5 bg-black/20 px-5 py-3 text-[13px] font-medium text-graytext-light">
+                  <div className="border-t border-white/5 bg-onyx/20 px-5 py-3 text-[13px] font-medium text-graytext-light">
                     By {p.organiser}
                   </div>
                 </button>
@@ -154,7 +154,7 @@ export default function ApprovalQueue() {
         <div className="relative z-50">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+            className="fixed inset-0 bg-scrim/60 backdrop-blur-sm transition-opacity" 
             onClick={() => setSelectedId(null)}
           />
           
@@ -162,7 +162,7 @@ export default function ApprovalQueue() {
           <div className="fixed inset-y-0 right-0 flex w-full max-w-2xl flex-col bg-onyx/90 backdrop-blur-3xl shadow-2xl border-l border-white/10 animate-fade-in-right">
             
             {/* Drawer Header */}
-            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-black/20">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-onyx/20">
               <h2 className="text-lg font-bold text-white tracking-wide">Proposal Details</h2>
               <button 
                 onClick={() => setSelectedId(null)}
@@ -203,7 +203,7 @@ export default function ApprovalQueue() {
                   <h3 className="text-[11px] font-bold uppercase tracking-widest text-graytext-mid mb-4">
                     Requested budget
                   </h3>
-                  <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-inner">
+                  <div className="overflow-hidden rounded-xl border border-white/10 bg-onyx/40 shadow-inner">
                     {current.budget.map((b, i) => (
                       <div
                         key={b.id}
@@ -294,7 +294,7 @@ export default function ApprovalQueue() {
                     {audit.map((a, i) => (
                       <div key={i} className="flex gap-4 relative">
                         <div className="flex flex-col items-center">
-                          <div className="h-3 w-3 rounded-full border-[2px] border-black bg-teal z-10" />
+                          <div className="h-3 w-3 rounded-full border-[2px] border-onyx bg-teal z-10" />
                           {i < audit.length - 1 && <div className="absolute top-3 bottom-[-12px] left-[5px] w-[2px] bg-white/10" />}
                         </div>
                         <div className="-mt-1 pb-6">
@@ -342,7 +342,7 @@ export default function ApprovalQueue() {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Optional note to the organiser (required for changes)..."
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
+                    className="w-full rounded-lg border border-white/10 bg-onyx/40 px-4 py-2.5 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50 transition-all shadow-inner"
                   />
                   {decisionMut.isError && (
                     <div className="mt-2">
@@ -403,7 +403,7 @@ function TabButton({ active, onClick, label, count }: { active: boolean, onClick
       {label}
       <span className={cx(
         "flex items-center justify-center rounded-full px-2 py-0.5 text-[12px] min-w-[24px]",
-        active ? "bg-teal/20 text-teal font-bold" : "bg-black/30 text-graytext-mid"
+        active ? "bg-teal/20 text-teal font-bold" : "bg-onyx/30 text-graytext-mid"
       )}>
         {count}
       </span>
@@ -525,7 +525,7 @@ function RosterPanel({ activityId }: { activityId: string }) {
       </div>
 
       {open && (
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-onyx/40">
           {isLoading ? (
             <div className="p-6 text-center text-[13px] text-graytext-mid">Loading attendee list...</div>
           ) : roster.length === 0 ? (

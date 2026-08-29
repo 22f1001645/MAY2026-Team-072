@@ -65,7 +65,7 @@ export default function Reimbursements() {
         title="Reimbursements"
         sub="Review and clear out-of-pocket expenses for organisers."
         right={
-          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 shadow-inner">
+          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-onyx/40 px-4 py-2.5 shadow-inner">
             <span className="text-[12px] font-bold uppercase tracking-widest text-graytext-mid">Pipeline Value</span>
             <span className="font-mono text-lg font-bold text-teal">{inr(totalPending)}</span>
           </div>
@@ -93,7 +93,7 @@ export default function Reimbursements() {
           <div className="overflow-x-auto">
             <table className="w-full text-[14px]">
               <thead>
-                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid bg-black/40">
+                <tr className="border-b border-white/5 text-caption uppercase tracking-wider text-graytext-mid bg-onyx/40">
                   <th className="px-6 py-4 text-left font-semibold">Expense Ref</th>
                   <th className="px-6 py-4 text-left font-semibold">Event Code</th>
                   <th className="px-6 py-4 text-left font-semibold">Receipt</th>
@@ -148,14 +148,14 @@ export default function Reimbursements() {
       {selectedId && current && (
         <div className="relative z-50">
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+            className="fixed inset-0 bg-scrim/60 backdrop-blur-sm transition-opacity" 
             onClick={() => setSelectedId(null)}
           />
           
           <div className="fixed inset-y-0 right-0 flex w-full max-w-md flex-col bg-[#111111] shadow-2xl border-l border-white/10 animate-fade-in-right">
             
             {/* Header */}
-            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-black">
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-8 py-5 bg-onyx-raised">
               <h2 className="text-[13px] font-bold text-graytext-mid uppercase tracking-widest">Verify Expense</h2>
               <button 
                 onClick={() => setSelectedId(null)}
@@ -246,7 +246,7 @@ export default function Reimbursements() {
                 </div>
                 
                 {/* Simulated Receipt Preview */}
-                <div className="relative aspect-[3/4] w-full rounded-lg border border-white/10 bg-black overflow-hidden flex flex-col items-center justify-center p-8">
+                <div className="relative aspect-[3/4] w-full rounded-lg border border-white/10 bg-onyx-raised overflow-hidden flex flex-col items-center justify-center p-8">
                   <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white via-black to-black" />
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-graytext-mid mb-4">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -265,7 +265,7 @@ export default function Reimbursements() {
             </div>
 
             {/* Footer */}
-            <div className="shrink-0 border-t border-white/10 bg-black p-6">
+            <div className="shrink-0 border-t border-white/10 bg-onyx-raised p-6">
               <div className="flex justify-between items-center">
                 <div className="text-[11px] font-mono text-graytext-mid">
                   FR-E6: System tracks status only

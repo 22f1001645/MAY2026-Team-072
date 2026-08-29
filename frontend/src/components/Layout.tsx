@@ -109,7 +109,7 @@ function NavDropdown({ item }: { item: NavItem }) {
         </svg>
       </button>
         {open && (
-          <div className="absolute top-full left-0 mt-1.5 w-48 rounded-lg border border-white/10 bg-[#111] p-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] z-50 animate-fade-down origin-top-left">
+          <div className="absolute top-full left-0 mt-1.5 w-48 rounded-lg border border-white/10 bg-onyx-overlay p-1 shadow-[0_4px_24px_rgba(14,47,54,0.5)] z-50 animate-fade-down origin-top-left">
             {item.subItems?.map(sub => (
               <Link
                 key={sub.to}
@@ -366,7 +366,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             ))}
           </nav>
           
-          <div className="border-t border-white/5 p-5 bg-black/20">
+          <div className="border-t border-white/5 p-5 bg-onyx/20">
             <div className="flex items-center gap-3">
               <div
                 className={cx(
@@ -459,7 +459,7 @@ export function EditCityModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/60 backdrop-blur-sm" onClick={onClose} />
       <Card className="relative w-full max-w-sm p-6 border-teal/20">
         <h2 className="mb-4 text-h3 font-bold text-offwhite">Edit city</h2>
         <form onSubmit={submit} className="space-y-4">

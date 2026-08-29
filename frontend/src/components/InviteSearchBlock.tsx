@@ -37,7 +37,7 @@ export default function InviteSearchBlock({ eventId, onInvite }: InviteSearchBlo
         <input
           type="text"
           placeholder="Search by name..."
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-[14px] text-white focus:border-teal/50 focus:outline-none"
+          className="w-full rounded-xl border border-white/10 bg-onyx/40 px-4 py-3 text-[14px] text-white focus:border-teal/50 focus:outline-none"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

@@ -80,7 +80,7 @@ export function BulkAssignModal({ onClose, onSuccess }: BulkAssignModalProps) {
   const validCount = previewData.filter(d => d.status === 'valid').length
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/75 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-4xl p-6 max-h-[90vh] flex flex-col">
         <h3 className="mb-1 text-[18px] font-bold text-offwhite">Bulk Assign PORs</h3>
         <p className="mb-4 text-caption text-graytext-light">

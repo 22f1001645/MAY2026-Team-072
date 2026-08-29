@@ -107,14 +107,14 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
     <div className="fixed inset-0 z-[100] flex justify-end">
       {/* Blurred Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fadeIn_0.3s_ease-out]"
+        className="absolute inset-0 bg-onyx/40 backdrop-blur-sm animate-[fadeIn_0.3s_ease-out]"
         onClick={onClose}
       />
       
       {/* Drawer */}
       <div className="relative w-full max-w-[28rem] h-full bg-[#070C0A] border-l border-white/10 shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease-out] will-change-transform">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0 bg-black/20">
+        <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0 bg-onyx/20">
           <h3 className="text-[18px] font-bold text-offwhite uppercase tracking-widest flex items-center gap-3">
             Notifications
             {items.filter((n: any) => !n.read).length > 0 && (
@@ -215,7 +215,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
                   />
                   <button 
                     onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(n.id) }}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-onyx/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
                     title="Dismiss"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
@@ -289,7 +289,7 @@ export default function NotificationsDropdown({ onClose }: { onClose: () => void
 
                 <button 
                   onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(n.id) }}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-onyx/40 text-graytext-mid opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all backdrop-blur-md border border-white/5"
                   title="Dismiss"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>

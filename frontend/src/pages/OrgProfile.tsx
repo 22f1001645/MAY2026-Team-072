@@ -273,7 +273,7 @@ export default function OrgProfile() {
         {showSwitcher && (
           <div className="absolute top-4 left-4 z-10">
             <Select
-              className="w-48 bg-black/50 backdrop-blur-md border-white/10"
+              className="w-48 bg-onyx/50 backdrop-blur-md border-white/10"
               value={orgId}
               onChange={(e) => navigate(`/orgs/${e.target.value}`)}
               options={switcherOptions}
@@ -284,7 +284,7 @@ export default function OrgProfile() {
         {/* Global Edit Button */}
         {canEdit && (
           <div className="absolute right-4 bottom-4 md:top-4 md:bottom-auto">
-            <Button variant="secondary" onClick={startEdit} className="bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-white/10">
+            <Button variant="secondary" onClick={startEdit} className="bg-onyx/50 backdrop-blur-md border border-white/10 text-white hover:bg-white/10">
               Edit Profile
             </Button>
           </div>

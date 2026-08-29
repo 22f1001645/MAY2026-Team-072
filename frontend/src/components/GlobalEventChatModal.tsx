@@ -28,7 +28,7 @@ export function GlobalEventChatModal() {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
+        className="fixed inset-0 z-50 bg-scrim/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
         onClick={closeChat}
       />
       

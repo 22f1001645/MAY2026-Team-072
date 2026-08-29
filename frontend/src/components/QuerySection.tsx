@@ -132,7 +132,7 @@ export default function QuerySection({
 
           {/* Sticky Input Footer */}
           {!readOnly && (
-            <div className="p-4 border-t border-white/5 bg-black/40 shrink-0 flex justify-center">
+            <div className="p-4 border-t border-white/5 bg-onyx/40 shrink-0 flex justify-center">
               <div className="w-full max-w-[600px]">
                 {isOrganiser ? (
                   <div className="bg-white/5 border border-teal/20 rounded-2xl p-3 text-center">

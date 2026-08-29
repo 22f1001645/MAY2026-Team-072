@@ -339,7 +339,7 @@ function ReflectionPanel({ activityId, isMeetupHead }: { activityId: string; isM
               Challenges faced
             </label>
             <textarea
-              className="w-full resize-none rounded-lg border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none"
+              className="w-full resize-none rounded-lg border border-white/10 bg-onyx/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none"
               rows={3}
               placeholder="What didn't go as planned?"
               value={challenges}
@@ -352,7 +352,7 @@ function ReflectionPanel({ activityId, isMeetupHead }: { activityId: string; isM
               Key learnings
             </label>
             <textarea
-              className="w-full resize-none rounded-lg border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none"
+              className="w-full resize-none rounded-lg border border-white/10 bg-onyx/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal focus:outline-none"
               rows={3}
               placeholder="What would you do differently next time?"
               value={learnings}
@@ -577,7 +577,7 @@ function ReimbursementPanel({ activityId, isMeetupHead }: { activityId: string; 
           )}
           {confirmOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setConfirmOpen(false)} />
+              <div className="absolute inset-0 bg-scrim/80 backdrop-blur-md" onClick={() => setConfirmOpen(false)} />
               <Card className="relative w-full max-w-sm p-6 bg-onyx">
                 <h3 className="mb-3 text-h3 font-bold text-offwhite">Confirm submission?</h3>
                 <p className="mb-4 text-[14px] text-graytext-light">
@@ -679,7 +679,7 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-md" onClick={onClose} />
       <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20 bg-onyx">
         <h2 className="mb-2 text-h3 font-bold text-offwhite">Edit Event</h2>
         <p className="mb-4 text-[13px] text-teal">
@@ -693,7 +693,7 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
           <div>
             <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Description</label>
             <textarea
-              className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite focus:border-teal"
+              className="w-full rounded-xl border border-white/10 bg-onyx/40 p-3 text-[14px] text-offwhite focus:border-teal"
               value={description}
               onChange={(e: any) => setDescription(e.target.value)}
               rows={3}
@@ -741,7 +741,7 @@ function EditEventModal({ event, onClose }: { event: any; onClose: () => void })
               Update message (optional)
             </label>
             <textarea
-              className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal"
+              className="w-full rounded-xl border border-white/10 bg-onyx/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal"
               value={updateMessage}
               onChange={(e: any) => setUpdateMessage(e.target.value)}
               rows={2}
@@ -775,7 +775,7 @@ function CancelEventModal({ event, onClose }: { event: any; onClose: () => void 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-md" onClick={onClose} />
       <Card className="relative w-full max-w-sm p-6 animate-fade-up border-red-500/20 bg-onyx">
         <h2 className="mb-4 text-h3 font-bold text-red-400">Cancel Event?</h2>
         <p className="mb-6 text-[14px] text-graytext-light">
@@ -811,7 +811,7 @@ function PushAlertModal({ eventId, onClose }: { eventId: string; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim/80 backdrop-blur-md" onClick={onClose} />
       <Card className="relative w-full max-w-md p-6 animate-fade-up border-teal/20 bg-onyx">
         <h2 className="mb-4 text-h3 font-bold text-offwhite">Send Push Alert</h2>
         <p className="mb-6 text-[14px] text-graytext-light">
@@ -830,7 +830,7 @@ function PushAlertModal({ eventId, onClose }: { eventId: string; onClose: () => 
           <div>
             <label className="mb-1 block text-[13px] font-semibold text-graytext-light">Message Body</label>
             <textarea
-              className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50"
+              className="w-full rounded-xl border border-white/10 bg-onyx/40 p-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none focus:ring-1 focus:ring-teal/50"
               value={body}
               onChange={(e: any) => setBody(e.target.value)}
               placeholder="Write your important update here..."

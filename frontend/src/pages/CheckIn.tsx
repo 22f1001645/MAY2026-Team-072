@@ -44,7 +44,7 @@ function MissionControlHero() {
         </div>
 
         {/* Real-time Clock */}
-        <div className="text-left md:text-right w-full md:w-auto p-6 md:p-0 rounded-2xl bg-black/40 md:bg-transparent border border-white/5 md:border-transparent">
+        <div className="text-left md:text-right w-full md:w-auto p-6 md:p-0 rounded-2xl bg-onyx/40 md:bg-transparent border border-white/5 md:border-transparent">
           <div className="font-mono text-[48px] font-bold text-offwhite tracking-tighter drop-shadow-[0_0_15px_rgba(92,230,201,0.2)]">
             {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
@@ -223,18 +223,18 @@ export default function CheckIn() {
                 )}
 
                 {/* Scanner Container */}
-                <Card className="overflow-hidden border border-white/5 bg-black/40 p-1">
-                  <div id="qr-reader" className="overflow-hidden rounded-xl bg-black" />
+                <Card className="overflow-hidden border border-white/5 bg-onyx/40 p-1">
+                  <div id="qr-reader" className="overflow-hidden rounded-xl bg-onyx-raised" />
                   <style>{`
                     #qr-reader { border: none !important; }
-                    #qr-reader__scan_region { background: #000; min-height: 300px; }
+                    #qr-reader__scan_region { background: #0E2F36; min-height: 300px; }
                     #qr-reader__dashboard_section_csr span { color: #aaa !important; font-family: sans-serif; }
                     #qr-reader__dashboard_section_swaplink { color: #5CE6C9 !important; text-decoration: none; margin-top: 10px; display: inline-block; }
                     #qr-reader button {
                       background: #1F4F59; color: #fff; border: 1px solid rgba(92,230,201,0.2); 
                       padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: 0.2s;
                     }
-                    #qr-reader button:hover { background: #5CE6C9; color: #000; }
+                    #qr-reader button:hover { background: #5CE6C9; color: #0E2F36; }
                   `}</style>
                 </Card>
               </div>
@@ -250,7 +250,7 @@ export default function CheckIn() {
                   <div className="text-[16px] text-graytext-mid font-medium mt-1">
                     of {roster.length} registered
                   </div>
-                  <div className="mt-4 h-1.5 w-full rounded-full bg-black/50 overflow-hidden">
+                  <div className="mt-4 h-1.5 w-full rounded-full bg-onyx/50 overflow-hidden">
                     <div 
                       className="h-full bg-teal transition-all duration-1000 ease-out"
                       style={{ width: `${roster.length ? (checkedIn / roster.length) * 100 : 0}%` }}
@@ -260,13 +260,13 @@ export default function CheckIn() {
 
                 {/* Manual Roster Search */}
                 <Card className="flex flex-col h-[500px]">
-                  <div className="p-4 border-b border-white/5 bg-black/20">
+                  <div className="p-4 border-b border-white/5 bg-onyx/20">
                     <input
                       type="text"
                       placeholder="Search by name..."
                       value={q}
                       onChange={(evt) => setQ(evt.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-[14px] outline-none transition-colors focus:border-teal text-offwhite"
+                      className="w-full rounded-xl border border-white/10 bg-onyx/40 px-4 py-2.5 text-[14px] outline-none transition-colors focus:border-teal text-offwhite"
                     />
                   </div>
                   <div className="flex-1 overflow-y-auto p-2">

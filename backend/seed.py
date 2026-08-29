@@ -11,9 +11,9 @@ Two modes, and only one of them destroys anything:
                                       to run against anything but a local SQLite
                                       development file.
 
-    python seed.py --reference-only   Safe and idempotent. Houses, Regions and
-                                      Cities only — no accounts, nothing
-                                      dropped, re-runnable against any
+    python seed.py --reference-only   Safe and idempotent. Houses, Regions,
+                                      Cities and Societies only — no accounts,
+                                      nothing dropped, re-runnable against any
                                       environment including a real deployment.
 
 Since the milestone schema landed as a single Alembic revision, the destructive
@@ -86,6 +86,45 @@ REGION_CITIES = {
     "Lucknow (UP, Gwalior)": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Gwalior"],
     "International": ["International"],
 }
+
+# --- Real IITM BS clubs & societies (reference data) -------------------------
+# name, category, tagline. Source: https://study.iitm.ac.in/ds/student_life.html
+# ("Clubs & Societies" section, public page). Category is one of four domains
+# (Technical, Cultural, Sports, Impact — SOCIETY_CATEGORIES in
+# frontend/src/pages/Orgs.tsx), a best-effort mapping since the site's own tag
+# for every one of these is a generic "Social" label, not a real taxonomy.
+SOCIETIES = [
+    ("Aayam: IITM BS Drama Society", "Cultural", "Drama and performance society."),
+    ("Adhyay - The Civil Services Society", "Impact", "Civil services discussions and preparation community."),
+    ("AKORD Music Society", "Cultural", "Music, performance and listening community."),
+    ("AWS Cloud Club", "Technical", "Cloud computing and technical learning club."),
+    ("Deva-Bhasha: The Sanskrit Society", "Cultural", "Sanskrit language and cultural learning society."),
+    ("Amartya - The Finance Society", "Technical", "Finance, markets and business learning community."),
+    ("Heighers eSports Society", "Sports", "E-sports tournaments and gaming sessions."),
+    ("Shah Maat - Chess Society", "Sports", "Chess competitions, practice and community play."),
+    ("Pravaha: The Dance Society", "Cultural", "Dance, choreography and cultural performance."),
+    ("RAAHAT: Mental Health & Wellness Society", "Impact", "Student wellbeing, awareness and support initiatives."),
+    ("RaSoR: Ramanujan Society of Research", "Technical", "Research conversations, projects and scholarly exploration."),
+    ("SAHARA - The Social Welfare Society", "Impact", "Social welfare and volunteering initiatives."),
+    ("Sahityika: Literary Society", "Cultural", "Writing circles, literature and reading culture."),
+    ("SYNAPSE", "Cultural", "Social studies, language study, cultural study, humanities and social skills."),
+    ("WYZ Kids: IITM BS Quiz Society", "Cultural", "Quizzes, trivia and competitive knowledge events."),
+    ("Boundless - IITM BS Travel Society", "Impact", "Travel, exploration and city gathering community."),
+    ("Diplomacia", "Cultural", "Diplomacy, policy and international affairs community."),
+    ("JITSIE", "Technical", "Entrepreneurship and innovation community."),
+    ("Business.io", "Technical", "The Business Analytics Club of IITM BS."),
+    ("CodeCrafters Coding Society", "Technical", "Coding, development and technical problem-solving."),
+    ("Yantra Robotics Society", "Technical", "Robotics, builds and applied engineering projects."),
+    ("Sportify - Sports Society", "Sports", "Sports events, training and active student participation."),
+    ("IRIS Society", "Cultural", "Photography, visual storytelling and creative showcases."),
+    ("AVASYA Society", "Technical", "Aero and applied science student society."),
+    ("Nature Nurture Society", "Impact", "Nature, sustainability and environmental interest group."),
+    ("JARVIS", "Technical", "Joint AI, Research, Virtual Networks and IOT Society."),
+    ("Alpha Gamma Nu", "Impact", "Student interest and community society."),
+    ("Tech Society", "Technical", "Technology learning, peer projects and events."),
+    ("Women in Tech Society", "Impact", "Community, mentoring and representation in technology."),
+    ("Pixels N Panels", "Cultural", "Film, anime and pop culture society."),
+]
 
 
 def _refuse(reason):
@@ -195,7 +234,7 @@ def reset_destructive(app):
         db.session.commit()
         alembic_upgrade(directory=MIGRATIONS_DIR)
 
-def _get_or_create_org(name, org_type, city):
+def _get_or_create_org(name, org_type, city, category=None, tagline=None):
     """Fetch an Organisation by its natural key, creating it only if absent.
 
     `Organisation.name` carries no unique constraint, so nothing in the database
@@ -205,7 +244,7 @@ def _get_or_create_org(name, org_type, city):
     existing = Organisation.query.filter_by(name=name, type=org_type).first()
     if existing is not None:
         return existing, False
-    org = Organisation(name=name, type=org_type, city=city)
+    org = Organisation(name=name, type=org_type, city=city, category=category, tagline=tagline)
     db.session.add(org)
     return org, True
 
@@ -220,8 +259,8 @@ def seed_reference_data():
 
     Must be called inside an application context.
     """
-    created = {"houses": 0, "regions": 0, "cities": 0, "terms": 0}
-    existing = {"houses": 0, "regions": 0, "cities": 0, "terms": 0}
+    created = {"houses": 0, "regions": 0, "cities": 0, "terms": 0, "societies": 0}
+    existing = {"houses": 0, "regions": 0, "cities": 0, "terms": 0, "societies": 0}
 
     # --- Terms ---
     found_term = Term.query.filter_by(name=TERM).first()
@@ -232,8 +271,10 @@ def seed_reference_data():
         existing["terms"] += 1
 
     # --- 12 Forest Houses (IIT Madras BS Non-Academic Guidelines A.1) ---
+    # Houses are non-geographical (students from every region belong to each
+    # house), so they carry no city/region.
     for name in HOUSES:
-        _, is_new = _get_or_create_org(name, "house", "Pan-India")
+        _, is_new = _get_or_create_org(name, "house", None)
         created["houses"] += is_new
         existing["houses"] += not is_new
 
@@ -257,6 +298,12 @@ def seed_reference_data():
             else:
                 existing["cities"] += 1
 
+    # --- 30 real IITM BS clubs & societies ---
+    for name, category, tagline in SOCIETIES:
+        _, is_new = _get_or_create_org(name, "society", None, category=category, tagline=tagline)
+        created["societies"] += is_new
+        existing["societies"] += not is_new
+
     # --- System Settings (Phase 9) ---
     setting = SystemSetting.query.filter_by(key="recognition_points").first()
     if setting is None:
@@ -269,6 +316,7 @@ def seed_reference_data():
         f"houses +{created['houses']} ({existing['houses']} already present), "
         f"regions +{created['regions']} ({existing['regions']} already present), "
         f"cities +{created['cities']} ({existing['cities']} already present), "
+        f"societies +{created['societies']} ({existing['societies']} already present), "
         f"terms +{created['terms']} ({existing['terms']} already present)"
     )
     return {"created": created, "existing": existing}
@@ -293,14 +341,16 @@ def seed_demo_data(app):
         }
 
         # --- Demo-only orgs that host the seeded activities ---
+        # "rhythm" reuses the real "Pravaha: The Dance Society" row that
+        # seed_reference_data() already created (see SOCIETIES above), rather
+        # than inventing a separate demo-only society.
         orgs = {
             "hyd_region": region_orgs["Hyderabad (AP & Telangana)"],
             "blr_region": region_orgs["Bengaluru (Karnataka, Kerala)"],
             "neelgiri": house_orgs["Nilgiri House"],
-            "rhythm": Organisation(name="Rhythm Dance Society", type="society", city="Chennai"),
-            "sec": Organisation(name="Student Executive Council", type="council", city="Chennai"),
+            "rhythm": Organisation.query.filter_by(name="Pravaha: The Dance Society", type="society").first(),
+            "sec": Organisation(name="Student Executive Council", type="council"),
         }
-        db.session.add(orgs["rhythm"])
         db.session.add(orgs["sec"])
         db.session.flush()
 
@@ -512,7 +562,7 @@ def main():
     parser.add_argument(
         "--reference-only",
         action="store_true",
-        help="seed Houses, Regions and Cities only — idempotent, destroys nothing,"
+        help="seed Houses, Regions, Cities and Societies only — idempotent, destroys nothing,"
              " and safe to run against any environment",
     )
     args = parser.parse_args()

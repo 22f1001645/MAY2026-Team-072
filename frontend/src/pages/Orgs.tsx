@@ -18,19 +18,36 @@ const ORG_TONE: Record<string, any> = {
   council: 'warn',
 }
 
+// Four broad domains societies are grouped/filtered by (Societies & Councils
+// tab). Coarser than a free-text tagline on purpose — the domain drives
+// filtering, section grouping and badge colour, so it stays a short closed set.
 export const SOCIETY_CATEGORIES = [
-  { label: 'Tech & Coding', value: 'Tech' },
-  { label: 'Dance & Performing Arts', value: 'Dance' },
-  { label: 'Sports & Athletics', value: 'Sports' },
-  { label: 'Visual Arts & Design', value: 'Arts' },
-  { label: 'Music & Singing', value: 'Music' },
-  { label: 'Literature & Debating', value: 'Literature' },
-  { label: 'Academic & Research', value: 'Academic' },
-  { label: 'Social & Community', value: 'Social' },
-  { label: 'Entrepreneurship', value: 'Entrepreneurship' },
-  { label: 'Media & Photography', value: 'Media' },
-  { label: 'Gaming & Esports', value: 'Gaming' },
+  { label: 'Technical', value: 'Technical' },
+  { label: 'Cultural', value: 'Cultural' },
+  { label: 'Sports', value: 'Sports' },
+  { label: 'Impact', value: 'Impact' },
 ]
+
+const DOMAIN_TONE: Record<string, 'teal' | 'gold' | 'success' | 'danger'> = {
+  Technical: 'teal',
+  Cultural: 'gold',
+  Sports: 'success',
+  Impact: 'danger',
+}
+
+function DomainIcon({ domain, className }: { domain: string; className?: string }) {
+  const common = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, className }
+  switch (domain) {
+    case 'Technical':
+      return <svg {...common}><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+    case 'Cultural':
+      return <svg {...common}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+    case 'Sports':
+      return <svg {...common}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4a1 1 0 0 0-1 1 4 4 0 0 0 4 4M17 6h3a1 1 0 0 1 1 1 4 4 0 0 1-4 4" /></svg>
+    default:
+      return <svg {...common}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" /></svg>
+  }
+}
 
 // 12 Forest Houses with national park metadata.
 //
@@ -129,6 +146,8 @@ export default function Orgs() {
   const [porRoleFilter, setPorRoleFilter] = useState('')
   const [porStatusFilter, setPorStatusFilter] = useState('')
   const [porRegionFilter, setPorRegionFilter] = useState('')
+  const [societyDomainFilter, setSocietyDomainFilter] = useState('all')
+  const [societyViewMode, setSocietyViewMode] = useState<'grid' | 'list'>('grid')
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
 
   // Members / Academic Status state
@@ -147,6 +166,28 @@ export default function Orgs() {
   )
   const houses = useMemo(() => orgs.filter((o: any) => o.type === 'house'), [orgs])
   const societies = useMemo(() => orgs.filter((o: any) => o.type === 'society'), [orgs])
+  const SOCIETY_DOMAIN_ORDER = ['Technical', 'Cultural', 'Sports', 'Impact']
+  const societyDomainGroups = useMemo(() => {
+    const map = new Map<string, any[]>()
+    for (const s of societies) {
+      const key = s.category || 'Other'
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(s)
+    }
+    const keys = Array.from(map.keys()).sort((a, b) => {
+      const ia = SOCIETY_DOMAIN_ORDER.indexOf(a)
+      const ib = SOCIETY_DOMAIN_ORDER.indexOf(b)
+      if (ia === -1 && ib === -1) return a.localeCompare(b)
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
+    return keys.map(key => ({ domain: key, items: map.get(key)! }))
+  }, [societies])
+  const visibleSocietyDomainGroups = useMemo(
+    () => societyDomainGroups.filter(g => societyDomainFilter === 'all' || g.domain === societyDomainFilter),
+    [societyDomainGroups, societyDomainFilter],
+  )
   const regions = useMemo(() => orgs.filter((o: any) => o.type === 'region'), [orgs])
 
   const createOrgMutation = useCreateOrg()
@@ -339,6 +380,130 @@ export default function Orgs() {
 
   const selectedUserObj = users.find((u: any) => u.id === userId || u.email === userId)
 
+  const renderSocietyPORChips = (o: any) => {
+    const secretary = pors.find((p: any) => p.org_id === o.id && p.por_type === 'Society Secretary' && p.active)
+    const deputy = pors.find((p: any) => p.org_id === o.id && p.por_type === 'Society Deputy Secretary' && p.active)
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        {secretary ? (
+          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-emerald-300 font-medium">
+            <span className="text-[10px] text-emerald-400/70 uppercase">Sec:</span> {secretary.member}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setPorTargetType('society')
+              setSelectedPorType('Society Secretary')
+              setSelectedOrgId(o.id)
+              setShowPorModal(true)
+            }}
+            className="inline-flex items-center gap-0.5 rounded border border-dashed border-white/15 px-1.5 py-0.5 text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+          >
+            + Secretary
+          </button>
+        )}
+        {deputy ? (
+          <span className="inline-flex items-center gap-1 rounded bg-teal/10 border border-teal/20 px-2 py-0.5 text-teal font-medium">
+            <span className="text-[10px] text-teal/70 uppercase">Dep:</span> {deputy.member}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setPorTargetType('society')
+              setSelectedPorType('Society Deputy Secretary')
+              setSelectedOrgId(o.id)
+              setShowPorModal(true)
+            }}
+            className="inline-flex items-center gap-0.5 rounded border border-dashed border-white/15 px-1.5 py-0.5 text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+          >
+            + Deputy
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const renderSocietyCard = (o: any) => (
+    <Card
+      key={o.id}
+      hover
+      className="group overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-teal/30 cursor-pointer p-0"
+      onClick={() => navigate(`/orgs/${o.id}`)}
+    >
+      {o.bannerUrl ? (
+        <div className="h-24 w-full overflow-hidden border-b border-white/5 bg-onyx relative">
+          <img
+            src={o.bannerUrl}
+            alt={o.name}
+            className="h-full w-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-darkbg via-darkbg/40 to-transparent" />
+        </div>
+      ) : (
+        <div className="h-2 w-full bg-gradient-to-r from-teal/40 via-teal to-gold/40" />
+      )}
+
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <OrgLogo org={o} size={40} />
+            <div className="min-w-0">
+              <div className="text-[15px] font-bold text-offwhite group-hover:text-teal transition-colors truncate">
+                {o.name}
+              </div>
+            </div>
+          </div>
+          {o.category && <Badge tone={DOMAIN_TONE[o.category] || 'teal'}>{o.category}</Badge>}
+        </div>
+
+        {o.tagline && (
+          <p className="mb-2 text-[13px] text-graytext-light font-medium italic line-clamp-1">
+            "{o.tagline}"
+          </p>
+        )}
+
+        {o.description && (
+          <p className="text-caption text-graytext-mid line-clamp-2 mt-auto">
+            {o.description}
+          </p>
+        )}
+
+        <div className="mt-3 border-t border-white/5 pt-2.5">
+          {renderSocietyPORChips(o)}
+        </div>
+
+        <div className="mt-3 flex items-center justify-end border-t border-white/5 pt-2.5 text-[12px] text-graytext-mid">
+          <span className="text-teal group-hover:underline flex items-center gap-1 font-medium">
+            View profile →
+          </span>
+        </div>
+      </div>
+    </Card>
+  )
+
+  const renderSocietyListRow = (o: any) => (
+    <div
+      key={o.id}
+      onClick={() => navigate(`/orgs/${o.id}`)}
+      className="group flex flex-wrap items-center gap-4 border-b border-white/5 px-4 py-3.5 last:border-0 hover:bg-white/[0.03] cursor-pointer transition-colors"
+    >
+      <OrgLogo org={o} size={40} />
+      <div className="min-w-[180px] flex-1">
+        <div className="text-[14px] font-bold text-offwhite group-hover:text-teal transition-colors">{o.name}</div>
+        {o.tagline && <div className="text-caption text-graytext-mid italic truncate">"{o.tagline}"</div>}
+      </div>
+      {o.category && <Badge tone={DOMAIN_TONE[o.category] || 'teal'}>{o.category}</Badge>}
+      <div className="hidden sm:block">{renderSocietyPORChips(o)}</div>
+      <span className="ml-auto text-teal group-hover:underline flex items-center gap-1 text-[12px] font-medium shrink-0">
+        View profile →
+      </span>
+    </div>
+  )
+
   return (
     <div>
       <SectionTitle
@@ -347,7 +512,6 @@ export default function Orgs() {
         sub="Manage Forest Houses, Regions, Societies, and the POR Directory. Permissions follow PORs."
         right={
           <div className="flex gap-3">
-            <Button size="sm" onClick={() => setShowSeedModal(true)}>+ Add Society</Button>
             <Button size="sm" onClick={() => setShowBulkModal(true)}>+ Bulk Assign</Button>
             <Button size="sm" onClick={() => setShowPorModal(true)}>+ Authorize Role</Button>
           </div>
@@ -542,142 +706,194 @@ export default function Orgs() {
 
       {/* ---- SOCIETIES & COUNCILS TAB ---- */}
       {tab === 'orgs' && (
-        <div>
-          <div className="space-y-8">
-            {Array.from(new Set(filteredOrgs.map((o: any) => o.type))).map((type: any) => {
-              const typedOrgs = filteredOrgs.filter((o: any) => o.type === type)
-              return (
-                <div key={type}>
-                  <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-2">
-                    <h3 className="text-[16px] font-bold capitalize text-offwhite">
-                      {type === 'society' ? 'Student Societies' : `${type}s`}{' '}
-                      <span className="ml-1 font-normal text-graytext-mid">({typedOrgs.length})</span>
-                    </h3>
-                    {type === 'society' && (
-                      <button
-                        onClick={() => setShowSeedModal(true)}
-                        className="rounded-lg border border-teal/30 bg-teal/10 px-3 py-1 text-[12px] font-semibold text-teal hover:bg-teal/20 transition-colors"
-                      >
-                        + Add Society
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {typedOrgs.map((o: any) => {
-                      const categoryMeta = SOCIETY_CATEGORIES.find(c => c.value === o.category)
-                      return (
-                        <Card
-                          key={o.id}
-                          hover
-                          className="group overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-teal/30 cursor-pointer p-0"
-                          onClick={() => navigate(`/orgs/${o.id}`)}
-                        >
-                          {/* Banner preview or top accent */}
-                          {o.bannerUrl ? (
-                            <div className="h-24 w-full overflow-hidden border-b border-white/5 bg-onyx relative">
-                              <img
-                                src={o.bannerUrl}
-                                alt={o.name}
-                                className="h-full w-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-darkbg via-darkbg/40 to-transparent" />
-                            </div>
-                          ) : (
-                            <div className="h-2 w-full bg-gradient-to-r from-teal/40 via-teal to-gold/40" />
-                          )}
-
-                          <div className="p-5 flex-1 flex flex-col">
-                            <div className="mb-3 flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-3">
-                                <OrgLogo org={o} size={40} />
-                                <div>
-                                  <div className="text-[15px] font-bold text-offwhite group-hover:text-teal transition-colors">
-                                    {o.name}
-                                  </div>
-                                  {o.category && (
-                                    <div className="mt-0.5 inline-flex items-center text-[11px] font-semibold text-teal">
-                                      <span>{o.category}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <Badge tone={ORG_TONE[o.type] || 'teal'}>{o.category || o.type}</Badge>
-                            </div>
-
-                            {o.tagline && (
-                              <p className="mb-2 text-[13px] text-graytext-light font-medium italic line-clamp-1">
-                                "{o.tagline}"
-                              </p>
-                            )}
-
-                            {o.description && (
-                              <p className="text-caption text-graytext-mid line-clamp-2 mt-auto">
-                                {o.description}
-                              </p>
-                            )}
-
-                            {o.type === 'society' && (() => {
-                              const secretary = pors.find((p: any) => p.org_id === o.id && p.por_type === 'Society Secretary' && p.active)
-                              const deputy = pors.find((p: any) => p.org_id === o.id && p.por_type === 'Society Deputy Secretary' && p.active)
-                              return (
-                                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-2.5 text-[11px]">
-                                  {secretary ? (
-                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-emerald-300 font-medium">
-                                      <span className="text-[10px] text-emerald-400/70 uppercase">Sec:</span> {secretary.member}
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setPorTargetType('society')
-                                        setSelectedPorType('Society Secretary')
-                                        setSelectedOrgId(o.id)
-                                        setShowPorModal(true)
-                                      }}
-                                      className="inline-flex items-center gap-0.5 rounded border border-dashed border-white/15 px-1.5 py-0.5 text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
-                                    >
-                                      + Secretary
-                                    </button>
-                                  )}
-
-                                  {deputy ? (
-                                    <span className="inline-flex items-center gap-1 rounded bg-teal/10 border border-teal/20 px-2 py-0.5 text-teal font-medium">
-                                      <span className="text-[10px] text-teal/70 uppercase">Dep:</span> {deputy.member}
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setPorTargetType('society')
-                                        setSelectedPorType('Society Deputy Secretary')
-                                        setSelectedOrgId(o.id)
-                                        setShowPorModal(true)
-                                      }}
-                                      className="inline-flex items-center gap-0.5 rounded border border-dashed border-white/15 px-1.5 py-0.5 text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
-                                    >
-                                      + Deputy
-                                    </button>
-                                  )}
-                                </div>
-                              )
-                            })()}
-
-                            <div className="mt-3 flex items-center justify-end border-t border-white/5 pt-2.5 text-[12px] text-graytext-mid">
-                              <span className="text-teal group-hover:underline flex items-center gap-1 font-medium">
-                                View profile →
-                              </span>
-                            </div>
-                          </div>
-                        </Card>
-                      )
-                    })}
-                  </div>
+        <div className="space-y-10">
+          {/* ---- Societies: hero strip ---- */}
+          <div>
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-2xl">
+                <h3 className="text-[20px] font-bold text-offwhite">Student Societies</h3>
+                <p className="mt-1 text-[13px] text-graytext-mid">
+                  Student-run bodies organised into four domains. Filter by domain or switch views to browse.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-right">
+                  <div className="text-[20px] font-bold leading-none text-offwhite">{SOCIETY_DOMAIN_ORDER.length}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-graytext-mid">Domains</div>
                 </div>
-              )
-            })}
+                <div className="rounded-xl border border-teal/25 bg-teal/[0.06] px-4 py-2.5 text-right">
+                  <div className="text-[20px] font-bold leading-none text-teal">{societies.length}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-teal/70">Societies</div>
+                </div>
+                <button
+                  onClick={() => setShowSeedModal(true)}
+                  className="rounded-xl border border-teal/30 bg-teal/10 px-4 py-2.5 text-[12px] font-semibold text-teal hover:bg-teal/20 transition-colors"
+                >
+                  + Add Society
+                </button>
+              </div>
+            </div>
+
+            {/* Domain filter pills + view toggle */}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-y border-white/5 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setSocietyDomainFilter('all')}
+                  className={cx(
+                    'rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors border',
+                    societyDomainFilter === 'all'
+                      ? 'bg-teal text-onyx border-teal'
+                      : 'border-white/10 text-graytext-mid hover:border-white/25 hover:text-offwhite',
+                  )}
+                >
+                  All Domains
+                </button>
+                {societyDomainGroups.map(({ domain, items }) => (
+                  <button
+                    key={domain}
+                    onClick={() => setSocietyDomainFilter(domain)}
+                    className={cx(
+                      'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors border',
+                      societyDomainFilter === domain
+                        ? 'bg-teal text-onyx border-teal'
+                        : 'border-white/10 text-graytext-mid hover:border-white/25 hover:text-offwhite',
+                    )}
+                  >
+                    <DomainIcon domain={domain} />
+                    {domain}
+                    <span className={cx('opacity-70', societyDomainFilter === domain ? 'text-onyx' : 'text-graytext-mid')}>
+                      ({items.length})
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
+                <button
+                  onClick={() => setSocietyViewMode('grid')}
+                  className={cx(
+                    'rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors',
+                    societyViewMode === 'grid' ? 'bg-teal/15 text-teal' : 'text-graytext-mid hover:text-offwhite',
+                  )}
+                >
+                  Grid
+                </button>
+                <button
+                  onClick={() => setSocietyViewMode('list')}
+                  className={cx(
+                    'rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors',
+                    societyViewMode === 'list' ? 'bg-teal/15 text-teal' : 'text-graytext-mid hover:text-offwhite',
+                  )}
+                >
+                  List
+                </button>
+              </div>
+            </div>
+
+            {societyViewMode === 'grid' ? (
+              <div className="space-y-8">
+                {visibleSocietyDomainGroups.map(({ domain, items }) => (
+                  <div key={domain}>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className={cx('flex h-7 w-7 items-center justify-center rounded-lg', {
+                        teal: 'bg-teal/10 text-teal',
+                        gold: 'bg-gold/10 text-gold',
+                        success: 'bg-emerald-400/10 text-emerald-300',
+                        danger: 'bg-red-400/10 text-red-300',
+                      }[DOMAIN_TONE[domain] || 'teal'])}>
+                        <DomainIcon domain={domain} />
+                      </span>
+                      <h4 className="text-[14px] font-bold text-offwhite">{domain}</h4>
+                      <span className="text-[12px] text-graytext-mid">({items.length})</span>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {items.map((o: any) => renderSocietyCard(o))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {visibleSocietyDomainGroups.map(({ domain, items }) => (
+                  <div key={domain}>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className={cx('flex h-6 w-6 items-center justify-center rounded-md', {
+                        teal: 'bg-teal/10 text-teal',
+                        gold: 'bg-gold/10 text-gold',
+                        success: 'bg-emerald-400/10 text-emerald-300',
+                        danger: 'bg-red-400/10 text-red-300',
+                      }[DOMAIN_TONE[domain] || 'teal'])}>
+                        <DomainIcon domain={domain} />
+                      </span>
+                      <h4 className="text-[13px] font-bold text-offwhite">{domain}</h4>
+                      <span className="text-[12px] text-graytext-mid">({items.length})</span>
+                    </div>
+                    <Card className="overflow-hidden p-0">
+                      {items.map((o: any) => renderSocietyListRow(o))}
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* ---- Councils ---- */}
+          {filteredOrgs.filter((o: any) => o.type === 'council').length > 0 && (
+            <div>
+              <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-2">
+                <h3 className="text-[16px] font-bold text-offwhite">
+                  Councils{' '}
+                  <span className="ml-1 font-normal text-graytext-mid">
+                    ({filteredOrgs.filter((o: any) => o.type === 'council').length})
+                  </span>
+                </h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredOrgs.filter((o: any) => o.type === 'council').map((o: any) => (
+                  <Card
+                    key={o.id}
+                    hover
+                    className="group overflow-hidden flex flex-col justify-between transition-all duration-300 hover:border-teal/30 cursor-pointer p-0"
+                    onClick={() => navigate(`/orgs/${o.id}`)}
+                  >
+                    {o.bannerUrl ? (
+                      <div className="h-24 w-full overflow-hidden border-b border-white/5 bg-onyx relative">
+                        <img
+                          src={o.bannerUrl}
+                          alt={o.name}
+                          className="h-full w-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-darkbg via-darkbg/40 to-transparent" />
+                      </div>
+                    ) : (
+                      <div className="h-2 w-full bg-gradient-to-r from-amber-400/40 via-amber-400 to-gold/40" />
+                    )}
+                    <div className="p-5 flex-1 flex flex-col">
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <OrgLogo org={o} size={40} />
+                          <div className="text-[15px] font-bold text-offwhite group-hover:text-teal transition-colors">
+                            {o.name}
+                          </div>
+                        </div>
+                        <Badge tone={ORG_TONE[o.type] || 'warn'}>{o.type}</Badge>
+                      </div>
+                      {o.tagline && (
+                        <p className="mb-2 text-[13px] text-graytext-light font-medium italic line-clamp-1">"{o.tagline}"</p>
+                      )}
+                      {o.description && (
+                        <p className="text-caption text-graytext-mid line-clamp-2 mt-auto">{o.description}</p>
+                      )}
+                      <div className="mt-3 flex items-center justify-end border-t border-white/5 pt-2.5 text-[12px] text-graytext-mid">
+                        <span className="text-teal group-hover:underline flex items-center gap-1 font-medium">
+                          View profile →
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

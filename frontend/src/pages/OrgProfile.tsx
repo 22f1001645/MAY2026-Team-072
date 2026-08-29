@@ -89,6 +89,7 @@ export default function OrgProfile() {
   const switcherOptions = useMemo(
     () =>
       allOrgs
+        .filter((o) => o.type !== 'region')
         .filter((o) => manageableOrgIds.includes(o.id))
         .map((o) => ({ label: o.name, value: o.id })),
     [allOrgs, manageableOrgIds],
@@ -309,7 +310,7 @@ export default function OrgProfile() {
             <h1 className="text-4xl font-extrabold text-white tracking-tight">{org.name}</h1>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge>{ORG_TYPE_LABEL[org.type] ?? org.type}</Badge>
-              {org.city && <Badge tone="neutral">{org.city}</Badge>}
+              {org.type === 'region' && org.city && <Badge tone="neutral">{org.city}</Badge>}
             </div>
           </div>
 

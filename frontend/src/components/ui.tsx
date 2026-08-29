@@ -451,12 +451,14 @@ export function FormSelect({
   options,
   placeholder,
   className,
+  onBlur,
 }: {
   value: string
   onChange: (val: string) => void
   options: { label: string; value: string; disabled?: boolean }[]
   placeholder?: string
   className?: string
+  onBlur?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -478,6 +480,7 @@ export function FormSelect({
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        onBlur={onBlur}
         className={cx(
           'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
           !selected ? 'text-graytext-mid' : 'text-offwhite'
@@ -523,10 +526,12 @@ export function FormDatePicker({
   value,
   onChange,
   className,
+  onBlur,
 }: {
   value: string
   onChange: (val: string) => void
   className?: string
+  onBlur?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -576,6 +581,7 @@ export function FormDatePicker({
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        onBlur={onBlur}
         className={cx(
           'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
           !value ? 'text-graytext-mid' : 'text-offwhite'

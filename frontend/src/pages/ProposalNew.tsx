@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useCities, useOrgs, useSubmitProposal, useOrgProgression } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle, FormSelect, FormDatePicker } from '../components/ui'
-import { scaleLabel } from '../lib/format'
+import { scaleLabel, scaleMeta } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
 import { api } from '../lib/api'
 import { computeBudgetCap } from '../lib/proposalLogic'
@@ -74,6 +74,12 @@ export default function ProposalNew() {
   const [done, setDone] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [festReverted, setFestReverted] = useState(false)
+  // Step 1 field-level validation UX: FormSelect/FormDatePicker fire onBlur
+  // via their trigger button, plain inputs/textarea fire it natively.
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }))
+  const showError = (field: keyof typeof form, message: string) =>
+    touched[field] && !form[field] ? message : null
 
   // Auto-select org when there's exactly one manageable org
   useEffect(() => {
@@ -107,7 +113,10 @@ export default function ProposalNew() {
   }, [festIneligible, scale])
 
   const festLockCaption = (() => {
-    if (!effectiveOrgId || !effectiveCity) return { lines: [], summary: 'Pick a city to check eligibility.' }
+    if (!effectiveOrgId && !effectiveCity)
+      return { lines: [], summary: 'Select your organisation and city above to see fest progress.' }
+    if (!effectiveOrgId) return { lines: [], summary: 'Select your organisation above to see fest progress.' }
+    if (!effectiveCity) return { lines: [], summary: 'Select a city above to see fest progress.' }
     if (progLoading) return { lines: [], summary: 'Checking eligibility…' }
     if (progError || !progression) return { lines: [], summary: "Couldn't check eligibility. The server enforces this on submit." }
     return {
@@ -243,17 +252,29 @@ export default function ProposalNew() {
         
         {/* STEP 1 */}
         <div className={currentStep === 1 ? 'block space-y-6 animate-fade-in' : 'hidden'}>
+          {/* City — surfaced before the scale cards so the fest-eligibility check below
+              (which is scoped per-city, see progression_service.py) has what it needs
+              before the user hits a locked card. */}
+          <Card className="p-6">
+            <Label>City *</Label>
+            <FormSelect
+              value={form.city}
+              onChange={(val) => set('city', val)}
+              onBlur={() => touch('city')}
+              placeholder="Select a city…"
+              options={Array.from(new Set(cities.map((c: any) => c.name))).map((name: any) => ({ label: name, value: name }))}
+            />
+            {showError('city', 'City is required') && (
+              <p role="alert" className="mt-1 text-caption text-red-300">{showError('city', 'City is required')}</p>
+            )}
+          </Card>
+
           {/* Scale */}
           <Card className="p-6">
             <Label>Activity scale</Label>
           <div className="grid gap-3 sm:grid-cols-3">
             {(['local_meetup', 'regional_meetup', 'regional_fest'] as ActivityScale[]).map((s) => {
-              const sub =
-                s === 'local_meetup'
-                  ? '30–50 people'
-                  : s === 'regional_meetup'
-                    ? '75–100 · funded'
-                    : '230+ · sponsors'
+              const meta = scaleMeta[s]
 
               // PROG-01: only regional_fest can ever be locked. aria-disabled, never the
               // `disabled` attribute — the card must stay in tab order so a keyboard user
@@ -275,7 +296,9 @@ export default function ProposalNew() {
                       </svg>
                       {scaleLabel[s]}
                     </div>
-                    <div className="text-caption text-graytext-mid">{sub}</div>
+                    <div className="text-caption text-graytext-mid">
+                      {meta.range}{meta.badge ? ` · ${meta.badge}` : ''}
+                    </div>
                     <div
                       id="fest-lock-reason"
                       role="status"
@@ -307,7 +330,9 @@ export default function ProposalNew() {
                   }
                 >
                   <div className="text-[14px] font-semibold text-offwhite">{scaleLabel[s]}</div>
-                  <div className="text-caption text-graytext-mid">{sub}</div>
+                  <div className="text-caption text-graytext-mid">
+                    {meta.range}{meta.badge ? ` · ${meta.badge}` : ''}
+                  </div>
                 </button>
               )
             })}
@@ -322,54 +347,57 @@ export default function ProposalNew() {
         {/* Core details */}
         <Card className="space-y-4 p-6">
           <div>
-            <Label>Event title</Label>
+            <Label>Event title *</Label>
             <Input value={form.title} onChange={(e) => set('title', e.target.value)}
+              onBlur={() => touch('title')}
               placeholder="e.g. Hyderabad Coffee & Code" required />
+            {showError('title', 'Title is required') && (
+              <p role="alert" className="mt-1 text-caption text-red-300">{showError('title', 'Title is required')}</p>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Organisation</Label>
+              <Label>Organisation *</Label>
               {manageableOrgs.length <= 1 ? (
                 <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite">
                   {manageableOrgs[0]?.name ?? 'No organisation assigned'}
                 </div>
               ) : (
-                <FormSelect
-                  value={form.org_id}
-                  onChange={(val) => set('org_id', val)}
-                  placeholder="Select your organisation…"
-                  options={manageableOrgs.map((o: any) => ({ label: o.name, value: o.id }))}
-                />
+                <>
+                  <FormSelect
+                    value={form.org_id}
+                    onChange={(val) => set('org_id', val)}
+                    onBlur={() => touch('org_id')}
+                    placeholder="Select your organisation…"
+                    options={manageableOrgs.map((o: any) => ({ label: o.name, value: o.id }))}
+                  />
+                  {showError('org_id', 'Organisation is required') && (
+                    <p role="alert" className="mt-1 text-caption text-red-300">{showError('org_id', 'Organisation is required')}</p>
+                  )}
+                </>
               )}
             </div>
             <div>
-              <Label>City</Label>
-              <FormSelect
-                value={form.city}
-                onChange={(val) => set('city', val)}
-                placeholder="Select a city…"
-                options={Array.from(new Set(cities.map((c: any) => c.name))).map((name: any) => ({ label: name, value: name }))}
-              />
-            </div>
-            <div>
-              <Label>Date & time</Label>
+              <Label>Date & time *</Label>
               <div className="flex gap-2">
-                <FormDatePicker 
-                  value={form.starts_at.split('T')[0] || ''} 
+                <FormDatePicker
+                  value={form.starts_at.split('T')[0] || ''}
                   onChange={(date) => {
                     const current = form.starts_at || ''
                     const timePart = current.includes('T') ? current.split('T')[1] : '18:00'
                     set('starts_at', `${date}T${timePart}`)
-                  }} 
-                  className="flex-1" 
+                  }}
+                  onBlur={() => touch('starts_at')}
+                  className="flex-1"
                 />
-                <FormSelect 
+                <FormSelect
                   value={form.starts_at.includes('T') ? form.starts_at.split('T')[1].slice(0, 5) : ''}
                   onChange={(time) => {
                     const current = form.starts_at || ''
                     const datePart = current ? current.split('T')[0] : new Date().toISOString().split('T')[0]
                     set('starts_at', `${datePart}T${time}`)
                   }}
+                  onBlur={() => touch('starts_at')}
                   placeholder="Time"
                   className="w-[120px]"
                   options={Array.from({ length: 48 }).map((_, i) => {
@@ -382,27 +410,43 @@ export default function ProposalNew() {
                   })}
                 />
               </div>
+              {showError('starts_at', 'Date and time are required') && (
+                <p role="alert" className="mt-1 text-caption text-red-300">{showError('starts_at', 'Date and time are required')}</p>
+              )}
             </div>
             <div>
-              <Label>Capacity</Label>
+              <Label>Expected headcount *</Label>
               <Input type="number" value={form.capacity}
-                onChange={(e) => set('capacity', e.target.value)} placeholder="45" required />
+                onChange={(e) => set('capacity', e.target.value)}
+                onBlur={() => touch('capacity')}
+                placeholder="45" required />
+              {showError('capacity', 'Expected headcount is required') && (
+                <p role="alert" className="mt-1 text-caption text-red-300">{showError('capacity', 'Expected headcount is required')}</p>
+              )}
             </div>
           </div>
           <div>
-            <Label>Venue</Label>
+            <Label>Venue *</Label>
             <Input value={form.venue} onChange={(e) => set('venue', e.target.value)}
+              onBlur={() => touch('venue')}
               placeholder="Roastery Coffee House, Banjara Hills" required />
+            {showError('venue', 'Venue is required') && (
+              <p role="alert" className="mt-1 text-caption text-red-300">{showError('venue', 'Venue is required')}</p>
+            )}
           </div>
           <div>
-            <Label>Description</Label>
+            <Label>Description *</Label>
             <textarea
               rows={4}
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
+              onBlur={() => touch('description')}
               placeholder="What is it, who's it for, and why should someone give up their evening for it?"
               className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[14px] text-offwhite placeholder:text-graytext-mid focus:border-teal/50 focus:outline-none"
             />
+            {showError('description', 'Description is required') && (
+              <p role="alert" className="mt-1 text-caption text-red-300">{showError('description', 'Description is required')}</p>
+            )}
           </div>
         </Card>
           

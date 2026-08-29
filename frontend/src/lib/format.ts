@@ -25,6 +25,16 @@ export const scaleLabel: Record<string, string> = {
   regional_fest: 'Regional fest',
 }
 
+// Capacity-range + funding copy per activity scale, for the New Proposal wizard's
+// scale cards. Mirrors backend/app/constants.py's CAPACITY_RANGES — regional_fest
+// is the sponsor-funded/budget-exempt tier (BUDGET_ABSOLUTE_CEILING comment), not
+// regional_meetup, which is why the badge lives there.
+export const scaleMeta: Record<string, { range: string; badge?: string }> = {
+  local_meetup: { range: '30–50 people' },
+  regional_meetup: { range: '75–100 people' },
+  regional_fest: { range: '230+ people', badge: 'sponsor-funded' },
+}
+
 export function formatDate(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('en-IN', {

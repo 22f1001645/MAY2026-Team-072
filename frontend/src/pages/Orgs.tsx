@@ -38,19 +38,19 @@ export const SOCIETY_CATEGORIES = [
 // 2 and 3 of `components/OrgLogo.tsx`'s fallback ladder, and `OrgLogo` is the
 // only component that reads it. Twelve seeded Houses have visual identity that
 // exists nowhere else — an upload wins, but nothing here is thrown away.
-export const HOUSE_META: Record<string, { park: string; state: string; color: string; logo: string; imageLogo?: string; website?: string }> = {
-  'Bandipur House':    { park: 'Bandipur National Park',    state: 'Karnataka',    color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
-  'Corbett House':     { park: 'Jim Corbett National Park', state: 'Uttarakhand',  color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
-  'Gir House':         { park: 'Gir Forest National Park',  state: 'Gujarat',      color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
-  'Kanha House':       { park: 'Kanha National Park',       state: 'M.P.',         color: '#a78bfa', logo: '🦌', imageLogo: '/houses/kanha.png', website: 'https://kanha.iitmbs.org/' },
-  'Kaziranga House':   { park: 'Kaziranga National Park',   state: 'Assam',        color: '#34d399', logo: '🦏', imageLogo: '/houses/kaziranga.png', website: 'https://kaziranga.iitmbs.org/' },
-  'Nallamala House':   { park: 'Nagarjunasagar-Srisailam',  state: 'Telangana',    color: '#f97316', logo: '🐆', imageLogo: '/houses/nallamala.png', website: 'https://nallamala.iitmbs.org/' },
-  'Namdapha House':    { park: 'Namdapha National Park',    state: 'Arunachal P.', color: '#06b6d4', logo: '🦅', imageLogo: '/houses/namdapha.png', website: 'https://namdapha.iitmbs.org/' },
-  'Nilgiri House':     { park: 'Nilgiri Biosphere Reserve', state: 'Tamil Nadu',   color: '#5CE6C9', logo: '⛰️', imageLogo: '/houses/nilgiri.png', website: 'https://nilgiri.iitmbs.org/' },
-  'Pichavaram House':  { park: 'Pichavaram Mangrove Forest',state: 'Tamil Nadu',   color: '#e879f9', logo: '🛶', imageLogo: '/houses/pichavaram.png', website: 'https://pichavaram.iitmbs.org/' },
-  'Saranda House':     { park: 'Saranda Forest',            state: 'Jharkhand',    color: '#fb923c', logo: '🌳', imageLogo: '/houses/saranda.png', website: 'https://saranda.iitmbs.org/' },
-  'Sundarbans House':  { park: 'Sundarbans National Park',  state: 'West Bengal',  color: '#2dd4bf', logo: '🐊', imageLogo: '/houses/sundarbans.png', website: 'https://sundarbans.iitmbs.org/#/' },
-  'Wayanad House':     { park: 'Wayanad Wildlife Sanctuary',state: 'Kerala',       color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
+export const HOUSE_META: Record<string, { color: string; logo: string; imageLogo?: string; website?: string }> = {
+  'Bandipur House':    { color: '#4ade80', logo: '🐘', imageLogo: '/houses/bandipur.png', website: 'https://bandipur.iitmbs.org/' },
+  'Corbett House':     { color: '#60a5fa', logo: '🐅', imageLogo: '/houses/corbett.png', website: 'https://corbett.iitmbs.org/' },
+  'Gir House':         { color: '#f59e0b', logo: '🦁', imageLogo: '/houses/gir.png', website: 'https://sites.google.com/student.onlinedegree.iitm.ac.in/gir-house' },
+  'Kanha House':       { color: '#a78bfa', logo: '🦌', imageLogo: '/houses/kanha.png', website: 'https://kanha.iitmbs.org/' },
+  'Kaziranga House':   { color: '#34d399', logo: '🦏', imageLogo: '/houses/kaziranga.png', website: 'https://kaziranga.iitmbs.org/' },
+  'Nallamala House':   { color: '#f97316', logo: '🐆', imageLogo: '/houses/nallamala.png', website: 'https://nallamala.iitmbs.org/' },
+  'Namdapha House':    { color: '#06b6d4', logo: '🦅', imageLogo: '/houses/namdapha.png', website: 'https://namdapha.iitmbs.org/' },
+  'Nilgiri House':     { color: '#5CE6C9', logo: '⛰️', imageLogo: '/houses/nilgiri.png', website: 'https://nilgiri.iitmbs.org/' },
+  'Pichavaram House':  { color: '#e879f9', logo: '🛶', imageLogo: '/houses/pichavaram.png', website: 'https://pichavaram.iitmbs.org/' },
+  'Saranda House':     { color: '#fb923c', logo: '🌳', imageLogo: '/houses/saranda.png', website: 'https://saranda.iitmbs.org/' },
+  'Sundarbans House':  { color: '#2dd4bf', logo: '🐊', imageLogo: '/houses/sundarbans.png', website: 'https://sundarbans.iitmbs.org/#/' },
+  'Wayanad House':     { color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
 }
 
 const HOUSE_POR_TYPES = [
@@ -381,7 +381,6 @@ export default function Orgs() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {houses.map((h: any) => {
-              const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9' }
               const secretary = pors.find((p: any) => p.org === h.name && p.por_type === 'House Secretary' && p.active)
               const deputy = pors.find((p: any) => p.org === h.name && p.por_type === 'Deputy House Secretary' && p.active)
               const rcs = pors.filter((p: any) => p.org === h.name && p.por_type === 'Regional Coordinator' && p.active)
@@ -389,10 +388,8 @@ export default function Orgs() {
                 <Card key={h.id} hover className="p-5" onClick={() => setViewingHouseId(h.id)}>
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <OrgLogo org={h} size={40} />
-                    <Badge tone="gold">{meta.state}</Badge>
                   </div>
                   <div className="text-[15px] font-bold text-offwhite">{h.name}</div>
-                  <div className="mt-0.5 text-caption text-graytext-light">{meta.park}</div>
                   <div className="mt-3 space-y-1.5 border-t border-white/5 pt-3">
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-graytext-mid">Secretary</span>
@@ -667,8 +664,7 @@ export default function Orgs() {
                               )
                             })()}
 
-                            <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5 text-[12px] text-graytext-mid">
-                              <span>{o.city || 'Campus & Online'}</span>
+                            <div className="mt-3 flex items-center justify-end border-t border-white/5 pt-2.5 text-[12px] text-graytext-mid">
                               <span className="text-teal group-hover:underline flex items-center gap-1 font-medium">
                                 View profile →
                               </span>
@@ -953,7 +949,7 @@ export default function Orgs() {
             Brand Kits are set by each organisation's POR holders (Phase 4). Review logos, palettes, and social links across all organisations at a glance.
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {orgs.map((o: any) => (
+            {orgs.filter((o: any) => o.type !== 'region').map((o: any) => (
               <Card key={o.id} hover onClick={() => navigate(`/orgs/${o.id}`)} className="p-5 cursor-pointer">
                 <div className="flex items-start gap-3">
                   <OrgLogo org={o} size={40} />
@@ -1592,11 +1588,10 @@ export default function Orgs() {
       {/* ---- HOUSE DETAIL MODAL ---- */}
       {viewingHouseId && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setViewingHouseId(null) }}>
-          <Card className="relative w-full max-w-2xl p-8 overflow-hidden">
+          <Card className="relative w-full max-w-2xl p-8 overflow-hidden bg-onyx">
             {(() => {
               const h = orgs.find((o: any) => o.id === viewingHouseId)
               if (!h) return null
-              const meta = HOUSE_META[h.name] ?? { park: h.name, state: '', color: '#5CE6C9', logo: '🌿' }
               // Real data wins, and both paths go through the same gate. A
               // second rendering path for "trusted" seeded URLs is how the safe
               // path becomes the special case.
@@ -1618,7 +1613,6 @@ export default function Orgs() {
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="text-[28px] font-bold text-offwhite tracking-tight">{h.name}</h2>
-                        <Badge tone="gold">{meta.state}</Badge>
                         {websiteHref && (
                           <a href={websiteHref} target="_blank" rel="noopener noreferrer" className="ml-2 flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[13px] font-semibold text-graytext-mid transition-colors hover:bg-white/10 hover:text-offwhite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
@@ -1630,15 +1624,11 @@ export default function Orgs() {
                           Open organisation profile
                         </Button>
                       </div>
-                      <p className="mt-1 text-[15px] text-graytext-light flex items-center gap-2">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
-                        {meta.park}
-                      </p>
                     </div>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 relative overflow-hidden group">
+                    <div className="rounded-xl border border-white/8 bg-onyx p-4 relative overflow-hidden group">
                       <div className="absolute -right-6 -top-6 text-[100px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-emerald-400">👑</div>
                       <p className="text-caption font-semibold text-graytext-mid mb-1 uppercase tracking-wider">House Secretary</p>
                       {secretary ? (
@@ -1650,11 +1640,22 @@ export default function Orgs() {
                           </div>
                         </>
                       ) : (
-                        <div className="text-[16px] font-medium text-graytext-mid italic">Vacant Position</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPorTargetType('house')
+                            setSelectedOrgId(h.id)
+                            setSelectedPorType('House Secretary')
+                            setShowPorModal(true)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-white/15 px-2.5 py-1.5 text-[13px] font-medium text-graytext-mid hover:border-emerald-400/40 hover:text-emerald-300 transition-colors"
+                        >
+                          + Assign Secretary
+                        </button>
                       )}
                     </div>
-                    
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 relative overflow-hidden group">
+
+                    <div className="rounded-xl border border-white/8 bg-onyx p-4 relative overflow-hidden group">
                       <div className="absolute -right-6 -top-6 text-[100px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-teal">⭐</div>
                       <p className="text-caption font-semibold text-graytext-mid mb-1 uppercase tracking-wider">Deputy Secretary</p>
                       {deputy ? (
@@ -1666,11 +1667,22 @@ export default function Orgs() {
                           </div>
                         </>
                       ) : (
-                        <div className="text-[16px] font-medium text-graytext-mid italic">Vacant Position</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPorTargetType('house')
+                            setSelectedOrgId(h.id)
+                            setSelectedPorType('Deputy House Secretary')
+                            setShowPorModal(true)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-white/15 px-2.5 py-1.5 text-[13px] font-medium text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+                        >
+                          + Assign Deputy
+                        </button>
                       )}
                     </div>
 
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 relative overflow-hidden group">
+                    <div className="rounded-xl border border-white/8 bg-onyx p-4 relative overflow-hidden group">
                       <div className="absolute -right-6 -top-6 text-[100px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-blue-400">💻</div>
                       <p className="text-caption font-semibold text-graytext-mid mb-1 uppercase tracking-wider">Web Admin</p>
                       {webAdmin ? (
@@ -1682,18 +1694,45 @@ export default function Orgs() {
                           </div>
                         </>
                       ) : (
-                        <div className="text-[16px] font-medium text-graytext-mid italic">Vacant Position</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPorTargetType('house')
+                            setSelectedOrgId(h.id)
+                            setSelectedPorType('Web Admin')
+                            setShowPorModal(true)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-white/15 px-2.5 py-1.5 text-[13px] font-medium text-graytext-mid hover:border-blue-400/40 hover:text-blue-300 transition-colors"
+                        >
+                          + Assign Web Admin
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-5 flex items-center justify-between">
+                  <div className="mt-6 rounded-xl border border-white/8 bg-onyx p-5 flex items-center justify-between">
                     <div>
                       <p className="text-caption font-semibold text-graytext-mid uppercase tracking-wider">Regional Coordinators</p>
                       <p className="text-[13px] text-graytext-light mt-1">Responsible for regional meetups and student support.</p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-[24px] font-bold text-offwhite">{rcs.length} <span className="text-[16px] text-graytext-mid font-medium">/ 10</span></div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-[24px] font-bold text-offwhite">{rcs.length} <span className="text-[16px] text-graytext-mid font-medium">/ 10</span></div>
+                      </div>
+                      {rcs.length < 10 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPorTargetType('house')
+                            setSelectedOrgId(h.id)
+                            setSelectedPorType('Regional Coordinator')
+                            setShowPorModal(true)
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-white/15 px-2.5 py-1.5 text-[13px] font-medium text-graytext-mid hover:border-teal/40 hover:text-teal transition-colors"
+                        >
+                          + Add RC
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>

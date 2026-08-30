@@ -9,9 +9,9 @@
  */
 
 import { useState, useEffect } from 'react'
-import { usePathname } from '../../next-compat'
+import { usePathname, Link } from '../../next-compat'
 import { motion } from 'framer-motion'
-import { getSecondaryNav, getPageLabel, hasSecondaryNav, SectionLink } from './navigation-config'
+import { getSecondaryNav, getPageLabel, hasSecondaryNav, APP_ROUTES, SectionLink } from './navigation-config'
 
 export default function SecondaryNav() {
     const pathname = usePathname()
@@ -87,7 +87,7 @@ export default function SecondaryNav() {
             className="flex justify-center px-4"
         >
             <nav
-                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full"
+                className="flex max-w-full items-center gap-1 px-2 py-1.5 rounded-full"
                 style={{
                     background: 'rgba(15, 15, 15, 0.9)',
                     backdropFilter: 'blur(16px)',
@@ -100,7 +100,7 @@ export default function SecondaryNav() {
             >
                 {/* Page Label */}
                 <span
-                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                    className="hidden shrink-0 sm:inline-block px-4 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap"
                     style={{
                         color: 'rgba(92, 230, 201, 0.9)',
                         borderRight: '1px solid rgba(255, 255, 255, 0.1)'
@@ -110,7 +110,7 @@ export default function SecondaryNav() {
                 </span>
 
                 {/* Section Links */}
-                <div className="flex items-center gap-0.5 px-1">
+                <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-hide px-1">
                     {sections.map((section) => {
                         const isActive = activeSection === section.target
 
@@ -156,6 +156,26 @@ export default function SecondaryNav() {
                             </a>
                         )
                     })}
+                </div>
+
+                {/* Ekatva OS actions - the handoff from the movement to the product */}
+                <div
+                    className="flex shrink-0 items-center gap-1 pl-2"
+                    style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.1)' }}
+                >
+                    <Link
+                        href={APP_ROUTES.logIn}
+                        className="px-3 py-2 text-xs font-medium whitespace-nowrap rounded-full transition-colors duration-200 text-white/70 hover:text-white hover:bg-white/5"
+                    >
+                        Log in
+                    </Link>
+                    <Link
+                        href={APP_ROUTES.signUp}
+                        className="px-4 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap rounded-full bg-ekatva-teal text-oneness-black transition-all duration-200 hover:bg-accent-turquoise"
+                        style={{ boxShadow: '0 0 16px rgba(92, 230, 201, 0.25)' }}
+                    >
+                        Get Started
+                    </Link>
                 </div>
             </nav>
         </motion.div>

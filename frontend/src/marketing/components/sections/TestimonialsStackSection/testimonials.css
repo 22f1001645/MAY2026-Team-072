@@ -1,0 +1,219 @@
+/* Testimonials Stack Section - GSAP ScrollTrigger Powered */
+
+/* Main Section Container */
+.testimonials-section {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, #050505 0%, #0E2F36 50%, #050505 100%);
+}
+
+/* Desktop Layout - Flowfest-Inspired Vertical Stack */
+.testimonials-desktop {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    /* Center cards vertically */
+    justify-content: center;
+    padding-top: 20vh;
+    /* Visual hierarchy: title breathing room */
+    padding-bottom: 5vh;
+    box-sizing: border-box;
+
+    /* 3D Perspective for depth effect */
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
+}
+
+/* Decorative Vertical Text */
+.testimonials-vertical-text {
+    position: absolute;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%) rotate(180deg);
+    opacity: 0.07;
+    pointer-events: none;
+    writing-mode: vertical-rl;
+}
+
+/* Section Header */
+.testimonials-header {
+    position: absolute;
+    top: 8vh;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 50;
+    width: 100%;
+    max-width: 800px;
+    padding: 0 1rem;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .testimonials-desktop {
+        padding-top: 180px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .testimonials-header {
+        left: 8rem;
+        transform: none;
+        text-align: left;
+    }
+
+    .testimonials-desktop {
+        padding-top: 220px;
+    }
+}
+
+/* Card Stack Container - 3D Transform Context */
+.card-stack-container {
+    position: relative;
+    width: 90%;
+    max-width: 480px;
+    /* Compact - Flowfest parity */
+    height: clamp(240px, 32vh, 320px);
+    /* Fully viewable in viewport */
+    max-height: calc(100vh - 35vh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Enable 3D transforms for children */
+    transform-style: preserve-3d;
+}
+
+/* Individual Testimonial Card - Desktop */
+.testimonial-card {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    padding: 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 2rem;
+
+    /* 100% SOLID Background - Flowfest-parity, zero bleed-through */
+    background: #0E2F36;
+    border: 1.5px solid rgb(92 230 201 / 0.18);
+    box-shadow:
+        0 20px 60px rgb(0 0 0 / 0.6),
+        0 40px 80px -20px rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+
+    /* GPU Optimization */
+    will-change: transform, opacity, filter;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+
+    /* Subtle accent glow at top edge */
+    border-top: 1.5px solid rgb(92 230 201 / 0.22);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STACKED EDGE EFFECT - "Cherry on the Cake" (Flowfest-inspired)
+   Creates visual depth with ghost layers behind each card
+   ═══════════════════════════════════════════════════════════════ */
+
+/* First ghost layer - closest to card */
+.testimonial-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.5px solid rgb(92 230 201 / 0.12);
+    background: transparent;
+    z-index: -1;
+    transform: translate(-3px, -3px) rotate(-0.8deg);
+    pointer-events: none;
+}
+
+/* Second ghost layer - deeper */
+.testimonial-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.5px solid rgb(92 230 201 / 0.08);
+    background: transparent;
+    z-index: -2;
+    transform: translate(-6px, -6px) rotate(-1.5deg);
+    pointer-events: none;
+}
+
+@media (min-width: 768px) {
+    .card-stack-container {
+        height: 360px;
+        /* Compact - fully visible */
+    }
+
+    .testimonial-card {
+        padding: 2rem 2.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .card-stack-container {
+        height: 380px;
+        /* Slightly taller on desktop */
+    }
+
+    .testimonial-card {
+        padding: 2.25rem 2.75rem;
+    }
+}
+
+/* Mobile Layout */
+.testimonials-mobile {
+    padding: 1.5rem 0 2rem;
+    /* Reduced top/bottom padding */
+}
+
+.testimonials-mobile-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Mobile Card */
+.testimonial-card-mobile {
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+
+    /* Glassmorphism */
+    background: rgb(14 47 54 / 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgb(92 230 201 / 0.12);
+    box-shadow: 0 4px 24px rgb(0 0 0 / 0.2);
+}
+
+/* Hide mobile on desktop, hide desktop on mobile */
+@media (min-width: 768px) {
+    .testimonials-mobile {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .testimonials-desktop {
+        display: none !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+    .testimonial-card,
+    .testimonial-card-mobile {
+        transition: none !important;
+        animation: none !important;
+    }
+}

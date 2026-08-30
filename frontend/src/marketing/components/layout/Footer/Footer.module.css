@@ -1,0 +1,59 @@
+/* Footer background: Deep vertical gradient + Spotlight Overlay */
+.footerGradient {
+  position: relative;
+  background: linear-gradient(180deg,
+      #1F4F59 0%,
+      /* Deep Teal (Top) */
+      #0E2F36 40%,
+      /* Darker Teal */
+      #050505 100%
+      /* Oneness Black (Bottom) */
+    );
+  overflow: hidden;
+}
+
+/* 1. The Living Spotlight (Synced with Breathe) */
+@keyframes pulseSpotlight {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.footerGradient::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(circle at 50% 50%,
+      rgba(31, 79, 89, 0.6) 0%,
+      transparent 70%);
+  animation: pulseSpotlight 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 2. The Cinematic Vignette (Dark Corners) */
+.footerGradient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%,
+      transparent 40%,
+      rgba(5, 5, 5, 0.6) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 3. The Traveling Horizon Bead (Optional extra polish for the top divider if needed) */
+/* (Currently the top divider is in JSX, but we could enhance it here) */

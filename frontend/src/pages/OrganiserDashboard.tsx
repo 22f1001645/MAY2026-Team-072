@@ -26,7 +26,6 @@ const STATUS_LABEL: Record<string, string> = {
 export default function OrganiserDashboard() {
   const { data, isLoading, isError, error } = useDashboard()
   const { data: notifications = [] } = useNotifications()
-  const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'All' | 'Live' | 'Pending' | 'Completed' | null>(null)
 
   const events: any[] = data?.my_events ?? []
@@ -162,7 +161,7 @@ export default function OrganiserDashboard() {
                         <rect x="3" y="5" width="18" height="16" rx="2" />
                         <path d="M16 3v4M8 3v4M3 10h18" />
                       </svg>
-                      {formatDate(e.starts_at || e.startsAt || new Date().toISOString())}
+                      {e.starts_at || e.startsAt ? formatDate(e.starts_at || e.startsAt) : 'Date to be confirmed'}
                     </div>
                     {e.venue && (
                       <div className="flex items-start gap-2">

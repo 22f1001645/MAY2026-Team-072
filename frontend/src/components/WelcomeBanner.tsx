@@ -10,9 +10,13 @@ export default function WelcomeBanner() {
     return () => clearInterval(timer)
   }, [])
   
+  // The small hours are their own band. `hour < 12` alone greeted anyone on the
+  // dashboard at 1am with "Good morning", which reads as a broken clock on a
+  // panel that displays the live time two inches to the right.
   const hour = time.getHours()
   let greeting = 'Good evening'
-  if (hour < 12) greeting = 'Good morning'
+  if (hour < 5) greeting = 'Working late'
+  else if (hour < 12) greeting = 'Good morning'
   else if (hour < 17) greeting = 'Good afternoon'
 
   const firstName = role === 'admin' ? 'ADMIN' : (name ? name.split(' ')[0].toUpperCase() : 'USER')

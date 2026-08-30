@@ -15,6 +15,10 @@ export default function Analytics() {
   const maxAtt = Math.max(1, ...byCity.map((c) => c.attendance))
   const feeUtil = totals.fee_util_pct ?? 0
   const repeatRate = totals.repeat_rate_pct ?? 0
+  // by_city carries every city in the system, including those that have never
+  // hosted. Counting the whole array turned "2 meetups" into "across 10 cities",
+  // which overstates reach on the one screen meant to measure it.
+  const hostingCities = byCity.filter((c) => (c.meetups ?? 0) > 0).length
 
   return (
     <div>
@@ -26,7 +30,7 @@ export default function Analytics() {
 
       {/* KPI row */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Meetups run" value={totals.meetups ?? 0} hint={`across ${byCity.length} cities`} />
+        <StatCard label="Meetups run" value={totals.meetups ?? 0} hint={hostingCities === 1 ? 'in 1 city' : `across ${hostingCities} cities`} />
         <StatCard label="Total attendance" value={totals.attendance ?? 0} tone="gold" hint={`${totals.unique ?? 0} unique students`} />
         <StatCard label="Repeat rate" value={`${repeatRate}%`} hint="attended more than once" />
         <StatCard label="Fee utilisation" value={`${feeUtil}%`} tone="gold" hint="used their ₹200 this term" />

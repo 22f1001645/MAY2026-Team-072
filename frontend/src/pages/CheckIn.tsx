@@ -112,6 +112,15 @@ export default function CheckIn() {
     }
   }, [selectedEventId, e]) // Depend on selectedEventId and e
 
+  // Check-in opens strictly 2 hours before the scheduled start time
+  const isCheckInOpen = useMemo(() => {
+    if (!e?.startsAt) return false
+    const startTime = new Date(e.startsAt).getTime()
+    const now = Date.now()
+    const twoHoursMs = 2 * 60 * 60 * 1000
+    return (startTime - now) <= twoHoursMs
+  }, [e?.startsAt])
+
   if (isDashLoading) return <Loading label="Loading check-in dashboard..." />
   if (isDashError) return <ErrorState error={dashError} />
 
@@ -123,15 +132,6 @@ export default function CheckIn() {
   const filtered = q.trim() === '' ? [] : roster.filter((a: any) =>
     (a.student ?? '').toLowerCase().includes(q.toLowerCase()),
   )
-
-  // Check-in opens strictly 2 hours before the scheduled start time
-  const isCheckInOpen = useMemo(() => {
-    if (!e?.startsAt) return false
-    const startTime = new Date(e.startsAt).getTime()
-    const now = Date.now()
-    const twoHoursMs = 2 * 60 * 60 * 1000
-    return (startTime - now) <= twoHoursMs
-  }, [e?.startsAt])
 
   const toggle = (reg: any) => {
     if (reg.attended || pendingIds.has(reg.id) || !e || !isCheckInOpen) return // check-in is one-way

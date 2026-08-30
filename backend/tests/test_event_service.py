@@ -165,6 +165,7 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id):
         "city": "Hyderabad",
         "org_id": org_id,
         "starts_at": "2026-08-15T10:00:00",
+        "ends_at": "2026-08-15T12:00:00",
         "venue": "Original Venue",
         "capacity": 50,
         "description": "Testing event edit/cancel",

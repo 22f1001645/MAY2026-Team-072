@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useCities, useOrgs, useSubmitProposal, useOrgProgression } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle, FormSelect, FormDatePicker } from '../components/ui'
+import { VenuePicker } from '../components/VenuePicker'
 import { scaleLabel, scaleMeta } from '../lib/format'
 import type { ActivityScale } from '../lib/types'
 import { api } from '../lib/api'
@@ -21,6 +22,18 @@ interface TeamRow {
   userName: string
   role: string
 }
+
+/** "2026-09-10T17:30" -> "17:30"; "" for anything without a time part. */
+const timeOf = (iso: string) => (iso.includes('T') ? iso.split('T')[1].slice(0, 5) : '')
+
+// Half-hour slots, shared by the start and end pickers.
+const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
+  const h = Math.floor(i / 2)
+  const m = i % 2 === 0 ? '00' : '30'
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return { label: `${h12}:${m} ${ampm}`, value: `${String(h).padStart(2, '0')}:${m}` }
+})
 
 const TEAM_ROLES = [
   'Meetup Head',
@@ -55,6 +68,7 @@ export default function ProposalNew() {
     org_id: '',
     city: '',
     starts_at: '',
+    ends_at: '',
     capacity: '',
     venue: '',
     description: '',
@@ -137,6 +151,22 @@ export default function ProposalNew() {
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
 
+  // starts_at and ends_at share one calendar date, so all three controls write
+  // through here rather than each re-deriving the other half of the pair.
+  const eventDate = form.starts_at.split('T')[0] || form.ends_at.split('T')[0] || ''
+  const setDateTime = ({ date, startTime, endTime }: { date?: string; startTime?: string; endTime?: string }) => {
+    const d = date ?? eventDate ?? ''
+    const start = startTime ?? timeOf(form.starts_at)
+    const end = endTime ?? timeOf(form.ends_at)
+    setForm((f) => ({
+      ...f,
+      starts_at: d && start ? `${d}T${start}` : '',
+      ends_at: d && end ? `${d}T${end}` : '',
+    }))
+  }
+  const endBeforeStart =
+    !!form.starts_at && !!form.ends_at && form.ends_at <= form.starts_at
+
   const searchUsers = async (q: string) => {
     setTeamSearch(q)
     if (q.length < 2) { setTeamSearchResults([]); return }
@@ -161,7 +191,7 @@ export default function ProposalNew() {
   // state-changing act on behalf of an organisation, and the fest lock is evaluated
   // against this exact pair. The auto-select effect above still fills org_id for the
   // single-house case, so the common path is unchanged.
-  const isStep1Valid = !!(form.title && form.org_id && form.city && form.starts_at && form.capacity && form.venue && form.description)
+  const isStep1Valid = !!(form.title && form.org_id && form.city && form.starts_at && form.ends_at && form.capacity && form.venue && form.description) && !endBeforeStart
   
   const cap = computeBudgetCap(scale, parseInt(form.capacity) || 0)
   const isBudgetValid = cap === null || cap === 0 || total <= cap
@@ -186,6 +216,7 @@ export default function ProposalNew() {
       scale,
       venue: form.venue,
       starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : '',
+      ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : '',
       capacity: parseInt(form.capacity) || 1,
       description: form.description,
       budget: lines
@@ -381,37 +412,38 @@ export default function ProposalNew() {
               <Label>Date & time *</Label>
               <div className="flex gap-2">
                 <FormDatePicker
-                  value={form.starts_at.split('T')[0] || ''}
-                  onChange={(date) => {
-                    const current = form.starts_at || ''
-                    const timePart = current.includes('T') ? current.split('T')[1] : '18:00'
-                    set('starts_at', `${date}T${timePart}`)
-                  }}
+                  value={eventDate}
+                  onChange={(date) => setDateTime({ date })}
                   onBlur={() => touch('starts_at')}
                   className="flex-1"
                 />
                 <FormSelect
-                  value={form.starts_at.includes('T') ? form.starts_at.split('T')[1].slice(0, 5) : ''}
-                  onChange={(time) => {
-                    const current = form.starts_at || ''
-                    const datePart = current ? current.split('T')[0] : new Date().toISOString().split('T')[0]
-                    set('starts_at', `${datePart}T${time}`)
-                  }}
+                  value={timeOf(form.starts_at)}
+                  onChange={(startTime) => setDateTime({ startTime })}
                   onBlur={() => touch('starts_at')}
-                  placeholder="Time"
-                  className="w-[120px]"
-                  options={Array.from({ length: 48 }).map((_, i) => {
-                    const h = Math.floor(i / 2)
-                    const m = i % 2 === 0 ? '00' : '30'
-                    const hh = String(h).padStart(2, '0')
-                    const ampm = h >= 12 ? 'PM' : 'AM'
-                    const h12 = h % 12 || 12
-                    return { label: `${h12}:${m} ${ampm}`, value: `${hh}:${m}` }
-                  })}
+                  placeholder="Start"
+                  className="w-[110px]"
+                  options={TIME_SLOTS}
+                />
+                <FormSelect
+                  value={timeOf(form.ends_at)}
+                  onChange={(endTime) => setDateTime({ endTime })}
+                  onBlur={() => touch('ends_at')}
+                  placeholder="End"
+                  className="w-[110px]"
+                  options={TIME_SLOTS}
                 />
               </div>
-              {showError('starts_at', 'Date and time are required') && (
-                <p role="alert" className="mt-1 text-caption text-red-300">{showError('starts_at', 'Date and time are required')}</p>
+              {showError('starts_at', 'Date and start time are required') && (
+                <p role="alert" className="mt-1 text-caption text-red-300">{showError('starts_at', 'Date and start time are required')}</p>
+              )}
+              {showError('ends_at', 'End time is required') && (
+                <p role="alert" className="mt-1 text-caption text-red-300">{showError('ends_at', 'End time is required')}</p>
+              )}
+              {endBeforeStart && (
+                <p role="alert" className="mt-1 text-caption text-red-300">
+                  The end time must be after the start time.
+                </p>
               )}
             </div>
             <div>
@@ -427,9 +459,13 @@ export default function ProposalNew() {
           </div>
           <div>
             <Label>Venue *</Label>
-            <Input value={form.venue} onChange={(e) => set('venue', e.target.value)}
+            <VenuePicker
+              value={form.venue}
+              onChange={(venue) => set('venue', venue)}
               onBlur={() => touch('venue')}
-              placeholder="Roastery Coffee House, Banjara Hills" required />
+              placeholder="Roastery Coffee House, Banjara Hills"
+              required
+            />
             {showError('venue', 'Venue is required') && (
               <p role="alert" className="mt-1 text-caption text-red-300">{showError('venue', 'Venue is required')}</p>
             )}

@@ -125,6 +125,15 @@ POR_WEB_ADMIN = "Web Admin"
 # --- Activity scale spectrum ---
 ACTIVITY_SCALES = ("local_meetup", "regional_meetup", "regional_fest")
 
+# --- Capacity ranges per activity scale (min, max) — max=None means open-ended.
+# Mirrors frontend/src/lib/format.ts's scaleMeta; keep the two in sync by hand,
+# there are only 3 tuples. ---
+CAPACITY_RANGES = {
+    "local_meetup": (30, 50),
+    "regional_meetup": (75, 100),
+    "regional_fest": (230, None),
+}
+
 # --- Event team role catalog (PROPOSAL-02) ---
 # A fixed catalog, assigned at proposal time and reviewed by the admin alongside
 # the proposal. Activity-scoped: holding one of these grants zero org-wide

@@ -76,6 +76,7 @@ def _valid_payload(org_id, team_user_id):
         "scale": "local_meetup",
         "venue": "Roastery Coffee House",
         "starts_at": "2027-03-15T10:00:00",
+        "ends_at": "2027-03-15T18:00:00",
         "capacity": 50,
         "description": "A meetup for IITM BS students",
         "budget": [{"label": "Venue", "planned": 3000}],
@@ -143,6 +144,7 @@ class TestBudgetCap:
             "scale": scale,
             "venue": "Test Venue",
             "starts_at": "2027-04-15T10:00:00",
+            "ends_at": "2027-04-15T18:00:00",
             "capacity": capacity,
             "budget": [{"label": "All", "planned": budget_total}],
             "team": [{"user_id": team_user_id, "role": TEAM_ROLE_MEETUP_HEAD}],
@@ -167,20 +169,30 @@ class TestBudgetCap:
         assert resp.status_code == 400
         assert resp.get_json()["code"] == "budget_cap_exceeded"
 
+    # These two used to submit a local_meetup with capacity=200, where the
+    # per-head allowance (200 × ₹200 = ₹40,000) overshot the ₹20,000 absolute
+    # ceiling and `min` had to pick the ceiling. CAPACITY_RANGES now caps a
+    # local_meetup at 50 and a regional_meetup at 100, so the largest budget any
+    # non-exempt scale can ask for is 100 × ₹200 = ₹20,000 — exactly the
+    # ceiling. The ₹20,000 boundary is still asserted here; what can no longer
+    # be reached through the API is a case where the ceiling binds STRICTLY
+    # tighter than the per-head allowance. BUDGET_ABSOLUTE_CEILING stays as
+    # defence in depth: raise ACTIVITY_FEE_INR or a tier ceiling and it binds
+    # again.
     def test_at_absolute_ceiling_accepted(self, app, client):
-        """BUDGET-01: capacity=200 → cap=min(40000,20000)=20000 → budget=20000 → 201."""
+        """BUDGET-01: capacity=100 → cap=min(20000,20000)=20000 → budget=20000 → 201."""
         with app.app_context():
             org_id = Organisation.query.filter_by(type="region").first().id
             team_id = User.query.filter_by(email="arav@ekatva.os").first().id
-        resp = self._submit(client, org_id, team_id, "local_meetup", 200, 20_000)
+        resp = self._submit(client, org_id, team_id, "regional_meetup", 100, 20_000)
         assert resp.status_code == 201
 
     def test_over_absolute_ceiling_rejected(self, app, client):
-        """BUDGET-01: capacity=200 → cap=20000 → budget=20001 → 400."""
+        """BUDGET-01: capacity=100 → cap=20000 → budget=20001 → 400."""
         with app.app_context():
             org_id = Organisation.query.filter_by(type="region").first().id
             team_id = User.query.filter_by(email="arav@ekatva.os").first().id
-        resp = self._submit(client, org_id, team_id, "local_meetup", 200, 20_001)
+        resp = self._submit(client, org_id, team_id, "regional_meetup", 100, 20_001)
         assert resp.status_code == 400
         assert resp.get_json()["code"] == "budget_cap_exceeded"
 

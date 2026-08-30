@@ -18,6 +18,7 @@ from .task_controller import task_bp
 from .feedback_controller import feedback_bp
 from .timeline_controller import timeline_bp
 from .channel_controller import channel_bp
+from .venue_controller import venue_bp
 
 ALL_BLUEPRINTS = [
     auth_bp,
@@ -42,4 +43,5 @@ ALL_BLUEPRINTS = [
     feedback_bp,
     timeline_bp,
     channel_bp,
+    venue_bp,
 ]

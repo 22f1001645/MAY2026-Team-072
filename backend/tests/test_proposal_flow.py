@@ -2,6 +2,8 @@
 register → check-in → points. Plus RBAC and the quota guardrail."""
 from app.models import Organisation
 
+from .conftest import two_hours_after
+
 
 def _org_id():
     return Organisation.query.first().id
@@ -29,6 +31,8 @@ def _proposal_payload(**over):
         "collaborating_org_ids": [],
     }
     base.update(over)
+    # After the override, so a test that moves starts_at keeps a valid range.
+    base.setdefault("ends_at", two_hours_after(base["starts_at"]))
     return base
 
 
@@ -42,6 +46,54 @@ def test_organiser_can_submit_proposal(client, rc_headers):
     res = client.post("/api/v1/activities", json=_proposal_payload(), headers=rc_headers)
     assert res.status_code == 201
     assert res.get_json()["proposal_status"] == "submitted"
+
+
+def test_capacity_above_the_scale_ceiling_is_rejected(client, rc_headers):
+    """The tier ranges the UI advertises are enforced as a ceiling.
+
+    Before this, only the budget cap pushed back on an oversized meetup, and it
+    did so indirectly."""
+    res = client.post(
+        "/api/v1/activities",
+        json=_proposal_payload(scale="local_meetup", capacity=500),
+        headers=rc_headers,
+    )
+    assert res.status_code == 422
+    assert "capacity" in res.get_json()["details"]
+
+
+def test_capacity_below_the_scale_floor_is_allowed(client, rc_headers):
+    """The floor is guidance, not a rule — a 20-person meetup is a real meetup."""
+    res = client.post(
+        "/api/v1/activities",
+        json=_proposal_payload(scale="local_meetup", capacity=20),
+        headers=rc_headers,
+    )
+    assert res.status_code == 201
+
+
+def test_end_time_before_start_time_is_rejected(client, rc_headers):
+    res = client.post(
+        "/api/v1/activities",
+        json=_proposal_payload(
+            starts_at="2026-09-10T17:30:00", ends_at="2026-09-10T16:00:00"
+        ),
+        headers=rc_headers,
+    )
+    assert res.status_code == 422
+    assert "ends_at" in res.get_json()["details"]
+
+
+def test_unknown_city_is_rejected(client, rc_headers):
+    """A typo'd city would orphan the row: quota and progression lookups both
+    compare the string exactly and would never match it again."""
+    res = client.post(
+        "/api/v1/activities",
+        json=_proposal_payload(city="Hyderbad"),
+        headers=rc_headers,
+    )
+    assert res.status_code == 422
+    assert "city" in res.get_json()["details"]
 
 
 def test_quota_guardrail_blocks_second_meetup_same_month(client, rc_headers):

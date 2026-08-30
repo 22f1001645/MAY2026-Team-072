@@ -1,6 +1,8 @@
 from app.extensions import db
 from app.models import Attendance, ContributionPoint, Registration, User
 
+from .conftest import two_hours_after
+
 
 def _meetup_head_id():
     return User.query.filter_by(email="head@ekatva.os").first().id
@@ -13,6 +15,7 @@ def _setup_approved_event(client, rc_headers, admin_headers, org_id, starts_at="
         "city": "Hyderabad",
         "org_id": org_id,
         "starts_at": starts_at,
+        "ends_at": two_hours_after(starts_at),
         "venue": "Test Venue",
         "capacity": 50,
         "description": "Testing QR scan check-in",

@@ -107,6 +107,7 @@ def _fest_payload(org_id, team_user_id, city="Hyderabad", collaborating_org_ids=
         "scale": "regional_fest",
         "venue": "Hitex Exhibition Centre",
         "starts_at": "2027-03-15T10:00:00",
+        "ends_at": "2027-03-15T18:00:00",
         "capacity": 500,
         "description": "The regional fest for IITM BS students",
         "budget": [{"label": "Venue", "planned": 3000}],

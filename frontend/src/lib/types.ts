@@ -35,6 +35,15 @@ export interface Account {
 
 export type ActivityScale = 'local_meetup' | 'regional_meetup' | 'regional_fest'
 
+/** One row in the VenuePicker dropdown. lat/lng are absent for some upstream
+ *  records, which is why they are nullable rather than optional-but-required. */
+export interface VenueSuggestion {
+  name: string
+  address: string
+  lat: number | null
+  lng: number | null
+}
+
 export type ProposalStatus =
   | 'draft'
   | 'submitted'
@@ -141,6 +150,7 @@ export interface EkatvaEvent {
   status: EventStatus
   proposalStatus: ProposalStatus
   startsAt: string // ISO
+  endsAt?: string | null // ISO; absent/null on rows created before the column existed
   venue: string
   description: string
   capacity: number

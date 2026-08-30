@@ -22,6 +22,7 @@ def test_leaderboard_and_points(client, app, student_headers, rc_headers, admin_
         "city": "Hyderabad",
         "org_id": o_id,
         "starts_at": "2026-08-15T10:00:00",
+        "ends_at": "2026-08-15T12:00:00",
         "venue": "Test Venue",
         "capacity": 50,
         "description": "Testing points logic",

@@ -26,7 +26,7 @@ from app.extensions import db
 from app.models import AuditLog, Expense
 from app.services import timeline_service
 
-from .conftest import meetup_head_user, region_org
+from .conftest import meetup_head_user, region_org, two_hours_after
 
 GOOD_URL = "https://www.instagram.com/p/CabcDEF123/"
 
@@ -61,6 +61,7 @@ def _approved_activity(
         "scale": "local_meetup",
         "venue": "Somewhere",
         "starts_at": starts_at,
+        "ends_at": two_hours_after(starts_at),
         "capacity": 30,
         "budget": [{"label": "Snacks", "planned": 4000}],
         "team": [{"user_id": meetup_head_user().id, "role": "Meetup Head"}],

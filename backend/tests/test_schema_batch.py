@@ -25,12 +25,17 @@ MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 BASELINE_REVISION = "312ea9fc2c96"
 BATCH_REVISION = "213804635519"
-HEAD_REVISION = "dd6a0887416b" # dd6a0887416b — notifications.action_url + the organisation profile columns
+HEAD_REVISION = "ad7c3753f727" # ad7c3753f727 — activities.ends_at, so an event can carry a time RANGE
 # If a FUTURE phase legitimately adds a revision, this number is the thing to
 # update — deliberately, in a review, alongside a note saying which revision was
 # added and why. It is not the thing to delete. The count is what stops a
 # schema change from quietly arriving as three half-reviewed revisions.
-EXPECTED_REVISION_COUNT = 13
+#
+# 13 -> 14: ad7c3753f727 adds the nullable activities.ends_at column. The
+# proposal form only ever captured a start time, so "6pm-8pm" could not be
+# expressed; ends_at is nullable at the DB level and required by ProposalSchema,
+# which keeps every pre-existing row and Activity(...) construction valid.
+EXPECTED_REVISION_COUNT = 14
 # 7th: f997686e136b adds organisations.website — ORG-02 decision D-03 models the
 # organisation's own site as a distinct column rather than a `platform` row on
 # organisation_social_links, so the host-allowlist guarantee stays true of every

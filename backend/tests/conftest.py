@@ -146,6 +146,17 @@ def _seed_minimal():
     db.session.commit()
 
 
+def two_hours_after(starts_at: str) -> str:
+    """`ends_at` for a fixture, derived from its `starts_at`.
+
+    ProposalSchema requires ends_at and rejects one that is not after
+    starts_at, so a hardcoded literal breaks the moment a test overrides
+    starts_at to dodge the one-meetup-per-region-per-month quota."""
+    return (
+        datetime.fromisoformat(starts_at.replace("Z", "+00:00")) + timedelta(hours=2)
+    ).isoformat()
+
+
 def _token(client, email, password):
     res = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     return res.get_json()["access_token"]

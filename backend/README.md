@@ -41,6 +41,19 @@ flask db downgrade                          # step back one revision — DEVELOP
 `flask db current` prints the revision the database sits at. The Flask CLI finds the app via
 `.flaskenv` (`FLASK_APP=run.py`), which is committed.
 
+## Optional environment variables
+
+Both are server-side only. Never re-expose either under a `VITE_*` name — Vite inlines
+those into the client bundle.
+
+| Variable | Unset behaviour |
+|---|---|
+| `GEMINI_API_KEY` | AI-drafted brand kit (ORG-04) is off; the endpoint answers 503. |
+| `MAPPLS_API_KEY` | Venue autocomplete is off; `GET /venues/autocomplete` answers 501 and the proposal form's venue field behaves as a plain text input. |
+
+The app is fully usable with neither set, which is how it should be run by anyone who
+has not signed up for those services.
+
 **`downgrade` is a development-only affordance.** It is never part of a deployment step: on
 SQLite a downgrade is executed as a table copy, and rolling one back against real data is a
 data-loss risk rather than a rollback strategy. To undo a bad revision in production, write a

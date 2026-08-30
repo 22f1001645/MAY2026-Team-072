@@ -156,6 +156,7 @@ def submit_proposal(data: dict, organiser) -> Activity:
         scale=data["scale"],
         venue=data["venue"],
         starts_at=data["starts_at"],
+        ends_at=data.get("ends_at"),
         capacity=data["capacity"],
         status=EVENT_UPCOMING,
         organiser_id=organiser.id,

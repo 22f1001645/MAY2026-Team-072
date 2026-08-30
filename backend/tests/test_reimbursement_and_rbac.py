@@ -14,6 +14,7 @@ def _make_approved_activity(client, rc_headers, admin_headers):
         "scale": "local_meetup",
         "venue": "Somewhere",
         "starts_at": "2026-10-05T17:30:00",
+        "ends_at": "2026-10-05T19:30:00",
         "capacity": 30,
         "budget": [{"label": "Snacks", "planned": 5000}],
         "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],

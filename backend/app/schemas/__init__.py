@@ -16,6 +16,7 @@ from ..constants import (
     ACTIVITY_SCALES,
     BRAND_KIT_MANUAL,
     BRAND_KIT_SOURCES,
+    CAPACITY_RANGES,
     COLLAB_ACCEPTED,
     COLLAB_DECLINED,
     FORM_FIELD_TYPES,
@@ -72,12 +73,60 @@ class ProposalSchema(Schema):
     scale = fields.Str(required=True, validate=validate.OneOf(ACTIVITY_SCALES))
     venue = fields.Str(required=True)
     starts_at = fields.DateTime(required=True)
+    ends_at = fields.DateTime(required=True)
     capacity = fields.Int(required=True, validate=validate.Range(min=1))
     description = fields.Str(load_default="")
     budget = fields.List(fields.Nested(BudgetLineSchema), load_default=list)
     # Phase 3 additions (PROPOSAL-01, PROPOSAL-02)
     team = fields.List(fields.Nested(TeamMemberInputSchema), load_default=list)
     collaborating_org_ids = fields.List(fields.String(), load_default=list)
+
+    @validates_schema
+    def _capacity_fits_the_scale(self, data, **kwargs):
+        """Ceiling only — the tier minimum stays guidance, not a rule.
+
+        The gap worth closing is a local_meetup submitted with capacity 5000,
+        where nothing but the budget cap pushed back. The floor is deliberately
+        NOT enforced: a 20-person local meetup is a perfectly good meetup, and
+        an organiser expecting a small turnout should not be argued with by a
+        422. The UI still shows the range as the suggested size."""
+        scale = data.get("scale")
+        capacity = data.get("capacity")
+        if scale is None or capacity is None:
+            return  # field-level validation already flagged the missing one
+        _, high = CAPACITY_RANGES[scale]
+        if high is not None and capacity > high:
+            raise ValidationError(
+                f"A {scale.replace('_', ' ')} tops out at {high} people. "
+                "Pick a larger activity scale for a bigger event.",
+                field_name="capacity",
+            )
+
+    @validates_schema
+    def _ends_after_it_starts(self, data, **kwargs):
+        starts_at, ends_at = data.get("starts_at"), data.get("ends_at")
+        if starts_at is None or ends_at is None:
+            return
+        if ends_at <= starts_at:
+            raise ValidationError(
+                "The end time must be after the start time.", field_name="ends_at"
+            )
+
+    @validates_schema
+    def _city_is_a_real_city(self, data, **kwargs):
+        """Checked against the live City table, not a static allowlist.
+
+        Cities are added at runtime (POST /regions/<id>/cities), so a list
+        captured at import time would start rejecting new ones. Without this
+        a typo'd city silently orphans the row: quota and progression lookups
+        both compare the string exactly and would never match it."""
+        city = data.get("city")
+        if city is None:
+            return
+        from ..models import City
+
+        if not City.query.filter_by(name=city).first():
+            raise ValidationError("Unknown city.", field_name="city")
 
 
 class DecisionSchema(Schema):

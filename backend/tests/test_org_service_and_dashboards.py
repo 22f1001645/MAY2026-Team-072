@@ -2,6 +2,8 @@
 and registration edge cases (capacity, unregistering, broadcasting)."""
 from app.models import User, Organisation, Activity, Registration, PORAssignment
 
+from .conftest import two_hours_after
+
 
 def _meetup_head_id():
     return User.query.filter_by(email="head@ekatva.os").first().id
@@ -16,6 +18,7 @@ def _activity_payload(title, starts_at, capacity=10, scale="local_meetup", **ext
         "scale": scale,
         "venue": "Test Venue",
         "starts_at": starts_at,
+        "ends_at": two_hours_after(starts_at),
         "capacity": capacity,
         "team": [{"user_id": _meetup_head_id(), "role": "Meetup Head"}],
         "collaborating_org_ids": [],

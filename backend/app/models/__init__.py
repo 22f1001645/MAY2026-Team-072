@@ -325,6 +325,10 @@ class Activity(Base):
     scale = db.Column(db.String(30), nullable=False, default="local_meetup")
     venue = db.Column(db.String(200))
     starts_at = db.Column(db.DateTime)
+    # Nullable to match starts_at/venue/city: rows predating the column, and the
+    # many direct Activity(...) constructions in tests, must stay valid. New
+    # proposals are held to it by ProposalSchema, not by the DB.
+    ends_at = db.Column(db.DateTime)
     capacity = db.Column(db.Integer, default=50)
     status = db.Column(db.String(20), default="upcoming")  # upcoming|live|completed|archived
     organiser_id = db.Column(db.String(32), db.ForeignKey("users.id"))
@@ -375,6 +379,7 @@ class Activity(Base):
             "scale": self.scale,
             "venue": self.venue,
             "starts_at": _iso(self.starts_at),
+            "ends_at": _iso(self.ends_at),
             "capacity": self.capacity,
             "status": self.status,
             "tags": self.tags,

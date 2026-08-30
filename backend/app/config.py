@@ -61,6 +61,12 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
+    # Venue autocomplete (Mappls Autosuggest). Same posture as GEMINI_API_KEY:
+    # server-side only, never a VITE_* name, and an unset key means the feature
+    # is off — /venues/autocomplete answers 501 and the picker falls back to a
+    # plain text input rather than the app breaking.
+    MAPPLS_API_KEY = os.getenv("MAPPLS_API_KEY")
+
 
 class TestConfig(Config):
     TESTING = True

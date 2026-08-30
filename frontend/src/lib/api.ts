@@ -15,6 +15,7 @@ import type {
   OrgUnlock,
   Organisation,
   Role,
+  VenueSuggestion,
 } from './types'
 
 /* ---------------------------------------------------------------------------
@@ -195,6 +196,7 @@ export interface ApiActivity {
   status: string
   proposal_status: string | null
   starts_at: string
+  ends_at?: string | null
   venue: string
   capacity: number
   registered: number
@@ -219,6 +221,7 @@ export function adaptEvent(a: ApiActivity): EkatvaEvent {
     status: a.status as EkatvaEvent['status'],
     proposalStatus: (a.proposal_status ?? 'submitted') as EkatvaEvent['proposalStatus'],
     startsAt: a.starts_at,
+    endsAt: a.ends_at ?? null,
     venue: a.venue,
     description: a.description ?? '',
     capacity: a.capacity,
@@ -741,6 +744,18 @@ export const api = {
   markNotificationRead: (id: string) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
   clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   deleteNotification: (id: string) => request(`/notifications/${id}`, { method: 'DELETE' }),
+
+  /** Venue suggestions for the proposal form.
+   *
+   *  Resolves to [] when the backend answers 501 (no Mappls key configured) so
+   *  the picker degrades to a plain text input instead of surfacing an error —
+   *  typed text is always a valid venue. */
+  venueAutocomplete: (q: string) =>
+    request<{ suggestions: VenueSuggestion[] }>(
+      `/venues/autocomplete?q=${encodeURIComponent(q)}`,
+    )
+      .then((r) => r.suggestions)
+      .catch(() => []),
 
   // Proposals / approval (B)
   submitProposal: (payload: any) =>

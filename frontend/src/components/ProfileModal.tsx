@@ -29,23 +29,26 @@ export function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const initials = userName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'ST'
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 animate-fade-in">
-      {/* Absolute Backdrop - no blur here so the modal stands out */}
-      <div className="absolute inset-0 bg-scrim/80" onClick={onClose} />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12">
+      {/* Scrim — blurs the background behind the modal (Apple material dimming layer) */}
+      <div
+        className="absolute inset-0 bg-scrim/75 backdrop-blur-xl saturate-150 animate-fade-in"
+        onClick={onClose}
+      />
       
-      {/* Holographic Modal Container */}
-      <div className="relative w-full max-w-5xl overflow-hidden rounded-[40px] border border-white/5 bg-onyx/40 backdrop-blur-3xl shadow-[0_0_100px_rgba(14,47,54,0.8),0_0_40px_rgba(92,230,201,0.1)] animate-fade-up will-change-transform flex flex-col md:flex-row min-h-[500px]">
+      {/* Holographic Modal Container — spring-modal entry: scale(0.96)→1 + translateY(20)→0 */}
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-[40px] border border-white/10 bg-onyx/50 backdrop-blur-3xl shadow-[0_0_100px_rgba(14,47,54,0.8),0_0_40px_rgba(92,230,201,0.12),inset_0_1px_0_rgba(255,255,255,0.07)] animate-spring-modal flex flex-col md:flex-row min-h-[500px]">
         
         {/* Holographic Ethereal Aura */}
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[140%] bg-teal/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[120%] bg-emerald/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
 
-        {/* Close Button */}
+        {/* Close Button — active:scale-95 for Emil-style press feedback */}
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 h-12 w-12 rounded-full flex items-center justify-center text-graytext-mid hover:text-white transition-colors z-20 group"
-          title="Close"
+          className="absolute top-6 right-6 h-12 w-12 rounded-full flex items-center justify-center text-graytext-mid hover:text-white transition-[transform,color] active:scale-95 z-20 group"
+          aria-label="Close profile modal"
         >
           <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 rounded-full transition-colors backdrop-blur-md" />
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10"><path d="M18 6L6 18M6 6l12 12" /></svg>

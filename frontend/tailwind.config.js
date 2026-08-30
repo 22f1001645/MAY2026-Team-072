@@ -99,6 +99,14 @@ export default {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'spring-modal': {
+          '0%': { opacity: '0', transform: 'translate3d(0, 20px, 0) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0) scale(1)' },
+        },
         'slideInRight': {
           '0%': { transform: 'translate3d(100%, 0, 0)' },
           '100%': { transform: 'translate3d(0, 0, 0)' },
@@ -111,6 +119,8 @@ export default {
         'gradient-shift': 'gradient-shift 8s ease-in-out infinite',
         // Fade-in reveal: 20px upward slide + opacity 0→1 (brand kit §7)
         'fade-up': 'fade-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
+        'fade-in': 'fade-in 0.25s ease-out both',
+        'spring-modal': 'spring-modal 0.35s cubic-bezier(0.23, 1, 0.32, 1) both',
         'spin-slow': 'spin-slow 2.4s linear infinite',
         'shake': 'shake 0.4s ease-in-out',
         'spring-up': 'spring-up 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.1) both',

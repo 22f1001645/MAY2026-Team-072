@@ -32,8 +32,10 @@ class _FakeResponse:
 MAPPLS_PAYLOAD = {
     "suggestedLocations": [
         {
+            # Mappls HTML-escapes its text; the picker renders text nodes
+            # literally, so "&amp;" must be decoded before it leaves here.
             "placeName": "Roastery Coffee House",
-            "placeAddress": "Banjara Hills, Hyderabad",
+            "placeAddress": "Plot 624 &amp; 626, Banjara Hills, Hyderabad",
             "latitude": 17.41,
             "longitude": 78.44,
         },
@@ -81,7 +83,7 @@ def test_suggestions_come_back_normalised(keyed_app, client, rc_headers):
     assert suggestions == [
         {
             "name": "Roastery Coffee House",
-            "address": "Banjara Hills, Hyderabad",
+            "address": "Plot 624 & 626, Banjara Hills, Hyderabad",
             "lat": 17.41,
             "lng": 78.44,
         }

@@ -26,6 +26,7 @@ service having a bad day must never look like a form error.
                 ▼
         normalise ──► store in _cache (60s TTL) ──► suggestions
 """
+import html
 import json
 import time
 import urllib.error
@@ -124,7 +125,11 @@ def _cache_put(key: str, suggestions: list[dict]) -> None:
 
 
 def _normalise(payload: dict) -> list[dict]:
-    """Mappls returns richer records than the picker needs; keep four fields."""
+    """Mappls returns richer records than the picker needs; keep four fields.
+
+    Names and addresses arrive HTML-escaped ("CTS 624 &amp; 626"). React
+    renders text nodes literally, so unescaping here is what stops "&amp;"
+    reaching the organiser's screen."""
     out = []
     for item in payload.get("suggestedLocations", []) or []:
         name = item.get("placeName")
@@ -132,8 +137,8 @@ def _normalise(payload: dict) -> list[dict]:
             continue
         out.append(
             {
-                "name": name,
-                "address": item.get("placeAddress", ""),
+                "name": html.unescape(name),
+                "address": html.unescape(item.get("placeAddress", "")),
                 "lat": item.get("latitude"),
                 "lng": item.get("longitude"),
             }

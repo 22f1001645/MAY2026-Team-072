@@ -1,6 +1,7 @@
 import { useAnalytics } from '../lib/queries'
 import { Card, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import ExportButton from '../components/ExportButton'
 import { cx } from '../lib/format'
 
 // FR-H: descriptive community analytics + the ₹200 activity-fee utilisation wedge
@@ -26,6 +27,26 @@ export default function Analytics() {
         eyebrow="Admin · Intelligence"
         title="Community Analytics"
         sub="Who's showing up, who's coming back, and whether the ₹200 activity fee is doing its job — by city, this term."
+        right={
+          /* The term report is written outside Ekatva OS; this is the table it needs. */
+          <ExportButton
+            kind="community-analytics"
+            disabled={byCity.length === 0}
+            columns={['City', 'Meetups', 'Attendance', 'Unique students', 'Repeat students', 'Fee paid', 'Fee used', 'Fee utilisation %']}
+            rows={() =>
+              byCity.map((c: any) => ({
+                City: c.city ?? '',
+                Meetups: c.meetups ?? 0,
+                Attendance: c.attendance ?? 0,
+                'Unique students': c.unique ?? 0,
+                'Repeat students': c.repeat ?? 0,
+                'Fee paid': c.fee_paid ?? 0,
+                'Fee used': c.fee_used ?? 0,
+                'Fee utilisation %': c.fee_util_pct ?? 0,
+              }))
+            }
+          />
+        }
       />
 
       {/* KPI row */}

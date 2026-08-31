@@ -59,7 +59,20 @@ class Config:
     # client bundle. An unset key means the feature is simply off — the endpoint
     # degrades to 503 rather than failing at import time.
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+    # A POOL of keys, comma-separated, tried in order. A free-tier key has a
+    # small daily quota and a per-minute rate limit; with one key, the first hit
+    # of either turns every AI surface into a 503 for the rest of the day. With
+    # several, services.gemini parks the spent key and the next one answers
+    # within the same request. GEMINI_API_KEY above is appended to this pool, so
+    # a single-key deployment keeps working untouched.
+    GEMINI_API_KEYS = os.getenv("GEMINI_API_KEYS", "")
+
+    # gemini-2.5-flash was the previous default, but Google now refuses it for
+    # keys issued after its deprecation — "no longer available to new users",
+    # returned as a 404 on the model rather than an auth error on the key. A new
+    # teammate cloning this repo would have hit that on every AI surface.
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
     # Venue autocomplete (Mappls Autosuggest). Same posture as GEMINI_API_KEY:
     # server-side only, never a VITE_* name, and unset means the feature is

@@ -20,11 +20,12 @@ explain the choice. A model inventing a plausible-sounding `/admin/exports` woul
 be worse than no assistant at all, because a confident wrong direction costs more
 than silence.
 
-**It degrades to something useful rather than to an error.** When no
-GEMINI_API_KEY is configured — a fresh clone, a grader's laptop, CI — the same
-catalogue is searched by keyword and the same shape of answer comes back, minus
-the prose. The feature is AI-*enhanced*, not AI-dependent, so the demo never
-rests on a credential being present.
+**It degrades to something useful rather than to an error.** With no key
+configured — a fresh clone, a grader's laptop, CI — or with every key in the
+pool out of quota, the same catalogue is searched by keyword and the same shape
+of answer comes back, minus the prose. The feature is AI-*enhanced*, not
+AI-dependent, so the demo never rests on a credential being present or a quota
+being unspent.
 
 **The event context pack is assembled server-side, behind can_manage_activity,
 and is the only event data the model ever sees.** A Meetup Head's copilot cannot
@@ -36,9 +37,10 @@ team", it *drafts* the message and hands it back for a person to send. Letting a
 model broadcast to every registered student on its reading of one sentence is
 how 200 people get notified about the wrong thing, with no undo.
 
-Provider handling follows campaign_service exactly: the key is checked before the
-import, and the vendor's exception is logged here and never surfaced, since its
-text can carry the prompt, the completion or the key itself.
+Provider handling lives in services.gemini, which holds a pool of keys and moves
+to the next one when a key runs out of quota — mid-request, invisibly. The
+vendor's exception is logged there and never surfaced, since its text can carry
+the prompt, the completion or the key itself.
 """
 
 import re
@@ -46,6 +48,7 @@ import re
 from flask import current_app
 
 from ..errors import ApiError
+from . import gemini
 
 _AI_UNAVAILABLE = (
     "The assistant's AI service is not configured, so this is a keyword match "
@@ -526,46 +529,36 @@ _SYSTEM_INSTRUCTION = (
 )
 
 
-def _ask_model(contents, system_instruction, max_tokens=200):
-    """Call Gemini. Raises ApiError on every failure; never returns a partial answer.
+def _ask_model(contents, system_instruction, max_tokens=800):
+    """Call Gemini through the key pool.
 
-    Both modes and the draft path funnel through here, so the key check, the
-    sealed error and the "an empty completion is a failure" rule are written once.
+    Both modes and the draft path funnel through here, so the sealed error and
+    the "an empty completion is a failure" rule are written once.
+
+    Key selection and failover belong to services.gemini: if the first key is out
+    of quota it parks it and the next one answers inside this same call, so a
+    spent key is invisible here. Only when the whole pool is exhausted does this
+    raise — and every caller of this function already has a deterministic
+    fallback for that, so the assistant keeps answering either way.
     """
-    if not current_app.config.get("GEMINI_API_KEY"):
-        raise ApiError(_AI_UNAVAILABLE, "ai_unavailable", 503)
-
     try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        current_app.logger.warning(
-            "GEMINI_API_KEY is set but google-genai is not installed; "
-            "run pip install -r requirements.txt to enable the assistant."
+        return gemini.generate(
+            contents,
+            system_instruction,
+            temperature=0.2,
+            max_output_tokens=max_tokens,
         )
+    except gemini.AllKeysExhausted:
+        # Not configured, or every key spent. Both mean the same thing to a
+        # caller: take the deterministic path.
         raise ApiError(_AI_UNAVAILABLE, "ai_unavailable", 503)
-
-    try:
-        client = genai.Client(api_key=current_app.config["GEMINI_API_KEY"])
-        response = client.models.generate_content(
-            model=current_app.config["GEMINI_MODEL"],
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.2,
-                max_output_tokens=max_tokens,
-            ),
-        )
-        answer = (response.text or "").strip()
+    except ApiError:
+        raise
     except Exception:
         # Logged here and no further: the vendor's message can carry the prompt,
         # the completion or the key.
-        current_app.logger.error("The navigation assistant call failed", exc_info=True)
+        current_app.logger.error("The assistant call failed", exc_info=True)
         raise ApiError("The assistant could not answer just now.", "ai_failed", 503)
-
-    if not answer:
-        raise ApiError("The assistant could not answer just now.", "ai_failed", 503)
-    return answer
 
 
 def _keyword_event_answer(question, ctx):
@@ -647,7 +640,7 @@ def _answer_for_event(question, activity):
     # path to the broadcast endpoint; a person presses send, or nobody does.
     if wants_to_send(question):
         try:
-            draft = _ask_model(prompt, _DRAFT_SYSTEM_INSTRUCTION, max_tokens=120)
+            draft = _ask_model(prompt, _DRAFT_SYSTEM_INSTRUCTION, max_tokens=1500)
             source = "ai"
         except ApiError:
             draft = (
@@ -666,7 +659,10 @@ def _answer_for_event(question, activity):
 
     try:
         return {
-            "answer": _ask_model(prompt, _EVENT_SYSTEM_INSTRUCTION),
+            # Event mode needs the larger ceiling: the context pack is part of
+            # the same budget the model reasons inside, and at 800 the answers
+            # stopped mid-sentence ("as a regional fest, this").
+            "answer": _ask_model(prompt, _EVENT_SYSTEM_INSTRUCTION, max_tokens=1500),
             "links": [],
             "source": "ai",
             "mode": "event",

@@ -48,11 +48,43 @@ those into the client bundle.
 
 | Variable | Unset behaviour |
 |---|---|
-| `GEMINI_API_KEY` | AI-drafted brand kit (ORG-04) is off; the endpoint answers 503. |
+| `GEMINI_API_KEYS` | Comma-separated **pool** of Gemini keys. Unset (and no `GEMINI_API_KEY`): AI-drafted brand kit and campaign mail answer 503, and the assistant falls back to deterministic answers. |
+| `GEMINI_API_KEY` | The original single-key form. Still supported, and appended to the pool above, so an existing setup needs no change. |
+| `GEMINI_MODEL` | Defaults to `gemini-3.6-flash`. |
 | `MAPPLS_CLIENT_ID` + `MAPPLS_CLIENT_SECRET` | Venue autocomplete is off; `GET /venues/autocomplete` answers 501 and the proposal form's venue field behaves as a plain text input. Both are required — one alone counts as unset. |
 
 The app is fully usable with none of them set, which is how it should be run by anyone
 who has not signed up for those services.
+
+### Gemini key pool and failover
+
+A free-tier Gemini key has a small daily quota and a per-minute rate limit. With one
+key, the first hit of either turns every AI surface into a 503 for the rest of the day —
+which during a demo reads as "the feature is broken" rather than "the quota is spent".
+
+So `GEMINI_API_KEYS` takes a list, tried in order:
+
+```bash
+GEMINI_API_KEYS=key_one,key_two,key_three
+```
+
+`app/services/gemini.py` calls them in order. When one answers with a quota or
+rate-limit error it is parked for 15 minutes and the next key answers **inside the same
+request** — the caller never sees the switch, and no error reaches the user. A parked
+key is retried after its cooldown rather than discarded, because per-minute limits clear
+in a minute and daily quotas clear overnight.
+
+Two things deliberately do *not* rotate:
+
+- **Non-quota failures.** A safety block, a malformed request or a dead network fails
+  identically on every key, so retrying would turn one bad request into an outage.
+- **Nothing, once the pool is dry.** When every key is exhausted the caller degrades on
+  its own terms — the assistant answers from its keyword catalogue and says so, rather
+  than erroring.
+
+A note on the model: `gemini-2.5-flash` was the previous default, but Google now refuses
+it for keys issued after its deprecation, returning a 404 on the *model* rather than an
+auth error on the key. The default is now `gemini-3.6-flash`.
 
 ### Venue autocomplete setup (Mappls)
 

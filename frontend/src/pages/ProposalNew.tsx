@@ -151,17 +151,24 @@ export default function ProposalNew() {
   const total = lines.reduce((s, l) => s + (parseInt(l.amount) || 0), 0)
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
 
-  // starts_at and ends_at share one calendar date, so all three controls write
-  // through here rather than each re-deriving the other half of the pair.
-  const eventDate = form.starts_at.split('T')[0] || form.ends_at.split('T')[0] || ''
-  const setDateTime = ({ date, startTime, endTime }: { date?: string; startTime?: string; endTime?: string }) => {
-    const d = date ?? eventDate ?? ''
-    const start = startTime ?? timeOf(form.starts_at)
-    const end = endTime ?? timeOf(form.ends_at)
+  // Separate states so date, start time, and end time can be selected independently
+  const [eventDate, setEventDate] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+
+  const setDateTime = ({ date, startTime: st, endTime: et }: { date?: string; startTime?: string; endTime?: string }) => {
+    const nextDate = date !== undefined ? date : eventDate
+    const nextStart = st !== undefined ? st : startTime
+    const nextEnd = et !== undefined ? et : endTime
+
+    if (date !== undefined) setEventDate(date)
+    if (st !== undefined) setStartTime(st)
+    if (et !== undefined) setEndTime(et)
+
     setForm((f) => ({
       ...f,
-      starts_at: d && start ? `${d}T${start}` : '',
-      ends_at: d && end ? `${d}T${end}` : '',
+      starts_at: nextDate && nextStart ? `${nextDate}T${nextStart}` : '',
+      ends_at: nextDate && nextEnd ? `${nextDate}T${nextEnd}` : '',
     }))
   }
   const endBeforeStart =
@@ -418,16 +425,16 @@ export default function ProposalNew() {
                   className="flex-1"
                 />
                 <FormSelect
-                  value={timeOf(form.starts_at)}
-                  onChange={(startTime) => setDateTime({ startTime })}
+                  value={startTime}
+                  onChange={(st) => setDateTime({ startTime: st })}
                   onBlur={() => touch('starts_at')}
                   placeholder="Start"
                   className="w-[110px]"
                   options={TIME_SLOTS}
                 />
                 <FormSelect
-                  value={timeOf(form.ends_at)}
-                  onChange={(endTime) => setDateTime({ endTime })}
+                  value={endTime}
+                  onChange={(et) => setDateTime({ endTime: et })}
                   onBlur={() => touch('ends_at')}
                   placeholder="End"
                   className="w-[110px]"

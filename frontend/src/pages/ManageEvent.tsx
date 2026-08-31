@@ -36,7 +36,6 @@ export default function ManageEvent() {
     }
   }, [searchParams])
   const [alertOpen, setAlertOpen] = useState(false)
-  const [activeBroadcastEventId, setActiveBroadcastEventId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
 

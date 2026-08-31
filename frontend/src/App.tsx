@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { SessionProvider } from './lib/session'
@@ -6,7 +6,6 @@ import Layout from './components/Layout'
 
 
 // Public
-import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 // Student
@@ -31,6 +30,22 @@ import CampaignMonitor from './pages/CampaignMonitor'
 import Orgs from './pages/Orgs'
 import OrgProfile from './pages/OrgProfile'
 import AdminSettings from './pages/AdminSettings'
+
+/**
+ * The movement landing page, ported from the public EKATVA marketing site
+ * (github.com/Vish2BDev/Ekatva-Website) into src/marketing/.
+ *
+ * Lazy-loaded on purpose: it pulls in framer-motion and gsap, which nothing else
+ * in Ekatva OS uses. Importing it eagerly would put ~580KB of animation runtime
+ * into the entry chunk that every signed-in page pays for, to render a page most
+ * sessions see once. The Suspense fallback is a plain brand-coloured backdrop,
+ * so the swap reads as the page still painting rather than as a flash.
+ *
+ * This replaced ./pages/Landing as the "/" route. That file is left in place
+ * unrouted: it is the OS-side landing built against the brand kit, and is the
+ * reference for how these tokens are meant to be used in-app.
+ */
+const MarketingLanding = lazy(() => import('./marketing/MarketingLanding'))
 
 /**
  * The one anonymously-renderable app path (OD-3, CAMPAIGN-04).
@@ -198,11 +213,13 @@ function Root() {
 
   if (isPublic)
     return (
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
+      <Suspense fallback={<div className="min-h-screen bg-onyx" />}>
+        <Routes>
+          <Route path="/" element={<MarketingLanding />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </Suspense>
     )
 
   return <AppShell />

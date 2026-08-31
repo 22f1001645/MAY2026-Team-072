@@ -1,0 +1,167 @@
+/* ---------------------------------------------------------------------------
+ * Utilities and keyframes the ported marketing components expect.
+ *
+ * This is the marketing site's globals.css, adapted in three ways:
+ *
+ *   1. No @layer / @apply. Vite runs Tailwind over each CSS file on its own, so
+ *      `@layer utilities` is only legal in the file that carries the
+ *      `@tailwind` directives (src/index.css). Rather than push marketing rules
+ *      into the app's global stylesheet, they are written as plain CSS. The
+ *      selectors are all single classes, so they land at the same specificity
+ *      Tailwind utilities would have had.
+ *   2. Its @layer base block is dropped (`html { scroll-behavior }`,
+ *      `body { bg-oneness-black text-white }`). src/index.css already sets both,
+ *      and a second body rule would fight the app's `text-offwhite` on every
+ *      signed-in page.
+ *   3. `.reveal` and `.scrollbar-hide` are dropped - src/index.css defines both
+ *      with the same intent, and redefining them here would silently change
+ *      NotificationsDropdown and the app's combobox menus.
+ *
+ * Everything below is therefore additive: no existing app selector is touched.
+ * ------------------------------------------------------------------------- */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* w-[90%] max-w-[90rem] mx-auto px-fluid-sm lg:px-fluid-lg */
+.container-custom {
+  width: 90%;
+  max-width: 90rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 3vw, 1.5rem);
+  padding-right: clamp(1rem, 3vw, 1.5rem);
+}
+
+@media (min-width: 1024px) {
+  .container-custom {
+    padding-left: clamp(2rem, 5vw, 4rem);
+    padding-right: clamp(2rem, 5vw, 4rem);
+  }
+}
+
+/* py-large md:py-hero */
+.section-padding {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+@media (min-width: 768px) {
+  .section-padding {
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+}
+
+/* Glass morphism effect */
+.glass-panel {
+  background: rgba(14, 47, 54, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(92, 230, 201, 0.1);
+}
+
+/* Video zoom animation for subtle movement */
+.animate-video-zoom {
+  animation: videoZoom 20s ease-in-out infinite alternate;
+}
+
+/* Horizontal Carousel: Scroll Snap */
+.scroll-snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap-center {
+  scroll-snap-align: center;
+}
+
+/* Prevent text overflow */
+.text-overflow-safe {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Responsive container with proper padding */
+.container-responsive {
+  width: 100%;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 4vw, 3rem);
+  padding-right: clamp(1rem, 4vw, 3rem);
+}
+
+/* Touch-friendly minimum sizes (44px iOS/Android standard) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Prevent layout shift from scrollbar */
+.scrollbar-gutter {
+  scrollbar-gutter: stable;
+}
+
+/* Responsive text that never overflows */
+.text-responsive {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Video zoom keyframes */
+@keyframes videoZoom {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+/* Premium CTA shimmer sweep (Linear.app / Stripe style).
+ *
+ * Upstream names this `shimmer`, which the app's tailwind.config.js also defines
+ * (a 100%-only translate3d for skeleton loaders). Renamed so the two never
+ * collide - otherwise whichever stylesheet loaded last would win. */
+@keyframes marketing-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shimmer-subtle {
+  0%,
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+}
+
+/* Badge Breathing Aura Animation - Hero Section */
+@keyframes badge-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(92, 230, 201, 0),
+      inset 0 0 0 1px rgba(92, 230, 201, 0.25);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 2px rgba(92, 230, 201, 0.25),
+      0 0 30px 4px rgba(92, 230, 201, 0.15),
+      inset 0 0 0 1px rgba(92, 230, 201, 0.4);
+  }
+}

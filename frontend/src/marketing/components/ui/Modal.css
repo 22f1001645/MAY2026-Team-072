@@ -1,0 +1,60 @@
+/* ==========================
+   MODAL STYLES
+   ========================== */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    position: relative;
+    background: linear-gradient(145deg,
+            rgba(14, 47, 54, 0.97) 0%,
+            rgba(10, 35, 41, 0.99) 100%);
+    border: 1px solid rgba(92, 230, 201, 0.2);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 32rem;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow:
+        0 40px 80px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(92, 230, 201, 0.1);
+}
+
+/* Custom scrollbar */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: rgba(92, 230, 201, 0.3);
+    border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(92, 230, 201, 0.5);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+    .modal-content {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+}

@@ -49,6 +49,13 @@ import AdminSettings from './pages/AdminSettings'
 const MarketingLanding = lazy(() => import('./marketing/MarketingLanding'))
 
 /**
+ * The /about route — same lazy-loading rationale as MarketingLanding above.
+ * Content is a blend of the movement site's About page and the orphaned
+ * ./pages/Landing product pitch (see src/marketing/AboutPage.tsx).
+ */
+const AboutPage = lazy(() => import('./marketing/AboutPage'))
+
+/**
  * The one anonymously-renderable app path (OD-3, CAMPAIGN-04).
  *
  * A registration link is only shareable if a logged-out visitor can open it, so
@@ -214,13 +221,14 @@ function AppShell() {
 
 function Root() {
   const location = useLocation()
-  const isPublic = ['/', '/login', '/register'].includes(location.pathname)
+  const isPublic = ['/', '/about', '/login', '/register'].includes(location.pathname)
 
   if (isPublic)
     return (
       <Suspense fallback={<div className="min-h-screen bg-onyx" />}>
         <Routes>
           <Route path="/" element={<MarketingLanding />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>

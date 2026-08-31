@@ -98,8 +98,9 @@ export default function SecondaryNav() {
                 role="navigation"
                 aria-label="Page sections"
             >
-                {/* Page Label */}
-                <span
+                {/* Page Label - doubles as a way back to the movement home */}
+                <Link
+                    href="/"
                     className="hidden shrink-0 sm:inline-block px-4 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap"
                     style={{
                         color: 'rgba(92, 230, 201, 0.9)',
@@ -107,7 +108,7 @@ export default function SecondaryNav() {
                     }}
                 >
                     {pageLabel}
-                </span>
+                </Link>
 
                 {/* Section Links */}
                 <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-hide px-1">
@@ -163,6 +164,14 @@ export default function SecondaryNav() {
                     className="flex shrink-0 items-center gap-1 pl-2"
                     style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.1)' }}
                 >
+                    {pathname !== '/about' && (
+                        <Link
+                            href="/about"
+                            className="px-3 py-2 text-xs font-medium whitespace-nowrap rounded-full transition-colors duration-200 text-white/70 hover:text-white hover:bg-white/5"
+                        >
+                            About
+                        </Link>
+                    )}
                     <Link
                         href={APP_ROUTES.logIn}
                         className="px-3 py-2 text-xs font-medium whitespace-nowrap rounded-full transition-colors duration-200 text-white/70 hover:text-white hover:bg-white/5"

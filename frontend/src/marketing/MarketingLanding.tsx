@@ -7,9 +7,10 @@
  * possible so upstream changes can be re-copied rather than re-authored; the
  * Next-specific imports they carry are satisfied by ./next-compat.
  *
- * Only this route was ported. The movement site's other pages (/about,
- * /editions, /join-us, /partner-with-us, /sponsor, and the legal pages) stay on
- * the deployed marketing site and are linked out to - see ./lib/asset.
+ * Only this route and /about (see ./AboutPage.tsx) were ported. The movement
+ * site's other pages (/editions, /join-us, /partner-with-us, /sponsor, and the
+ * legal pages) stay on the deployed marketing site and are linked out to -
+ * see ./lib/asset.
  * ------------------------------------------------------------------------- */
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'

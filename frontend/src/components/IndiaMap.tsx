@@ -45,7 +45,10 @@ export function IndiaMap({ regions, selectedRegionId, onSelect }: IndiaMapProps)
         height={600}
         style={{ width: '100%', height: 'auto' }}
       >
-        <Geographies geography={indiaTopoJson}>
+        {/* react-simple-maps@5 types its topojson prop more strictly than a
+            generic JSON import satisfies; the shape is unchanged, just the
+            typing. */}
+        <Geographies geography={indiaTopoJson as unknown as string}>
           {({ geographies }) =>
             geographies.map((geo) => (
               <Geography
@@ -54,12 +57,8 @@ export function IndiaMap({ regions, selectedRegionId, onSelect }: IndiaMapProps)
                 fill="#1e3a40"
                 stroke="#2dd4bf"
                 strokeWidth={0.5}
-                className="opacity-60 drop-shadow-lg outline-none"
-                style={{
-                  default: { outline: 'none' },
-                  hover: { outline: 'none', fill: '#254b52' },
-                  pressed: { outline: 'none' },
-                }}
+                className="opacity-60 drop-shadow-lg outline-none hover:fill-[#254b52]"
+                style={{ outline: 'none' }}
               />
             ))
           }

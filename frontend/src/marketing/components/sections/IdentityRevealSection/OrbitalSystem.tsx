@@ -1,36 +1,96 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useState, useCallback, useEffect, Component, ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { asset } from '../../../lib/asset'
 import { validateOrbitalSystem } from '../../../lib/orbital-math'
 import { PLANET_CONFIGS } from '../../../data/planets'
 
 /**
- * OrbitalSystem - static orbital composition.
+ * OrbitalSystem - WebGL-Only with Static Fallback
  *
- * Upstream (Vish2BDev/Ekatva-Website) this renders an interactive WebGL scene
- * with a static image as the pre-load and error fallback. That scene needs
- * @react-three/fiber v9, which requires React 19; Ekatva OS is on React 18, and
- * upgrading it would touch every page and the vitest suite. So the WebGL layer,
- * its error boundary, and its support probe are removed here and the fallback -
- * already a complete, animated composition - is what renders.
+ * Architecture:
+ * ✅ Static fallback image as INITIAL state (no black flash)
+ * ✅ WebGL Canvas fades in when ready (onCreated)
+ * ✅ ErrorBoundary catches context loss / crashes
+ * ✅ DPR clamped to [1, 2] for mobile performance
+ * ✅ Graceful degradation: fallback stays visible on error
  *
- * To restore the 3D scene: install @react-three/fiber + drei, re-copy
- * WebGLOrbitScene.tsx and its Planet3D/OrbitTrails3D/ParticleField3D/CenterCore3D
- * siblings from upstream, and reinstate the LAYER 2 block from the original.
+ * Adapted from upstream (Vish2BDev/Ekatva-Website): this is a CSR-only Vite
+ * SPA with no SSR to guard against, so upstream's `next/dynamic(..., { ssr:
+ * false })` becomes a plain `React.lazy` + `<Suspense>` here instead of
+ * extending next-compat for a single call site.
  */
+
+// Dynamically import WebGLOrbitScene (client-side only chunk)
+const WebGLOrbitScene = lazy(() => import('./WebGLOrbitScene'))
+
+// ===========================================
+// INLINE ERROR BOUNDARY (No external dep)
+// ===========================================
+interface ErrorBoundaryState {
+    hasError: boolean
+}
+
+interface ErrorBoundaryProps {
+    children: ReactNode
+    onError?: () => void
+    fallback?: ReactNode
+}
+
+class WebGLErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    constructor(props: ErrorBoundaryProps) {
+        super(props)
+        this.state = { hasError: false }
+    }
+
+    static getDerivedStateFromError(): ErrorBoundaryState {
+        return { hasError: true }
+    }
+
+    componentDidCatch(error: Error) {
+        console.warn('WebGL Error caught:', error.message)
+        this.props.onError?.()
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback || null
+        }
+        return this.props.children
+    }
+}
+
+// ===========================================
+// WEBGL SUPPORT DETECTION
+// ===========================================
+const checkWebGLSupport = (): boolean => {
+    if (typeof window === 'undefined') return true // Optimistic SSR
+    try {
+        const canvas = document.createElement('canvas')
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+        return !!gl
+    } catch {
+        return false
+    }
+}
 
 // ===========================================
 // MAIN COMPONENT
 // ===========================================
 export default function OrbitalSystem() {
-    // With no canvas to wait on, the static composition is simply always the
-    // thing that renders. Kept as named constants so the JSX below stays a
-    // line-for-line match with upstream.
-    const isWebGLReady = false
-    const showFallback = true
+    const [isWebGLReady, setIsWebGLReady] = useState(false)
+    const [hasError, setHasError] = useState(false)
+    const [webGLSupported, setWebGLSupported] = useState(true) // Optimistic
+    const [mounted, setMounted] = useState(false)
 
-    // Dev-time orbital geometry validation (upstream also gated this on dev).
+    // Check WebGL support on mount
     useEffect(() => {
+        setMounted(true)
+        const supported = checkWebGLSupport()
+        setWebGLSupported(supported)
+        if (!supported) {
+            console.warn('WebGL not supported, showing static fallback')
+        }
+
         // Validate orbital sizing system
         if (import.meta.env.DEV) {
             const orbitalRadii = PLANET_CONFIGS.map(p => p.orbital.radius)
@@ -45,6 +105,21 @@ export default function OrbitalSystem() {
         }
     }, [])
 
+    // Called when Canvas is ready
+    const handleWebGLReady = useCallback(() => {
+        setIsWebGLReady(true)
+    }, [])
+
+    // Called when ErrorBoundary catches
+    const handleError = useCallback(() => {
+        setHasError(true)
+    }, [])
+
+    // Should we attempt WebGL?
+    const shouldRenderWebGL = mounted && webGLSupported && !hasError
+
+    // Is fallback visible?
+    const showFallback = !isWebGLReady || hasError || !webGLSupported
 
     return (
         <div className="relative w-full h-full min-h-[clamp(450px,60vh,650px)] overflow-hidden">
@@ -94,6 +169,40 @@ export default function OrbitalSystem() {
                     </div>
                 </div>
             </motion.div>
+
+            {/* LAYER 2: WebGL Canvas - Fades in when ready */}
+            <AnimatePresence>
+                {shouldRenderWebGL && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: isWebGLReady ? 1 : 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        className="absolute inset-0"
+                    >
+                        <WebGLErrorBoundary onError={handleError} fallback={null}>
+                            <Suspense fallback={null}>
+                                <WebGLOrbitScene onReady={handleWebGLReady} />
+                            </Suspense>
+                        </WebGLErrorBoundary>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Loading indicator - only show if WebGL is loading */}
+            <AnimatePresence>
+                {mounted && shouldRenderWebGL && !isWebGLReady && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ delay: 2, duration: 0.3 }}
+                        className="absolute bottom-6 left-6 text-xs text-mid-gray"
+                    >
+                        Loading 3D experience...
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Instructions - Desktop only (mobile has its own hint in index.tsx) */}
             <AnimatePresence>

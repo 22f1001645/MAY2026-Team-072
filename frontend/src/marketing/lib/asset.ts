@@ -1,11 +1,12 @@
 /* ---------------------------------------------------------------------------
  * Where the marketing site's media and un-ported pages actually live.
  *
- * Only the home page ("/") was ported into Ekatva OS. Its ~540MB of video and
- * imagery — and the six sibling marketing routes (/about, /editions, /join-us,
- * /partner-with-us, /sponsor, and the legal pages) — stay on the deployed
- * marketing site. Links and <img> srcs are rewritten to point there so the repo
- * stays clone-able and the nav never dead-ends on a route this app cannot serve.
+ * Only the home page ("/") and "/about" were ported into Ekatva OS. The
+ * ~540MB of video and imagery those pages reference — and the remaining
+ * sibling marketing routes (/editions, /join-us, /partner-with-us, /sponsor,
+ * and the legal pages) — stay on the deployed marketing site. Links and
+ * <img> srcs are rewritten to point there so the repo stays clone-able and
+ * the nav never dead-ends on a route this app cannot serve.
  *
  * Override with VITE_MARKETING_ORIGIN to point at a preview deploy or a local
  * copy of the marketing site.
@@ -39,7 +40,6 @@ const VENDORED_ASSETS: Record<string, string> = {
  * to the catch-all route, which sends visitors to a login screen.
  */
 const REMOTE_ROUTE_PREFIXES = [
-  '/about',
   '/editions',
   '/join-us',
   '/partner-with-us',

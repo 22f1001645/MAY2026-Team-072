@@ -208,6 +208,9 @@ export default function OrganiserDashboard() {
                       <div className={cx("flex flex-col gap-2 pt-2", (e.proposal_status === 'approved' && e.status !== 'completed') ? "" : "border-t border-white/5")}>
                         {e.proposal_status === 'approved' && e.status !== 'completed' && (
                           <>
+                            <Link to={`/events/${e.id}/live`} className="w-full">
+                              <Button size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Event day mode</Button>
+                            </Link>
                             <Link to={`/events/${e.id}/manage`} className="w-full">
                               <Button variant="secondary" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Manage Event</Button>
                             </Link>

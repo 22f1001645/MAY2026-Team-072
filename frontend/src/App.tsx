@@ -176,7 +176,7 @@ function AppShell() {
       <Routes>
         {/* Student */}
         <Route path="/discover" element={<RequireStudent><Discover /></RequireStudent>} />
-        <Route path="/events/:id" element={<RequireStudent><EventDetail /></RequireStudent>} />
+        <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/me" element={<RequireStudent><MyRegistrations /></RequireStudent>} />
         <Route path="/leaderboard" element={<RequireStudent><Leaderboard /></RequireStudent>} />
         {/* Readable by anyone signed in; the editing surface inside it is gated

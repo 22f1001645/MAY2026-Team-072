@@ -466,12 +466,15 @@ export function FormSelect({
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false)
+        if (open) {
+          setOpen(false)
+          onBlur?.()
+        }
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [open, onBlur])
 
   const selected = options.find((o) => o.value === value)
 
@@ -480,9 +483,8 @@ export function FormSelect({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        onBlur={onBlur}
         className={cx(
-          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
+          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40 cursor-pointer',
           !selected ? 'text-graytext-mid' : 'text-offwhite'
         )}
       >
@@ -493,7 +495,7 @@ export function FormSelect({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-onyx-overlay/90 p-1.5 shadow-[0_8px_32px_rgba(14,47,54,0.5)] backdrop-blur-3xl animate-fade-up scrollbar-hide">
+        <div className="absolute left-0 top-full z-[100] mt-2 max-h-60 w-full overflow-y-auto rounded-xl border border-white/15 bg-[#181818] p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl animate-fade-up scrollbar-hide">
           {options.length === 0 ? (
             <div className="px-3 py-2 text-[13px] text-graytext-mid">No options</div>
           ) : (
@@ -502,14 +504,15 @@ export function FormSelect({
                 key={opt.value}
                 type="button"
                 disabled={opt.disabled}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   onChange(opt.value)
                   setOpen(false)
                 }}
                 className={cx(
-                  'block w-full truncate rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors',
+                  'block w-full truncate rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors cursor-pointer',
                   opt.disabled ? 'text-graytext-mid/50 cursor-not-allowed' :
-                  value === opt.value ? 'bg-teal/20 text-teal' : 'text-graytext-mid hover:bg-white/5 hover:text-offwhite'
+                  value === opt.value ? 'bg-teal/20 text-teal font-semibold' : 'text-graytext-light hover:bg-white/10 hover:text-white'
                 )}
               >
                 {opt.label}
@@ -543,12 +546,15 @@ export function FormDatePicker({
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false)
+        if (open) {
+          setOpen(false)
+          onBlur?.()
+        }
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [open, onBlur])
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -564,8 +570,14 @@ export function FormDatePicker({
     days.push(i)
   }
 
-  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1))
-  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1))
+  const prevMonth = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCurrentMonth(new Date(year, month - 1, 1))
+  }
+  const nextMonth = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCurrentMonth(new Date(year, month + 1, 1))
+  }
 
   const monthName = currentMonth.toLocaleString('default', { month: 'long' })
 
@@ -574,16 +586,15 @@ export function FormDatePicker({
     return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   }
 
-  const displayValue = value ? new Date(value).toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date'
+  const displayValue = value ? new Date(value + (value.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date'
 
   return (
     <div className={cx('relative', open && 'z-50', className)} ref={ref}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        onBlur={onBlur}
         className={cx(
-          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40',
+          'flex w-full items-center justify-between rounded-xl border border-white/10 bg-onyx px-3.5 py-2.5 text-left text-[14px] transition-colors focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/40 cursor-pointer',
           !value ? 'text-graytext-mid' : 'text-offwhite'
         )}
       >
@@ -597,13 +608,13 @@ export function FormDatePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-white/10 bg-onyx-overlay/90 p-4 shadow-[0_8px_32px_rgba(14,47,54,0.5)] backdrop-blur-3xl animate-fade-up">
+        <div className="absolute left-0 top-full z-[100] mt-2 w-72 rounded-xl border border-white/15 bg-[#181818] p-4 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl animate-fade-up">
           <div className="mb-4 flex items-center justify-between">
-            <button type="button" onClick={prevMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors">
+            <button type="button" onClick={prevMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors cursor-pointer">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <div className="font-semibold text-offwhite">{monthName} {year}</div>
-            <button type="button" onClick={nextMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors">
+            <div className="font-semibold text-offwhite text-[14px]">{monthName} {year}</div>
+            <button type="button" onClick={nextMonth} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10 text-graytext-light hover:text-white transition-colors cursor-pointer">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
@@ -623,13 +634,14 @@ export function FormDatePicker({
                 <button
                   key={i}
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation()
                     onChange(dateStr)
                     setOpen(false)
                   }}
                   className={cx(
-                    'grid aspect-square place-items-center rounded-full text-[13px] font-medium transition-colors',
-                    isSelected ? 'bg-teal text-onyx' : 
+                    'grid aspect-square place-items-center rounded-full text-[13px] font-medium transition-colors cursor-pointer',
+                    isSelected ? 'bg-teal text-onyx font-bold' : 
                     isToday ? 'border border-teal/50 text-teal' :
                     'text-offwhite hover:bg-white/10'
                   )}

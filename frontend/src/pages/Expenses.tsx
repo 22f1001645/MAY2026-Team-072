@@ -306,7 +306,27 @@ export default function Expenses() {
                 </div>
                 <div>
                   <div className="text-[11px] uppercase tracking-widest text-graytext-mid mb-2">Receipt File</div>
-                  <div className="text-[13px] text-teal font-mono">{current.bill_name}</div>
+                  <div className="text-[13px] text-teal font-mono">{current.bill_name || 'receipt.pdf'}</div>
+                </div>
+              </div>
+
+              {/* Receipt Preview in Organiser Drawer */}
+              <div className="mt-4">
+                <div className="text-[11px] uppercase tracking-widest text-graytext-mid mb-3">Receipt Document</div>
+                <div className="relative rounded-xl border border-white/10 bg-onyx-raised overflow-hidden p-2 flex items-center justify-center min-h-[260px]">
+                  <img
+                    src={
+                      (current.bill_name || '').toLowerCase().includes('roastery')
+                        ? '/receipts/roastery-invoice.jpg'
+                        : (current.bill_name || '').toLowerCase().includes('venue') || (current.bill_name || '').toLowerCase().includes('room')
+                        ? '/receipts/venue-receipt.jpg'
+                        : /^[a-f0-9]{32}\.[a-z0-9]+$/i.test(current.bill_name || '')
+                        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'}/uploads/${current.bill_name}`
+                        : '/receipts/sample-receipt.jpg'
+                    }
+                    alt={current.bill_name || 'Receipt'}
+                    className="max-h-[300px] w-auto max-w-full rounded-lg object-contain shadow-lg"
+                  />
                 </div>
               </div>
             </div>

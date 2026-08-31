@@ -21,7 +21,7 @@ export default function CampaignMonitor() {
   return (
     <div>
       <SectionTitle
-        eyebrow="Admin · Phase 5"
+        eyebrow="ADMIN · CAMPAIGNS"
         title="Live Campaigns"
         sub="All campaigns pushed live by Meetup Heads. These are publicly visible on the discover feed."
         right={<Badge tone="teal">{campaigns.length} live</Badge>}
@@ -98,7 +98,9 @@ export default function CampaignMonitor() {
                   <td className="px-5 py-4 text-right">
                     <Link
                       to={`/events/${c.registration_slug || c.id}`}
-                      className="text-teal text-caption font-semibold hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-teal text-caption font-semibold hover:underline inline-flex items-center gap-1"
                     >
                       View ↗
                     </Link>

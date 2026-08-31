@@ -4,6 +4,7 @@ import { inr } from '../lib/mock'
 import { useAudit, useDecision, useOrgProgression, useProposals, useEventReport, useRoster, useAnnouncements } from '../lib/queries'
 import { Badge, Button, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import ClashWarning from '../components/ClashWarning'
 import { cx, formatDate, scaleLabel } from '../lib/format'
 import CollabStatus from '../components/CollabStatus'
 import WelcomeBanner from '../components/WelcomeBanner'
@@ -197,6 +198,15 @@ export default function ApprovalQueue() {
                   <Field label="Capacity" value={String(current.capacity)} />
                   <Field label="Organiser" value={current.organiser} />
                 </div>
+
+                {/* The clash belongs next to the decision, not in a report read later.
+                    `excludeId` stops an already-approved event matching itself. */}
+                <ClashWarning
+                  city={current.city}
+                  startsAt={current.startsAt}
+                  excludeId={current.id}
+                  className="mt-6"
+                />
 
                 {/* Budget */}
                 <div className="border-t border-white/5 pt-8">

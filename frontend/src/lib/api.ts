@@ -17,6 +17,17 @@ import type {
   Role,
 } from './types'
 
+/** An approved event falling within a day and a half of a proposed one. */
+export type ClashingEvent = {
+  id: string
+  title: string
+  city: string
+  scale: string
+  venue: string | null
+  starts_at: string | null
+  organiser: string | null
+}
+
 /* ---------------------------------------------------------------------------
  * API client — Phase 2 (D-01, D-05, D-06, D-09).
  *
@@ -675,6 +686,12 @@ export const api = {
   }),
   leaveEvent: (id: string) => request(`/events/${id}/register`, { method: 'DELETE' }),
   myRegistrations: () => request<any[]>('/me/registrations'),
+  /** Approved events in the same city around a date — advisory, never blocking. */
+  clashes: (city: string, startsAt: string, excludeId?: string) =>
+    request<ClashingEvent[]>(
+      `/activities/clashes?city=${encodeURIComponent(city)}&starts_at=${encodeURIComponent(startsAt)}` +
+        (excludeId ? `&exclude_id=${encodeURIComponent(excludeId)}` : ''),
+    ),
   roster: (id: string) => request<any[]>(`/events/${id}/registrations`),
   checkIn: (id: string, registration_ids: string[]) =>
     request<{ checked_in: number; total_attended: number }>(`/events/${id}/attendance`, {

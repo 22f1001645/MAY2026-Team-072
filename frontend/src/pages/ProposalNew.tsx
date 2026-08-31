@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ClashWarning from '../components/ClashWarning'
 import { useNavigate } from 'react-router-dom'
 import { inr } from '../lib/mock'
 import { useCities, useOrgs, useSubmitProposal, useOrgProgression } from '../lib/queries'
@@ -389,6 +390,9 @@ export default function ProposalNew() {
                 onChange={(e) => set('capacity', e.target.value)} placeholder="45" required />
             </div>
           </div>
+          {/* Advisory only — a clash never blocks the submission. */}
+          <ClashWarning city={form.city} startsAt={form.starts_at} />
+
           <div>
             <Label>Venue</Label>
             <Input value={form.venue} onChange={(e) => set('venue', e.target.value)}

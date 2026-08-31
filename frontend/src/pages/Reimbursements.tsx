@@ -3,6 +3,7 @@ import { inr } from '../lib/mock'
 import { useReimbursements, useVerifyExpense, useUpdateExpenseAmount } from '../lib/queries'
 import { Badge, Button, Card, SectionTitle, StatCard } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import ExportButton from '../components/ExportButton'
 import type { ExpenseStatus } from '../lib/types'
 import { cx, formatDate } from '../lib/format'
 
@@ -65,9 +66,28 @@ export default function Reimbursements() {
         title="Reimbursements"
         sub="Review and clear out-of-pocket expenses for organisers."
         right={
-          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-onyx/40 px-4 py-2.5 shadow-inner">
-            <span className="text-[12px] font-bold uppercase tracking-widest text-graytext-mid">Pipeline Value</span>
-            <span className="font-mono text-lg font-bold text-teal">{inr(totalPending)}</span>
+          <div className="flex items-center gap-3">
+            {/* Finance reconciles these lines against receipts outside the app. */}
+            <ExportButton
+              kind="reimbursements"
+              disabled={rows.length === 0}
+              columns={['Event', 'City', 'Expense', 'Amount (INR)', 'Status', 'Bill', 'Expense ID']}
+              rows={() =>
+                rows.map((r: any) => ({
+                  Event: r.activity ?? '',
+                  City: r.city ?? '',
+                  Expense: r.label ?? '',
+                  'Amount (INR)': r.amount ?? 0,
+                  Status: r.status ?? '',
+                  Bill: r.bill_name ?? '',
+                  'Expense ID': r.id ?? '',
+                }))
+              }
+            />
+            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-onyx/40 px-4 py-2.5 shadow-inner">
+              <span className="text-[12px] font-bold uppercase tracking-widest text-graytext-mid">Pipeline Value</span>
+              <span className="font-mono text-lg font-bold text-teal">{inr(totalPending)}</span>
+            </div>
           </div>
         }
       />

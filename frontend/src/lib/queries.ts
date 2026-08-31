@@ -31,6 +31,28 @@ export const useEvent = (id?: string) =>
 export const useMyRegistrations = (enabled = true) =>
   useQuery({ queryKey: ['my-registrations'], queryFn: api.myRegistrations, enabled, refetchInterval: 10000 })
 
+/**
+ * Date clashes for a proposed event.
+ *
+ * Deliberately disabled until both a city and a valid date exist, so a
+ * half-filled step-1 form does not fire a request per keystroke. The result is
+ * advisory: nothing in the UI blocks on it.
+ */
+export const useClashes = (city?: string, startsAt?: string, excludeId?: string) =>
+  useQuery({
+    queryKey: ['clashes', city, startsAt, excludeId],
+    queryFn: () => api.clashes(city!, new Date(startsAt!).toISOString(), excludeId),
+    enabled: !!city && !!startsAt && !Number.isNaN(new Date(startsAt ?? '').getTime()),
+    staleTime: 60_000,
+  })
+
+/** Ask the assistant. A mutation, not a query: each ask is an event, not a cache key. */
+export const useAssistant = () =>
+  useMutation({
+    mutationFn: (v: { question: string; activityId?: string }) =>
+      api.assistantAsk(v.question, v.activityId),
+  })
+
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
 

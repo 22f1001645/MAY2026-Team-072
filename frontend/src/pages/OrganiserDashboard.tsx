@@ -7,6 +7,7 @@ import { Loading, ErrorState } from '../components/states'
 import { daysUntil, formatDate, cover, coverForScale, cx } from '../lib/format'
 import InvitationCard from '../components/InvitationCard'
 import WelcomeBanner from '../components/WelcomeBanner'
+import CloseOutChecklist from '../components/CloseOutChecklist'
 
 const STATUS_TONE: Record<string, any> = {
   approved: 'success',
@@ -31,15 +32,16 @@ export default function OrganiserDashboard() {
   const events: any[] = data?.my_events ?? []
   
   const live = events.filter((e) => e.proposal_status === 'approved' && e.status !== 'completed')
+  const completed = events.filter((e) => e.status === 'completed')
   const activeFilter = filter ?? (live.length > 0 ? 'Live' : 'All')
 
   const filteredEvents = useMemo(() => {
     if (activeFilter === 'All') return events
     if (activeFilter === 'Live') return live
-    if (activeFilter === 'Completed') return events.filter((e) => e.status === 'completed')
+    if (activeFilter === 'Completed') return completed
     if (activeFilter === 'Pending') return events.filter((e) => e.proposal_status !== 'approved' && e.proposal_status !== 'rejected')
     return events
-  }, [events, activeFilter, live])
+  }, [events, activeFilter, live, completed])
   const pendingInvites = (notifications as any[]).filter(
     (n) => n.type === 'collaboration_invite' && !n.read && n.activity_id,
   )
@@ -74,11 +76,26 @@ export default function OrganiserDashboard() {
         </div>
       )}
 
+      {/* Events that have happened but are not yet filed. The day after a meetup
+          is where this system stalls: nothing chases the organiser, and money
+          owed to a student sits unclaimed because nobody said a receipt was
+          still missing. */}
+      {completed.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-h3 font-semibold text-white">Wrap up</h2>
+          <div className="grid gap-4 lg:grid-cols-2 items-start">
+            {completed.map((e) => (
+              <CloseOutChecklist key={e.id} eventId={e.id} eventTitle={e.title} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Live events" value={live.length} hint="published & taking registrations" />
         <StatCard label="Total registered" value={data?.total_registered ?? 0} hint="across your events" />
         <StatCard label="My events" value={events.length} hint="proposed this term" />
-        <StatCard label="Completed" value={events.filter((e) => e.status === 'completed').length} hint="ready to reimburse & close" />
+        <StatCard label="Completed" value={completed.length} hint="ready to reimburse & close" />
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
@@ -191,6 +208,9 @@ export default function OrganiserDashboard() {
                       <div className={cx("flex flex-col gap-2 pt-2", (e.proposal_status === 'approved' && e.status !== 'completed') ? "" : "border-t border-white/5")}>
                         {e.proposal_status === 'approved' && e.status !== 'completed' && (
                           <>
+                            <Link to={`/events/${e.id}/live`} className="w-full">
+                              <Button size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Event day mode</Button>
+                            </Link>
                             <Link to={`/events/${e.id}/manage`} className="w-full">
                               <Button variant="secondary" size="sm" className="w-full justify-center text-[12px] py-1.5 h-auto">Manage Event</Button>
                             </Link>

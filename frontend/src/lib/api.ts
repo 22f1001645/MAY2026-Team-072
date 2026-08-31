@@ -18,6 +18,29 @@ import type {
   VenueSuggestion,
 } from './types'
 
+/** What the assistant sends back, in either mode. */
+export type AssistantAnswer = {
+  answer: string
+  links: { label: string; path: string; does: string }[]
+  /** "ai" when a model wrote it, "keyword" when it is a deterministic match. */
+  source: 'ai' | 'keyword'
+  /** "navigation" app-wide, "event" when scoped to an event you run. */
+  mode: 'navigation' | 'event'
+  /** A proposed broadcast awaiting a human. Never something already sent. */
+  draft: string | null
+}
+
+/** An approved event falling within a day and a half of a proposed one. */
+export type ClashingEvent = {
+  id: string
+  title: string
+  city: string
+  scale: string
+  venue: string | null
+  starts_at: string | null
+  organiser: string | null
+}
+
 /* ---------------------------------------------------------------------------
  * API client — Phase 2 (D-01, D-05, D-06, D-09).
  *
@@ -678,6 +701,18 @@ export const api = {
   }),
   leaveEvent: (id: string) => request(`/events/${id}/register`, { method: 'DELETE' }),
   myRegistrations: () => request<any[]>('/me/registrations'),
+  /** Approved events in the same city around a date — advisory, never blocking. */
+  clashes: (city: string, startsAt: string, excludeId?: string) =>
+    request<ClashingEvent[]>(
+      `/activities/clashes?city=${encodeURIComponent(city)}&starts_at=${encodeURIComponent(startsAt)}` +
+        (excludeId ? `&exclude_id=${encodeURIComponent(excludeId)}` : ''),
+    ),
+  /** Navigation help. The server filters the route catalogue by role first. */
+  assistantAsk: (question: string, activityId?: string) =>
+    request<AssistantAnswer>('/assistant/ask', {
+      method: 'POST',
+      body: JSON.stringify(activityId ? { question, activity_id: activityId } : { question }),
+    }),
   roster: (id: string) => request<any[]>(`/events/${id}/registrations`),
   checkIn: (id: string, registration_ids: string[]) =>
     request<{ checked_in: number; total_attended: number }>(`/events/${id}/attendance`, {

@@ -147,6 +147,34 @@ class ActivityRepository:
         )
 
     @staticmethod
+    def clashes_in_city(city, starts_at, window_hours=36, exclude_id=None):
+        """Approved activities in the same city within ``window_hours`` either side.
+
+        Two meetups in one city on one weekend split a turnout that neither can
+        afford to halve, and nothing in the system noticed until someone
+        recognised the date by eye. This is the query behind that warning.
+
+        Only approved, non-cancelled activities count: a pending proposal is not
+        yet a commitment, and warning about one would let an unapproved draft
+        block a real event. ``exclude_id`` keeps an activity from clashing with
+        itself when the check runs on an edit rather than a create.
+        """
+        if not city or not starts_at:
+            return []
+        window = timedelta(hours=window_hours)
+        q = (
+            Activity.query.join(Proposal)
+            .filter(Proposal.status == "approved")
+            .filter(Activity.city == city)
+            .filter(Activity.status != "cancelled")
+            .filter(Activity.starts_at >= starts_at - window)
+            .filter(Activity.starts_at <= starts_at + window)
+        )
+        if exclude_id:
+            q = q.filter(Activity.id != exclude_id)
+        return q.order_by(Activity.starts_at).all()
+
+    @staticmethod
     def published_feed(city=None, scale=None, date_range=None):
         q = Activity.query.filter(Activity.status.in_(["upcoming", "live"]))
         q = q.join(Proposal).filter(Proposal.status == "approved")

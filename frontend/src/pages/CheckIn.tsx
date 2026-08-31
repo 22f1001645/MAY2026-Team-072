@@ -3,6 +3,7 @@ import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
 import { useCheckIn, useEvent, useRoster, useScanQr, useDashboard } from '../lib/queries'
 import { Button, Card, SectionTitle } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
+import ExportButton from '../components/ExportButton'
 import { cx } from '../lib/format'
 
 // FR-D6: organiser marks registered students as attended (check-in) ->
@@ -260,6 +261,29 @@ export default function CheckIn() {
 
                 {/* Manual Roster Search */}
                 <Card className="flex flex-col h-[500px]">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/5 bg-onyx/20 px-4 pt-4">
+                    <span className="text-caption uppercase tracking-wider text-graytext-mid">Roster</span>
+                    {/* The attendance sheet is the record that settles "who actually
+                        came" for points, reimbursement and the term report, so it has
+                        to be able to leave the app. */}
+                    <ExportButton
+                      kind="attendance"
+                      subject={e.title}
+                      disabled={roster.length === 0}
+                      columns={['Name', 'Registration status', 'Attended', 'Event', 'City', 'Venue', 'Starts at']}
+                      rows={() =>
+                        roster.map((r: any) => ({
+                          Name: r.student ?? '',
+                          'Registration status': r.status ?? '',
+                          Attended: r.attended ? 'Yes' : 'No',
+                          Event: e.title,
+                          City: e.city ?? '',
+                          Venue: e.venue ?? '',
+                          'Starts at': e.startsAt ?? '',
+                        }))
+                      }
+                    />
+                  </div>
                   <div className="p-4 border-b border-white/5 bg-onyx/20">
                     <input
                       type="text"

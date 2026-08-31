@@ -21,6 +21,7 @@ import Expenses from './pages/Expenses'
 import CheckIn from './pages/CheckIn'
 import CampaignBuilder from './pages/CampaignBuilder'
 import KanbanWorkspace from './pages/KanbanWorkspace'
+import EventDayMode from './pages/EventDayMode'
 // Admin
 import ApprovalQueue from './pages/ApprovalQueue'
 import Reimbursements from './pages/Reimbursements'
@@ -191,6 +192,10 @@ function AppShell() {
         <Route path="/checkin" element={<RequireOrganiser><CheckIn /></RequireOrganiser>} />
         <Route path="/events/:id/campaign" element={<RequireOrganiser><CampaignBuilder /></RequireOrganiser>} />
         <Route path="/events/:id/workspace" element={<RequireOrganiser><KanbanWorkspace /></RequireOrganiser>} />
+        {/* One screen for the day itself — scanner, headcount, running order,
+            broadcast. Sits under /events/:id/ like the other organiser surfaces,
+            so isPublicEventPath keeps it behind the login redirect. */}
+        <Route path="/events/:id/live" element={<RequireOrganiser><EventDayMode /></RequireOrganiser>} />
 
         {/* Admin */}
         <Route path="/admin/approvals" element={<RequireAdmin><ApprovalQueue /></RequireAdmin>} />

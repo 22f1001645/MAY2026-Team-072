@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from flask import Blueprint, g, jsonify, request
 
 from ..errors import ApiError
@@ -30,6 +32,53 @@ def submit():
     data = ProposalSchema().load(request.get_json() or {})
     activity = proposal_service.submit_proposal(data, g.current_user)
     return jsonify(activity.to_dict(detail=True)), 201
+
+
+@proposal_bp.get("/activities/clashes")
+@organiser_required
+def clashes():
+    """Approved events in a city around a date — the date-clash warning (FR-B1).
+
+    Read-only and advisory. It never blocks a submission: a clash is sometimes
+    deliberate (a techno track and a sports track on the same Saturday), so the
+    call is the organiser's and the admin's to make. It only makes sure neither
+    of them makes it without knowing.
+
+    Organiser-gated rather than public because it exposes the approved calendar
+    for a city, including events an anonymous visitor has no reason to enumerate.
+    """
+    city = request.args.get("city")
+    starts_at_raw = request.args.get("starts_at")
+    exclude_id = request.args.get("exclude_id")
+
+    if not city or not starts_at_raw:
+        raise ApiError("city and starts_at are required", "validation_error", 400)
+
+    try:
+        # Accept the ISO-8601 the client already sends, with or without a Z.
+        starts_at = datetime.fromisoformat(starts_at_raw.replace("Z", "+00:00"))
+    except ValueError:
+        raise ApiError("starts_at must be an ISO-8601 datetime", "validation_error", 400)
+
+    # SQLAlchemy compares against naive UTC columns throughout this codebase.
+    if starts_at.tzinfo is not None:
+        starts_at = starts_at.astimezone(UTC).replace(tzinfo=None)
+
+    found = ActivityRepository.clashes_in_city(city, starts_at, exclude_id=exclude_id)
+    return jsonify(
+        [
+            {
+                "id": a.id,
+                "title": a.title,
+                "city": a.city,
+                "scale": a.scale,
+                "venue": a.venue,
+                "starts_at": a.starts_at.isoformat() + "Z" if a.starts_at else None,
+                "organiser": a.organiser.name if getattr(a, "organiser", None) else None,
+            }
+            for a in found
+        ]
+    ), 200
 
 
 @proposal_bp.get("/proposals")

@@ -13,6 +13,7 @@ import ViewSwitcher from './ViewSwitcher'
 import AcademicStatusBanner from './AcademicStatusBanner'
 import { ProfileModal } from './ProfileModal'
 import { GlobalEventChatModal } from './GlobalEventChatModal'
+import NavigatorAssistant from './NavigatorAssistant'
 
 interface NavItem {
   to?: string
@@ -427,6 +428,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         onClose={() => setProfileModalOpen(false)} 
       />
       <GlobalEventChatModal />
+      {/* Signed-in surfaces only: the answer is scoped to what this user can reach. */}
+      <NavigatorAssistant />
     </div>
   )
 }

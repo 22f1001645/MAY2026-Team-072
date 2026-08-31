@@ -46,6 +46,13 @@ export const useClashes = (city?: string, startsAt?: string, excludeId?: string)
     staleTime: 60_000,
   })
 
+/** Ask the assistant. A mutation, not a query: each ask is an event, not a cache key. */
+export const useAssistant = () =>
+  useMutation({
+    mutationFn: (v: { question: string; activityId?: string }) =>
+      api.assistantAsk(v.question, v.activityId),
+  })
+
 export const useRoster = (id?: string) =>
   useQuery({ queryKey: ['roster', id], queryFn: () => api.roster(id!), enabled: !!id })
 

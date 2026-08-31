@@ -17,6 +17,18 @@ import type {
   Role,
 } from './types'
 
+/** What the assistant sends back, in either mode. */
+export type AssistantAnswer = {
+  answer: string
+  links: { label: string; path: string; does: string }[]
+  /** "ai" when a model wrote it, "keyword" when it is a deterministic match. */
+  source: 'ai' | 'keyword'
+  /** "navigation" app-wide, "event" when scoped to an event you run. */
+  mode: 'navigation' | 'event'
+  /** A proposed broadcast awaiting a human. Never something already sent. */
+  draft: string | null
+}
+
 /** An approved event falling within a day and a half of a proposed one. */
 export type ClashingEvent = {
   id: string
@@ -692,6 +704,12 @@ export const api = {
       `/activities/clashes?city=${encodeURIComponent(city)}&starts_at=${encodeURIComponent(startsAt)}` +
         (excludeId ? `&exclude_id=${encodeURIComponent(excludeId)}` : ''),
     ),
+  /** Navigation help. The server filters the route catalogue by role first. */
+  assistantAsk: (question: string, activityId?: string) =>
+    request<AssistantAnswer>('/assistant/ask', {
+      method: 'POST',
+      body: JSON.stringify(activityId ? { question, activity_id: activityId } : { question }),
+    }),
   roster: (id: string) => request<any[]>(`/events/${id}/registrations`),
   checkIn: (id: string, registration_ids: string[]) =>
     request<{ checked_in: number; total_attended: number }>(`/events/${id}/attendance`, {

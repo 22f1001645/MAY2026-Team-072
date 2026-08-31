@@ -82,6 +82,45 @@ export const HOUSE_META: Record<string, { color: string; logo: string; imageLogo
   'Wayanad House': { color: '#a3e635', logo: '🐒', imageLogo: '/houses/wayanad.png', website: 'https://wayanad.iitmbs.org/' },
 }
 
+// Society visual identity — emoji icon + domain accent colour for every seeded
+// society. Exported so OrgLogo can extend its fallback ladder (rung 3) to
+// societies the same way it already does for Forest Houses.
+// Keys must exactly match the `name` column written by seed.py's SOCIETIES list.
+export const SOCIETY_META: Record<string, { logo: string; color: string; imageLogo?: string }> = {
+  'Aayam: IITM BS Drama Society':           { logo: '🎭', color: '#c084fc', imageLogo: '/societies/aayam.png' },
+  'Adhyay - The Civil Services Society':    { logo: '⚖️', color: '#fb923c', imageLogo: '/societies/adhyay.png' },
+  'AKORD Music Society':                    { logo: '🎵', color: '#f472b6', imageLogo: '/societies/akord.png' },
+  'AWS Cloud Club':                         { logo: '☁️', color: '#38bdf8', imageLogo: '/societies/aws-cloud-club.png' },
+  'Deva-Bhasha: The Sanskrit Society':      { logo: '🕉️', color: '#fbbf24', imageLogo: '/societies/deva-bhasha.png' },
+  'Amartya - The Finance Society':          { logo: '📈', color: '#34d399', imageLogo: '/societies/amartya.png' },
+  'Heighers eSports Society':               { logo: '🎮', color: '#818cf8', imageLogo: '/societies/heighers-esports.png' },
+  'Shah Maat - Chess Society':              { logo: '♟️', color: '#94a3b8', imageLogo: '/societies/shah-maat.png' },
+  'Pravaha: The Dance Society':             { logo: '💃', color: '#f472b6', imageLogo: '/societies/pravaha.png' },
+  'RAAHAT: Mental Health & Wellness Society': { logo: '🧠', color: '#6ee7b7', imageLogo: '/societies/raahat.png' },
+  'RaSoR: Ramanujan Society of Research':   { logo: '🔬', color: '#5CE6C9', imageLogo: '/societies/rasor.png' },
+  'SAHARA - The Social Welfare Society':    { logo: '🤝', color: '#fb923c', imageLogo: '/societies/sahara.png' },
+  'Sahityika: Literary Society':            { logo: '📚', color: '#fcd34d', imageLogo: '/societies/sahityika.png' },
+  'SYNAPSE':                                { logo: '🌐', color: '#a78bfa', imageLogo: '/societies/synapse.png' },
+  'WYZ Kids: IITM BS Quiz Society':         { logo: '🧩', color: '#FFCF96', imageLogo: '/societies/wyz-kids.png' },
+  'Boundless - IITM BS Travel Society':     { logo: '✈️', color: '#2dd4bf', imageLogo: '/societies/boundless.png' },
+  'Diplomacia':                             { logo: '🌍', color: '#60a5fa', imageLogo: '/societies/diplomacia.png' },
+  'JITSIE':                                 { logo: '🚀', color: '#f59e0b', imageLogo: '/societies/jitsie.png' },
+  'Business.io':                            { logo: '💼', color: '#4ade80', imageLogo: '/societies/business-io.png' },
+  'CodeCrafters Coding Society':            { logo: '💻', color: '#5CE6C9', imageLogo: '/societies/codecrafters.png' },
+  'Yantra Robotics Society':                { logo: '🤖', color: '#38bdf8', imageLogo: '/societies/yantra.png' },
+  'Sportify - Sports Society':              { logo: '🏅', color: '#a3e635', imageLogo: '/societies/sportify.png' },
+  'IRIS Society':                           { logo: '📷', color: '#e879f9', imageLogo: '/societies/iris.png' },
+  'AVASYA Society':                         { logo: '🛰️', color: '#06b6d4', imageLogo: '/societies/avasya.png' },
+  'Nature Nurture Society':                 { logo: '🌿', color: '#4ade80', imageLogo: '/societies/nature-nurture.png' },
+  'JARVIS':                                 { logo: '🤖', color: '#818cf8', imageLogo: '/societies/jarvis.png' },
+  'Alpha Gamma Nu':                         { logo: '🌟', color: '#fbbf24', imageLogo: '/societies/alpha-gamma-nu.png' },
+  'Tech Society':                           { logo: '⚙️', color: '#5CE6C9', imageLogo: '/societies/tech-society.jpg' },
+  'Women in Tech Society':                  { logo: '👩‍💻', color: '#f472b6', imageLogo: '/societies/women-in-tech.png' },
+  'Pixels N Panels':                        { logo: '🎬', color: '#c084fc', imageLogo: '/societies/pixels-n-panels.jpg' },
+  'Veritas':                                { logo: '🎹', color: '#94a3b8', imageLogo: '/societies/veritas.png' },
+  'General Management Club':                { logo: '📈', color: '#f59e0b', imageLogo: '/societies/general-management-club.png' },
+}
+
 const HOUSE_POR_TYPES = [
   'House Secretary',
   'Deputy House Secretary',

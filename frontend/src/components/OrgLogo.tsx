@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HOUSE_META } from '../pages/Orgs'
+import { HOUSE_META, SOCIETY_META } from '../pages/Orgs'
 import { cx } from '../lib/format'
 
 /* The single logo renderer (04-UI-SPEC.md S3, S8).
@@ -39,10 +39,11 @@ export interface LogoOrg {
  *  dialog passes 2 to ask "what would this organisation fall back to?" so its
  *  copy names the true outcome rather than guessing. */
 export function resolveRung(org: LogoOrg, from: Rung = 1): Rung {
-  const meta = org.type === 'house' ? HOUSE_META[org.name] : undefined
+  const houseMeta = org.type === 'house' ? HOUSE_META[org.name] : undefined
+  const societyMeta = org.type === 'society' ? SOCIETY_META[org.name] : undefined
   if (from <= 1 && org.logoUrl) return 1
-  if (from <= 2 && meta?.imageLogo) return 2
-  if (from <= 3 && meta?.logo) return 3
+  if (from <= 2 && (houseMeta?.imageLogo || societyMeta?.imageLogo)) return 2
+  if (from <= 3 && (houseMeta?.logo || societyMeta?.logo)) return 3
   return 4
 }
 
@@ -90,6 +91,9 @@ export function OrgLogo({
   const floor = floorFor.identity === identity ? floorFor.floor : 1
 
   const meta = org.type === 'house' ? HOUSE_META[org.name] : undefined
+  const societyMeta = org.type === 'society' ? SOCIETY_META[org.name] : undefined
+  // The active identity source — whichever of the two is non-null
+  const activeMeta: { logo: string; color: string; imageLogo?: string } | undefined = meta ?? societyMeta
   const rung: Rung = previewUrl ? 1 : resolveRung(org, floor)
   const fall = (to: Rung) => setFloorFor({ identity, floor: to })
 
@@ -101,14 +105,13 @@ export function OrgLogo({
       : 'grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-[36px] shadow-lg overflow-hidden'
 
   // The tint follows the rung that actually rendered. Uploaded artwork carries
-  // its own colour, so a house tint behind it would produce a pairing the
-  // uploader never chose; rungs 2 and 3 keep the seeded tint exactly as it is
-  // on /admin/orgs today.
-  const tinted = (rung === 2 || rung === 3) && !!meta
+  // its own colour, so a house/society tint behind it would produce a pairing
+  // the uploader never chose; rungs 2 and 3 keep the seeded tint exactly.
+  const tinted = (rung === 2 || rung === 3) && !!activeMeta
   const tint = tinted
     ? size === 40
-      ? { background: `${meta!.color}18`, color: meta!.color }
-      : { background: `${meta!.color}20`, color: meta!.color, border: `1px solid ${meta!.color}40` }
+      ? { background: `${activeMeta!.color}18`, color: activeMeta!.color }
+      : { background: `${activeMeta!.color}20`, color: activeMeta!.color, border: `1px solid ${activeMeta!.color}40` }
     : undefined
   const neutral = rung === 4 ? 'bg-white/[0.06]' : 'bg-white/[0.04] border border-white/10'
 
@@ -128,7 +131,7 @@ export function OrgLogo({
       )}
       {rung === 2 && (
         <img
-          src={meta!.imageLogo}
+          src={activeMeta!.imageLogo!}
           alt={`${org.name} logo`}
           className="h-full w-full object-cover"
           onError={() => fall(3)}
@@ -136,7 +139,7 @@ export function OrgLogo({
       )}
       {/* Rungs 3 and 4 are decorative text inside a tile that sits beside the
           organisation's name — a screen reader should hear the name once. */}
-      {rung === 3 && <span aria-hidden>{meta!.logo}</span>}
+      {rung === 3 && <span aria-hidden>{activeMeta!.logo}</span>}
       {rung === 4 && (
         <span
           aria-hidden

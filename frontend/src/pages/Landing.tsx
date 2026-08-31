@@ -190,12 +190,12 @@ export default function Landing() {
             ].map(([pain, fix]) => (
               <div
                 key={pain}
-                className="flex items-center gap-4 rounded-xl2 border border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent p-4"
+                className="grid grid-cols-[1fr_auto_1.2fr] items-center gap-4 rounded-xl2 border border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent p-4"
               >
-                <span className="text-[13px] text-graytext-mid line-through decoration-red-400/50">
+                <span className="text-[13px] text-graytext-mid">
                   {pain}
                 </span>
-                <svg className="ml-auto shrink-0 text-teal" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="shrink-0 text-teal" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="text-[13px] font-semibold text-teal">{fix}</span>

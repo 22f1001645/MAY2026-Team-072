@@ -89,6 +89,9 @@ export default function ManageEvent() {
             )}
             {e.status !== 'completed' && (
               <>
+                <Link to={`/events/${e.id}/campaign`}>
+                  <Button variant="secondary">Campaign</Button>
+                </Link>
                 <Button variant="secondary" onClick={() => setAlertOpen(true)}>Push Alerts</Button>
               </>
             )}

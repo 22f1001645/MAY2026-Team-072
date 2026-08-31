@@ -7,6 +7,7 @@ import { Badge, Button, Card, Input, SectionTitle, StatCard, useToast } from '..
 import { Loading, ErrorState } from '../components/states'
 import { cover, coverForScale, daysUntil, formatDate, formatTime, cx, googleCalendarLink, googleCalendarDayLink } from '../lib/format'
 import { useSession } from '../lib/session'
+import { downloadCertificate } from '../lib/certificate'
 import { useAuth } from '../lib/auth'
 import { CalendarWidget } from '../components/CalendarWidget'
 
@@ -330,6 +331,31 @@ export default function MyRegistrations() {
                         onClick={() => setSearchParams({ chat: a.id })}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                      </button>
+                    )}
+                    {/* Only for a verified attendance: the certificate attests to a
+                        scan at the door, so it must never appear for someone who
+                        merely registered. */}
+                    {r.attended && (
+                      <button
+                        onClick={() =>
+                          downloadCertificate({
+                            studentName: userName || 'Ekatva participant',
+                            eventTitle: a.title,
+                            eventDate: formatDate(a.startsAt),
+                            city: a.city,
+                            venue: a.venue,
+                            reference: r.id,
+                          })
+                        }
+                        className="h-9 w-9 rounded-full bg-white/5 flex items-center justify-center text-gold transition-colors hover:bg-gold hover:text-onyx"
+                        title="Download participation certificate"
+                        aria-label="Download participation certificate"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="8" r="5" />
+                          <path d="M8.5 12.5 7 22l5-2.5L17 22l-1.5-9.5" />
+                        </svg>
                       </button>
                     )}
                     {a.status === 'upcoming' && !isWaitlisted && (

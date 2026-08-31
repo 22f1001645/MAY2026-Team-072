@@ -49,6 +49,18 @@ function DomainIcon({ domain, className }: { domain: string; className?: string 
   }
 }
 
+function ToggleChevron({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+      strokeLinecap="round" strokeLinejoin="round"
+      className={cx('text-graytext-mid transition-transform duration-200', collapsed ? '-rotate-90' : 'rotate-0')}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
 // 12 Forest Houses with national park metadata.
 //
 // Exported, not deleted (04-07 P-04). From Phase 4 it is the data behind rungs
@@ -148,6 +160,7 @@ export default function Orgs() {
   const [porRegionFilter, setPorRegionFilter] = useState('')
   const [societyDomainFilter, setSocietyDomainFilter] = useState('all')
   const [societyViewMode, setSocietyViewMode] = useState<'grid' | 'list'>('grid')
+  const [collapsedDomains, setCollapsedDomains] = useState<Set<string>>(new Set())
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
 
   // Members / Academic Status state
@@ -370,7 +383,7 @@ export default function Orgs() {
   const filteredOrgs = orgs.filter((o: any) => o.type !== 'house' && o.type !== 'region')
 
   const tabs = [
-    ['houses', `12 Forest Houses`],
+    ['houses', `12 Houses`],
     ['orgs', `Societies & Councils (${filteredOrgs.length})`],
     ['cities', `Regions & Cities`],
     ['pors', `POR Directory (${pors.length})`],
@@ -457,7 +470,6 @@ export default function Orgs() {
               </div>
             </div>
           </div>
-          {o.category && <Badge tone={DOMAIN_TONE[o.category] || 'teal'}>{o.category}</Badge>}
         </div>
 
         {o.tagline && (
@@ -496,7 +508,6 @@ export default function Orgs() {
         <div className="text-[14px] font-bold text-offwhite group-hover:text-teal transition-colors">{o.name}</div>
         {o.tagline && <div className="text-caption text-graytext-mid italic truncate">"{o.tagline}"</div>}
       </div>
-      {o.category && <Badge tone={DOMAIN_TONE[o.category] || 'teal'}>{o.category}</Badge>}
       <div className="hidden sm:block">{renderSocietyPORChips(o)}</div>
       <span className="ml-auto text-teal group-hover:underline flex items-center gap-1 text-[12px] font-medium shrink-0">
         View profile →
@@ -791,47 +802,75 @@ export default function Orgs() {
 
             {societyViewMode === 'grid' ? (
               <div className="space-y-8">
-                {visibleSocietyDomainGroups.map(({ domain, items }) => (
-                  <div key={domain}>
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className={cx('flex h-7 w-7 items-center justify-center rounded-lg', {
-                        teal: 'bg-teal/10 text-teal',
-                        gold: 'bg-gold/10 text-gold',
-                        success: 'bg-emerald-400/10 text-emerald-300',
-                        danger: 'bg-red-400/10 text-red-300',
-                      }[DOMAIN_TONE[domain] || 'teal'])}>
-                        <DomainIcon domain={domain} />
-                      </span>
-                      <h4 className="text-[14px] font-bold text-offwhite">{domain}</h4>
-                      <span className="text-[12px] text-graytext-mid">({items.length})</span>
+                {visibleSocietyDomainGroups.map(({ domain, items }) => {
+                  const collapsed = collapsedDomains.has(domain)
+                  return (
+                    <div key={domain}>
+                      <button
+                        type="button"
+                        onClick={() => setCollapsedDomains(prev => {
+                          const next = new Set(prev)
+                          next.has(domain) ? next.delete(domain) : next.add(domain)
+                          return next
+                        })}
+                        className="mb-3 flex w-full items-center gap-2 rounded-md py-1 text-left hover:bg-white/[0.03] transition-colors"
+                      >
+                        <ToggleChevron collapsed={collapsed} />
+                        <span className={cx('flex h-7 w-7 items-center justify-center rounded-lg', {
+                          teal: 'bg-teal/10 text-teal',
+                          gold: 'bg-gold/10 text-gold',
+                          success: 'bg-emerald-400/10 text-emerald-300',
+                          danger: 'bg-red-400/10 text-red-300',
+                        }[DOMAIN_TONE[domain] || 'teal'])}>
+                          <DomainIcon domain={domain} />
+                        </span>
+                        <h4 className="text-[14px] font-bold text-offwhite">{domain}</h4>
+                        <span className="text-[12px] text-graytext-mid">({items.length})</span>
+                      </button>
+                      {!collapsed && (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {items.map((o: any) => renderSocietyCard(o))}
+                        </div>
+                      )}
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {items.map((o: any) => renderSocietyCard(o))}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="space-y-6">
-                {visibleSocietyDomainGroups.map(({ domain, items }) => (
-                  <div key={domain}>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className={cx('flex h-6 w-6 items-center justify-center rounded-md', {
-                        teal: 'bg-teal/10 text-teal',
-                        gold: 'bg-gold/10 text-gold',
-                        success: 'bg-emerald-400/10 text-emerald-300',
-                        danger: 'bg-red-400/10 text-red-300',
-                      }[DOMAIN_TONE[domain] || 'teal'])}>
-                        <DomainIcon domain={domain} />
-                      </span>
-                      <h4 className="text-[13px] font-bold text-offwhite">{domain}</h4>
-                      <span className="text-[12px] text-graytext-mid">({items.length})</span>
+                {visibleSocietyDomainGroups.map(({ domain, items }) => {
+                  const collapsed = collapsedDomains.has(domain)
+                  return (
+                    <div key={domain}>
+                      <button
+                        type="button"
+                        onClick={() => setCollapsedDomains(prev => {
+                          const next = new Set(prev)
+                          next.has(domain) ? next.delete(domain) : next.add(domain)
+                          return next
+                        })}
+                        className="mb-2 flex w-full items-center gap-2 rounded-md py-1 text-left hover:bg-white/[0.03] transition-colors"
+                      >
+                        <ToggleChevron collapsed={collapsed} />
+                        <span className={cx('flex h-6 w-6 items-center justify-center rounded-md', {
+                          teal: 'bg-teal/10 text-teal',
+                          gold: 'bg-gold/10 text-gold',
+                          success: 'bg-emerald-400/10 text-emerald-300',
+                          danger: 'bg-red-400/10 text-red-300',
+                        }[DOMAIN_TONE[domain] || 'teal'])}>
+                          <DomainIcon domain={domain} />
+                        </span>
+                        <h4 className="text-[13px] font-bold text-offwhite">{domain}</h4>
+                        <span className="text-[12px] text-graytext-mid">({items.length})</span>
+                      </button>
+                      {!collapsed && (
+                        <Card className="overflow-hidden p-0">
+                          {items.map((o: any) => renderSocietyListRow(o))}
+                        </Card>
+                      )}
                     </div>
-                    <Card className="overflow-hidden p-0">
-                      {items.map((o: any) => renderSocietyListRow(o))}
-                    </Card>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

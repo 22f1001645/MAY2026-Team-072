@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useEvents, useMyRegistrations, useCities, useSubscribeToCityAlert } from '../lib/queries'
+import { uploadUrl } from '../lib/api'
 import { Badge, Button, Card } from '../components/ui'
 import { Loading, ErrorState } from '../components/states'
 import { cover, scaleLabel, daysUntil, cx, formatDate, formatTime } from '../lib/format'
@@ -293,11 +294,14 @@ function FeaturedCarousel({ events, isLoading }: { events: EkatvaEvent[], isLoad
         style={{ transform: `translateX(-${activeIndex * 100}%)` }}
       >
         {events.map((e, idx) => (
-          <section 
+          <section
             key={e.id}
             className="w-full h-full shrink-0 relative flex flex-col items-center justify-center text-center p-10 bg-200 animate-gradient-shift"
-            style={{ backgroundImage: cover(e.cover) }}
+            style={!e.posterName ? { backgroundImage: cover(e.cover) } : {}}
           >
+            {e.posterName && (
+              <img src={uploadUrl(e.posterName)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            )}
             <div className="absolute inset-0 bg-onyx/60 backdrop-blur-sm" />
             <div className="grain absolute inset-0 mix-blend-overlay opacity-50" />
             
@@ -398,9 +402,13 @@ function EventCard({ e, isRegistered, compact }: { e: EkatvaEvent; isRegistered?
     <Card hover className="h-full overflow-hidden flex flex-col group/card">
       <div
         className={cx("relative flex items-end p-4 transition-transform duration-500 hover:scale-105 bg-200 animate-gradient-shift", compact ? "h-24" : "h-32")}
-        style={{ backgroundImage: cover(e.cover) }}
+        style={!e.posterName ? { backgroundImage: cover(e.cover) } : {}}
       >
-        <div className="grain absolute inset-0" />
+        {e.posterName && (
+          <img src={uploadUrl(e.posterName)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        {e.posterName && <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />}
+        {!e.posterName && <div className="grain absolute inset-0" />}
         <div className="relative flex w-full items-center justify-between">
           <Badge tone="gold">{daysUntil(e.startsAt)}</Badge>
           {!compact && !isRegistered && (

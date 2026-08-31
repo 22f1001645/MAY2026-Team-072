@@ -39,6 +39,7 @@ from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.constants import (
+    CAMPAIGN_LIVE,
     HOUSES,
     POINTS,
     REGIONS,
@@ -53,6 +54,7 @@ from app.models import (
     ActivityTeamMember,
     Attendance,
     BudgetLine,
+    CampaignPackage,
     City,
     ContributionPoint,
     Expense,
@@ -322,6 +324,35 @@ def seed_reference_data():
     return {"created": created, "existing": existing}
 
 
+def _attach_live_poster(activity, filename: str, approver):
+    now = datetime.utcnow()
+    db.session.add(CampaignPackage(
+        activity_id=activity.id, poster_name=filename, status=CAMPAIGN_LIVE,
+        approved_by=approver.id, approved_at=now, pushed_live_at=now,
+    ))
+
+
+def _seed_poster_from_file(activity, source: Path, approver):
+    """Copy a real designed poster (checked into app/seed_assets/) into the
+    upload store and attach it as a pushed-live campaign.
+
+    Goes through the same magic-byte sniff a real upload would (T-04-18)
+    rather than trusting the file's extension, so a bad asset fails loudly at
+    seed time instead of silently 404ing every `<img>` that points at it.
+    """
+    from uuid import uuid4
+
+    from app.controllers.upload_controller import IMAGE_MAGIC_BYTES, sniff_image_ext, upload_dir
+
+    data = source.read_bytes()
+    ext = sniff_image_ext(data[:IMAGE_MAGIC_BYTES])
+    if ext is None:
+        raise ValueError(f"{source} isn't a PNG/JPEG/WebP the upload route would accept")
+    name = f"{uuid4().hex}{ext}"
+    (upload_dir() / name).write_bytes(data)
+    _attach_live_poster(activity, name, approver)
+
+
 def seed_demo_data(app):
     """Seed the demo world: accounts, PORs, three activities and their history.
 
@@ -502,6 +533,16 @@ def seed_demo_data(app):
         # still computed from the pair above (T-07-01).
         db.session.add(OrgProgressionUnlock(org_id=orgs["neelgiri"].id, city="Hyderabad"))
 
+        db.session.flush()
+
+        # Live posters (CAMPAIGN-03/06) for the two upcoming events, so the
+        # discovery feed has real designed posters instead of a placeholder.
+        _seed_poster_from_file(
+            fest, BACKEND_ROOT / "app" / "seed_assets" / "hyderabad-regional-fest-poster.png", admin,
+        )
+        _seed_poster_from_file(
+            boardgames, BACKEND_ROOT / "app" / "seed_assets" / "bangalore-boardgame-night-poster.jpg", admin,
+        )
         db.session.flush()
 
         # Registrations

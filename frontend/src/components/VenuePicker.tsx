@@ -10,7 +10,7 @@ const DEBOUNCE_MS = 300
 /** Venue field with search-as-you-type suggestions.
  *
  *  The typed text is ALWAYS the value. Picking a suggestion is a convenience,
- *  never a gate: with no MAPPLS_API_KEY configured the endpoint answers 501,
+ *  never a gate: with no Mappls credentials configured the endpoint answers 501,
  *  `api.venueAutocomplete` resolves to [], and this quietly behaves like the
  *  plain input it replaced. Same for an upstream timeout — a suggestion service
  *  having a bad day must not look like a form error.

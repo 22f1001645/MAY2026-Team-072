@@ -10,6 +10,7 @@ from ..constants import (
     ATTENDANCE_METHOD_MANUAL,
     BRAND_KIT_MANUAL,
     CAMPAIGN_DRAFT,
+    CAMPAIGN_LIVE,
     COLLAB_ACCEPTED,
     COLLAB_PENDING,
     MEGA_MEETUP_THRESHOLD,
@@ -388,6 +389,9 @@ class Activity(Base):
             "organiser": self.organiser.name if self.organiser else None,
             "proposal_status": self.proposal.status if self.proposal else None,
             "is_mega_meetup": self.is_mega_meetup,  # PROPOSAL-03
+            # Public only once the campaign is pushed live (CAMPAIGN-06 gate) —
+            # a draft/pending poster stays private to the organiser workspace.
+            "poster_name": self.campaign.poster_name if self.campaign and self.campaign.status == CAMPAIGN_LIVE else None,
         }
         if detail:
             d["description"] = self.description

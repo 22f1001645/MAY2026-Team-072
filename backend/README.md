@@ -49,10 +49,27 @@ those into the client bundle.
 | Variable | Unset behaviour |
 |---|---|
 | `GEMINI_API_KEY` | AI-drafted brand kit (ORG-04) is off; the endpoint answers 503. |
-| `MAPPLS_API_KEY` | Venue autocomplete is off; `GET /venues/autocomplete` answers 501 and the proposal form's venue field behaves as a plain text input. |
+| `MAPPLS_CLIENT_ID` + `MAPPLS_CLIENT_SECRET` | Venue autocomplete is off; `GET /venues/autocomplete` answers 501 and the proposal form's venue field behaves as a plain text input. Both are required — one alone counts as unset. |
 
-The app is fully usable with neither set, which is how it should be run by anyone who
-has not signed up for those services.
+The app is fully usable with none of them set, which is how it should be run by anyone
+who has not signed up for those services.
+
+### Venue autocomplete setup (Mappls)
+
+Mappls issues no static API key. Create an account at
+<https://apis.mappls.com/console/>, create a project, and copy its **`client_id`** and
+**`client_secret`** — not the "REST API key", which belongs to a different auth path.
+`venue_service` exchanges the pair for a bearer token (valid ~24h) and caches it, so
+the token endpoint is hit about once a day per process rather than per request.
+
+```bash
+export MAPPLS_CLIENT_ID=...
+export MAPPLS_CLIENT_SECRET=...
+```
+
+Never commit these and never re-expose them under a `VITE_*` name — Vite inlines those
+into the client bundle, which would hand the credential to every visitor. Rejected
+credentials degrade the same way as an outage: the field keeps working as plain text.
 
 **`downgrade` is a development-only affordance.** It is never part of a deployment step: on
 SQLite a downgrade is executed as a table copy, and rolling one back against real data is a

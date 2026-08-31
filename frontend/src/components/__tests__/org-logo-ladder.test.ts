@@ -33,6 +33,23 @@ describe('the logo fallback ladder', () => {
     expect(resolveRung({ name: 'Rhythm Dance Society', type: 'society', logoUrl: null })).toBe(4)
   })
 
+  it('gives a known society the emoji-glyph rung (rung 3) once the image rung is exhausted', () => {
+    // SOCIETY_META covers seeded societies; type gates eligibility as above.
+    expect(resolveRung({ name: 'AKORD Music Society', type: 'society', logoUrl: null }, 3)).toBe(3)
+    expect(resolveRung({ name: 'CodeCrafters Coding Society', type: 'society', logoUrl: null }, 3)).toBe(3)
+  })
+
+  it('gives a society with an imageLogo the image rung (rung 2)', () => {
+    // AVASYA Society and AWS Cloud Club have real PNG logos — they reach rung 2.
+    expect(resolveRung({ name: 'AVASYA Society', type: 'society', logoUrl: null })).toBe(2)
+    expect(resolveRung({ name: 'AWS Cloud Club', type: 'society', logoUrl: null })).toBe(2)
+  })
+
+  it('puts an uploaded logo above the society imageLogo and emoji glyph', () => {
+    expect(resolveRung({ name: 'AVASYA Society', type: 'society', logoUrl: 'https://api.test/logo.png' })).toBe(1)
+    expect(resolveRung({ name: 'AKORD Music Society', type: 'society', logoUrl: 'https://api.test/logo.png' })).toBe(1)
+  })
+
   it('reaches a rung for every organisation — there is no fifth state', () => {
     expect(resolveRung({ name: '', type: 'council', logoUrl: null })).toBe(4)
   })

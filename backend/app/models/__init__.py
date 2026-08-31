@@ -897,6 +897,7 @@ class Expense(Base):
             "amount": self.amount,
             "status": self.status,
             "bill_name": self.bill_name,
+            "bill_url": f"/api/v1/uploads/{self.bill_name}" if self.bill_name else None,
             "submitted_by": self.submitted_by,
             "social_post_url": self.social_post_url,
         }

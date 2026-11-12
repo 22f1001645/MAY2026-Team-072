@@ -126,6 +126,8 @@ SOCIETIES = [
     ("Tech Society", "Technical", "Technology learning, peer projects and events."),
     ("Women in Tech Society", "Impact", "Community, mentoring and representation in technology."),
     ("Pixels N Panels", "Cultural", "Film, anime and pop culture society."),
+    ("Veritas", "Cultural", "Music society for instrumental and vocal performance."),
+    ("General Management Club", "Technical", "Management case studies and business strategy community."),
 ]
 
 
